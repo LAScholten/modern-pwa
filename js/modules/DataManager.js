@@ -255,7 +255,7 @@ class DataManager extends BaseModule {
                 storageFeaturesTitle: "💾 Vorteile der Dateispeicherung:",
                 storageFeature1: "📁 Wählen Sie Ihren eigenen Ordner auf dem Computer",
                 storageFeature2: "💾 Einfache Backups (nur Ordner kopieren)",
-                storageFeature3: "🔄 Synchronisation zwischen Geräten möglich",
+                storageFeature3: "🔄 Synchronisation zwischen Geräten mogelijk",
                 storageFeature4: "🔒 Mehr Kontrolle über Ihre Daten",
                 storageWarning: "⚠️ Wichtig:",
                 storageWarningText: "Bei Dateispeicherung müssen Sie einen Ordner auswählen. Die App wird Sie danach fragen."
@@ -636,6 +636,69 @@ class DataManager extends BaseModule {
             return;
         }
         
+        // Maak zeker dat storageSelector bestaat
+        if (!window.storageSelector) {
+            window.storageSelector = new (class {
+                async showSelectorModal() {
+                    console.log('Eenvoudige storage selector wordt getoond...');
+                    this.showSimpleSelector();
+                }
+                
+                showSimpleSelector() {
+                    const html = `
+                        <div class="modal-backdrop fade show"></div>
+                        <div class="modal fade show d-block" style="background-color: rgba(0,0,0,0.5);">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content">
+                                    <div class="modal-header bg-primary text-white">
+                                        <h5 class="modal-title">Opslag Selector</h5>
+                                        <button type="button" class="btn-close btn-close-white" onclick="document.querySelector('.simple-storage-selector').remove(); document.querySelector('.modal-backdrop.fade.show:last-child').remove();"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p>Selecteer opslagtype:</p>
+                                        <div class="d-grid gap-2">
+                                            <button class="btn btn-success" onclick="switchToFileSystem()">
+                                                <i class="bi bi-folder"></i> Bestandsopslag
+                                            </button>
+                                            <button class="btn btn-primary" onclick="switchToIndexedDB()">
+                                                <i class="bi bi-browser-chrome"></i> Browser Opslag
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    const div = document.createElement('div');
+                    div.className = 'simple-storage-selector';
+                    div.innerHTML = html;
+                    document.body.appendChild(div);
+                    
+                    // Voeg functies toe aan window
+                    window.switchToFileSystem = async () => {
+                        try {
+                            await storageManager.initialize('filesystem');
+                            alert('Bestandsopslag geactiveerd! Selecteer een map.');
+                            location.reload();
+                        } catch (error) {
+                            alert('Fout: ' + error.message);
+                        }
+                    };
+                    
+                    window.switchToIndexedDB = async () => {
+                        try {
+                            await storageManager.initialize('indexeddb');
+                            alert('Browser opslag geactiveerd!');
+                            location.reload();
+                        } catch (error) {
+                            alert('Fout: ' + error.message);
+                        }
+                    };
+                }
+            })();
+        }
+        
         const useFileSystemBtn = document.getElementById('useFileSystemBtn');
         if (useFileSystemBtn) {
             useFileSystemBtn.addEventListener('click', async () => {
@@ -649,12 +712,16 @@ class DataManager extends BaseModule {
                         throw new Error('Storage manager niet beschikbaar');
                     }
                     
+                    // Initialiseer FileSystem
                     await storageManager.initialize('filesystem');
+                    
+                    // IMPORTANT: Migreer bestaande data
+                    await this.migrateToFileSystem();
                     
                     this.loadStorageStatus();
                     
                     if (window.uiHandler && window.uiHandler.showSuccess) {
-                        window.uiHandler.showSuccess('Bestandsopslag geactiveerd! Selecteer een map.');
+                        window.uiHandler.showSuccess('Bestandsopslag geactiveerd! Data is opgeslagen in de geselecteerde map.');
                     }
                     
                     if (window.updateStorageStatus) {
@@ -715,13 +782,95 @@ class DataManager extends BaseModule {
         }
         
         const openStorageSettingsBtn = document.getElementById('openStorageSettingsBtn');
-        if (openStorageSettingsBtn && window.storageSelector) {
+        if (openStorageSettingsBtn) {
             openStorageSettingsBtn.addEventListener('click', () => {
-                window.storageSelector.showSelectorModal();
+                if (window.storageSelector && window.storageSelector.showSelectorModal) {
+                    window.storageSelector.showSelectorModal();
+                } else {
+                    console.error('Storage selector niet beschikbaar');
+                    if (window.uiHandler && window.uiHandler.showError) {
+                        window.uiHandler.showError('Opslag selector niet beschikbaar');
+                    }
+                }
             });
         }
         
         this.loadStorageStatus();
+    }
+    
+    async migrateToFileSystem() {
+        try {
+            console.log('Migreer bestaande data naar FileSystem...');
+            
+            if (!window.db) {
+                throw new Error('Database niet beschikbaar');
+            }
+            
+            if (!window.storageManager) {
+                throw new Error('StorageManager niet beschikbaar');
+            }
+            
+            // Haal alle honden op
+            const honden = await this.db.getHonden();
+            console.log(`Migreer ${honden.length} honden naar FileSystem...`);
+            
+            // Sla elke hond op in FileSystem
+            for (const hond of honden) {
+                if (hond.stamboomnr) {
+                    await storageManager.save(`hond_${hond.stamboomnr}`, hond);
+                } else if (hond.id) {
+                    await storageManager.save(`hond_${hond.id}`, hond);
+                }
+            }
+            
+            // Haal foto's op (als de functie beschikbaar is)
+            if (typeof this.db.getAllFotos === 'function') {
+                try {
+                    const fotos = await this.db.getAllFotos();
+                    console.log(`Migreer ${fotos.length} foto's naar FileSystem...`);
+                    
+                    // Groepeer foto's per stamboomnr
+                    const fotosPerHond = {};
+                    fotos.forEach(foto => {
+                        if (foto.stamboomnr) {
+                            if (!fotosPerHond[foto.stamboomnr]) {
+                                fotosPerHond[foto.stamboomnr] = [];
+                            }
+                            fotosPerHond[foto.stamboomnr].push(foto);
+                        }
+                    });
+                    
+                    // Sla gegroepeerde foto's op
+                    for (const [stamboomnr, hondFotos] of Object.entries(fotosPerHond)) {
+                        await storageManager.save(`fotos_${stamboomnr}`, hondFotos);
+                    }
+                } catch (fotoError) {
+                    console.log('Foto migratie overslagen:', fotoError);
+                }
+            }
+            
+            // Haal privé info op (als de functie beschikbaar is)
+            if (typeof this.db.getAllPriveInfo === 'function') {
+                try {
+                    const priveInfo = await this.db.getAllPriveInfo();
+                    console.log(`Migreer ${priveInfo.length} privé records naar FileSystem...`);
+                    
+                    for (const prive of priveInfo) {
+                        if (prive.stamboomnr) {
+                            await storageManager.save(`prive_${prive.stamboomnr}`, prive);
+                        }
+                    }
+                } catch (priveError) {
+                    console.log('Privé info migratie overslagen:', priveError);
+                }
+            }
+            
+            console.log('Data migratie naar FileSystem voltooid!');
+            
+        } catch (error) {
+            console.error('Fout bij migratie naar FileSystem:', error);
+            throw error;
+        }
     }
     
     async loadStorageStatus() {
@@ -1749,4 +1898,9 @@ class DataManager extends BaseModule {
             console.error(`${this.t('statsError')}${error}`);
         }
     }
+}
+
+// Maak DataManager globaal beschikbaar
+if (!window.dataManager) {
+    window.dataManager = new DataManager();
 }

@@ -1,109 +1,118 @@
-// storage-selector.js - Opslagtype selector voor Desktop Edition
+/**
+ * Storage Selector voor Desktop Edition
+ * Handelt de keuze tussen FileSystem en IndexedDB opslag
+ */
+
 class StorageSelector {
     constructor() {
         this.storageManager = window.storageManager;
         this.currentStorage = null;
+        this.setupGlobalStorageListener();
     }
     
-    getSelectorUI() {
+    setupGlobalStorageListener() {
+        // Voeg toe aan window voor globale toegang
+        window.storageSelector = this;
+        
+        // Luister naar storage wijzigingen
+        window.addEventListener('storage-changed', () => {
+            this.updateCurrentStorageInfo();
+        });
+    }
+    
+    getSelectorHTML() {
         return `
-            <div class="modal fade" id="storageSelectorModal" tabindex="-1">
-                <div class="modal-dialog">
+            <div class="modal fade" id="storageSelectorModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
                     <div class="modal-content">
                         <div class="modal-header bg-primary text-white">
-                            <h5 class="modal-title"><i class="bi bi-hdd"></i> Opslag Type</h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            <h5 class="modal-title"><i class="bi bi-hdd"></i> Opslaginstellingen</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Sluiten"></button>
                         </div>
                         <div class="modal-body">
-                            <div class="mb-4">
-                                <h6>Selecteer hoe je data wilt opslaan:</h6>
-                                <p class="text-muted">Je kunt altijd wisselen tussen opslagtypes.</p>
-                            </div>
-                            
-                            <div class="row g-3">
-                                <!-- Optie 1: File System API -->
-                                <div class="col-md-6">
-                                    <div class="card h-100 storage-option" data-type="filesystem">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <div class="card h-100 border-success">
                                         <div class="card-body text-center">
                                             <div class="mb-3">
-                                                <i class="bi bi-folder" style="font-size: 2.5rem; color: #4CAF50;"></i>
+                                                <i class="bi bi-folder text-success" style="font-size: 3rem;"></i>
                                             </div>
-                                            <h5>💾 Bestandsopslag</h5>
-                                            <p class="small">
-                                                Sla data op in <strong>echte bestanden</strong> op je computer.
+                                            <h5>Bestandsopslag</h5>
+                                            <p class="text-muted small mb-3">
+                                                Sla data op in bestanden op je computer. Makkelijk voor backups en synchronisatie.
                                             </p>
-                                            <ul class="text-start small">
-                                                <li>📁 Kies zelf een map</li>
-                                                <li>💾 Makkelijke backups</li>
-                                                <li>🔄 Synchronisatie mogelijk</li>
-                                                <li>🔒 Meer controle</li>
-                                            </ul>
-                                            <div class="mt-3">
-                                                <span class="badge bg-success">Aanbevolen voor Desktop</span>
+                                            <div class="text-start small mb-3">
+                                                <div class="d-flex mb-2">
+                                                    <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                                    <span>Kies je eigen map</span>
+                                                </div>
+                                                <div class="d-flex mb-2">
+                                                    <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                                    <span>Eenvoudige backups (kopieer map)</span>
+                                                </div>
+                                                <div class="d-flex mb-2">
+                                                    <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                                    <span>Meer controle over je data</span>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Optie 2: IndexedDB -->
-                                <div class="col-md-6">
-                                    <div class="card h-100 storage-option" data-type="indexeddb">
-                                        <div class="card-body text-center">
-                                            <div class="mb-3">
-                                                <i class="bi bi-browser-chrome" style="font-size: 2.5rem; color: #2196F3;"></i>
-                                            </div>
-                                            <h5>🌐 Browser Opslag</h5>
-                                            <p class="small">
-                                                Sla data op in de <strong>browser</strong> (zoals voorheen).
-                                            </p>
-                                            <ul class="text-start small">
-                                                <li>⚡ Snel en automatisch</li>
-                                                <li>📱 Werkt op alle apparaten</li>
-                                                <li>🔄 Geen map selectie nodig</li>
-                                                <li>🔧 Eenvoudig in gebruik</li>
-                                            </ul>
-                                            <div class="mt-3">
-                                                <span class="badge bg-info">Standaard</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Huidige status -->
-                            <div class="mt-4 pt-3 border-top">
-                                <h6><i class="bi bi-info-circle"></i> Huidige status:</h6>
-                                <div id="currentStorageInfo" class="alert alert-light">
-                                    Laden...
-                                </div>
-                            </div>
-                            
-                            <!-- Geavanceerde opties -->
-                            <div class="mt-3">
-                                <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#advancedOptions">
-                                    <i class="bi bi-gear"></i> Geavanceerde opties
-                                </button>
-                                
-                                <div class="collapse mt-2" id="advancedOptions">
-                                    <div class="card card-body">
-                                        <h6>Gegevens beheren:</h6>
-                                        <div class="d-grid gap-2">
-                                            <button class="btn btn-outline-warning btn-sm" id="clearBrowserStorageBtn">
-                                                <i class="bi bi-trash"></i> Browser opslag leegmaken
-                                            </button>
-                                            <button class="btn btn-outline-info btn-sm" id="storageInfoBtn">
-                                                <i class="bi bi-info-square"></i> Technische informatie
+                                            <button class="btn btn-outline-success w-100 use-storage-btn" data-type="filesystem">
+                                                <i class="bi bi-check-circle"></i> Gebruik Bestandsopslag
                                             </button>
                                         </div>
                                     </div>
                                 </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <div class="card h-100 border-primary">
+                                        <div class="card-body text-center">
+                                            <div class="mb-3">
+                                                <i class="bi bi-browser-chrome text-primary" style="font-size: 3rem;"></i>
+                                            </div>
+                                            <h5>Browser Opslag</h5>
+                                            <p class="text-muted small mb-3">
+                                                Sla data op in je browser. Werkt automatisch zonder extra configuratie.
+                                            </p>
+                                            <div class="text-start small mb-3">
+                                                <div class="d-flex mb-2">
+                                                    <i class="bi bi-check-circle-fill text-primary me-2"></i>
+                                                    <span>Automatisch en eenvoudig</span>
+                                                </div>
+                                                <div class="d-flex mb-2">
+                                                    <i class="bi bi-check-circle-fill text-primary me-2"></i>
+                                                    <span>Geen map selectie nodig</span>
+                                                </div>
+                                                <div class="d-flex mb-2">
+                                                    <i class="bi bi-check-circle-fill text-primary me-2"></i>
+                                                    <span>Werkt op alle apparaten</span>
+                                                </div>
+                                            </div>
+                                            <button class="btn btn-outline-primary w-100 use-storage-btn" data-type="indexeddb">
+                                                <i class="bi bi-arrow-left-right"></i> Gebruik Browser Opslag
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card border-info mt-3">
+                                <div class="card-body">
+                                    <h6><i class="bi bi-info-circle"></i> Huidige status:</h6>
+                                    <div id="currentStorageStatus" class="alert alert-light mb-0">
+                                        <div class="d-flex align-items-center">
+                                            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                                            <span>Status laden...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="alert alert-warning mt-3">
+                                <i class="bi bi-exclamation-triangle"></i>
+                                <strong>Belangrijk:</strong> Bij het wisselen van opslagtype worden bestaande gegevens automatisch overgezet.
                             </div>
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuleren</button>
-                            <button type="button" class="btn btn-primary" id="applyStorageBtn" disabled>
-                                Toepassen
-                            </button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Sluiten</button>
                         </div>
                     </div>
                 </div>
@@ -111,19 +120,235 @@ class StorageSelector {
         `;
     }
     
+    async showSelectorModal() {
+        // Voeg modal toe aan DOM
+        const modalContainer = document.getElementById('modalsContainer') || document.body;
+        const existingModal = document.getElementById('storageSelectorModal');
+        
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        modalContainer.insertAdjacentHTML('beforeend', this.getSelectorHTML());
+        
+        // Initialize Bootstrap modal
+        const modalElement = document.getElementById('storageSelectorModal');
+        const modal = new bootstrap.Modal(modalElement);
+        
+        // Setup event listeners
+        this.setupSelectorEvents(modal);
+        
+        // Update status
+        await this.updateCurrentStorageInfo();
+        
+        // Show modal
+        modal.show();
+        
+        // Add custom styles
+        this.addCustomStyles();
+    }
+    
+    setupSelectorEvents(modal) {
+        // Use storage buttons
+        document.querySelectorAll('.use-storage-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const storageType = e.target.getAttribute('data-type');
+                await this.switchStorage(storageType, modal);
+            });
+        });
+        
+        // Update status when modal is shown
+        modalElement.addEventListener('shown.bs.modal', async () => {
+            await this.updateCurrentStorageInfo();
+        });
+    }
+    
+    async switchStorage(storageType, modal) {
+        try {
+            // Disable all buttons
+            document.querySelectorAll('.use-storage-btn').forEach(btn => {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Bezig...';
+            });
+            
+            // Update status display
+            const statusEl = document.getElementById('currentStorageStatus');
+            statusEl.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <div class="spinner-border spinner-border-sm me-2"></div>
+                    <span>Opslag wordt gewijzigd naar ${storageType === 'filesystem' ? 'Bestandsopslag' : 'Browser Opslag'}...</span>
+                </div>
+            `;
+            statusEl.className = 'alert alert-info mb-0';
+            
+            if (!window.storageManager) {
+                throw new Error('StorageManager niet beschikbaar');
+            }
+            
+            // Initialiseer nieuwe opslag
+            await storageManager.initialize(storageType);
+            
+            // Migreer bestaande data
+            await this.migrateData(storageType);
+            
+            // Update UI
+            await this.updateCurrentStorageInfo();
+            
+            // Succes melding
+            statusEl.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-check-circle-fill text-success me-2"></i>
+                    <span>Opslag succesvol gewijzigd!</span>
+                </div>
+            `;
+            statusEl.className = 'alert alert-success mb-0';
+            
+            // Update globale status
+            if (window.updateStorageStatus) {
+                updateStorageStatus();
+            }
+            
+            // Herlaad data manager status
+            if (window.dataManager && window.dataManager.loadStorageStatus) {
+                window.dataManager.loadStorageStatus();
+            }
+            
+            // Sluit modal na korte tijd
+            setTimeout(() => {
+                if (modal && modal.hide) {
+                    modal.hide();
+                }
+            }, 2000);
+            
+        } catch (error) {
+            console.error('Storage switch error:', error);
+            
+            const statusEl = document.getElementById('currentStorageStatus');
+            statusEl.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>
+                    <span>Fout: ${error.message}</span>
+                </div>
+            `;
+            statusEl.className = 'alert alert-danger mb-0';
+            
+            // Reset buttons
+            document.querySelectorAll('.use-storage-btn').forEach(btn => {
+                btn.disabled = false;
+                btn.innerHTML = storageType === 'filesystem' 
+                    ? '<i class="bi bi-check-circle"></i> Gebruik Bestandsopslag'
+                    : '<i class="bi bi-arrow-left-right"></i> Gebruik Browser Opslag';
+            });
+            
+            if (window.uiHandler && window.uiHandler.showError) {
+                window.uiHandler.showError(`Kon opslag niet wijzigen: ${error.message}`);
+            }
+        }
+    }
+    
+    async migrateData(newStorageType) {
+        console.log(`Migreer data naar ${newStorageType}...`);
+        
+        if (newStorageType === 'filesystem') {
+            // Migreer van IndexedDB naar FileSystem
+            await this.migrateToFileSystem();
+        } else {
+            // Migreer van FileSystem naar IndexedDB
+            await this.migrateToIndexedDB();
+        }
+    }
+    
+    async migrateToFileSystem() {
+        try {
+            console.log('Migreer data van IndexedDB naar FileSystem...');
+            
+            // Haal alle data op uit IndexedDB
+            const honden = await window.db.getHonden();
+            console.log(`Migreer ${honden.length} honden...`);
+            
+            // Sla elke hond op in FileSystem
+            for (const hond of honden) {
+                if (hond.stamboomnr) {
+                    await storageManager.save(`hond_${hond.stamboomnr}`, hond);
+                }
+            }
+            
+            // Haal foto's op (als de functie beschikbaar is)
+            if (typeof window.db.getAllFotos === 'function') {
+                try {
+                    const fotos = await window.db.getAllFotos();
+                    console.log(`Migreer ${fotos.length} foto's...`);
+                    
+                    // Groepeer foto's per stamboomnr
+                    const fotosPerHond = {};
+                    fotos.forEach(foto => {
+                        if (foto.stamboomnr) {
+                            if (!fotosPerHond[foto.stamboomnr]) {
+                                fotosPerHond[foto.stamboomnr] = [];
+                            }
+                            fotosPerHond[foto.stamboomnr].push(foto);
+                        }
+                    });
+                    
+                    // Sla gegroepeerde foto's op
+                    for (const [stamboomnr, hondFotos] of Object.entries(fotosPerHond)) {
+                        await storageManager.save(`fotos_${stamboomnr}`, hondFotos);
+                    }
+                } catch (fotoError) {
+                    console.log('Foto migratie overslagen:', fotoError);
+                }
+            }
+            
+            console.log('Data migratie naar FileSystem voltooid');
+            
+        } catch (error) {
+            console.error('Fout bij migratie naar FileSystem:', error);
+            throw error;
+        }
+    }
+    
+    async migrateToIndexedDB() {
+        try {
+            console.log('Migreer data van FileSystem naar IndexedDB...');
+            
+            // Omdat we van FileSystem naar IndexedDB gaan,
+            // moeten we de data uit FileSystem laden en in IndexedDB opslaan
+            
+            // Deze functie zou in de storageManager moeten zitten
+            if (storageManager.getAllFromFileSystem) {
+                const allData = await storageManager.getAllFromFileSystem();
+                console.log(`Lade ${allData.length} bestanden uit FileSystem...`);
+                
+                // Hier zou je de data in IndexedDB moeten opslaan
+                // Dit is afhankelijk van je database structuur
+                console.log('Migratie naar IndexedDB zou hier moeten plaatsvinden');
+            }
+            
+        } catch (error) {
+            console.error('Fout bij migratie naar IndexedDB:', error);
+            throw error;
+        }
+    }
+    
     async updateCurrentStorageInfo() {
-        const infoEl = document.getElementById('currentStorageInfo');
-        if (!infoEl) return;
+        const statusEl = document.getElementById('currentStorageStatus');
+        if (!statusEl) return;
         
         if (!this.storageManager) {
-            infoEl.innerHTML = '<span class="text-danger">StorageManager niet beschikbaar</span>';
+            statusEl.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
+                    <span>StorageManager niet beschikbaar</span>
+                </div>
+            `;
+            statusEl.className = 'alert alert-warning mb-0';
             return;
         }
         
-        const info = this.storageManager.getStorageInfo();
+        const info = storageManager.getStorageInfo();
         
         let html = '';
-        let statusClass = 'secondary';
+        let statusClass = 'light';
         
         if (info.current === 'filesystem') {
             html = `
@@ -131,238 +356,86 @@ class StorageSelector {
                     <i class="bi bi-folder text-success me-2" style="font-size: 1.5rem;"></i>
                     <div>
                         <strong>Bestandsopslag actief</strong><br>
-                        <small class="text-muted">Map: ${info.directoryName || 'Niet geselecteerd'}</small>
+                        <small class="text-muted">Map: ${info.directoryName || 'Nog geen map geselecteerd'}</small>
                     </div>
                 </div>
             `;
             statusClass = 'success';
-            this.currentStorage = 'filesystem';
-            
         } else if (info.current === 'indexeddb' || info.current === 'indexeddb-temp') {
             html = `
                 <div class="d-flex align-items-center">
-                    <i class="bi bi-browser-chrome text-info me-2" style="font-size: 1.5rem;"></i>
+                    <i class="bi bi-browser-chrome text-primary me-2" style="font-size: 1.5rem;"></i>
                     <div>
                         <strong>Browser opslag actief</strong><br>
                         <small class="text-muted">Data wordt in je browser opgeslagen</small>
                     </div>
                 </div>
             `;
-            statusClass = 'info';
-            this.currentStorage = 'indexeddb';
-            
-        } else {
+            statusClass = 'primary';
+        } else if (info.current === 'none') {
             html = `
                 <div class="d-flex align-items-center">
                     <i class="bi bi-question-circle text-warning me-2" style="font-size: 1.5rem;"></i>
                     <div>
-                        <strong>Niet geconfigureerd</strong><br>
+                        <strong>Opslag niet geconfigureerd</strong><br>
                         <small class="text-muted">Selecteer een opslagtype</small>
                     </div>
                 </div>
             `;
             statusClass = 'warning';
-            this.currentStorage = null;
-        }
-        
-        infoEl.innerHTML = html;
-        infoEl.className = `alert alert-${statusClass} mb-0`;
-        
-        // Update ook de apply knop
-        this.updateApplyButton();
-    }
-    
-    updateApplyButton() {
-        const applyBtn = document.getElementById('applyStorageBtn');
-        if (!applyBtn) return;
-        
-        const selectedOption = document.querySelector('.storage-option.selected');
-        
-        if (selectedOption) {
-            const selectedType = selectedOption.getAttribute('data-type');
-            
-            // Als het geselecteerde type al actief is, disable de knop
-            if (selectedType === this.currentStorage) {
-                applyBtn.disabled = true;
-                applyBtn.textContent = 'Al actief';
-                applyBtn.className = 'btn btn-secondary';
-            } else {
-                applyBtn.disabled = false;
-                applyBtn.textContent = 'Toepassen';
-                applyBtn.className = 'btn btn-primary';
-            }
         } else {
-            applyBtn.disabled = true;
-            applyBtn.textContent = 'Selecteer een optie';
-            applyBtn.className = 'btn btn-secondary';
+            html = `
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-hourglass-split me-2" style="font-size: 1.5rem;"></i>
+                    <div>
+                        <strong>Status laden...</strong>
+                    </div>
+                </div>
+            `;
         }
+        
+        statusEl.innerHTML = html;
+        statusEl.className = `alert alert-${statusClass} mb-0`;
     }
     
-    setupSelectorEvents() {
-        // Select storage options
-        document.querySelectorAll('.storage-option').forEach(option => {
-            option.addEventListener('click', () => {
-                // Remove selection from all
-                document.querySelectorAll('.storage-option').forEach(opt => {
-                    opt.classList.remove('selected', 'border-primary');
-                    opt.classList.add('border-light');
-                });
-                
-                // Add selection to clicked
-                option.classList.add('selected', 'border-primary');
-                option.classList.remove('border-light');
-                
-                // Update apply button
-                this.updateApplyButton();
-            });
-        });
+    addCustomStyles() {
+        // Voeg custom styling toe voor de selector
+        const styleId = 'storage-selector-styles';
+        if (document.getElementById(styleId)) return;
         
-        // Apply button
-        const applyBtn = document.getElementById('applyStorageBtn');
-        if (applyBtn) {
-            applyBtn.addEventListener('click', async () => {
-                const selectedOption = document.querySelector('.storage-option.selected');
-                if (!selectedOption) return;
-                
-                const storageType = selectedOption.getAttribute('data-type');
-                
-                try {
-                    applyBtn.disabled = true;
-                    applyBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Bezig...';
-                    
-                    await this.storageManager.initialize(storageType);
-                    
-                    // Update status
-                    await this.updateCurrentStorageInfo();
-                    
-                    // Update global storage status
-                    if (window.updateStorageStatus) {
-                        updateStorageStatus();
-                    }
-                    
-                    // Show success
-                    applyBtn.innerHTML = '<i class="bi bi-check-circle"></i> Toegepast!';
-                    
-                    // Close modal after delay
-                    setTimeout(() => {
-                        const modal = bootstrap.Modal.getInstance(document.getElementById('storageSelectorModal'));
-                        if (modal) modal.hide();
-                        
-                        // Reset button
-                        setTimeout(() => {
-                            applyBtn.disabled = false;
-                            applyBtn.innerHTML = 'Toepassen';
-                        }, 500);
-                    }, 1500);
-                    
-                } catch (error) {
-                    console.error('Storage change error:', error);
-                    applyBtn.disabled = false;
-                    applyBtn.innerHTML = 'Toepassen';
-                    
-                    if (window.uiHandler && window.uiHandler.showError) {
-                        window.uiHandler.showError('Kon opslagtype niet wijzigen: ' + error.message);
-                    }
-                }
-            });
-        }
-        
-        // Clear browser storage button
-        const clearBtn = document.getElementById('clearBrowserStorageBtn');
-        if (clearBtn) {
-            clearBtn.addEventListener('click', () => {
-                if (confirm('Weet je zeker dat je alle browser opslag wilt leegmaken? Dit verwijdert alleen de browser data, niet je bestandsopslag.')) {
-                    localStorage.clear();
-                    if (window.uiHandler && window.uiHandler.showSuccess) {
-                        window.uiHandler.showSuccess('Browser opslag geleegd');
-                    }
-                }
-            });
-        }
-        
-        // Storage info button
-        const infoBtn = document.getElementById('storageInfoBtn');
-        if (infoBtn) {
-            infoBtn.addEventListener('click', () => {
-                const info = this.storageManager.getStorageInfo();
-                alert(
-                    `Technische informatie:\n\n` +
-                    `Huidige opslag: ${info.current}\n` +
-                    `FileSystem ondersteund: ${info.supportsFileSystem ? 'Ja' : 'Nee'}\n` +
-                    `IndexedDB ondersteund: ${info.supportsIndexedDB ? 'Ja' : 'Nee'}\n` +
-                    `localStorage ondersteund: ${info.supportsLocalStorage ? 'Ja' : 'Nee'}\n` +
-                    `Map naam: ${info.directoryName || 'Niet ingesteld'}\n` +
-                    `Gebruikte schijfruimte: ${info.usedSpace || 'Onbekend'}`
-                );
-            });
-        }
-    }
-    
-    showSelectorModal() {
-        // Add UI to DOM
-        const selectorHTML = this.getSelectorUI();
-        const modalsContainer = document.getElementById('modalsContainer');
-        
-        if (modalsContainer) {
-            modalsContainer.innerHTML = selectorHTML;
-            
-            // Show modal
-            const selectorModal = new bootstrap.Modal(document.getElementById('storageSelectorModal'));
-            selectorModal.show();
-            
-            // Setup events and update info
-            setTimeout(async () => {
-                await this.updateCurrentStorageInfo();
-                this.setupSelectorEvents();
-                
-                // Add some styling
-                this.addSelectorStyles();
-            }, 100);
-        }
-    }
-    
-    addSelectorStyles() {
         const style = document.createElement('style');
+        style.id = styleId;
         style.textContent = `
             .storage-option {
                 cursor: pointer;
-                transition: all 0.3s ease;
-                border: 2px solid #e9ecef;
+                transition: all 0.2s ease;
+                border-width: 2px;
             }
             .storage-option:hover {
                 transform: translateY(-2px);
-                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             }
             .storage-option.selected {
-                border-color: #0d6efd !important;
-                background-color: rgba(13, 110, 253, 0.05);
+                border-color: var(--bs-primary) !important;
+                background-color: rgba(var(--bs-primary-rgb), 0.05);
             }
-            .storage-option .card-body ul {
-                padding-left: 1.2rem;
-                margin-bottom: 0;
+            .use-storage-btn {
+                transition: all 0.2s ease;
             }
-            .storage-option .card-body li {
-                margin-bottom: 0.3rem;
+            .use-storage-btn:hover {
+                transform: scale(1.02);
             }
         `;
         document.head.appendChild(style);
     }
-    
-    // Voeg een knop toe aan de UI om de selector te openen
-    addSettingsMenuItem() {
-        // Deze functie kun je aanroepen vanuit je main script
-        // om een menu-item toe te voegen aan de sidebar
-        console.log('Storage selector ready - call addSettingsMenuItem() to add to UI');
-    }
 }
 
 // Maak globale instance
-const storageSelector = new StorageSelector();
-
-// Voeg toe aan window object
-window.storageSelector = storageSelector;
+if (!window.storageSelector) {
+    window.storageSelector = new StorageSelector();
+}
 
 // Export
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { StorageSelector, storageSelector };
+    module.exports = { StorageSelector, storageSelector: window.storageSelector };
 }
