@@ -323,7 +323,7 @@ class DogDataManager extends BaseModule {
                 
                 // Zugangskontrolle Popup Texte
                 insufficientPermissions: "Unzureichende Berechtigingen",
-                insufficientPermissionsText: "Sie haben keine Berechtigung, Hunde zu bearbeiten. Nur Administratoren können deze Funktion nutzen.",
+                insufficientPermissionsText: "Sie haben keine Berechtigung, Hunde zu bearbeiten. Nur Administratoren können diese Funktion nutzen.",
                 loggedInAs: "Sie sind eingeloggt als:",
                 user: "Benutzer",
                 availableFeatures: "Verfügbare Funktionen für Benutzer",
@@ -336,16 +336,16 @@ class DogDataManager extends BaseModule {
                 loadingDogs: "Hunde laden...",
                 noResults: "Keine Hunde gefunden",
                 selectDogToEdit: "Wählen Sie einen Hund zum Bearbeiten",
-                typeToSearch: "Beginnen Sie met der Eingabe, um te suchen",
+                typeToSearch: "Beginnen Sie mit der Eingabe, um zu suchen",
                 
                 // Status Meldungen
                 searchResults: "Suchergebnisse",
-                dogSelected: "Hond uitgewählt",
+                dogSelected: "Hond ausgewählt",
                 editingDog: "Hond bearbeiten",
                 savingChanges: "Änderungen speichern...",
                 changesSaved: "Änderungen gespeichert!",
                 dogDeleted: "Hond erfolgreich gelöscht!",
-                confirmDelete: "Sind Sie sicher, dat Sie diesen Hund löschen möchten?",
+                confirmDelete: "Sind Sie sicher, dass Sie diesen Hund löschen möchten?",
                 photoAdded: "Foto hinzugefügt",
                 updatingDog: "Hond aktualisieren...",
                 dogUpdated: "Hond aktualisiert!",
@@ -361,8 +361,8 @@ class DogDataManager extends BaseModule {
                 dogNotFound: "Hund niet gefonden",
                 adminOnly: "Nur Administratoren können Hunde bearbeiten",
                 invalidId: "Ungültige Hunde-ID",
-                dateFormatError: "Datum moet im Format TT-MM-JJJJ sein",
-                deathBeforeBirthError: "Sterbedatum kan niet vor dem Geburtsdatum liegen"
+                dateFormatError: "Datum muss im Format TT-MM-JJJJ sein",
+                deathBeforeBirthError: "Sterbedatum kann nicht vor dem Geburtsdatum liegen"
             }
         };
     }
@@ -1293,21 +1293,25 @@ class DogDataManager extends BaseModule {
     }
     
     /**
-     * Zoekfunctionaliteit voor hoofdzoekveld
+     * Zoekfunctionaliteit voor hoofdzoekveld - GEWIJZIGD: Zoekt op naam + kennelnaam (zoals bij ouders) EN stamboomnummer
      */
     filterDogsForSearchField(searchTerm = '') {
-        // Filter ALLE honden waarvan de naam BEGINT met de zoekterm (case-insensitive)
+        // Filter honden zoals bij ouders: zoek in naam + kennelnaam EN stamboomnummer
         this.filteredSearchResults = this.allDogs.filter(dog => {
             const naam = dog.naam ? dog.naam.toLowerCase() : '';
+            const kennelnaam = dog.kennelnaam ? dog.kennelnaam.toLowerCase() : '';
             const stamboomnr = dog.stamboomnr ? dog.stamboomnr.toLowerCase() : '';
             
-            // Controleer of naam begint met de zoekterm
-            const naamMatch = naam.startsWith(searchTerm);
+            // Combineer naam en kennelnaam voor zoeken (zoals bij ouders)
+            const fullName = `${naam} ${kennelnaam}`.trim().toLowerCase();
             
-            // Controleer of stamboomnummer begint met de zoekterm
-            const stamboomMatch = stamboomnr.startsWith(searchTerm);
+            // Controleer op naam + kennelnaam (zoals bij ouders)
+            const nameMatch = fullName.includes(searchTerm);
             
-            return naamMatch || stamboomMatch;
+            // Controleer op stamboomnummer
+            const stamboomMatch = stamboomnr.includes(searchTerm);
+            
+            return nameMatch || stamboomMatch;
         });
         
         console.log(`Zoeken naar '${searchTerm}': ${this.filteredSearchResults.length} resultaten gevonden`);
