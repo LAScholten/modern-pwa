@@ -1,0 +1,81 @@
+/* Extra responsive aanpassingen voor PWA */
+
+/* Extra kleine schermen */
+@media (max-width: 360px) {
+    .btn {
+        font-size: 0.9rem;
+        padding: 0.4rem 0.8rem;
+    }
+    
+    .form-control, .form-select {
+        font-size: 0.9rem;
+        padding: 0.5rem 0.75rem;
+    }
+    
+    .card-title {
+        font-size: 1rem;
+    }
+}
+
+/* Landscape modus */
+@media (max-height: 600px) and (orientation: landscape) {
+    .min-vh-100 {
+        min-height: auto;
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+    }
+    
+    .navbar {
+        position: relative !important;
+    }
+}
+
+/* Donkere modus */
+@media (prefers-color-scheme: dark) {
+    body {
+        background-color: #121212;
+        color: #e0e0e0;
+    }
+    
+    .card {
+        background-color: #1e1e1e;
+        color: #e0e0e0;
+    }
+    
+    .table {
+        color: #e0e0e0;
+    }
+    
+    .table th {
+        background-color: #2d2d2d;
+    }
+    
+    .form-control, .form-select {
+        background-color: #2d2d2d;
+        border-color: #404040;
+        color: #e0e0e0;
+    }
+}
+
+/* Touch device optimalisaties */
+@media (hover: none) and (pointer: coarse) {
+    .btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    .form-control, .form-select {
+        min-height: 44px;
+    }
+    
+    .menu-card {
+        margin-bottom: 10px;
+    }
+}
+
+/* Hoge resolutie schermen */
+@media (min-width: 1400px) {
+    .container {
+        max-width: 1320px;
+    }
+}

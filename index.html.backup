@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hondendatabase - Login</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="img/icons/icon-192x192.png">
+</head>
+<body class="bg-light">
+    <div class="container">
+        <div class="row justify-content-center min-vh-100 align-items-center">
+            <div class="col-md-6 col-lg-4">
+                <div class="card shadow-lg border-0">
+                    <div class="card-header bg-primary text-white text-center py-4">
+                        <h1 class="h3 mb-0">
+                            <i class="bi bi-database"></i> Hondendatabase
+                        </h1>
+                        <p class="mb-0 mt-2">Interactieve hondenbeheer applicatie</p>
+                        
+                        <!-- Taal selectie vlaggetjes -->
+                        <div class="mt-3 d-flex justify-content-center gap-2">
+                            <button class="btn btn-sm btn-outline-light language-btn active" data-lang="nl" title="Nederlands">
+                                🇳🇱 NL
+                            </button>
+                            <button class="btn btn-sm btn-outline-light language-btn" data-lang="en" title="English">
+                                🇬🇧 EN
+                            </button>
+                            <button class="btn btn-sm btn-outline-light language-btn" data-lang="de" title="Deutsch">
+                                🇩🇪 DE
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-4">
+                        <form id="loginForm">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">
+                                    <i class="bi bi-person"></i> <span class="login-text" data-key="username">Gebruikersnaam</span>
+                                </label>
+                                <input type="text" class="form-control form-control-lg" 
+                                       id="username" required autocomplete="username">
+                            </div>
+                            <div class="mb-3">
+                                <label for="password" class="form-label">
+                                    <i class="bi bi-key"></i> <span class="login-text" data-key="password">Wachtwoord</span>
+                                </label>
+                                <input type="password" class="form-control form-control-lg" 
+                                       id="password" required autocomplete="current-password">
+                            </div>
+                            <div class="mb-4">
+                                <label for="role" class="form-label">
+                                    <i class="bi bi-shield"></i> <span class="login-text" data-key="role">Rol</span>
+                                </label>
+                                <select class="form-select form-select-lg" id="role">
+                                    <option value="user" class="login-text" data-key="user">Gebruiker</option>
+                                    <option value="admin" class="login-text" data-key="admin">Administrator</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-lg w-100">
+                                <i class="bi bi-box-arrow-in-right"></i> <span class="login-text" data-key="login">Inloggen</span>
+                            </button>
+                        </form>
+                        
+                        <!-- Demo accounts sectie is verwijderd -->
+                    </div>
+                    <div class="card-footer text-center py-3">
+                        <small class="text-muted">
+                            <i class="bi bi-shield-check"></i>
+                            <span class="login-text" data-key="securedApp">Beveiligde PWA applicatie - Offline beschikbaar</span>
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script>
+        // Taal vertalingen
+        const translations = {
+            nl: {
+                username: "Gebruikersnaam",
+                password: "Wachtwoord",
+                role: "Rol",
+                user: "Gebruiker",
+                admin: "Administrator",
+                login: "Inloggen",
+                securedApp: "Beveiligde PWA applicatie - Offline beschikbaar"
+            },
+            en: {
+                username: "Username",
+                password: "Password",
+                role: "Role",
+                user: "User",
+                admin: "Administrator",
+                login: "Login",
+                securedApp: "Secure PWA application - Available offline"
+            },
+            de: {
+                username: "Benutzername",
+                password: "Passwort",
+                role: "Rolle",
+                user: "Benutzer",
+                admin: "Administrator",
+                login: "Anmelden",
+                securedApp: "Sichere PWA-Anwendung - Offline verfügbar"
+            }
+        };
+
+        // Huidige taal opslaan in localStorage
+        let currentLang = localStorage.getItem('appLanguage') || 'nl';
+
+        // Pagina tekst vertalen
+        function translatePage(lang) {
+            const elements = document.querySelectorAll('.login-text');
+            elements.forEach(element => {
+                const key = element.getAttribute('data-key');
+                if (translations[lang] && translations[lang][key]) {
+                    element.textContent = translations[lang][key];
+                }
+            });
+            
+            // Update actieve vlag
+            document.querySelectorAll('.language-btn').forEach(btn => {
+                if (btn.getAttribute('data-lang') === lang) {
+                    btn.classList.add('active');
+                    btn.classList.remove('btn-outline-light');
+                    btn.classList.add('btn-light');
+                } else {
+                    btn.classList.remove('active', 'btn-light');
+                    btn.classList.add('btn-outline-light');
+                }
+            });
+            
+            // Update HTML lang attribuut
+            document.documentElement.lang = lang;
+            
+            // Update pagina titel (optioneel)
+            const titles = {
+                nl: "Hondendatabase - Login",
+                en: "Dog Database - Login",
+                de: "Hundedatenbank - Login"
+            };
+            document.title = titles[lang] || titles.nl;
+        }
+
+        // Event listeners voor vlaggetjes
+        document.querySelectorAll('.language-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const lang = this.getAttribute('data-lang');
+                currentLang = lang;
+                localStorage.setItem('appLanguage', lang);
+                translatePage(lang);
+            });
+        });
+
+        // Initialiseer taal bij laden
+        document.addEventListener('DOMContentLoaded', () => {
+            translatePage(currentLang);
+        });
+
+        // Login functionaliteit
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const role = document.getElementById('role').value;
+            
+            const result = await auth.login(username, password, role);
+            
+            if (result.success) {
+                // Sla taal op voor de app
+                localStorage.setItem('appLanguage', currentLang);
+                // Redirect naar hoofdapplicatie
+                window.location.href = 'app.html';
+            } else {
+                alert('Login mislukt: ' + result.message);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+/* Desktop Edition Indicator */
+.desktop-edition-indicator {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: linear-gradient(135deg, #1e40af, #3b82f6);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    z-index: 10000;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border: 2px solid white;
+}
+.desktop-edition-indicator::before {
+    content: "💻";
+}
+.desktop-edition-indicator:hover {
+    transform: scale(1.05);
+    transition: transform 0.2s;
+}

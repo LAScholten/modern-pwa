@@ -1,0 +1,89 @@
+{
+  "name": "Hondendatabase Desktop",
+  "short_name": "HondenDB Desktop",
+  "description": "Desktop editie met lokale bestandsopslag - Werkt volledig offline",
+  "start_url": "/desktop/index.html",
+  "display": "standalone",
+  "background_color": "#1e40af",
+  "theme_color": "#1e40af",
+  "orientation": "any",
+  "scope": "/desktop/",
+  "lang": "nl",
+
+  "icons": [
+    {
+      "src": "./img/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./img/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./img/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./img/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./img/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./img/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./img/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./img/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+
+  "categories": ["business", "productivity", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Hond Zoeken",
+      "short_name": "Zoeken",
+      "description": "Zoek een hond in de database",
+      "url": "/desktop/app.html?action=search"
+    },
+    {
+      "name": "Nieuwe Hond",
+      "short_name": "Toevoegen",
+      "description": "Voeg een nieuwe hond toe",
+      "url": "/desktop/app.html?action=addDog"
+    }
+  ],
+  
+  "file_handlers": [
+    {
+      "action": "/desktop/app.html?import=true",
+      "accept": {
+        "application/json": [".json", ".hdb"],
+        "text/csv": [".csv"]
+      }
+    }
+  ]
+}
