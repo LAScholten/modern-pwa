@@ -188,17 +188,61 @@ class DataManager extends BaseModule {
                 shareDataDescription: "Exportieren Sie was Sie teilen möchten",
                 backupStatusWarning: "Backup empfohlen",
                 backupStatusDanger: "Wichtig",
-                backupWarningText: "Letztes Backup war vor {days} Tagen",
+                backupWarningText: "Letztes Backup was vor {days} Tagen",
                 backupDangerText: "Sie haben noch nie ein Backup erstellt!"
             }
         };
         
+        // Database lazy loading - niet meteen proberen te vinden
+        this._db = null; // Private property
+        
+        // Luister naar database-ready event
+        document.addEventListener('database-ready', () => {
+            this.initializeDatabaseConnection();
+        });
+        
+        // Probeer ook na een korte delay
+        setTimeout(() => {
+            if (!this._db) {
+                this.initializeDatabaseConnection();
+            }
+        }, 1000);
+    }
+    
+    // Methode om database connectie te initialiseren
+    initializeDatabaseConnection() {
         if (window.db) {
-            this.db = window.db;
+            this._db = window.db;
+            console.log('DataManager: Database verbonden via window.db');
+        } else if (window.hondenDatabase) {
+            this._db = window.hondenDatabase;
+            console.log('DataManager: Database verbonden via window.hondenDatabase');
+        } else if (window.database) {
+            this._db = window.database;
+            console.log('DataManager: Database verbonden via window.database');
         } else {
-            console.error('Database niet gevonden in window object');
-            this.db = window.hondenDatabase || window.database || db;
+            console.log('DataManager: Database nog niet beschikbaar, zal later proberen');
+            // Plan nog een poging
+            setTimeout(() => this.initializeDatabaseConnection(), 2000);
         }
+    }
+    
+    // Getter voor database met lazy loading
+    get db() {
+        if (!this._db) {
+            this.initializeDatabaseConnection();
+        }
+        return this._db;
+    }
+    
+    // Setter voor database
+    set db(value) {
+        this._db = value;
+    }
+    
+    // Methode om te controleren of database beschikbaar is
+    isDatabaseAvailable() {
+        return !!this._db || !!window.db || !!window.hondenDatabase || !!window.database;
     }
     
     t(key) {
@@ -473,6 +517,13 @@ class DataManager extends BaseModule {
         const modal = document.getElementById('dataManagementModal');
         if (modal) {
             modal.addEventListener('shown.bs.modal', () => {
+                // Controleer of database beschikbaar is
+                if (!this.isDatabaseAvailable()) {
+                    console.warn('DataManager: Database niet beschikbaar bij openen modal');
+                    this.showError('Database niet beschikbaar. Probeer opnieuw.');
+                    return;
+                }
+                
                 this.loadDatabaseStats();
                 this.updateExportFormatOptions();
             });
@@ -690,6 +741,12 @@ class DataManager extends BaseModule {
     }
     
     async handleImport() {
+        // Controleer eerst of database beschikbaar is
+        if (!this.isDatabaseAvailable()) {
+            this.showError('Database niet beschikbaar. Probeer opnieuw of refresh de pagina.');
+            return;
+        }
+        
         const t = this.t.bind(this);
         const fileInput = document.getElementById('importFile');
         
@@ -733,6 +790,12 @@ class DataManager extends BaseModule {
     }
     
     async handleExport() {
+        // Controleer eerst of database beschikbaar is
+        if (!this.isDatabaseAvailable()) {
+            this.showError('Database niet beschikbaar. Probeer opnieuw of refresh de pagina.');
+            return;
+        }
+        
         const t = this.t.bind(this);
         const isBackup = document.getElementById('backupEverything')?.checked;
         const exportData = document.getElementById('exportData').checked;
@@ -769,10 +832,6 @@ class DataManager extends BaseModule {
             let hondenCount = 0;
             let fotosCount = 0;
             let priveCount = 0;
-            
-            if (!this.db) {
-                throw new Error('Database niet gevonden.');
-            }
             
             if (exportData) {
                 try {
@@ -933,8 +992,9 @@ class DataManager extends BaseModule {
         
         console.log('=== START IMPORT ===');
         
+        // Extra veiligheidscontrole
         if (!this.db) {
-            throw new Error('Database niet gevonden.');
+            throw new Error('Database niet beschikbaar voor import.');
         }
         
         // === FASE 1: Importeer alle honden (indien aanwezig) ===
@@ -1419,8 +1479,13 @@ class DataManager extends BaseModule {
     
     async loadDatabaseStats() {
         try {
-            if (!this.db || typeof this.db.getStatistieken !== 'function') {
-                console.error('Database of getStatistieken functie niet beschikbaar');
+            if (!this.isDatabaseAvailable()) {
+                console.warn('DataManager: Database niet beschikbaar voor statistieken');
+                return;
+            }
+            
+            if (typeof this.db.getStatistieken !== 'function') {
+                console.error('getStatistieken functie niet beschikbaar');
                 return;
             }
             
@@ -1436,6 +1501,15 @@ class DataManager extends BaseModule {
             
         } catch (error) {
             console.error(`${this.t('statsError')}${error}`);
+            
+            // Fallback: toon 0's
+            const hondenElement = document.getElementById('statsHonden');
+            const fotosElement = document.getElementById('statsFotos');
+            const priveElement = document.getElementById('statsPrive');
+            
+            if (hondenElement) hondenElement.textContent = '0';
+            if (fotosElement) fotosElement.textContent = '0';
+            if (priveElement) priveElement.textContent = '0';
         }
     }
 }
