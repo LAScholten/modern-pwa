@@ -523,13 +523,10 @@
     <script src="js/auth.js"></script>
     <script src="js/database.js"></script>
     
-    <!-- Storage Manager moet als één van de eerste geladen worden -->
-    <script src="js/storage-manager.js"></script>
-    
     <!-- Base Module -->
     <script src="js/modules/BaseModule.js"></script>
     
-    <!-- COICalculator apart bestand - HIEROP VOLGENS MOET STAMBOOMMANAGER LADEN -->
+    <!-- COICalculator apart bestand -->
     <script src="js/modules/COICalculator.js"></script>    
     <script src="js/modules/COICalculator2.js"></script>
     
@@ -549,7 +546,7 @@
     
     <script src="js/modules/PrivateInfoManager.js"></script>
     
-    <!-- StamboomManager (nu vindt hij COICalculator omdat die EERDER wordt geladen) -->
+    <!-- StamboomManager -->
     <script src="js/modules/StamboomManager.js"></script>
     
     <!-- Main UI Handler -->
@@ -561,172 +558,8 @@
     <!-- Installatie Wizard JavaScript -->
     <script src="js/installatie-wizard.js"></script>
     
-    <!-- DISCLAIMER MANAGER - Nieuw bestand - HIER NAAR VERWEZEN -->
+    <!-- DISCLAIMER MANAGER -->
     <script src="js/disclaimer-NIEUW.js"></script>
-    
-    <!-- Storage Manager Initialization -->
-    <script>
-    // Storage Manager initialisatie - ZORGT ERVOOR DAT HIJ BESCHIKBAAR IS VOOR ALLE MODULES
-    (function() {
-        console.log('📦 StorageManager initialization started...');
-        
-        function initializeStorageManager() {
-            // Check of StorageManager klasse beschikbaar is
-            if (typeof StorageManager === 'undefined') {
-                console.log('⏳ StorageManager class nog niet beschikbaar, wacht...');
-                setTimeout(initializeStorageManager, 500);
-                return;
-            }
-            
-            try {
-                console.log('✅ StorageManager class gevonden, initialiseren...');
-                
-                // Maak instance en zet in window
-                window.storageManager = new StorageManager();
-                console.log('📝 StorageManager instance created:', window.storageManager);
-                
-                // Bepaal opslagtype (standaard indexeddb)
-                const savedType = localStorage.getItem('desktop-edition-storage-type') || 'indexeddb';
-                console.log('🔧 Initializing with storage type:', savedType);
-                
-                // Initialiseer asynchroon
-                window.storageManager.initialize(savedType)
-                    .then(() => {
-                        console.log('✅ StorageManager succesvol geïnitialiseerd');
-                        console.log('💾 Storage info:', storageManager.getStorageInfo());
-                        
-                        // Update status indicator
-                        updateStorageStatus();
-                        
-                        // Dispatch event dat storage ready is
-                        const event = new CustomEvent('storage-manager-ready');
-                        window.dispatchEvent(event);
-                        
-                        // Log voor debugging
-                        console.log('📢 storage-manager-ready event dispatched');
-                        
-                        // Forceer DataManager om events opnieuw te setupen als die bestaat
-                        if (window.uiHandler && window.uiHandler.dataManager && window.uiHandler.dataManager.setupStorageEvents) {
-                            console.log('🔄 Forcing DataManager to re-setup storage events');
-                            window.uiHandler.dataManager.setupStorageEvents();
-                        }
-                    })
-                    .catch(error => {
-                        console.error('❌ StorageManager initialisatie fout:', error);
-                        
-                        // Fallback: maak een eenvoudige storageManager
-                        window.storageManager = {
-                            getStorageInfo: function() {
-                                return { current: 'none', available: ['indexeddb'] };
-                            },
-                            initialize: function(type) {
-                                console.log('🔄 Fallback initialize called with:', type);
-                                localStorage.setItem('desktop-edition-storage-type', type);
-                                return Promise.resolve();
-                            }
-                        };
-                        
-                        console.log('🛠️ Fallback storageManager created');
-                        updateStorageStatus();
-                    });
-                    
-            } catch (error) {
-                console.error('❌ Fout bij aanmaken StorageManager:', error);
-                
-                // Noodfallback
-                window.storageManager = {
-                    getStorageInfo: function() {
-                        return { current: 'error', available: [] };
-                    },
-                    initialize: function() {
-                        return Promise.reject(new Error('StorageManager not available'));
-                    }
-                };
-            }
-        }
-        
-        // Update storage status indicator
-        function updateStorageStatus() {
-            const statusEl = document.getElementById('storage-status');
-            if (!statusEl) return;
-            
-            if (window.storageManager) {
-                try {
-                    const info = storageManager.getStorageInfo();
-                    
-                    if (info.current === 'filesystem') {
-                        statusEl.style.display = 'block';
-                        statusEl.style.background = '#4CAF50';
-                        statusEl.textContent = '💾 Desktop Edition (Bestanden)';
-                        statusEl.title = `Opslag in map: ${info.directoryName || 'Geselecteerde map'}`;
-                    } else if (info.current === 'indexeddb' || info.current === 'indexeddb-temp') {
-                        statusEl.style.display = 'block';
-                        statusEl.style.background = '#2196F3';
-                        statusEl.textContent = '💾 Desktop Edition (Browser)';
-                        statusEl.title = 'Opslag in browser (tijdelijk)';
-                    } else if (info.current === 'none') {
-                        statusEl.style.display = 'block';
-                        statusEl.style.background = '#FF9800';
-                        statusEl.textContent = '💾 Desktop Edition (Bezig...)';
-                        statusEl.title = 'Initialiseren...';
-                    } else if (info.current === 'error') {
-                        statusEl.style.display = 'block';
-                        statusEl.style.background = '#f44336';
-                        statusEl.textContent = '💾 Desktop Edition (Fout)';
-                        statusEl.title = 'Opslag initialisatie fout';
-                    } else {
-                        statusEl.style.display = 'none';
-                    }
-                } catch (error) {
-                    statusEl.style.display = 'block';
-                    statusEl.style.background = '#f44336';
-                    statusEl.textContent = '💾 Desktop Edition (Error)';
-                    statusEl.title = 'Fout bij ophalen opslag info';
-                }
-            } else {
-                statusEl.style.display = 'block';
-                statusEl.style.background = '#FF9800';
-                statusEl.textContent = '💾 Desktop Edition (Laden...)';
-                statusEl.title = 'StorageManager wordt geladen...';
-            }
-        }
-        
-        // Start initialisatie
-        document.addEventListener('DOMContentLoaded', function() {
-            // Start storage manager initialisatie met vertraging
-            setTimeout(initializeStorageManager, 300);
-            
-            // Initialiseer ook periodic status update
-            setInterval(updateStorageStatus, 2000);
-        });
-        
-        // Maak functie globaal beschikbaar
-        window.updateStorageStatus = updateStorageStatus;
-        
-        // Functie om opslagtype te wisselen
-        window.switchStorageType = function(type) {
-            if (!window.storageManager) {
-                console.error('StorageManager niet beschikbaar');
-                return Promise.reject(new Error('StorageManager niet beschikbaar'));
-            }
-            
-            console.log('🔄 Switching storage type to:', type);
-            
-            return window.storageManager.initialize(type)
-                .then(() => {
-                    console.log('✅ Storage type gewijzigd naar:', type);
-                    localStorage.setItem('desktop-edition-storage-type', type);
-                    updateStorageStatus();
-                    return true;
-                })
-                .catch(err => {
-                    console.error('❌ Kon opslagtype niet wijzigen:', err);
-                    return Promise.reject(err);
-                });
-        };
-        
-    })();
-    </script>
     
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -887,7 +720,7 @@
                 dashboard: "Dashboard",
                 welcomeTitle: "Willkommen bei der Hundendatenbank PWA - Desktop Edition",
                 welcomeText: "Wählen Sie eine option aus dem menü, um zu beginnen. Diese Desktop Edition unterstützt File System API für direkte Dateispeicherung.",
-                aboutApp: "Über diese Desktop Edition",
+                aboutApp: "Über deze Desktop Edition",
                 appDescription: "Diese PWA (Progressive Web App) speichert alle Daten lokal in Ihrem Browser. Sie können:",
                 feature1: "Hunde hinzufügen en verwalten",
                 feature2: "Hundedaten bearbeiten",
@@ -923,7 +756,7 @@
                 backupStatusWarning: "⚠ Letztes Backup: vor {days} Tagen",
                 backupStatusDanger: "🚨 NOCH NIE gebackupt!",
                 dashboardWarningNever: "Sie haben noch nie ein Backup erstellt! Wenn Sie Browser-Daten löschen, verlieren Sie alle Ihre Hundeaufzeichnungen.",
-                dashboardWarningOld: "Ihr letztes Backup was vor {days} Tagen. Erwägen Sie, ein neues Backup te machen, om Datenverlust te vermeiden.",
+                dashboardWarningOld: "Ihr letztes Backup was vor {days} Tagen. Erwägen Sie, ein neues Backup te maken, om Datenverlust te vermeiden.",
                 
                 // NEUE Disclaimer Texte
                 disclaimerBtn: "Disclaimer/Information zur COI Berechnung",
@@ -1252,17 +1085,6 @@
                 } else {
                     console.log('COICalculator is beschikbaar:', COICalculator);
                 }
-                
-                // Luister naar storage-manager-ready event
-                window.addEventListener('storage-manager-ready', function() {
-                    console.log('📢 storage-manager-ready event ontvangen in hoofdscript');
-                    
-                    // Forceer update van DataManager
-                    if (window.uiHandler && window.uiHandler.dataManager && window.uiHandler.dataManager.setupStorageEvents) {
-                        console.log('🔄 Forcing DataManager storage events setup');
-                        window.uiHandler.dataManager.setupStorageEvents();
-                    }
-                });
                 
                 // Initialiseer taal
                 translateAppPage(appLanguage);
@@ -1635,4 +1457,4 @@
     
 
 </body>
-</html>                                        
+</html>                                       
