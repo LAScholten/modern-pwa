@@ -1,6 +1,6 @@
 /**
  * Data Management Module voor HondenDatabase
- * COMPLEET MET ALLE FIXES + DESKTOP EDITION OPSLAG SELECTOR
+ * COMPLEET MET ALLE FIXES
  */
 
 class DataManager extends BaseModule {
@@ -67,30 +67,7 @@ class DataManager extends BaseModule {
                 backupStatusWarning: "Backup aanbevolen",
                 backupStatusDanger: "Belangrijk",
                 backupWarningText: "Laatste backup was {days} dagen geleden",
-                backupDangerText: "Je hebt nog nooit een backup gemaakt!",
-                desktopStorage: "Desktop Edition Opslag",
-                desktopStorageDesc: "Deze Desktop Edition ondersteunt twee opslagmethoden:",
-                fileStorage: "Bestandsopslag",
-                fileStorageDesc: "Sla data op in echte bestanden op je computer.",
-                useFileStorage: "Gebruiken",
-                browserStorage: "Browser Opslag",
-                browserStorageDesc: "Sla data op in de browser (standaard).",
-                useBrowserStorage: "Terug naar browser",
-                currentStorageStatus: "Huidige opslagstatus:",
-                advancedStorageSettings: "Geavanceerde opslaginstellingen",
-                switchToFiles: "Schakel over naar bestandsopslag",
-                switchToBrowser: "Schakel over naar browser opslag",
-                storageActive: "Actief",
-                storageInactive: "Inactief",
-                storageLoading: "Opslagstatus wordt geladen...",
-                storageSettings: "Opslaginstellingen",
-                storageFeaturesTitle: "💾 Bestandsopslag voordelen:",
-                storageFeature1: "📁 Kies zelf een map op je computer",
-                storageFeature2: "💾 Makkelijke backups (kopieer gewoon de map)",
-                storageFeature3: "🔄 Synchronisatie tussen apparaten mogelijk",
-                storageFeature4: "🔒 Meer controle over je data",
-                storageWarning: "⚠️ Belangrijk:",
-                storageWarningText: "Bij bestandsopslag moet je zelf een map selecteren. De app zal je hierom vragen."
+                backupDangerText: "Je hebt nog nooit een backup gemaakt!"
             },
             en: {
                 dataManagement: "Data Management",
@@ -151,30 +128,7 @@ class DataManager extends BaseModule {
                 backupStatusWarning: "Backup recommended",
                 backupStatusDanger: "Important",
                 backupWarningText: "Last backup was {days} days ago",
-                backupDangerText: "You have never made a backup!",
-                desktopStorage: "Desktop Edition Storage",
-                desktopStorageDesc: "This Desktop Edition supports two storage methods:",
-                fileStorage: "File Storage",
-                fileStorageDesc: "Save data in real files on your computer.",
-                useFileStorage: "Use",
-                browserStorage: "Browser Storage",
-                browserStorageDesc: "Save data in the browser (default).",
-                useBrowserStorage: "Back to browser",
-                currentStorageStatus: "Current storage status:",
-                advancedStorageSettings: "Advanced storage settings",
-                switchToFiles: "Switch to file storage",
-                switchToBrowser: "Switch to browser storage",
-                storageActive: "Active",
-                storageInactive: "Inactive",
-                storageLoading: "Loading storage status...",
-                storageSettings: "Storage settings",
-                storageFeaturesTitle: "💾 File storage benefits:",
-                storageFeature1: "📁 Choose your own folder on computer",
-                storageFeature2: "💾 Easy backups (just copy the folder)",
-                storageFeature3: "🔄 Sync between devices possible",
-                storageFeature4: "🔒 More control over your data",
-                storageWarning: "⚠️ Important:",
-                storageWarningText: "With file storage, you need to select a folder. The app will ask you for this."
+                backupDangerText: "You have never made a backup!"
             },
             de: {
                 dataManagement: "Datenverwaltung",
@@ -189,7 +143,7 @@ class DataManager extends BaseModule {
                 importingData: "Daten werden importiert...",
                 buildingRelations: "Beziehungen werden aufgebaut...",
                 dataExport: "Datenexport",
-                exportDescription: "Exportieren Sie Daten in een Datei für Backup of Teilen.",
+                exportDescription: "Exportieren Sie Daten in eine Datei für Backup oder Teilen.",
                 exportOptions: "Exportoptionen",
                 exportData: "Daten exportieren",
                 exportDataDescription: "Alle Hunde-Daten ohne Fotos",
@@ -235,30 +189,7 @@ class DataManager extends BaseModule {
                 backupStatusWarning: "Backup empfohlen",
                 backupStatusDanger: "Wichtig",
                 backupWarningText: "Letztes Backup war vor {days} Tagen",
-                backupDangerText: "Sie haben noch nie ein Backup erstellt!",
-                desktopStorage: "Desktop Edition Speicherung",
-                desktopStorageDesc: "Diese Desktop Edition unterstützt zwei Speichermethoden:",
-                fileStorage: "Dateispeicherung",
-                fileStorageDesc: "Speichern Sie Daten in echten Dateien auf Ihrem Computer.",
-                useFileStorage: "Verwenden",
-                browserStorage: "Browser-Speicherung",
-                browserStorageDesc: "Speichern Sie Daten im Browser (Standard).",
-                useBrowserStorage: "Zurück zum Browser",
-                currentStorageStatus: "Aktueller Speicherstatus:",
-                advancedStorageSettings: "Erweiterte Speichereinstellungen",
-                switchToFiles: "Zu Dateispeicherung wechseln",
-                switchToBrowser: "Zu Browser-Speicherung wechseln",
-                storageActive: "Aktiv",
-                storageInactive: "Inaktiv",
-                storageLoading: "Speicherstatus wird geladen...",
-                storageSettings: "Speichereinstellungen",
-                storageFeaturesTitle: "💾 Vorteile der Dateispeicherung:",
-                storageFeature1: "📁 Wählen Sie Ihren eigenen Ordner auf dem Computer",
-                storageFeature2: "💾 Einfache Backups (nur Ordner kopieren)",
-                storageFeature3: "🔄 Synchronisation zwischen Geräten mogelijk",
-                storageFeature4: "🔒 Mehr Kontrolle über Ihre Daten",
-                storageWarning: "⚠️ Wichtig:",
-                storageWarningText: "Bei Dateispeicherung müssen Sie einen Ordner auswählen. Die App wird Sie danach fragen."
+                backupDangerText: "Sie haben noch nie ein Backup erstellt!"
             }
         };
         
@@ -319,74 +250,7 @@ class DataManager extends BaseModule {
                         <div class="modal-body">
                             ${backupStatusHTML}
                             
-                            <!-- Desktop Edition Opslag Selector - NIEUWE SECTIE -->
-                            <div class="card mt-3 border-info">
-                                <div class="card-header bg-info text-white">
-                                    <h6 class="mb-0"><i class="bi bi-hdd"></i> ${t('desktopStorage')}</h6>
-                                </div>
-                                <div class="card-body">
-                                    <p>${t('desktopStorageDesc')}</p>
-                                    
-                                    <div class="row mb-3">
-                                        <div class="col-md-6">
-                                            <div class="card h-100">
-                                                <div class="card-body">
-                                                    <h6><i class="bi bi-folder text-success"></i> ${t('fileStorage')}</h6>
-                                                    <p class="small mb-2">${t('fileStorageDesc')}</p>
-                                                    
-                                                    <div class="mb-3">
-                                                        <strong>${t('storageFeaturesTitle')}</strong>
-                                                        <ul class="small mb-3">
-                                                            <li>${t('storageFeature1')}</li>
-                                                            <li>${t('storageFeature2')}</li>
-                                                            <li>${t('storageFeature3')}</li>
-                                                            <li>${t('storageFeature4')}</li>
-                                                        </ul>
-                                                        <div class="alert alert-warning small py-2 mb-0">
-                                                            <i class="bi bi-exclamation-triangle"></i> 
-                                                            <strong>${t('storageWarning')}</strong> 
-                                                            ${t('storageWarningText')}
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <button class="btn btn-outline-success btn-sm w-100" id="useFileSystemBtn">
-                                                        <i class="bi bi-check-circle"></i> ${t('useFileStorage')}
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="card h-100">
-                                                <div class="card-body">
-                                                    <h6><i class="bi bi-browser-chrome text-primary"></i> ${t('browserStorage')}</h6>
-                                                    <p class="small mb-2">${t('browserStorageDesc')}</p>
-                                                    
-                                                    <div class="mb-3">
-                                                        <div class="alert alert-info small py-2 mb-0">
-                                                            <i class="bi bi-info-circle"></i> 
-                                                            <strong>Standaard instelling</strong> - Werkt in alle browsers zonder extra configuratie
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <button class="btn btn-outline-primary btn-sm w-100" id="useIndexedDBBtn">
-                                                        <i class="bi bi-arrow-left-right"></i> ${t('useBrowserStorage')}
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div id="currentStorageStatus" class="alert alert-light mb-3">
-                                        <i class="bi bi-hourglass-split"></i> ${t('storageLoading')}
-                                    </div>
-                                    
-                                    <button class="btn btn-info btn-sm w-100" id="openStorageSettingsBtn">
-                                        <i class="bi bi-gear"></i> ${t('advancedStorageSettings')}
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <div class="row mt-4">
+                            <div class="row">
                                 <div class="col-lg-6 mb-4">
                                     <div class="card h-100 border-success">
                                         <div class="card-header bg-success text-white">
@@ -586,6 +450,7 @@ class DataManager extends BaseModule {
         
         if (shareDataRadio) {
             shareDataRadio.addEventListener('change', () => {
+                // Bij delen: alles staat standaard aan, maar kan worden uitgeschakeld
                 if (exportDataCheckbox) exportDataCheckbox.checked = true;
                 if (exportPhotosCheckbox) exportPhotosCheckbox.checked = true;
                 if (exportPrivateInfoCheckbox) exportPrivateInfoCheckbox.checked = true;
@@ -610,7 +475,6 @@ class DataManager extends BaseModule {
             modal.addEventListener('shown.bs.modal', () => {
                 this.loadDatabaseStats();
                 this.updateExportFormatOptions();
-                this.loadStorageStatus();
             });
         }
         
@@ -620,328 +484,6 @@ class DataManager extends BaseModule {
                 this.updateLanguage(lang);
             });
         });
-        
-        this.setupStorageEvents();
-    }
-    
-    setupStorageEvents() {
-        const t = this.t.bind(this);
-        
-        if (!window.storageManager) {
-            console.warn('StorageManager nog niet beschikbaar, event listeners worden uitgesteld');
-            
-            setTimeout(() => {
-                this.setupStorageEvents();
-            }, 1000);
-            return;
-        }
-        
-        // Maak zeker dat storageSelector bestaat
-        if (!window.storageSelector) {
-            window.storageSelector = new (class {
-                async showSelectorModal() {
-                    console.log('Eenvoudige storage selector wordt getoond...');
-                    this.showSimpleSelector();
-                }
-                
-                showSimpleSelector() {
-                    const html = `
-                        <div class="modal-backdrop fade show"></div>
-                        <div class="modal fade show d-block" style="background-color: rgba(0,0,0,0.5);">
-                            <div class="modal-dialog modal-dialog-centered">
-                                <div class="modal-content">
-                                    <div class="modal-header bg-primary text-white">
-                                        <h5 class="modal-title">Opslag Selector</h5>
-                                        <button type="button" class="btn-close btn-close-white" onclick="document.querySelector('.simple-storage-selector').remove(); document.querySelector('.modal-backdrop.fade.show:last-child').remove();"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <p>Selecteer opslagtype:</p>
-                                        <div class="d-grid gap-2">
-                                            <button class="btn btn-success" onclick="switchToFileSystem()">
-                                                <i class="bi bi-folder"></i> Bestandsopslag
-                                            </button>
-                                            <button class="btn btn-primary" onclick="switchToIndexedDB()">
-                                                <i class="bi bi-browser-chrome"></i> Browser Opslag
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    
-                    const div = document.createElement('div');
-                    div.className = 'simple-storage-selector';
-                    div.innerHTML = html;
-                    document.body.appendChild(div);
-                    
-                    // Voeg functies toe aan window
-                    window.switchToFileSystem = async () => {
-                        try {
-                            await storageManager.initialize('filesystem');
-                            alert('Bestandsopslag geactiveerd! Selecteer een map.');
-                            location.reload();
-                        } catch (error) {
-                            alert('Fout: ' + error.message);
-                        }
-                    };
-                    
-                    window.switchToIndexedDB = async () => {
-                        try {
-                            await storageManager.initialize('indexeddb');
-                            alert('Browser opslag geactiveerd!');
-                            location.reload();
-                        } catch (error) {
-                            alert('Fout: ' + error.message);
-                        }
-                    };
-                }
-            })();
-        }
-        
-        const useFileSystemBtn = document.getElementById('useFileSystemBtn');
-        if (useFileSystemBtn) {
-            useFileSystemBtn.addEventListener('click', async () => {
-                console.log('FileSystem knop geklikt');
-                
-                useFileSystemBtn.disabled = true;
-                useFileSystemBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Bezig...';
-                
-                try {
-                    if (!window.storageManager) {
-                        throw new Error('Storage manager niet beschikbaar');
-                    }
-                    
-                    // Initialiseer FileSystem
-                    await storageManager.initialize('filesystem');
-                    
-                    // IMPORTANT: Migreer bestaande data
-                    await this.migrateToFileSystem();
-                    
-                    this.loadStorageStatus();
-                    
-                    if (window.uiHandler && window.uiHandler.showSuccess) {
-                        window.uiHandler.showSuccess('Bestandsopslag geactiveerd! Data is opgeslagen in de geselecteerde map.');
-                    }
-                    
-                    if (window.updateStorageStatus) {
-                        updateStorageStatus();
-                    }
-                    
-                } catch (error) {
-                    console.error('FileSystem init error:', error);
-                    
-                    if (window.uiHandler && window.uiHandler.showError) {
-                        window.uiHandler.showError('Kon bestandsopslag niet activeren: ' + error.message);
-                    }
-                    
-                } finally {
-                    useFileSystemBtn.disabled = false;
-                    useFileSystemBtn.innerHTML = '<i class="bi bi-check-circle"></i> ' + t('useFileStorage');
-                }
-            });
-        }
-        
-        const useIndexedDBBtn = document.getElementById('useIndexedDBBtn');
-        if (useIndexedDBBtn) {
-            useIndexedDBBtn.addEventListener('click', async () => {
-                console.log('IndexedDB knop geklikt');
-                
-                useIndexedDBBtn.disabled = true;
-                useIndexedDBBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Bezig...';
-                
-                try {
-                    if (!window.storageManager) {
-                        throw new Error('Storage manager niet beschikbaar');
-                    }
-                    
-                    await storageManager.initialize('indexeddb');
-                    
-                    this.loadStorageStatus();
-                    
-                    if (window.uiHandler && window.uiHandler.showSuccess) {
-                        window.uiHandler.showSuccess('Browser opslag geactiveerd!');
-                    }
-                    
-                    if (window.updateStorageStatus) {
-                        updateStorageStatus();
-                    }
-                    
-                } catch (error) {
-                    console.error('IndexedDB init error:', error);
-                    
-                    if (window.uiHandler && window.uiHandler.showError) {
-                        window.uiHandler.showError('Kon browser opslag niet activeren: ' + error.message);
-                    }
-                    
-                } finally {
-                    useIndexedDBBtn.disabled = false;
-                    useIndexedDBBtn.innerHTML = '<i class="bi bi-arrow-left-right"></i> ' + t('useBrowserStorage');
-                }
-            });
-        }
-        
-        const openStorageSettingsBtn = document.getElementById('openStorageSettingsBtn');
-        if (openStorageSettingsBtn) {
-            openStorageSettingsBtn.addEventListener('click', () => {
-                if (window.storageSelector && window.storageSelector.showSelectorModal) {
-                    window.storageSelector.showSelectorModal();
-                } else {
-                    console.error('Storage selector niet beschikbaar');
-                    if (window.uiHandler && window.uiHandler.showError) {
-                        window.uiHandler.showError('Opslag selector niet beschikbaar');
-                    }
-                }
-            });
-        }
-        
-        this.loadStorageStatus();
-    }
-    
-    async migrateToFileSystem() {
-        try {
-            console.log('Migreer bestaande data naar FileSystem...');
-            
-            if (!window.db) {
-                throw new Error('Database niet beschikbaar');
-            }
-            
-            if (!window.storageManager) {
-                throw new Error('StorageManager niet beschikbaar');
-            }
-            
-            // Haal alle honden op
-            const honden = await this.db.getHonden();
-            console.log(`Migreer ${honden.length} honden naar FileSystem...`);
-            
-            // Sla elke hond op in FileSystem
-            for (const hond of honden) {
-                if (hond.stamboomnr) {
-                    await storageManager.save(`hond_${hond.stamboomnr}`, hond);
-                } else if (hond.id) {
-                    await storageManager.save(`hond_${hond.id}`, hond);
-                }
-            }
-            
-            // Haal foto's op (als de functie beschikbaar is)
-            if (typeof this.db.getAllFotos === 'function') {
-                try {
-                    const fotos = await this.db.getAllFotos();
-                    console.log(`Migreer ${fotos.length} foto's naar FileSystem...`);
-                    
-                    // Groepeer foto's per stamboomnr
-                    const fotosPerHond = {};
-                    fotos.forEach(foto => {
-                        if (foto.stamboomnr) {
-                            if (!fotosPerHond[foto.stamboomnr]) {
-                                fotosPerHond[foto.stamboomnr] = [];
-                            }
-                            fotosPerHond[foto.stamboomnr].push(foto);
-                        }
-                    });
-                    
-                    // Sla gegroepeerde foto's op
-                    for (const [stamboomnr, hondFotos] of Object.entries(fotosPerHond)) {
-                        await storageManager.save(`fotos_${stamboomnr}`, hondFotos);
-                    }
-                } catch (fotoError) {
-                    console.log('Foto migratie overslagen:', fotoError);
-                }
-            }
-            
-            // Haal privé info op (als de functie beschikbaar is)
-            if (typeof this.db.getAllPriveInfo === 'function') {
-                try {
-                    const priveInfo = await this.db.getAllPriveInfo();
-                    console.log(`Migreer ${priveInfo.length} privé records naar FileSystem...`);
-                    
-                    for (const prive of priveInfo) {
-                        if (prive.stamboomnr) {
-                            await storageManager.save(`prive_${prive.stamboomnr}`, prive);
-                        }
-                    }
-                } catch (priveError) {
-                    console.log('Privé info migratie overslagen:', priveError);
-                }
-            }
-            
-            console.log('Data migratie naar FileSystem voltooid!');
-            
-        } catch (error) {
-            console.error('Fout bij migratie naar FileSystem:', error);
-            throw error;
-        }
-    }
-    
-    async loadStorageStatus() {
-        const statusEl = document.getElementById('currentStorageStatus');
-        if (!statusEl || !window.storageManager) {
-            if (statusEl) {
-                statusEl.innerHTML = `
-                    <div class="d-flex align-items-center">
-                        <i class="bi bi-hourglass-split me-2"></i>
-                        <div>
-                            <strong>${this.t('storageLoading')}</strong>
-                        </div>
-                    </div>
-                `;
-                statusEl.className = 'alert alert-light mb-0';
-            }
-            return;
-        }
-        
-        const info = storageManager.getStorageInfo();
-        const t = this.t.bind(this);
-        
-        let html = '';
-        let statusClass = 'light';
-        
-        if (info.current === 'filesystem') {
-            html = `
-                <div class="d-flex align-items-center">
-                    <i class="bi bi-folder text-success me-2" style="font-size: 1.5rem;"></i>
-                    <div>
-                        <strong>${t('fileStorage')} (${t('storageActive')})</strong><br>
-                        <small class="text-muted">Map: ${info.directoryName || 'Niet geselecteerd'}</small>
-                    </div>
-                </div>
-            `;
-            statusClass = 'success';
-        } else if (info.current === 'indexeddb' || info.current === 'indexeddb-temp') {
-            html = `
-                <div class="d-flex align-items-center">
-                    <i class="bi bi-browser-chrome text-info me-2" style="font-size: 1.5rem;"></i>
-                    <div>
-                        <strong>${t('browserStorage')} (${t('storageActive')})</strong><br>
-                        <small class="text-muted">Data wordt in je browser opgeslagen</small>
-                    </div>
-                </div>
-            `;
-            statusClass = 'info';
-        } else if (info.current === 'none') {
-            html = `
-                <div class="d-flex align-items-center">
-                    <i class="bi bi-question-circle text-warning me-2" style="font-size: 1.5rem;"></i>
-                    <div>
-                        <strong>${t('storageSettings')}</strong><br>
-                        <small class="text-muted">Niet geconfigureerd - kies een opslagtype</small>
-                    </div>
-                </div>
-            `;
-            statusClass = 'warning';
-        } else {
-            html = `
-                <div class="d-flex align-items-center">
-                    <i class="bi bi-hourglass-split me-2" style="font-size: 1.5rem;"></i>
-                    <div>
-                        <strong>${t('storageLoading')}</strong>
-                    </div>
-                </div>
-            `;
-        }
-        
-        statusEl.innerHTML = html;
-        statusEl.className = `alert alert-${statusClass} mb-0`;
     }
     
     updateExportFormatOptions() {
@@ -979,78 +521,147 @@ class DataManager extends BaseModule {
             title.innerHTML = `<i class="bi bi-database-gear"></i> ${t('dataManagement')}`;
         }
         
-        const desktopStorageHeader = modal.querySelector('.card.border-info .card-header h6');
-        if (desktopStorageHeader) {
-            desktopStorageHeader.innerHTML = `<i class="bi bi-hdd"></i> ${t('desktopStorage')}`;
+        const importCard = modal.querySelector('.card.border-success .card-header h5');
+        if (importCard) {
+            importCard.innerHTML = `<i class="bi bi-upload"></i> ${t('dataImport')}`;
         }
         
-        const desktopStorageDesc = modal.querySelector('.card.border-info .card-body p');
-        if (desktopStorageDesc) {
-            desktopStorageDesc.textContent = t('desktopStorageDesc');
+        const importDesc = modal.querySelector('.card.border-success .card-body p.card-text');
+        if (importDesc) {
+            importDesc.textContent = t('importDescription');
         }
         
-        const fileStorageTitle = modal.querySelector('.card.h-100:first-child h6');
-        if (fileStorageTitle) {
-            fileStorageTitle.innerHTML = `<i class="bi bi-folder text-success"></i> ${t('fileStorage')}`;
+        const importLabel = modal.querySelector('label[for="importFile"]');
+        if (importLabel) {
+            importLabel.textContent = t('selectJsonFile');
         }
         
-        const fileStorageDesc = modal.querySelector('.card.h-100:first-child p.small');
-        if (fileStorageDesc) {
-            fileStorageDesc.textContent = t('fileStorageDesc');
+        const importHelp = modal.querySelector('.card.border-success .form-text');
+        if (importHelp) {
+            importHelp.textContent = t('chooseExportedFile');
         }
         
-        const fileStorageFeatures = modal.querySelector('.card.h-100:first-child strong');
-        if (fileStorageFeatures) {
-            fileStorageFeatures.textContent = t('storageFeaturesTitle');
+        const strategyLabel = modal.querySelector('label[for="importStrategy"]');
+        if (strategyLabel) {
+            strategyLabel.textContent = t('importStrategy');
         }
         
-        const featureItems = modal.querySelectorAll('.card.h-100:first-child ul li');
-        if (featureItems.length >= 4) {
-            featureItems[0].textContent = t('storageFeature1');
-            featureItems[1].textContent = t('storageFeature2');
-            featureItems[2].textContent = t('storageFeature3');
-            featureItems[3].textContent = t('storageFeature4');
+        const strategyHelp = modal.querySelectorAll('.card.border-success .form-text')[1];
+        if (strategyHelp) {
+            strategyHelp.textContent = t('importStrategyDescription');
         }
         
-        const storageWarning = modal.querySelector('.card.h-100:first-child .alert-warning strong');
-        if (storageWarning) {
-            storageWarning.textContent = t('storageWarning');
+        const importBtn = modal.querySelector('#startImportBtn');
+        if (importBtn) {
+            importBtn.innerHTML = `<i class="bi bi-upload"></i> ${t('startImport')}`;
         }
         
-        const storageWarningText = modal.querySelector('.card.h-100:first-child .alert-warning');
-        if (storageWarningText) {
-            const warningText = storageWarningText.textContent || '';
-            if (warningText.includes('⚠️')) {
-                storageWarningText.innerHTML = `<i class="bi bi-exclamation-triangle"></i> <strong>${t('storageWarning')}</strong> ${t('storageWarningText')}`;
-            }
+        const exportCard = modal.querySelector('.card.border-primary .card-header h5');
+        if (exportCard) {
+            exportCard.innerHTML = `<i class="bi bi-download"></i> ${t('dataExport')}`;
         }
         
-        const useFileSystemBtn = modal.querySelector('#useFileSystemBtn');
-        if (useFileSystemBtn) {
-            useFileSystemBtn.innerHTML = `<i class="bi bi-check-circle"></i> ${t('useFileStorage')}`;
+        const exportDesc = modal.querySelector('.card.border-primary .card-body p.card-text');
+        if (exportDesc) {
+            exportDesc.textContent = t('exportDescription');
         }
         
-        const browserStorageTitle = modal.querySelector('.card.h-100:nth-child(2) h6');
-        if (browserStorageTitle) {
-            browserStorageTitle.innerHTML = `<i class="bi bi-browser-chrome text-primary"></i> ${t('browserStorage')}`;
+        const backupTypeLabel = modal.querySelector('.card.border-primary .form-label');
+        if (backupTypeLabel) {
+            backupTypeLabel.textContent = t('backupType');
         }
         
-        const browserStorageDesc = modal.querySelector('.card.h-100:nth-child(2) p.small');
-        if (browserStorageDesc) {
-            browserStorageDesc.textContent = t('browserStorageDesc');
+        const backupEverythingLabel = modal.querySelector('label[for="backupEverything"] strong');
+        if (backupEverythingLabel) {
+            backupEverythingLabel.textContent = t('backupEverything');
         }
         
-        const useIndexedDBBtn = modal.querySelector('#useIndexedDBBtn');
-        if (useIndexedDBBtn) {
-            useIndexedDBBtn.innerHTML = `<i class="bi bi-arrow-left-right"></i> ${t('useBrowserStorage')}`;
+        const backupEverythingHelp = modal.querySelectorAll('.card.border-primary .form-text')[0];
+        if (backupEverythingHelp) {
+            backupEverythingHelp.textContent = t('backupEverythingDescription');
         }
         
-        const openStorageSettingsBtn = modal.querySelector('#openStorageSettingsBtn');
-        if (openStorageSettingsBtn) {
-            openStorageSettingsBtn.innerHTML = `<i class="bi bi-gear"></i> ${t('advancedStorageSettings')}`;
+        const shareDataLabel = modal.querySelector('label[for="shareData"] strong');
+        if (shareDataLabel) {
+            shareDataLabel.textContent = t('shareData');
         }
         
-        this.loadStorageStatus();
+        const shareDataHelp = modal.querySelectorAll('.card.border-primary .form-text')[1];
+        if (shareDataHelp) {
+            shareDataHelp.textContent = t('shareDataDescription');
+        }
+        
+        const exportOptionsLabel = modal.querySelector('#exportOptionsSection .form-label');
+        if (exportOptionsLabel) {
+            exportOptionsLabel.textContent = t('exportOptions');
+        }
+        
+        const exportDataLabel = modal.querySelector('label[for="exportData"] strong');
+        if (exportDataLabel) {
+            exportDataLabel.textContent = t('exportData');
+        }
+        
+        const exportDataHelp = modal.querySelectorAll('.card.border-primary .form-text')[2];
+        if (exportDataHelp) {
+            exportDataHelp.textContent = t('exportDataDescription');
+        }
+        
+        const exportPhotosLabel = modal.querySelector('label[for="exportPhotos"] strong');
+        if (exportPhotosLabel) {
+            exportPhotosLabel.textContent = t('exportPhotos');
+        }
+        
+        const exportPhotosHelp = modal.querySelectorAll('.card.border-primary .form-text')[3];
+        if (exportPhotosHelp) {
+            exportPhotosHelp.textContent = t('exportPhotosDescription');
+        }
+        
+        const exportPrivateInfoLabel = modal.querySelector('label[for="exportPrivateInfo"] strong');
+        if (exportPrivateInfoLabel) {
+            exportPrivateInfoLabel.textContent = t('exportPrivateInfo');
+        }
+        
+        const exportPrivateInfoHelp = modal.querySelectorAll('.card.border-primary .form-text')[4];
+        if (exportPrivateInfoHelp) {
+            exportPrivateInfoHelp.textContent = t('exportPrivateInfoDescription');
+        }
+        
+        const formatLabel = modal.querySelector('label[for="exportFormat"]');
+        if (formatLabel) {
+            formatLabel.textContent = t('exportFormat');
+        }
+        
+        const jsonOption = modal.querySelector('#exportFormat option[value="json"]');
+        if (jsonOption) {
+            jsonOption.textContent = t('jsonFormat');
+        }
+        
+        const csvOption = modal.querySelector('#exportFormat option[value="csv"]');
+        if (csvOption) {
+            csvOption.textContent = t('csvFormat');
+        }
+        
+        const exportBtn = modal.querySelector('#startExportBtn');
+        if (exportBtn) {
+            exportBtn.innerHTML = `<i class="bi bi-download"></i> ${t('startExport')}`;
+        }
+        
+        const statsCard = modal.querySelector('.card.border-info .card-header h5');
+        if (statsCard) {
+            statsCard.innerHTML = `<i class="bi bi-graph-up"></i> ${t('databaseStatistics')}`;
+        }
+        
+        const statsLabels = modal.querySelectorAll('#databaseStats .text-muted');
+        if (statsLabels.length >= 3) {
+            statsLabels[0].textContent = t('dogs');
+            statsLabels[1].textContent = t('photos');
+            statsLabels[2].textContent = t('privateRecords');
+        }
+        
+        const closeBtn = modal.querySelector('.modal-footer .btn-secondary');
+        if (closeBtn) {
+            closeBtn.textContent = t('close') || 'Sluiten';
+        }
         
         this.updateBackupWarningText();
         this.updateExportFormatOptions();
@@ -1247,6 +858,7 @@ class DataManager extends BaseModule {
             const timeStr = new Date().toISOString().split('T')[1].split('.')[0].replace(/:/g, '');
             let filenamePrefix = isBackup ? 'backup' : 'share';
             
+            // Bepaal een duidelijke bestandsnaam op basis van wat wordt geëxporteerd
             if (exportData && exportPhotos && exportPrivateInfo) {
                 filenamePrefix = isBackup ? 'backup_compleet' : 'share_compleet';
             } else if (exportData && !exportPhotos && !exportPrivateInfo) {
@@ -1280,6 +892,7 @@ class DataManager extends BaseModule {
             
             this.hideProgress();
             
+            // Backup registratie alleen bij volledige backup
             if (isBackup && window.backupManager && exportData && exportPhotos && exportPrivateInfo) {
                 window.backupManager.recordBackup(
                     'full',
@@ -1572,74 +1185,6 @@ class DataManager extends BaseModule {
             }
         }
         
-        // === NIEUWE FASE: Sla geïmporteerde data ook op in FileSystem als dat actief is ===
-        console.log('Fase 5: Controleer FileSystem opslag voor import...');
-        if (window.storageManager && window.storageManager.getStorageInfo().current === 'filesystem') {
-            console.log('FileSystem actief - sla geïmporteerde data ook op in map');
-            
-            try {
-                // Sla honden op in FileSystem
-                if (importData.honden && importData.honden.length > 0) {
-                    console.log(`Sla ${importData.honden.length} honden op in FileSystem...`);
-                    for (const hond of importData.honden) {
-                        if (hond.stamboomnr) {
-                            await window.storageManager.save(`hond_${hond.stamboomnr}`, hond);
-                        } else if (hond.id) {
-                            await window.storageManager.save(`hond_${hond.id}`, hond);
-                        }
-                    }
-                }
-                
-                // Sla foto's op in FileSystem (gegroepeerd per hond)
-                if (importData.fotos && importData.fotos.length > 0) {
-                    console.log(`Sla ${importData.fotos.length} foto's op in FileSystem...`);
-                    const fotosPerHond = {};
-                    importData.fotos.forEach(foto => {
-                        if (foto.stamboomnr) {
-                            if (!fotosPerHond[foto.stamboomnr]) {
-                                fotosPerHond[foto.stamboomnr] = [];
-                            }
-                            fotosPerHond[foto.stamboomnr].push(foto);
-                        }
-                    });
-                    
-                    for (const [stamboomnr, fotos] of Object.entries(fotosPerHond)) {
-                        await window.storageManager.save(`fotos_${stamboomnr}`, fotos);
-                    }
-                }
-                
-                // Sla privé info op in FileSystem
-                if (importData.priveInfo && importData.priveInfo.length > 0) {
-                    console.log(`Sla ${importData.priveInfo.length} privé records op in FileSystem...`);
-                    for (const prive of importData.priveInfo) {
-                        if (prive.stamboomnr) {
-                            await window.storageManager.save(`prive_${prive.stamboomnr}`, prive);
-                        }
-                    }
-                }
-                
-                // Maak een complete import backup
-                const importBackup = {
-                    metadata: {
-                        importDatum: new Date().toISOString(),
-                        type: 'import_backup',
-                        aantalHonden: importData.honden ? importData.honden.length : 0,
-                        aantalFotos: importData.fotos ? importData.fotos.length : 0,
-                        aantalPrive: importData.priveInfo ? importData.priveInfo.length : 0
-                    },
-                    data: importData
-                };
-                
-                await window.storageManager.save(`import_backup_${new Date().toISOString().split('T')[0]}`, importBackup);
-                
-                console.log('Import data succesvol opgeslagen in FileSystem');
-                
-            } catch (error) {
-                console.error('Fout bij opslaan import data in FileSystem:', error);
-                // Geen foutmelding naar gebruiker - import in database is al gelukt
-            }
-        }
-        
         console.log('=== IMPORT VOLTOOID ===', result);
         return result;
     }
@@ -1707,11 +1252,6 @@ class DataManager extends BaseModule {
         }
         if (result.relaties.hersteld > 0) {
             summary += `<strong>${result.relaties.hersteld}</strong> ${t('relationshipsBuilt')}<br>`;
-        }
-        
-        // Voeg FileSystem melding toe als actief
-        if (window.storageManager && window.storageManager.getStorageInfo().current === 'filesystem') {
-            summary += `<br><strong>✅ Data ook opgeslagen in map</strong><br>`;
         }
         
         summary += `</div>`;
@@ -1898,9 +1438,4 @@ class DataManager extends BaseModule {
             console.error(`${this.t('statsError')}${error}`);
         }
     }
-}
-
-// Maak DataManager globaal beschikbaar
-if (!window.dataManager) {
-    window.dataManager = new DataManager();
 }
