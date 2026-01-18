@@ -9,42 +9,38 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="manifest" href="manifest.json">
 </head>
-<body class="bg-light">
+<body style="background: #f5f5f5; min-height: 100vh; display: flex; align-items: center;">
     <div class="container">
-        <div class="row justify-content-center min-vh-100 align-items-center">
-            <div class="col-md-6 col-lg-4">
-                <div class="card shadow-lg border-0">
-                    <div class="card-header bg-primary text-white text-center py-4">
-                        <h1 class="h3 mb-0">
-                            <i class="bi bi-database"></i> Hondendatabase
-                        </h1>
-                        <p class="mb-0 mt-2">Beheerder Login</p>
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-5">
+                <div class="card" style="border-radius: 10px; border: none; box-shadow: 0 0 20px rgba(0,0,0,0.1);">
+                    <div class="card-header text-white text-center py-3" style="background: linear-gradient(135deg, #0d6efd 0%, #0dcaf0 100%); border-radius: 10px 10px 0 0;">
+                        <h4 class="mb-0">
+                            <i class="bi bi-shield-lock"></i> Beheerder Login
+                        </h4>
+                        <small>Hondendatabase Supabase</small>
                     </div>
                     <div class="card-body p-4">
                         <form id="loginForm">
-                            <div class="mb-4">
-                                <label for="email" class="form-label">
-                                    <i class="bi bi-envelope"></i> E-mailadres
-                                </label>
+                            <div class="mb-3">
+                                <label>Jouw Supabase Email</label>
                                 <input type="email" class="form-control form-control-lg" 
                                        id="email" required value="leoneurasier@gmail.com">
                             </div>
                             <div class="mb-4">
-                                <label for="password" class="form-label">
-                                    <i class="bi bi-key"></i> Wachtwoord
-                                </label>
+                                <label>Wachtwoord</label>
                                 <input type="password" class="form-control form-control-lg" 
                                        id="password" required value="admin1903">
                             </div>
                             
-                            <button type="submit" class="btn btn-primary btn-lg w-100 py-3">
+                            <button type="submit" class="btn btn-primary btn-lg w-100">
                                 <i class="bi bi-box-arrow-in-right"></i> INLOGGEN
                             </button>
                         </form>
                         
                         <div class="mt-4 text-center">
                             <button onclick="directToApp()" class="btn btn-success">
-                                <i class="bi bi-lightning"></i> DIRECT NAAR APP
+                                <i class="bi bi-lightning"></i> DIRECT NAAR APP (TEST)
                             </button>
                         </div>
                     </div>
@@ -53,22 +49,30 @@
         </div>
     </div>
 
+    <!-- Supabase client -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    
     <script>
-        const SUPABASE_URL = 'https://owjwkjrktftugjjrcwml.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93andranJrdGZ0dWdqanJjd21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2MzA4OTAsImV4cCI6MjA4NDIwNjg5MH0.oW6HTAlMBkjUu_4e3kn4iozjn5wK-15h4wCKcaHrtp8';
+        // Supabase config - DIT IS DE ENIGE INITIALISATIE
+        const supabase = window.supabase.createClient(
+            'https://owjwkjrktftugjjrcwml.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93andranJrdGZ0dWdqanJjd21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2MzA4OTAsImV4cCI6MjA4NDIwNjg5MH0.oW6HTAlMBkjUu_4e3kn4iozjn5wK-15h4wCKcaHrtp8',
+            {
+                auth: { persistSession: true }
+            }
+        );
         
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-            auth: { persistSession: true }
-        });
-
         // Check direct of er een sessie is
         async function init() {
-            const { data } = await supabase.auth.getSession();
-            if (data.session) {
-                console.log('Al ingelogd, ga naar app');
-                saveUserData(data.session.user);
-                setTimeout(() => window.location.href = 'app.html', 500);
+            try {
+                const { data } = await supabase.auth.getSession();
+                if (data.session) {
+                    console.log('Al ingelogd, ga naar app');
+                    saveUserData(data.session.user);
+                    setTimeout(() => window.location.href = 'app.html', 500);
+                }
+            } catch (error) {
+                console.log('Geen sessie gevonden');
             }
         }
 
@@ -106,10 +110,10 @@
             }
         });
 
-        // Direct naar app (bypass login)
+        // Direct naar app (bypass login voor testen)
         function directToApp() {
             localStorage.setItem('userEmail', 'leoneurasier@gmail.com');
-            localStorage.setItem('userId', 'direct-beheerder');
+            localStorage.setItem('userId', 'direct-beheerder-' + Date.now());
             localStorage.setItem('isAdmin', 'true');
             window.location.href = 'app.html';
         }
