@@ -198,8 +198,43 @@
             }
         }
     </style>
+    
+    <!-- LOGIN CONTROLE - DIRECT NA HEADER -->
+    <script>
+        // Eerste controle: check of er user data is
+        if (!localStorage.getItem('userEmail')) {
+            console.log('❌ Geen login data gevonden, ga terug naar login');
+            window.location.href = 'index.html';
+        } else {
+            console.log('✅ Ingelogd als:', localStorage.getItem('userEmail'));
+            console.log('👑 Admin status:', localStorage.getItem('isAdmin'));
+        }
+    </script>
 </head>
 <body>
+    <!-- Supabase client -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    
+    <!-- Tweede controle: Supabase sessie -->
+    <script>
+        // Controleer Supabase sessie maar blokkeer niet als er local data is
+        const supabase = window.supabase.createClient(
+            'https://owjwkjrktftugjjrcwml.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93andranJrdGZ0dWdqanJjd21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2MzA4OTAsImV4cCI6MjA4NDIwNjg5MH0.oW6HTAlMBkjUu_4e3kn4iozjn5wK-15h4wCKcaHrtp8'
+        );
+        
+        supabase.auth.getSession().then(({ data }) => {
+            if (!data.session) {
+                console.log('⚠️ Geen actieve Supabase sessie, maar local data wel aanwezig - app blijft werken');
+                // App mag blijven werken op basis van localStorage
+            } else {
+                console.log('✅ Supabase sessie actief:', data.session.user.email);
+            }
+        }).catch(error => {
+            console.log('ℹ️ Supabase check mislukt, app blijft werken:', error.message);
+        });
+    </script>
+
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container-fluid">
@@ -740,9 +775,9 @@
                 learnMore: "Info",
                 backupWarningTitle: "Backup empfohlen",
                 backupNowDashboard: "Jetzt Backup erstellen",
-                dismissBackup: "Nicht meer anzeigen",
+                dismissBackup: "Nicht mehr anzeigen",
                 backupModalTitle: "Data Backup - Warum is das wichtig?",
-                backupRisksTitle: "Risiken zonder Backup",
+                backupRisksTitle: "Risiken ohne Backup",
                 backupRisksText1: "Diese App speichert alle Daten <strong>nur lokal in Ihrem Browser</strong>.",
                 backupRisksText2: "Ihre Daten kunnen verloren gehen, wenn Sie: ",
                 backupHowToTitle: "Wie man ein Backup erstellt",
@@ -756,7 +791,7 @@
                 backupStatusWarning: "⚠ Letztes Backup: vor {days} Tagen",
                 backupStatusDanger: "🚨 NOCH NIE gebackupt!",
                 dashboardWarningNever: "Sie haben noch nie ein Backup erstellt! Wenn Sie Browser-Daten löschen, verlieren Sie alle Ihre Hundeaufzeichnungen.",
-                dashboardWarningOld: "Ihr letztes Backup was vor {days} Tagen. Erwägen Sie, ein neues Backup te maken, om Datenverlust te vermeiden.",
+                dashboardWarningOld: "Ihr letztes Backup was vor {days} Tagen. Erwägen Sie, ein neues Backup te maken, um Datenverlust te vermeiden.",
                 
                 // NEUE Disclaimer Texte
                 disclaimerBtn: "Disclaimer/Information zur COI Berechnung",
@@ -1062,10 +1097,8 @@
             });
         });
 
-        // Controleer of gebruiker is ingelogd
-        if (!auth.isLoggedIn()) {
-            window.location.href = 'index.html';
-        }
+        // Verwijder de oude auth.isLoggedIn() controle hier
+        // Dit wordt nu gedaan door de scripts bovenaan
         
         // Initialiseer UI Handler
         let ui = null;
@@ -1090,10 +1123,11 @@
                 translateAppPage(appLanguage);
                 
                 // Toon huidige gebruiker
-                const currentUser = auth.getCurrentUser();
-                if (currentUser) {
+                const userEmail = localStorage.getItem('userEmail');
+                const isAdmin = localStorage.getItem('isAdmin');
+                if (userEmail) {
                     document.getElementById('currentUser').textContent = 
-                        `${currentUser.username} (${auth.isAdmin() ? 'Admin' : 'Gebruiker'})`;
+                        `${userEmail} (${isAdmin === 'true' ? 'Admin' : 'Gebruiker'})`;
                 }
                 
                 // Setup backup manager
@@ -1175,7 +1209,14 @@
             if (logoutBtn) {
                 logoutBtn.addEventListener('click', function() {
                     console.log('Logout button clicked');
-                    auth.logout();
+                    
+                    // Verwijder localStorage data
+                    localStorage.removeItem('userEmail');
+                    localStorage.removeItem('userId');
+                    localStorage.removeItem('isAdmin');
+                    
+                    // Ga terug naar login
+                    window.location.href = 'index.html';
                 });
             } else {
                 console.error('Logout button not found');
@@ -1186,7 +1227,14 @@
             if (logoutBtnMobile) {
                 logoutBtnMobile.addEventListener('click', function() {
                     console.log('Mobile logout button clicked');
-                    auth.logout();
+                    
+                    // Verwijder localStorage data
+                    localStorage.removeItem('userEmail');
+                    localStorage.removeItem('userId');
+                    localStorage.removeItem('isAdmin');
+                    
+                    // Ga terug naar login
+                    window.location.href = 'index.html';
                 });
             }
             
@@ -1196,7 +1244,7 @@
                 refreshStatsBtn.addEventListener('click', async function() {
                     console.log('Refresh stats button clicked');
                     try {
-                        const stats = await db.getStatistieken();
+                        const stats = await hondenService.getStatistieken();
                         document.getElementById('quickStatsHonden').textContent = stats.totaalHonden;
                         document.getElementById('quickStatsFotos').textContent = stats.totaalFotos;
                         if (ui && ui.showSuccess) {
@@ -1457,4 +1505,4 @@
     
 
 </body>
-</html>              
+</html>        
