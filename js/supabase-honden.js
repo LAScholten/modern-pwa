@@ -91,7 +91,7 @@ const hondenService = {
         kennelnaam: hond.kennelnaam || '',
         stamboomnr: hond.stamboomnr || '',
         ras: hond.ras || '',
-        kleur: hond.vachtkleur || '',
+        vachtkleur: hond.vachtkleur || '',
         geslacht: hond.geslacht || '',
         vader_id: hond.vaderId || null,
         moeder_id: hond.moederId || null,
@@ -142,7 +142,7 @@ const hondenService = {
         kennelnaam: hondData.kennelnaam,
         stamboomnr: hondData.stamboomnr,
         ras: hondData.ras,
-        kleur: hondData.vachtkleur,
+        vachtkleur: hondData.vachtkleur,
         geslacht: hondData.geslacht,
         vader_id: hondData.vaderId || null,
         moeder_id: hondData.moederId || null,
@@ -218,7 +218,7 @@ const hondenService = {
       const { data, error } = await window.supabase
         .from('honden')
         .select('*')
-        .ilike('kleur', `%${vachtkleur}%`);
+        .ilike('vachtkleur', `%${vachtkleur}%`);
       
       if (error) throw error;
       return data || [];
