@@ -465,9 +465,48 @@ class ZoekReu {
     async loadAllHonden() {
         try {
             if (this.db && typeof this.db.getHonden === 'function') {
-                this.allHonden = await this.db.getHonden();
-                console.log(`✅ Geladen: ${this.allHonden.length} honden voor COI berekening`);
+                console.log('🔄 Laden van alle honden met paginatie...');
                 
+                // Reset arrays
+                this.allHonden = [];
+                this.allTeven = [];
+                
+                // Paginatie parameters
+                let currentPage = 1;
+                const pageSize = 1000; // Maximaal wat Supabase toestaat
+                let hasMorePages = true;
+                
+                // Laad alle pagina's
+                while (hasMorePages) {
+                    console.log(`   Pagina ${currentPage} laden...`);
+                    
+                    // Roep de getHonden methode aan met paginatie
+                    const result = await this.db.getHonden(currentPage, pageSize);
+                    
+                    if (result && result.honden && result.honden.length > 0) {
+                        // Voeg honden toe aan array
+                        this.allHonden = this.allHonden.concat(result.honden);
+                        
+                        console.log(`   Pagina ${currentPage} geladen: ${result.honden.length} honden`);
+                        
+                        // Controleer of er nog meer pagina's zijn
+                        hasMorePages = result.heeftVolgende || false;
+                        currentPage++;
+                        
+                        // Veiligheidslimiet voor oneindige lus
+                        if (currentPage > 100) {
+                            console.warn('⚠️ Veiligheidslimiet bereikt: te veel pagina\'s geladen');
+                            break;
+                        }
+                    } else {
+                        hasMorePages = false;
+                    }
+                    
+                    // Kleine pauze om de server niet te overbelasten
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+                
+                // Verwerk de honden zoals voorheen
                 this.allHonden = this.allHonden.map(hond => ({
                     ...hond,
                     heupdysplasie: hond.heupdysplasie || '',
@@ -482,7 +521,11 @@ class ZoekReu {
                     ras: hond.ras || ''
                 }));
                 
+                // Filter teven
                 this.allTeven = this.allHonden.filter(h => h.geslacht === 'teven');
+                
+                console.log(`✅ Geladen: ${this.allHonden.length} honden voor COI berekening`);
+                console.log(`✅ Teven: ${this.allTeven.length} teven gevonden`);
             }
         } catch (error) {
             console.error('❌ Fout bij laden honden:', error);
