@@ -10,26 +10,16 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="img/icons/icon-192x192.png">
     <style>
-        .forgot-password-link {
-            text-decoration: none;
-            font-size: 0.9rem;
-            color: #6c757d;
-            cursor: pointer;
-        }
-        .forgot-password-link:hover {
-            color: #0d6efd;
-            text-decoration: underline;
-        }
-        .back-to-login {
-            cursor: pointer;
-            color: #0d6efd;
-        }
         .alert-container {
             position: fixed;
             top: 20px;
             right: 20px;
             z-index: 9999;
             max-width: 400px;
+        }
+        .form-control:focus {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
         }
     </style>
 </head>
@@ -61,16 +51,17 @@
                         </div>
                     </div>
                     <div class="card-body p-4">
-                        <!-- Normaal login formulier -->
+                        <!-- Login formulier -->
                         <form id="loginForm">
-                            <div class="mb-3">
+                            <div class="mb-4">
                                 <label for="email" class="form-label">
                                     <i class="bi bi-envelope"></i> <span class="login-text" data-key="email">E-mailadres</span>
                                 </label>
                                 <input type="email" class="form-control form-control-lg" 
-                                       id="email" required autocomplete="email" placeholder="voorbeeld@email.nl">
+                                       id="email" required autocomplete="email" 
+                                       placeholder="jouw-email@voorbeeld.nl">
                             </div>
-                            <div class="mb-3">
+                            <div class="mb-4">
                                 <label for="password" class="form-label">
                                     <i class="bi bi-key"></i> <span class="login-text" data-key="password">Wachtwoord</span>
                                 </label>
@@ -78,49 +69,19 @@
                                        id="password" required autocomplete="current-password">
                             </div>
                             
-                            <!-- Wachtwoord vergeten link -->
-                            <div class="mb-4 text-end">
-                                <a href="#" id="forgotPasswordLink" class="forgot-password-link">
-                                    <i class="bi bi-question-circle"></i> <span class="login-text" data-key="forgotPassword">Wachtwoord vergeten?</span>
-                                </a>
-                            </div>
-                            
-                            <button type="submit" class="btn btn-primary btn-lg w-100">
+                            <button type="submit" class="btn btn-primary btn-lg w-100 py-3">
                                 <i class="bi bi-box-arrow-in-right"></i> <span class="login-text" data-key="login">Inloggen</span>
                             </button>
                         </form>
                         
-                        <!-- Wachtwoord reset formulier (verborgen) -->
-                        <form id="resetPasswordForm" style="display: none;">
-                            <div class="text-center mb-4">
-                                <h5><i class="bi bi-key-fill text-primary"></i> <span class="login-text" data-key="resetPassword">Wachtwoord resetten</span></h5>
-                                <p class="text-muted small login-text" data-key="resetInstructions">
-                                    Voer je e-mailadres in om een reset link te ontvangen.
-                                </p>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label for="resetEmail" class="form-label">
-                                    <i class="bi bi-envelope"></i> <span class="login-text" data-key="email">E-mailadres</span>
-                                </label>
-                                <input type="email" class="form-control form-control-lg" 
-                                       id="resetEmail" required autocomplete="email" placeholder="voorbeeld@email.nl">
-                            </div>
-                            
-                            <div class="d-grid gap-2">
-                                <button type="submit" class="btn btn-primary btn-lg">
-                                    <i class="bi bi-send"></i> <span class="login-text" data-key="sendResetLink">Reset link versturen</span>
-                                </button>
-                                <button type="button" id="backToLogin" class="btn btn-outline-secondary">
-                                    <i class="bi bi-arrow-left"></i> <span class="login-text" data-key="backToLogin">Terug naar inloggen</span>
-                                </button>
-                            </div>
-                        </form>
-                        
-                        <!-- Demo link -->
-                        <div class="mt-4 text-center">
+                        <!-- Instructie voor beheerder -->
+                        <div class="mt-4 p-3 bg-light rounded border">
+                            <h6 class="mb-2"><i class="bi bi-info-circle text-primary"></i> Login instructies:</h6>
                             <small class="text-muted">
-                                Nog geen account? Voeg toe in Supabase Dashboard
+                                1. Voer het e-mailadres in dat in Supabase staat<br>
+                                2. Voer het bijbehorende wachtwoord in<br>
+                                3. Klik op "Inloggen"<br>
+                                4. <strong>Wachtwoord vergeten?</strong> Reset via Supabase Dashboard
                             </small>
                         </div>
                     </div>
@@ -148,72 +109,58 @@
         window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
             auth: {
                 persistSession: true,
-                autoRefreshToken: true,
-                detectSessionInUrl: false
+                autoRefreshToken: true
             }
         });
+        
+        console.log('Supabase geïnitialiseerd');
     </script>
     
     <script>
-        // Voeg nieuwe vertalingen toe
+        // Vertalingen
         const translations = {
             nl: {
                 email: "E-mailadres",
                 password: "Wachtwoord",
                 login: "Inloggen",
-                forgotPassword: "Wachtwoord vergeten?",
-                resetPassword: "Wachtwoord resetten",
-                resetInstructions: "Voer je e-mailadres in om een reset link te ontvangen.",
-                sendResetLink: "Reset link versturen",
-                backToLogin: "Terug naar inloggen",
                 securedApp: "Beveiligde Supabase applicatie",
-                resetSuccess: "Reset link verstuurd! Check je e-mail.",
-                resetError: "Fout bij versturen reset link: ",
-                checkEmail: "Controleer je inbox (en spam folder)",
-                invalidEmail: "Voer een geldig e-mailadres in",
                 loginSuccess: "Succesvol ingelogd!",
-                sessionFound: "Je bent al ingelogd. Doorsturen..."
+                sessionFound: "Je bent al ingelogd. Doorsturen...",
+                invalidEmail: "Voer een geldig e-mailadres in",
+                loginFailed: "Login mislukt",
+                invalidCredentials: "Ongeldige inloggegevens",
+                emailNotConfirmed: "E-mail niet bevestigd. Check je inbox."
             },
             en: {
                 email: "Email address",
                 password: "Password",
                 login: "Login",
-                forgotPassword: "Forgot password?",
-                resetPassword: "Reset password",
-                resetInstructions: "Enter your email address to receive a reset link.",
-                sendResetLink: "Send reset link",
-                backToLogin: "Back to login",
                 securedApp: "Secure Supabase application",
-                resetSuccess: "Reset link sent! Check your email.",
-                resetError: "Error sending reset link: ",
-                checkEmail: "Check your inbox (and spam folder)",
-                invalidEmail: "Please enter a valid email address",
                 loginSuccess: "Successfully logged in!",
-                sessionFound: "You are already logged in. Redirecting..."
+                sessionFound: "You are already logged in. Redirecting...",
+                invalidEmail: "Please enter a valid email address",
+                loginFailed: "Login failed",
+                invalidCredentials: "Invalid login credentials",
+                emailNotConfirmed: "Email not confirmed. Check your inbox."
             },
             de: {
                 email: "E-Mail-Adresse",
                 password: "Passwort",
                 login: "Anmelden",
-                forgotPassword: "Passwort vergessen?",
-                resetPassword: "Passwort zurücksetzen",
-                resetInstructions: "Geben Sie Ihre E-Mail-Adresse ein, um einen Reset-Link zu erhalten.",
-                sendResetLink: "Reset-Link senden",
-                backToLogin: "Zurück zur Anmeldung",
                 securedApp: "Sichere Supabase-Anwendung",
-                resetSuccess: "Reset-Link gesendet! Überprüfen Sie Ihre E-Mail.",
-                resetError: "Fehler beim Senden des Reset-Links: ",
-                checkEmail: "Überprüfen Sie Ihren Posteingang (und Spam-Ordner)",
-                invalidEmail: "Bitte geben Sie eine gültige E-Mail-Adresse ein",
                 loginSuccess: "Erfolgreich angemeldet!",
-                sessionFound: "Sie sind bereits angemeldet. Weiterleitung..."
+                sessionFound: "Sie sind bereits angemeldet. Weiterleitung...",
+                invalidEmail: "Bitte geben Sie eine gültige E-Mail-Adresse ein",
+                loginFailed: "Anmeldung fehlgeschlagen",
+                invalidCredentials: "Ungültige Anmeldedaten",
+                emailNotConfirmed: "E-Mail nicht bestätigt. Überprüfen Sie Ihren Posteingang."
             }
         };
 
-        // Huidige taal opslaan
+        // Huidige taal
         let currentLang = localStorage.getItem('appLanguage') || 'nl';
 
-        // Pagina tekst vertalen
+        // Pagina vertalen
         function translatePage(lang) {
             const elements = document.querySelectorAll('.login-text');
             elements.forEach(element => {
@@ -223,12 +170,10 @@
                 }
             });
             
-            // Update vlaggetjes
             document.querySelectorAll('.language-btn').forEach(btn => {
                 if (btn.getAttribute('data-lang') === lang) {
-                    btn.classList.add('active');
+                    btn.classList.add('active', 'btn-light');
                     btn.classList.remove('btn-outline-light');
-                    btn.classList.add('btn-light');
                 } else {
                     btn.classList.remove('active', 'btn-light');
                     btn.classList.add('btn-outline-light');
@@ -239,14 +184,14 @@
             
             const titles = {
                 nl: "Hondendatabase - Login",
-                en: "Dog Database - Login",
+                en: "Dog Database - Login", 
                 de: "Hundedatenbank - Login"
             };
             document.title = titles[lang] || titles.nl;
         }
 
-        // Toon floating alert
-        function showAlert(message, type = 'info', duration = 5000) {
+        // Toon alert
+        function showAlert(message, type = 'info', duration = 4000) {
             const alertContainer = document.getElementById('alertContainer');
             const alertId = 'alert-' + Date.now();
             
@@ -260,7 +205,6 @@
             
             alertContainer.appendChild(alert);
             
-            // Auto remove na duration
             if (duration > 0) {
                 setTimeout(() => {
                     const alertEl = document.getElementById(alertId);
@@ -273,7 +217,7 @@
             return alertId;
         }
 
-        // Event listeners voor vlaggetjes
+        // Taal switchers
         document.querySelectorAll('.language-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const lang = this.getAttribute('data-lang');
@@ -283,12 +227,13 @@
             });
         });
 
-        // Controleer bestaande sessie
+        // Check sessie
         async function checkExistingSession() {
             try {
                 const { data, error } = await supabase.auth.getSession();
+                
                 if (error) {
-                    console.warn('Sessie check error:', error);
+                    console.warn('Sessie error:', error);
                     return;
                 }
                 
@@ -296,10 +241,11 @@
                     console.log('Al ingelogd als:', data.session.user.email);
                     showAlert(translations[currentLang].sessionFound, 'info', 2000);
                     
+                    // Sla gegevens op
                     localStorage.setItem('userEmail', data.session.user.email);
                     localStorage.setItem('userId', data.session.user.id);
                     
-                    // Haal profiel op
+                    // Haal admin status op
                     try {
                         const { data: profile, error: profileError } = await supabase
                             .from('profiles')
@@ -310,88 +256,84 @@
                         if (!profileError && profile) {
                             localStorage.setItem('isAdmin', profile.is_admin ? 'true' : 'false');
                         }
-                    } catch (profileError) {
-                        console.warn('Profiel ophalen mislukt:', profileError);
+                    } catch (error) {
+                        console.warn('Profiel error:', error);
                     }
                     
-                    // Wacht even en redirect
+                    // Redirect
                     setTimeout(() => {
                         window.location.href = 'app.html';
                     }, 1500);
                 }
             } catch (error) {
-                console.log('Geen actieve sessie gevonden');
+                console.log('Geen sessie:', error.message);
             }
         }
 
-        // Wissel tussen login en reset formulieren
-        document.getElementById('forgotPasswordLink').addEventListener('click', function(e) {
-            e.preventDefault();
-            document.getElementById('loginForm').style.display = 'none';
-            document.getElementById('resetPasswordForm').style.display = 'block';
-            document.getElementById('resetEmail').focus();
-        });
-
-        document.getElementById('backToLogin').addEventListener('click', function() {
-            document.getElementById('resetPasswordForm').style.display = 'none';
-            document.getElementById('loginForm').style.display = 'block';
-            document.getElementById('email').focus();
-        });
-
-        // Initialiseer bij laden
+        // Initialisatie
         document.addEventListener('DOMContentLoaded', () => {
             translatePage(currentLang);
-            checkExistingSession();
             
-            // Auto-focus op email veld
+            // Auto-focus
             setTimeout(() => {
-                document.getElementById('email').focus();
-            }, 100);
+                const emailField = document.getElementById('email');
+                if (emailField) emailField.focus();
+            }, 300);
+            
+            // Check sessie
+            checkExistingSession();
         });
 
-        // Login functionaliteit
+        // Login handler
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
             
+            // Validatie
             if (!email || !email.includes('@')) {
                 showAlert(translations[currentLang].invalidEmail, 'warning', 3000);
+                document.getElementById('email').focus();
                 return;
             }
             
-            if (!password || password.length < 1) {
+            if (!password) {
                 showAlert('Voer een wachtwoord in', 'warning', 3000);
+                document.getElementById('password').focus();
                 return;
             }
             
+            // Button state
             const submitBtn = this.querySelector('button[type="submit"]');
             const originalText = submitBtn.innerHTML;
             submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Inloggen...';
             submitBtn.disabled = true;
             
             try {
-                console.log('Login poging voor:', email);
+                console.log('Login poging:', email);
                 
+                // Supabase login
                 const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
                     email: email,
                     password: password
                 });
                 
                 if (authError) {
+                    console.error('Auth error:', authError);
                     throw new Error(authError.message);
                 }
                 
-                console.log('Login succesvol!');
+                // SUCCESS!
+                console.log('Login succesvol:', authData.user.email);
                 showAlert(translations[currentLang].loginSuccess, 'success', 2000);
                 
-                // Sla gebruiker info op
+                // Sla gegevens op
                 localStorage.setItem('userEmail', authData.user.email);
                 localStorage.setItem('userId', authData.user.id);
                 localStorage.setItem('appLanguage', currentLang);
                 
-                // Admin status check
+                // Check admin status
                 try {
                     const { data: profile, error: profileError } = await supabase
                         .from('profiles')
@@ -405,15 +347,15 @@
                     } else {
                         localStorage.setItem('isAdmin', 'false');
                     }
-                } catch (profileError) {
-                    console.warn('Profiel check mislukt:', profileError);
+                } catch (error) {
+                    console.warn('Profiel check mislukt:', error);
                     localStorage.setItem('isAdmin', 'false');
                 }
                 
-                // Update knop tekst
+                // Update button
                 submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Ingelogd!';
                 
-                // Redirect naar app na korte delay
+                // Redirect
                 setTimeout(() => {
                     window.location.href = 'app.html';
                 }, 1500);
@@ -421,105 +363,38 @@
             } catch (error) {
                 console.error('Login error:', error);
                 
-                let errorMessage = 'Login mislukt';
+                // User-friendly error messages
+                let errorMessage = translations[currentLang].loginFailed;
+                
                 if (error.message.includes('Invalid login credentials')) {
-                    errorMessage = 'Ongeldige inloggegevens. Controleer e-mail en wachtwoord.';
+                    errorMessage = translations[currentLang].invalidCredentials;
                 } else if (error.message.includes('Email not confirmed')) {
-                    errorMessage = 'E-mail nog niet bevestigd. Check je inbox voor bevestigingsmail.';
+                    errorMessage = translations[currentLang].emailNotConfirmed;
                 } else {
-                    errorMessage = 'Fout: ' + error.message;
+                    errorMessage = error.message;
                 }
                 
                 showAlert(errorMessage, 'danger', 5000);
+                
+                // Reset button
                 submitBtn.innerHTML = originalText;
                 submitBtn.disabled = false;
+                
+                // Focus op password field
+                document.getElementById('password').focus();
+                document.getElementById('password').select();
             }
         });
 
-        // Wachtwoord reset functionaliteit - SIMPELE VERSIE
-        document.getElementById('resetPasswordForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const email = document.getElementById('resetEmail').value.trim();
-            
-            if (!email || !email.includes('@')) {
-                showAlert(translations[currentLang].invalidEmail, 'warning', 3000);
-                return;
-            }
-            
-            const submitBtn = this.querySelector('button[type="submit"]');
-            const originalText = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Versturen...';
-            submitBtn.disabled = true;
-            
-            try {
-                console.log('Reset aanvraag voor:', email);
-                
-                // SIMPELE VERSIE - zonder custom redirect
-                const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                    // Laat Supabase zijn default pagina gebruiken
-                    redirectTo: 'https://owjwkjrktftugjjrcwml.supabase.co'
-                });
-                
-                if (error) {
-                    throw new Error(error.message);
-                }
-                
-                // Toon succes bericht
-                showAlert(`
-                    <strong>${translations[currentLang].resetSuccess}</strong><br>
-                    ${translations[currentLang].checkEmail}
-                `, 'success', 8000);
-                
-                console.log('Reset email verstuurd naar:', email);
-                
-                // Reset formulier en ga terug naar login
-                this.reset();
-                
-                setTimeout(() => {
-                    document.getElementById('resetPasswordForm').style.display = 'none';
-                    document.getElementById('loginForm').style.display = 'block';
-                    document.getElementById('email').focus();
-                }, 3000);
-                
-            } catch (error) {
-                console.error('Reset error:', error);
-                
-                let errorMessage = translations[currentLang].resetError;
-                if (error.message.includes('rate limit')) {
-                    errorMessage = 'Te veel pogingen. Wacht even en probeer opnieuw.';
-                } else if (error.message.includes('user not found')) {
-                    errorMessage = 'Geen account gevonden met dit e-mailadres.';
-                } else {
-                    errorMessage += error.message;
-                }
-                
-                showAlert(errorMessage, 'danger', 5000);
-            } finally {
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
-            }
-        });
-        
-        // Enter toets ondersteuning
+        // Enter key support
         document.getElementById('password').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 document.getElementById('loginForm').dispatchEvent(new Event('submit'));
             }
         });
         
-        document.getElementById('resetEmail').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                document.getElementById('resetPasswordForm').dispatchEvent(new Event('submit'));
-            }
-        });
-        
-        // Focus management
+        // Auto-select email on focus
         document.getElementById('email').addEventListener('focus', function() {
-            this.select();
-        });
-        
-        document.getElementById('resetEmail').addEventListener('focus', function() {
             this.select();
         });
     </script>
