@@ -3,26 +3,52 @@
 
 // ========== HONDEN SERVICE ==========
 const hondenService = {
-  // 1. Alle honden ophalen
-  async getHonden() {
+  // 1. Alle honden ophalen MET PAGINATIE (veilig voor grote datasets)
+  async getHonden(page = 1, pageSize = 100) {
     try {
-      const { data, error } = await window.supabase
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = startIndex + pageSize - 1;
+      
+      const { data, error, count } = await window.supabase
         .from('honden')
-        .select('*')
-        .order('naam', { ascending: true });
+        .select('*', { count: 'exact' })
+        .order('naam', { ascending: true })
+        .range(startIndex, endIndex);
       
       if (error) throw error;
-      return data || [];
+      
+      return {
+        honden: data || [],
+        pagina: page,
+        grootte: pageSize,
+        totaal: count || 0,
+        totaalPaginas: Math.ceil((count || 0) / pageSize),
+        heeftVolgende: endIndex < (count || 0) - 1,
+        heeftVorige: page > 1
+      };
     } catch (error) {
       console.error('Fout bij ophalen honden:', error);
-      return [];
+      return {
+        honden: [],
+        pagina: page,
+        grootte: pageSize,
+        totaal: 0,
+        totaalPaginas: 0,
+        heeftVolgende: false,
+        heeftVorige: false
+      };
     }
   },
 
-  // 2. Zoeken
-  async zoekHonden(criteria) {
+  // 2. Zoeken MET PAGINATIE (veilig voor grote datasets)
+  async zoekHonden(criteria, page = 1, pageSize = 100) {
     try {
-      let query = window.supabase.from('honden').select('*');
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = startIndex + pageSize - 1;
+      
+      let query = window.supabase
+        .from('honden')
+        .select('*', { count: 'exact' });
       
       if (criteria.naam) query = query.ilike('naam', `%${criteria.naam}%`);
       if (criteria.kennelnaam) query = query.ilike('kennelnaam', `%${criteria.kennelnaam}%`);
@@ -31,13 +57,31 @@ const hondenService = {
       if (criteria.geslacht) query = query.eq('geslacht', criteria.geslacht);
       if (criteria.land) query = query.ilike('land', `%${criteria.land}%`);
       
-      const { data, error } = await query;
+      const { data, error, count } = await query
+        .range(startIndex, endIndex);
       
       if (error) throw error;
-      return data || [];
+      
+      return {
+        honden: data || [],
+        pagina: page,
+        grootte: pageSize,
+        totaal: count || 0,
+        totaalPaginas: Math.ceil((count || 0) / pageSize),
+        heeftVolgende: endIndex < (count || 0) - 1,
+        heeftVorige: page > 1
+      };
     } catch (error) {
       console.error('Fout bij zoeken honden:', error);
-      return [];
+      return {
+        honden: [],
+        pagina: page,
+        grootte: pageSize,
+        totaal: 0,
+        totaalPaginas: 0,
+        heeftVolgende: false,
+        heeftVorige: false
+      };
     }
   },
 
@@ -196,44 +240,90 @@ const hondenService = {
     }
   },
 
-  // 8. Zoek op kennelnaam
-  async zoekOpKennelnaam(kennelnaam) {
+  // 8. Zoek op kennelnaam MET PAGINATIE
+  async zoekOpKennelnaam(kennelnaam, page = 1, pageSize = 100) {
     try {
-      const { data, error } = await window.supabase
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = startIndex + pageSize - 1;
+      
+      const { data, error, count } = await window.supabase
         .from('honden')
-        .select('*')
-        .ilike('kennelnaam', `%${kennelnaam}%`);
+        .select('*', { count: 'exact' })
+        .ilike('kennelnaam', `%${kennelnaam}%`)
+        .range(startIndex, endIndex);
       
       if (error) throw error;
-      return data || [];
+      
+      return {
+        honden: data || [],
+        pagina: page,
+        grootte: pageSize,
+        totaal: count || 0,
+        totaalPaginas: Math.ceil((count || 0) / pageSize),
+        heeftVolgende: endIndex < (count || 0) - 1,
+        heeftVorige: page > 1
+      };
     } catch (error) {
       console.error('Fout bij zoeken op kennelnaam:', error);
-      return [];
+      return {
+        honden: [],
+        pagina: page,
+        grootte: pageSize,
+        totaal: 0,
+        totaalPaginas: 0,
+        heeftVolgende: false,
+        heeftVorige: false
+      };
     }
   },
 
-  // 9. Zoek op vachtkleur
-  async zoekOpVachtkleur(vachtkleur) {
+  // 9. Zoek op vachtkleur MET PAGINATIE
+  async zoekOpVachtkleur(vachtkleur, page = 1, pageSize = 100) {
     try {
-      const { data, error } = await window.supabase
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = startIndex + pageSize - 1;
+      
+      const { data, error, count } = await window.supabase
         .from('honden')
-        .select('*')
-        .ilike('vachtkleur', `%${vachtkleur}%`);
+        .select('*', { count: 'exact' })
+        .ilike('vachtkleur', `%${vachtkleur}%`)
+        .range(startIndex, endIndex);
       
       if (error) throw error;
-      return data || [];
+      
+      return {
+        honden: data || [],
+        pagina: page,
+        grootte: pageSize,
+        totaal: count || 0,
+        totaalPaginas: Math.ceil((count || 0) / pageSize),
+        heeftVolgende: endIndex < (count || 0) - 1,
+        heeftVorige: page > 1
+      };
     } catch (error) {
       console.error('Fout bij zoeken op vachtkleur:', error);
-      return [];
+      return {
+        honden: [],
+        pagina: page,
+        grootte: pageSize,
+        totaal: 0,
+        totaalPaginas: 0,
+        heeftVolgende: false,
+        heeftVorige: false
+      };
     }
   },
 
-  // 10. Honden per kennel
-  async getHondenPerKennel() {
+  // 10. Honden per kennel MET PAGINATIE
+  async getHondenPerKennel(page = 1, pageSize = 20) {
     try {
-      const { data, error } = await window.supabase
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = startIndex + pageSize - 1;
+      
+      const { data, error, count } = await window.supabase
         .from('honden')
-        .select('kennelnaam, id, naam, stamboomnr, ras, kleur, geslacht');
+        .select('kennelnaam, id, naam, stamboomnr, ras, kleur, geslacht', { count: 'exact' })
+        .range(startIndex, endIndex);
       
       if (error) throw error;
       
@@ -260,14 +350,32 @@ const hondenService = {
         });
       });
       
-      return Object.values(kennelOverzicht).sort((a, b) => b.aantal - a.aantal);
+      const resultaten = Object.values(kennelOverzicht).sort((a, b) => b.aantal - a.aantal);
+      
+      return {
+        kennels: resultaten,
+        pagina: page,
+        grootte: pageSize,
+        totaal: count || 0,
+        totaalPaginas: Math.ceil((count || 0) / pageSize),
+        heeftVolgende: endIndex < (count || 0) - 1,
+        heeftVorige: page > 1
+      };
     } catch (error) {
       console.error('Fout bij ophalen kenneloverzicht:', error);
-      return [];
+      return {
+        kennels: [],
+        pagina: page,
+        grootte: pageSize,
+        totaal: 0,
+        totaalPaginas: 0,
+        heeftVolgende: false,
+        heeftVorige: false
+      };
     }
   },
 
-  // 11. Statistieken
+  // 11. Statistieken (geen paginatie nodig, haalt alleen tellingen op)
   async getStatistieken() {
     try {
       const { count: totaalHonden, error: hondenError } = await window.supabase
@@ -278,7 +386,8 @@ const hondenService = {
       
       const { data: hondenData, error: dataError } = await window.supabase
         .from('honden')
-        .select('kennelnaam, vachtkleur');
+        .select('kennelnaam, vachtkleur')
+        .limit(5000); // Beperk voor statistiek berekening
       
       if (dataError) throw dataError;
       
@@ -313,6 +422,23 @@ const hondenService = {
         vachtkleurStatistieken: { totaalVachtkleuren: 0, hondenPerVachtkleur: {} },
         laatsteUpdate: null
       };
+    }
+  },
+
+  // 12. Snelle methode voor beperkt aantal honden (voor dropdowns, etc.)
+  async getBeperkteHonden(limit = 200) {
+    try {
+      const { data, error } = await window.supabase
+        .from('honden')
+        .select('id, naam, kennelnaam, stamboomnr')
+        .order('naam', { ascending: true })
+        .limit(limit);
+      
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Fout bij ophalen beperkte honden:', error);
+      return [];
     }
   }
 };
@@ -354,6 +480,40 @@ const fotoService = {
     } catch (error) {
       console.error('Fout bij ophalen thumbnails:', error);
       return [];
+    }
+  },
+
+  // Foto's met paginatie
+  async getFotosMetPaginatie(stamboomnr, page = 1, pageSize = 12) {
+    try {
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = startIndex + pageSize - 1;
+      
+      const { data, error, count } = await window.supabase
+        .from('fotos')
+        .select('*', { count: 'exact' })
+        .eq('stamboomnr', stamboomnr)
+        .order('uploaded_at', { ascending: false })
+        .range(startIndex, endIndex);
+      
+      if (error) throw error;
+      
+      return {
+        fotos: data || [],
+        pagina: page,
+        grootte: pageSize,
+        totaal: count || 0,
+        totaalPaginas: Math.ceil((count || 0) / pageSize)
+      };
+    } catch (error) {
+      console.error('Fout bij ophalen foto\'s met paginatie:', error);
+      return {
+        fotos: [],
+        pagina: page,
+        grootte: pageSize,
+        totaal: 0,
+        totaalPaginas: 0
+      };
     }
   }
 };
@@ -402,6 +562,42 @@ const priveInfoService = {
     } catch (error) {
       console.error('Fout bij opslaan prive info:', error);
       throw error;
+    }
+  },
+
+  async getPriveInfoMetPaginatie(page = 1, pageSize = 50) {
+    try {
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = startIndex + pageSize - 1;
+      
+      const user = window.auth ? window.auth.getCurrentUser() : null;
+      if (!user) throw new Error('Niet ingelogd');
+      
+      const { data, error, count } = await window.supabase
+        .from('priveinfo')
+        .select('*', { count: 'exact' })
+        .eq('toegevoegd_door', user.id)
+        .order('laatstgewijzigd', { ascending: false })
+        .range(startIndex, endIndex);
+      
+      if (error) throw error;
+      
+      return {
+        priveInfo: data || [],
+        pagina: page,
+        grootte: pageSize,
+        totaal: count || 0,
+        totaalPaginas: Math.ceil((count || 0) / pageSize)
+      };
+    } catch (error) {
+      console.error('Fout bij ophalen prive info:', error);
+      return {
+        priveInfo: [],
+        pagina: page,
+        grootte: pageSize,
+        totaal: 0,
+        totaalPaginas: 0
+      };
     }
   }
 };
