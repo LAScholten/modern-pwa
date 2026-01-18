@@ -6,83 +6,89 @@
     <title>Hondendatabase - Login</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
-    <style>
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-        }
-        .login-card {
-            background: white;
-            border-radius: 15px;
-            border: none;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-        }
-        .btn-login {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            padding: 12px;
-            font-weight: 600;
-        }
-    </style>
 </head>
-<body>
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-6 col-lg-5">
-                <div class="card login-card">
-                    <div class="card-header text-white text-center py-4" style="background: #0d6efd; border-radius: 15px 15px 0 0;">
-                        <h3 class="mb-2">
-                            <i class="bi bi-database"></i> Hondendatabase
-                        </h3>
-                        <p class="mb-0">Beheerder Login</p>
-                    </div>
-                    <div class="card-body p-4">
-                        <form id="loginForm">
-                            <div class="mb-3">
-                                <label class="form-label">Email</label>
-                                <input type="email" class="form-control" 
-                                       id="email" required value="leoneurasier@gmail.com">
-                            </div>
-                            <div class="mb-4">
-                                <label class="form-label">Wachtwoord</label>
-                                <input type="password" class="form-control" 
-                                       id="password" required value="admin1903">
-                            </div>
-                            
-                            <button type="submit" class="btn btn-primary w-100 py-3">
-                                <i class="bi bi-box-arrow-in-right"></i> INLOGGEN
-                            </button>
-                        </form>
-                        
-                        <div class="mt-4 text-center">
-                            <button onclick="directToApp()" class="btn btn-success">
-                                <i class="bi bi-lightning"></i> DIRECT NAAR APP
-                            </button>
-                        </div>
-                        
-                        <div id="loginResult" class="mt-3"></div>
-                    </div>
+<body style="background: #f5f5f5; min-height: 100vh; display: flex; align-items: center; justify-content: center;">
+    <div style="width: 100%; max-width: 400px; padding: 20px;">
+        <div style="background: white; border-radius: 10px; padding: 30px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+            <h2 style="text-align: center; margin-bottom: 10px;">
+                <i class="bi bi-database" style="color: #0d6efd;"></i><br>
+                Hondendatabase
+            </h2>
+            <p style="text-align: center; color: #666; margin-bottom: 30px;">Beheerder Login</p>
+            
+            <div id="loginResult" style="margin-bottom: 15px;"></div>
+            
+            <form id="loginForm">
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Email</label>
+                    <input type="email" id="email" 
+                           style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;"
+                           value="leoneurasier@gmail.com" required>
                 </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Wachtwoord</label>
+                    <input type="password" id="password" 
+                           style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;"
+                           value="admin1903" required>
+                </div>
+                
+                <button type="submit" 
+                        style="width: 100%; padding: 12px; background: #0d6efd; color: white; border: none; border-radius: 5px; font-weight: bold;">
+                    <i class="bi bi-box-arrow-in-right"></i> INLOGGEN
+                </button>
+            </form>
+            
+            <div style="margin-top: 20px; text-align: center;">
+                <button onclick="goDirectToApp()" 
+                        style="width: 100%; padding: 12px; background: #28a745; color: white; border: none; border-radius: 5px;">
+                    <i class="bi bi-lightning"></i> DIRECT NAAR APP
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- Supabase JS - ÉÉN KEER -->
+    <!-- Supabase JS -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     
     <script>
-        // SUPABASE INIT - ÉÉN KEER
+        // INIT SUPABASE - ÉÉN KEER
         const supabase = window.supabase.createClient(
             'https://owjwkjrktftugjjrcwml.supabase.co',
             'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93andranJrdGZ0dWdqanJjd21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2MzA4OTAsImV4cCI6MjA4NDIwNjg5MH0.oW6HTAlMBkjUu_4e3kn4iozjn5wK-15h4wCKcaHrtp8'
         );
 
-        // Login functie
-        async function login(email, password) {
-            const resultDiv = document.getElementById('loginResult');
-            resultDiv.innerHTML = '<div class="alert alert-info">Inloggen...</div>';
+        // Show message
+        function showMessage(message, type = 'info') {
+            const colors = {
+                'info': '#17a2b8',
+                'success': '#28a745', 
+                'error': '#dc3545'
+            };
+            
+            document.getElementById('loginResult').innerHTML = `
+                <div style="padding: 10px; background: ${colors[type]}; color: white; border-radius: 5px; margin-bottom: 15px;">
+                    ${message}
+                </div>
+            `;
+        }
+
+        // Direct to app function
+        function goDirectToApp() {
+            localStorage.setItem('userEmail', 'leoneurasier@gmail.com');
+            localStorage.setItem('userId', 'direct-beheerder');
+            localStorage.setItem('isAdmin', 'true');
+            
+            showMessage('✅ Directe toegang verleend! Doorsturen...', 'success');
+            
+            setTimeout(() => {
+                window.location.href = 'app.html';
+            }, 1000);
+        }
+
+        // Login function
+        async function doLogin(email, password) {
+            showMessage('Inloggen...', 'info');
             
             try {
                 const { data, error } = await supabase.auth.signInWithPassword({
@@ -91,7 +97,7 @@
                 });
                 
                 if (error) {
-                    resultDiv.innerHTML = `<div class="alert alert-danger">❌ ${error.message}</div>`;
+                    showMessage(`❌ Fout: ${error.message}`, 'error');
                     return false;
                 }
                 
@@ -100,7 +106,7 @@
                 localStorage.setItem('userId', data.user.id);
                 localStorage.setItem('isAdmin', 'true');
                 
-                resultDiv.innerHTML = `<div class="alert alert-success">✅ Ingelogd! Doorsturen...</div>`;
+                showMessage('✅ Ingelogd! Doorsturen...', 'success');
                 
                 setTimeout(() => {
                     window.location.href = 'app.html';
@@ -109,23 +115,9 @@
                 return true;
                 
             } catch (error) {
-                resultDiv.innerHTML = `<div class="alert alert-danger">❌ ${error.message}</div>`;
+                showMessage(`❌ Error: ${error.message}`, 'error');
                 return false;
             }
-        }
-
-        // Direct naar app (bypass)
-        function directToApp() {
-            localStorage.setItem('userEmail', 'leoneurasier@gmail.com');
-            localStorage.setItem('userId', 'direct-beheerder');
-            localStorage.setItem('isAdmin', 'true');
-            
-            document.getElementById('loginResult').innerHTML = 
-                '<div class="alert alert-success">✅ Directe toegang verleend! Doorsturen...</div>';
-            
-            setTimeout(() => {
-                window.location.href = 'app.html';
-            }, 1000);
         }
 
         // Form submit
@@ -136,22 +128,20 @@
             const password = document.getElementById('password').value;
             
             const btn = this.querySelector('button');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
             btn.disabled = true;
+            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> INLOGGEN...';
             
-            await login(email, password);
+            await doLogin(email, password);
             
-            btn.innerHTML = originalText;
             btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-box-arrow-in-right"></i> INLOGGEN';
         });
 
-        // Controleer bestaande sessie
+        // Check existing session
         document.addEventListener('DOMContentLoaded', function() {
             supabase.auth.getSession().then(({ data }) => {
                 if (data.session) {
-                    document.getElementById('loginResult').innerHTML = 
-                        '<div class="alert alert-info">Je bent al ingelogd. Doorsturen...</div>';
+                    showMessage('Je bent al ingelogd. Doorsturen...', 'info');
                     
                     localStorage.setItem('userEmail', data.session.user.email);
                     localStorage.setItem('userId', data.session.user.id);
