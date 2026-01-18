@@ -21,6 +21,7 @@ class StamboomManager extends BaseModule {
                 pedigreeTitle: "Stamboom van {name}",
                 pedigree4Gen: "5-generatie stamboom",
                 generatingPedigree: "Stamboom genereren...",
+                loadingAllDogs: "Alle honden laden... ({loaded} geladen)",
                 close: "Sluiten",
                 print: "Afdrukken",
                 noData: "Geen gegevens",
@@ -78,6 +79,7 @@ class StamboomManager extends BaseModule {
                 pedigreeTitle: "Pedigree of {name}",
                 pedigree4Gen: "5-generation pedigree",
                 generatingPedigree: "Generating pedigree...",
+                loadingAllDogs: "Loading all dogs... ({loaded} loaded)",
                 close: "Close",
                 print: "Print",
                 noData: "No data",
@@ -135,6 +137,7 @@ class StamboomManager extends BaseModule {
                 pedigreeTitle: "Ahnentafel von {name}",
                 pedigree4Gen: "5-Generationen Ahnentafel",
                 generatingPedigree: "Ahnentafel wird generiert...",
+                loadingAllDogs: "Lade alle Hunde... ({loaded} geladen)",
                 close: "Schließen",
                 print: "Drucken",
                 noData: "Keine Daten",
@@ -184,7 +187,7 @@ class StamboomManager extends BaseModule {
                 kinship6Gen: "Kinship 6 Gen",
                 homozygosity6Gen: "Homozygotie 6 Gen",
                 photos: "Fotos",
-                noPhotos: "Keine Fotos verfügbaar",
+                noPhotos: "Keine Fotos verfügbar",
                 clickToEnlarge: "Klicken zum Vergrößern",
                 closePhoto: "Schließen"
             }
@@ -201,18 +204,92 @@ class StamboomManager extends BaseModule {
     }
     
     async initialize() {
-        this.allDogs = await this.hondenService.getHonden();
-        console.log(`${this.allDogs.length} honden geladen voor stambomen`);
-        
-        if (typeof COICalculator !== 'undefined') {
-            this.coiCalculator = new COICalculator(this.allDogs);
-            console.log('COI Calculator geïnitialiseerd vanuit extern bestand');
-        } else {
-            console.error('COICalculator klasse niet gevonden!');
-            this.coiCalculator = null;
+        try {
+            this.showProgress(this.t('loadingAllDogs').replace('{loaded}', '0'));
+            
+            // Gebruik paginatie om ALLE honden te laden
+            this.allDogs = await this.loadAllDogsWithPagination();
+            
+            console.log(`${this.allDogs.length} honden geladen voor stambomen`);
+            
+            if (typeof COICalculator !== 'undefined') {
+                this.coiCalculator = new COICalculator(this.allDogs);
+                console.log('COI Calculator geïnitialiseerd vanuit extern bestand');
+            } else {
+                console.error('COICalculator klasse niet gevonden!');
+                this.coiCalculator = null;
+            }
+            
+            this._isActive = true;
+            this.hideProgress();
+            
+        } catch (error) {
+            this.hideProgress();
+            console.error('Fout bij initialiseren StamboomManager:', error);
+            this.showError('Kon stamboommanager niet initialiseren: ' + error.message);
         }
-        
-        this._isActive = true;
+    }
+    
+    async loadAllDogsWithPagination() {
+        try {
+            let allDogs = [];
+            let currentPage = 1;
+            const pageSize = 1000; // Maximaal wat Supabase toestaat
+            let hasMorePages = true;
+            let totalLoaded = 0;
+            
+            console.log('StamboomManager: Laden van alle honden met paginatie...');
+            
+            // Loop door alle pagina's
+            while (hasMorePages) {
+                console.log(`Laden pagina ${currentPage}...`);
+                
+                // Gebruik de getHonden() methode van je hondenService
+                const result = await this.hondenService.getHonden(currentPage, pageSize);
+                
+                if (result.honden && result.honden.length > 0) {
+                    // Voeg honden toe aan array
+                    allDogs = allDogs.concat(result.honden);
+                    totalLoaded = allDogs.length;
+                    
+                    // Update progress
+                    const progressMessage = this.t('loadingAllDogs').replace('{loaded}', totalLoaded);
+                    this.showProgress(progressMessage);
+                    
+                    console.log(`Pagina ${currentPage} geladen: ${result.honden.length} honden`);
+                    
+                    // Controleer of er nog meer pagina's zijn
+                    hasMorePages = result.heeftVolgende;
+                    currentPage++;
+                    
+                    // Veiligheidslimiet voor oneindige lus
+                    if (currentPage > 100) {
+                        console.warn('Veiligheidslimiet bereikt: te veel pagina\'s geladen');
+                        break;
+                    }
+                } else {
+                    hasMorePages = false;
+                }
+                
+                // Kleine pauze om de server niet te overbelasten
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+            // Sorteer op naam
+            allDogs.sort((a, b) => {
+                const naamA = a.naam || '';
+                const naamB = b.naam || '';
+                return naamA.localeCompare(naamB);
+            });
+            
+            console.log(`StamboomManager: TOTAAL ${allDogs.length} honden geladen`);
+            return allDogs;
+            
+        } catch (error) {
+            console.error('Fout bij laden honden voor stambomen:', error);
+            this.showError(this.t('loadFailed') + error.message);
+            return [];
+        }
     }
     
     cleanup() {
