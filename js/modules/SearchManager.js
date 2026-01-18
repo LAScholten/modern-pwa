@@ -6,8 +6,6 @@
  * Beide kolommen zijn nu scrollbaar
  */
 
-import { hondenService } from './supabase-honden.js';
-
 class SearchManager extends BaseModule {
     constructor() {
         super();
@@ -365,8 +363,8 @@ class SearchManager extends BaseModule {
     
     // NIEUW: Inject dependencies method voor UIHandler compatibiliteit
     injectDependencies(db, auth) {
-        this.db = db;
-        this.auth = auth;
+        this.db = window.hondenService || db; // VERANDERD: gebruik window object
+        this.auth = window.auth || auth; // VERANDERD: gebruik window object
         console.log('SearchManager: dependencies geïnjecteerd');
     }
     
@@ -493,7 +491,8 @@ class SearchManager extends BaseModule {
         }
         
         try {
-            const photos = await hondenService.getFotosVoorStamboomnr(dog.stamboomnr);
+            // VERANDERD: gebruik this.db ipv hondenService
+            const photos = await this.db.getFotosVoorStamboomnr(dog.stamboomnr);
             this.dogPhotosCache.set(cacheKey, photos || []);
             return photos || [];
         } catch (error) {
@@ -2185,7 +2184,8 @@ class SearchManager extends BaseModule {
         this.showProgress(this.t('loading'));
         
         try {
-            this.allDogs = await hondenService.getHonden();
+            // VERANDERD: gebruik this.db ipv hondenService
+            this.allDogs = await this.db.getHonden();
             this.allDogs.sort((a, b) => a.naam.localeCompare(b.naam));
             this.hideProgress();
             
@@ -2864,6 +2864,7 @@ class SearchManager extends BaseModule {
             // Initialiseer stamboom manager als nog niet gedaan
             if (!this.stamboomManager) {
                 console.log('Initializing StamboomManager...');
+                // VERANDERD: gebruik this.db ipv aparte db parameter
                 this.stamboomManager = new StamboomManager(this.db, this.currentLang);
                 await this.stamboomManager.initialize();
             }
