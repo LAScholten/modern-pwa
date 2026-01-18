@@ -7,8 +7,8 @@ class BaseModule {
     constructor(moduleName = '', moduleTitle = '') {
         this.moduleName = moduleName;
         this.moduleTitle = moduleTitle;
-        this.db = db;
-        this.auth = auth;
+        this.db = window.hondenService; // GEWIJZIGD: gebruik window object
+        this.auth = window.auth; // GEWIJZIGD: gebruik window object
         this.currentLang = localStorage.getItem('appLanguage') || 'nl';
     }
     
