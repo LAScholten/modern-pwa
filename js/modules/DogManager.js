@@ -1238,7 +1238,7 @@ class DogManager extends BaseModule {
     async loadAllDogs() {
         if (this.allDogs.length === 0) {
             try {
-                this.allDogs = await this.db.getHonden();
+                this.allDogs = await hondenService.getHonden();
                 this.allDogs.sort((a, b) => a.naam.localeCompare(b.naam));
             } catch (error) {
                 console.error('Fout bij laden honden voor autocomplete:', error);
@@ -1558,8 +1558,8 @@ class DogManager extends BaseModule {
         this.showProgress(this.t('savingDog'));
         
         try {
-            console.log('DogManager: Roep db.voegHondToe aan met dogData');
-            const result = await this.db.voegHondToe(dogData);
+            console.log('DogManager: Roep hondenService.voegHondToe aan met dogData');
+            const result = await hondenService.voegHondToe(dogData);
             console.log('DogManager: Hond toegevoegd met resultaat:', result);
             
             this.hideProgress();
@@ -1607,7 +1607,7 @@ class DogManager extends BaseModule {
                             uploadedAt: new Date().toISOString()
                         };
                         
-                        await this.db.voegFotoToe(photoData);
+                        await hondenService.voegFotoToe(photoData);
                         this.showSuccess(this.t('photoAdded'));
                         resolve();
                     } catch (error) {
