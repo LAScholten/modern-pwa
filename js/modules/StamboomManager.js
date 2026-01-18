@@ -4,9 +4,9 @@
  */
 
 class StamboomManager extends BaseModule {
-    constructor(db, currentLang = 'nl') {
+    constructor(hondenService, currentLang = 'nl') {
         super();
-        this.db = db;
+        this.hondenService = hondenService;
         this.currentLang = currentLang;
         this.allDogs = [];
         this.coiCalculator = null;
@@ -201,7 +201,7 @@ class StamboomManager extends BaseModule {
     }
     
     async initialize() {
-        this.allDogs = await this.db.getHonden();
+        this.allDogs = await this.hondenService.getHonden();
         console.log(`${this.allDogs.length} honden geladen voor stambomen`);
         
         if (typeof COICalculator !== 'undefined') {
@@ -267,7 +267,7 @@ class StamboomManager extends BaseModule {
             return this.dogHasPhotosCache.get(cacheKey);
         }
         try {
-            const hasPhotos = await this.db.checkFotosExist(dog.stamboomnr);
+            const hasPhotos = await this.hondenService.checkFotosExist(dog.stamboomnr);
             this.dogHasPhotosCache.set(cacheKey, hasPhotos);
             return hasPhotos;
         } catch (error) {
@@ -285,7 +285,7 @@ class StamboomManager extends BaseModule {
             return this.dogThumbnailsCache.get(cacheKey);
         }
         try {
-            const thumbnails = await this.db.getFotoThumbnails(dog.stamboomnr, limit);
+            const thumbnails = await this.hondenService.getFotoThumbnails(dog.stamboomnr, limit);
             this.dogThumbnailsCache.set(cacheKey, thumbnails || []);
             return thumbnails || [];
         } catch (error) {
@@ -301,7 +301,7 @@ class StamboomManager extends BaseModule {
             return this.fullPhotoCache.get(cacheKey);
         }
         try {
-            const foto = await this.db.getFotoById(fotoId);
+            const foto = await this.hondenService.getFotoById(fotoId);
             if (foto) {
                 this.fullPhotoCache.set(cacheKey, foto);
             }
@@ -884,7 +884,7 @@ class StamboomManager extends BaseModule {
                             
                             ${dog.dandyWalker ? `
                             <div class="info-row">
-                                <div class="info-item info-item-full">
+                                <div class="info-item info-item-full {
                                     <span class="info-label">${this.t('dandyWalker')}:</span>
                                     <span class="info-value">${this.getHealthBadge(dog.dandyWalker, 'dandy')}</span>
                                 </div>
@@ -893,7 +893,7 @@ class StamboomManager extends BaseModule {
                             
                             ${dog.schildklier ? `
                             <div class="info-row">
-                                <div class="info-item info-item-full">
+                                <div class="info-item info-item-full {
                                     <span class="info-label">${this.t('thyroid')}:</span>
                                     <span class="info-value">${this.getHealthBadge(dog.schildklier, 'thyroid')}</span>
                                 </div>
