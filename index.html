@@ -3,30 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hondendatabase DESKTOP - Login</title>
+    <title>Hondendatabase - Login</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="css/style.css">
     <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/png" href="img/icons/icon-192x192.png">
-    <style>
-        .alert-container {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 9999;
-            max-width: 400px;
-        }
-        .form-control:focus {
-            border-color: #0d6efd;
-            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-        }
-    </style>
 </head>
 <body class="bg-light">
-    <!-- Floating alert container -->
-    <div id="alertContainer" class="alert-container"></div>
-    
     <div class="container">
         <div class="row justify-content-center min-vh-100 align-items-center">
             <div class="col-md-6 col-lg-4">
@@ -35,372 +18,111 @@
                         <h1 class="h3 mb-0">
                             <i class="bi bi-database"></i> Hondendatabase
                         </h1>
-                        <p class="mb-0 mt-2">Interactieve hondenbeheer applicatie</p>
-                        
-                        <!-- Taal selectie vlaggetjes -->
-                        <div class="mt-3 d-flex justify-content-center gap-2">
-                            <button class="btn btn-sm btn-outline-light language-btn active" data-lang="nl" title="Nederlands">
-                                🇳🇱 NL
-                            </button>
-                            <button class="btn btn-sm btn-outline-light language-btn" data-lang="en" title="English">
-                                🇬🇧 EN
-                            </button>
-                            <button class="btn btn-sm btn-outline-light language-btn" data-lang="de" title="Deutsch">
-                                🇩🇪 DE
-                            </button>
-                        </div>
+                        <p class="mb-0 mt-2">Beheerder Login</p>
                     </div>
                     <div class="card-body p-4">
-                        <!-- Login formulier -->
                         <form id="loginForm">
                             <div class="mb-4">
                                 <label for="email" class="form-label">
-                                    <i class="bi bi-envelope"></i> <span class="login-text" data-key="email">E-mailadres</span>
+                                    <i class="bi bi-envelope"></i> E-mailadres
                                 </label>
                                 <input type="email" class="form-control form-control-lg" 
-                                       id="email" required autocomplete="email" 
-                                       placeholder="jouw-email@voorbeeld.nl">
+                                       id="email" required value="leoneurasier@gmail.com">
                             </div>
                             <div class="mb-4">
                                 <label for="password" class="form-label">
-                                    <i class="bi bi-key"></i> <span class="login-text" data-key="password">Wachtwoord</span>
+                                    <i class="bi bi-key"></i> Wachtwoord
                                 </label>
                                 <input type="password" class="form-control form-control-lg" 
-                                       id="password" required autocomplete="current-password">
+                                       id="password" required value="admin1903">
                             </div>
                             
                             <button type="submit" class="btn btn-primary btn-lg w-100 py-3">
-                                <i class="bi bi-box-arrow-in-right"></i> <span class="login-text" data-key="login">Inloggen</span>
+                                <i class="bi bi-box-arrow-in-right"></i> INLOGGEN
                             </button>
                         </form>
                         
-                        <!-- Instructie voor beheerder -->
-                        <div class="mt-4 p-3 bg-light rounded border">
-                            <h6 class="mb-2"><i class="bi bi-info-circle text-primary"></i> Login instructies:</h6>
-                            <small class="text-muted">
-                                1. Voer het e-mailadres in dat in Supabase staat<br>
-                                2. Voer het bijbehorende wachtwoord in<br>
-                                3. Klik op "Inloggen"<br>
-                                4. <strong>Wachtwoord vergeten?</strong> Reset via Supabase Dashboard
-                            </small>
+                        <div class="mt-4 text-center">
+                            <button onclick="directToApp()" class="btn btn-success">
+                                <i class="bi bi-lightning"></i> DIRECT NAAR APP
+                            </button>
                         </div>
-                    </div>
-                    <div class="card-footer text-center py-3">
-                        <small class="text-muted">
-                            <i class="bi bi-shield-check"></i>
-                            <span class="login-text" data-key="securedApp">Beveiligde Supabase applicatie</span>
-                        </small>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Supabase client vanuit CDN -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    
-    <!-- Globale Supabase configuratie -->
     <script>
-        // DIRECTE CONFIGURATIE
         const SUPABASE_URL = 'https://owjwkjrktftugjjrcwml.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93andranJrdGZ0dWdqanJjd21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2MzA4OTAsImV4cCI6MjA4NDIwNjg5MH0.oW6HTAlMBkjUu_4e3kn4iozjn5wK-15h4wCKcaHrtp8';
         
-        // Initialiseer Supabase client
-        window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-            auth: {
-                persistSession: true,
-                autoRefreshToken: true
-            }
-        });
-        
-        console.log('Supabase geïnitialiseerd');
-    </script>
-    
-    <script>
-        // Vertalingen
-        const translations = {
-            nl: {
-                email: "E-mailadres",
-                password: "Wachtwoord",
-                login: "Inloggen",
-                securedApp: "Beveiligde Supabase applicatie",
-                loginSuccess: "Succesvol ingelogd!",
-                sessionFound: "Je bent al ingelogd. Doorsturen...",
-                invalidEmail: "Voer een geldig e-mailadres in",
-                loginFailed: "Login mislukt",
-                invalidCredentials: "Ongeldige inloggegevens",
-                emailNotConfirmed: "E-mail niet bevestigd. Check je inbox."
-            },
-            en: {
-                email: "Email address",
-                password: "Password",
-                login: "Login",
-                securedApp: "Secure Supabase application",
-                loginSuccess: "Successfully logged in!",
-                sessionFound: "You are already logged in. Redirecting...",
-                invalidEmail: "Please enter a valid email address",
-                loginFailed: "Login failed",
-                invalidCredentials: "Invalid login credentials",
-                emailNotConfirmed: "Email not confirmed. Check your inbox."
-            },
-            de: {
-                email: "E-Mail-Adresse",
-                password: "Passwort",
-                login: "Anmelden",
-                securedApp: "Sichere Supabase-Anwendung",
-                loginSuccess: "Erfolgreich angemeldet!",
-                sessionFound: "Sie sind bereits angemeldet. Weiterleitung...",
-                invalidEmail: "Bitte geben Sie eine gültige E-Mail-Adresse ein",
-                loginFailed: "Anmeldung fehlgeschlagen",
-                invalidCredentials: "Ungültige Anmeldedaten",
-                emailNotConfirmed: "E-Mail nicht bestätigt. Überprüfen Sie Ihren Posteingang."
-            }
-        };
-
-        // Huidige taal
-        let currentLang = localStorage.getItem('appLanguage') || 'nl';
-
-        // Pagina vertalen
-        function translatePage(lang) {
-            const elements = document.querySelectorAll('.login-text');
-            elements.forEach(element => {
-                const key = element.getAttribute('data-key');
-                if (translations[lang] && translations[lang][key]) {
-                    element.textContent = translations[lang][key];
-                }
-            });
-            
-            document.querySelectorAll('.language-btn').forEach(btn => {
-                if (btn.getAttribute('data-lang') === lang) {
-                    btn.classList.add('active', 'btn-light');
-                    btn.classList.remove('btn-outline-light');
-                } else {
-                    btn.classList.remove('active', 'btn-light');
-                    btn.classList.add('btn-outline-light');
-                }
-            });
-            
-            document.documentElement.lang = lang;
-            
-            const titles = {
-                nl: "Hondendatabase - Login",
-                en: "Dog Database - Login", 
-                de: "Hundedatenbank - Login"
-            };
-            document.title = titles[lang] || titles.nl;
-        }
-
-        // Toon alert
-        function showAlert(message, type = 'info', duration = 4000) {
-            const alertContainer = document.getElementById('alertContainer');
-            const alertId = 'alert-' + Date.now();
-            
-            const alert = document.createElement('div');
-            alert.id = alertId;
-            alert.className = `alert alert-${type} alert-dismissible fade show shadow`;
-            alert.innerHTML = `
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
-            
-            alertContainer.appendChild(alert);
-            
-            if (duration > 0) {
-                setTimeout(() => {
-                    const alertEl = document.getElementById(alertId);
-                    if (alertEl) {
-                        alertEl.remove();
-                    }
-                }, duration);
-            }
-            
-            return alertId;
-        }
-
-        // Taal switchers
-        document.querySelectorAll('.language-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const lang = this.getAttribute('data-lang');
-                currentLang = lang;
-                localStorage.setItem('appLanguage', lang);
-                translatePage(lang);
-            });
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: { persistSession: true }
         });
 
-        // Check sessie
-        async function checkExistingSession() {
-            try {
-                const { data, error } = await supabase.auth.getSession();
-                
-                if (error) {
-                    console.warn('Sessie error:', error);
-                    return;
-                }
-                
-                if (data.session) {
-                    console.log('Al ingelogd als:', data.session.user.email);
-                    showAlert(translations[currentLang].sessionFound, 'info', 2000);
-                    
-                    // Sla gegevens op
-                    localStorage.setItem('userEmail', data.session.user.email);
-                    localStorage.setItem('userId', data.session.user.id);
-                    
-                    // Haal admin status op
-                    try {
-                        const { data: profile, error: profileError } = await supabase
-                            .from('profiles')
-                            .select('is_admin')
-                            .eq('user_id', data.session.user.id)
-                            .single();
-                        
-                        if (!profileError && profile) {
-                            localStorage.setItem('isAdmin', profile.is_admin ? 'true' : 'false');
-                        }
-                    } catch (error) {
-                        console.warn('Profiel error:', error);
-                    }
-                    
-                    // Redirect
-                    setTimeout(() => {
-                        window.location.href = 'app.html';
-                    }, 1500);
-                }
-            } catch (error) {
-                console.log('Geen sessie:', error.message);
+        // Check direct of er een sessie is
+        async function init() {
+            const { data } = await supabase.auth.getSession();
+            if (data.session) {
+                console.log('Al ingelogd, ga naar app');
+                saveUserData(data.session.user);
+                setTimeout(() => window.location.href = 'app.html', 500);
             }
         }
-
-        // Initialisatie
-        document.addEventListener('DOMContentLoaded', () => {
-            translatePage(currentLang);
-            
-            // Auto-focus
-            setTimeout(() => {
-                const emailField = document.getElementById('email');
-                if (emailField) emailField.focus();
-            }, 300);
-            
-            // Check sessie
-            checkExistingSession();
-        });
 
         // Login handler
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const email = document.getElementById('email').value.trim();
+            const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             
-            // Validatie
-            if (!email || !email.includes('@')) {
-                showAlert(translations[currentLang].invalidEmail, 'warning', 3000);
-                document.getElementById('email').focus();
-                return;
-            }
-            
-            if (!password) {
-                showAlert('Voer een wachtwoord in', 'warning', 3000);
-                document.getElementById('password').focus();
-                return;
-            }
-            
-            // Button state
-            const submitBtn = this.querySelector('button[type="submit"]');
-            const originalText = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Inloggen...';
-            submitBtn.disabled = true;
+            const btn = this.querySelector('button');
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+            btn.disabled = true;
             
             try {
-                console.log('Login poging:', email);
-                
-                // Supabase login
-                const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+                const { data, error } = await supabase.auth.signInWithPassword({
                     email: email,
                     password: password
                 });
                 
-                if (authError) {
-                    console.error('Auth error:', authError);
-                    throw new Error(authError.message);
+                if (error) {
+                    alert('Fout: ' + error.message);
+                    btn.innerHTML = '<i class="bi bi-box-arrow-in-right"></i> INLOGGEN';
+                    btn.disabled = false;
+                    return;
                 }
                 
-                // SUCCESS!
-                console.log('Login succesvol:', authData.user.email);
-                showAlert(translations[currentLang].loginSuccess, 'success', 2000);
-                
-                // Sla gegevens op
-                localStorage.setItem('userEmail', authData.user.email);
-                localStorage.setItem('userId', authData.user.id);
-                localStorage.setItem('appLanguage', currentLang);
-                
-                // Check admin status
-                try {
-                    const { data: profile, error: profileError } = await supabase
-                        .from('profiles')
-                        .select('is_admin')
-                        .eq('user_id', authData.user.id)
-                        .single();
-                    
-                    if (!profileError && profile) {
-                        localStorage.setItem('isAdmin', profile.is_admin ? 'true' : 'false');
-                        console.log('Admin status:', profile.is_admin);
-                    } else {
-                        localStorage.setItem('isAdmin', 'false');
-                    }
-                } catch (error) {
-                    console.warn('Profiel check mislukt:', error);
-                    localStorage.setItem('isAdmin', 'false');
-                }
-                
-                // Update button
-                submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Ingelogd!';
-                
-                // Redirect
-                setTimeout(() => {
-                    window.location.href = 'app.html';
-                }, 1500);
+                saveUserData(data.user);
+                window.location.href = 'app.html';
                 
             } catch (error) {
-                console.error('Login error:', error);
-                
-                // User-friendly error messages
-                let errorMessage = translations[currentLang].loginFailed;
-                
-                if (error.message.includes('Invalid login credentials')) {
-                    errorMessage = translations[currentLang].invalidCredentials;
-                } else if (error.message.includes('Email not confirmed')) {
-                    errorMessage = translations[currentLang].emailNotConfirmed;
-                } else {
-                    errorMessage = error.message;
-                }
-                
-                showAlert(errorMessage, 'danger', 5000);
-                
-                // Reset button
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
-                
-                // Focus op password field
-                document.getElementById('password').focus();
-                document.getElementById('password').select();
+                alert('Error: ' + error.message);
+                btn.innerHTML = '<i class="bi bi-box-arrow-in-right"></i> INLOGGEN';
+                btn.disabled = false;
             }
         });
 
-        // Enter key support
-        document.getElementById('password').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                document.getElementById('loginForm').dispatchEvent(new Event('submit'));
-            }
-        });
-        
-        // Auto-select email on focus
-        document.getElementById('email').addEventListener('focus', function() {
-            this.select();
-        });
+        // Direct naar app (bypass login)
+        function directToApp() {
+            localStorage.setItem('userEmail', 'leoneurasier@gmail.com');
+            localStorage.setItem('userId', 'direct-beheerder');
+            localStorage.setItem('isAdmin', 'true');
+            window.location.href = 'app.html';
+        }
+
+        // Sla gebruiker data op
+        function saveUserData(user) {
+            localStorage.setItem('userEmail', user.email);
+            localStorage.setItem('userId', user.id);
+            localStorage.setItem('isAdmin', 'true');
+        }
+
+        // Start
+        document.addEventListener('DOMContentLoaded', init);
     </script>
-    
-    <!-- Desktop Edition Indicator -->
-    <div class="desktop-edition-indicator">Desktop Edition</div>
-    <link rel="stylesheet" href="css/desktop-indicator.css">
 </body>
 </html>
