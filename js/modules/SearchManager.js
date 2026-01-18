@@ -44,6 +44,7 @@ class SearchManager extends BaseModule {
                 female: "Teef",
                 unknown: "Onbekend",
                 loading: "Honden laden...",
+                loadingAllDogs: "Alle honden laden... ({loaded} geladen)", // NIEUW: vertaling toegevoegd
                 backToSearch: "Terug naar zoeken",
                 viewingParent: "Bekijkt ouder",
                 clickToView: "Klik om details te bekijken",
@@ -170,6 +171,7 @@ class SearchManager extends BaseModule {
                 female: "Female",
                 unknown: "Unknown",
                 loading: "Loading dogs...",
+                loadingAllDogs: "Loading all dogs... ({loaded} loaded)", // NIEUW: vertaling toegevoegd
                 backToSearch: "Back to search",
                 viewingParent: "Viewing parent",
                 clickToView: "Click to view details",
@@ -296,6 +298,7 @@ class SearchManager extends BaseModule {
                 female: "Hündin",
                 unknown: "Unbekannt",
                 loading: "Hunde laden...",
+                loadingAllDogs: "Lade alle Hunde... ({loaded} geladen)", // NIEUW: vertaling toegevoegd
                 backToSearch: "Zurück zur Suche",
                 viewingParent: "Elternteil ansehen",
                 clickToView: "Klicken für Details",
@@ -2181,11 +2184,11 @@ class SearchManager extends BaseModule {
     }
     
     async loadSearchData() {
-        this.showProgress(this.t('loading'));
+        this.showProgress(this.t('loadingAllDogs').replace('{loaded}', '0'));
         
         try {
-            // VERANDERD: gebruik this.db ipv hondenService
-            this.allDogs = await this.db.getHonden();
+            // VERVANGT: Gebruik nu paginatie om alle honden te laden
+            this.allDogs = await this.loadAllDogsWithPagination();
             this.allDogs.sort((a, b) => a.naam.localeCompare(b.naam));
             this.hideProgress();
             
@@ -2194,6 +2197,69 @@ class SearchManager extends BaseModule {
         } catch (error) {
             this.hideProgress();
             this.showError(`Laden mislukt: ${error.message}`);
+        }
+    }
+    
+    // NIEUWE METHODE: Laad alle honden met paginatie
+    async loadAllDogsWithPagination() {
+        try {
+            let allDogs = [];
+            let currentPage = 1;
+            const pageSize = 1000; // Maximaal wat Supabase toestaat
+            let hasMorePages = true;
+            let totalLoaded = 0;
+            
+            console.log('SearchManager: Laden van alle honden met paginatie...');
+            
+            // Loop door alle pagina's
+            while (hasMorePages) {
+                console.log(`Laden pagina ${currentPage}...`);
+                
+                // Gebruik de getHonden() methode van je hondenService
+                const result = await this.db.getHonden(currentPage, pageSize);
+                
+                if (result.honden && result.honden.length > 0) {
+                    // Voeg honden toe aan array
+                    allDogs = allDogs.concat(result.honden);
+                    totalLoaded = allDogs.length;
+                    
+                    // Update progress
+                    const progressMessage = this.t('loadingAllDogs').replace('{loaded}', totalLoaded);
+                    this.showProgress(progressMessage);
+                    
+                    console.log(`Pagina ${currentPage} geladen: ${result.honden.length} honden`);
+                    
+                    // Controleer of er nog meer pagina's zijn
+                    hasMorePages = result.heeftVolgende;
+                    currentPage++;
+                    
+                    // Veiligheidslimiet voor oneindige lus (100.000 records max)
+                    if (currentPage > 100) {
+                        console.warn('Veiligheidslimiet bereikt: te veel pagina\'s geladen');
+                        break;
+                    }
+                } else {
+                    hasMorePages = false;
+                }
+                
+                // Kleine pauze om de server niet te overbelasten
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+            // Sorteer op naam
+            allDogs.sort((a, b) => {
+                const naamA = a.naam || '';
+                const naamB = b.naam || '';
+                return naamA.localeCompare(naamB);
+            });
+            
+            console.log(`SearchManager: TOTAAL ${allDogs.length} honden geladen`);
+            return allDogs;
+            
+        } catch (error) {
+            console.error('Fout bij laden honden voor zoeken:', error);
+            this.showError(this.t('loadFailed') + error.message);
+            return [];
         }
     }
     
