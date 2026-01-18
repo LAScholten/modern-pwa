@@ -2,22 +2,18 @@
 
 /**
  * DogDataManager - Module voor het bewerken en verwijderen van honden
- * OPTIMALISATIE VOOR GROTE DATASETS (70.000+ honden)
+ * MET CORRECTE OPSLAG VAN OUDER ID's volgens database structuur
  */
 class DogDataManager extends BaseModule {
     constructor() {
         super('dogdata', 'Data Hond Bewerken');
         this.currentLang = localStorage.getItem('appLanguage') || 'nl';
         this.lastBreeds = JSON.parse(localStorage.getItem('lastBreeds') || '[]');
-        this.allDogs = []; // Cache voor veelgebruikte honden
-        this.selectedDog = null;
-        this.currentDogId = null;
-        this.searchTimeout = null;
-        this.currentSearchTerm = '';
-        this.searchPage = 1;
-        this.hasMoreSearchResults = false;
+        this.allDogs = []; // Voor autocomplete
+        this.selectedDog = null; // Geselecteerde hond voor bewerking
+        this.currentDogId = null; // ID van de huidige hond die wordt bewerkt
         
-        console.log('DogDataManager geïnitialiseerd voor grote datasets');
+        console.log('DogDataManager geïnitialiseerd');
         
         this.translations = {
             nl: {
@@ -109,8 +105,6 @@ class DogDataManager extends BaseModule {
                 noResults: "Geen honden gevonden",
                 selectDogToEdit: "Selecteer een hond om te bewerken",
                 typeToSearch: "Begin met typen om te zoeken",
-                loadingMore: "Meer resultaten laden...",
-                showMore: "Toon meer resultaten",
                 
                 // Status berichten
                 searchResults: "Zoekresultaten",
@@ -227,8 +221,6 @@ class DogDataManager extends BaseModule {
                 noResults: "No dogs found",
                 selectDogToEdit: "Select a dog to edit",
                 typeToSearch: "Start typing to search",
-                loadingMore: "Loading more results...",
-                showMore: "Show more results",
                 
                 // Status messages
                 searchResults: "Search results",
@@ -345,8 +337,6 @@ class DogDataManager extends BaseModule {
                 noResults: "Keine Hunde gefunden",
                 selectDogToEdit: "Wählen Sie einen Hund zum Bearbeiten",
                 typeToSearch: "Beginnen Sie mit der Eingabe, um zu suchen",
-                loadingMore: "Mehr Ergebnisse laden...",
-                showMore: "Mehr Ergebnisse anzeigen",
                 
                 // Status Meldungen
                 searchResults: "Suchergebnisse",
@@ -386,7 +376,7 @@ class DogDataManager extends BaseModule {
     }
     
     /**
-     * Render de module interface - OPTIMALISATIE: Infinte scroll voor zoeken
+     * Render de module interface
      */
     getModalHTML() {
         // Controleer of gebruiker admin is
@@ -1040,24 +1030,12 @@ class DogDataManager extends BaseModule {
                     font-size: 0.8rem;
                     color: #666;
                 }
-                
-                .load-more-btn {
-                    width: 100%;
-                    margin-top: 10px;
-                    margin-bottom: 10px;
-                }
-                
-                .loading-more {
-                    text-align: center;
-                    padding: 15px;
-                    color: #6c757d;
-                }
             </style>
         `;
     }
     
     /**
-     * Setup event listeners voor deze module - OPTIMALISATIE: Debounced search
+     * Setup event listeners voor deze module
      */
     setupEvents() {
         console.log('DogDataManager setupEvents called');
@@ -1075,40 +1053,32 @@ class DogDataManager extends BaseModule {
             return;
         }
         
-        // Laad beperkte cache voor autocomplete
-        this.loadLimitedCache();
+        // Laad alle honden voor autocomplete
+        this.loadAllDogs();
         
-        // Zoekveld event listener met debouncing
+        // Zoekveld event listener
         const searchInput = document.getElementById('dogSearch');
         if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
-                const searchTerm = e.target.value.trim();
-                
-                // Clear previous timeout
-                if (this.searchTimeout) {
-                    clearTimeout(this.searchTimeout);
+            searchInput.addEventListener('focus', async () => {
+                if (this.allDogs.length === 0) {
+                    await this.loadAllDogs();
                 }
+            });
+            
+            searchInput.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase().trim();
                 
-                // Set new timeout for debouncing (500ms)
-                this.searchTimeout = setTimeout(() => {
-                    this.currentSearchTerm = searchTerm;
-                    this.searchPage = 1;
-                    
-                    if (searchTerm.length >= 2) {
-                        this.performSearch(searchTerm, 1);
-                    } else if (searchTerm.length === 0) {
-                        this.showInitialView();
-                    } else {
-                        this.showInitialView();
-                    }
-                }, 500);
+                if (searchTerm.length >= 1) {
+                    this.filterDogsForSearchField(searchTerm);
+                } else {
+                    this.showInitialView();
+                }
             });
             
             searchInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' && this.currentSearchTerm.length >= 2) {
+                if (e.key === 'Enter' && this.filteredSearchResults && this.filteredSearchResults.length > 0) {
                     e.preventDefault();
-                    this.searchPage = 1;
-                    this.performSearch(this.currentSearchTerm, 1);
+                    this.selectDogForEditing(this.filteredSearchResults[0].id);
                 }
             });
         }
@@ -1183,82 +1153,6 @@ class DogDataManager extends BaseModule {
         setTimeout(() => {
             this.translateModal();
         }, 100);
-    }
-    
-    /**
-     * Laad beperkte cache voor autocomplete (optimalisatie voor 70k+ honden)
-     */
-    async loadLimitedCache() {
-        try {
-            console.log('DogDataManager: Laden beperkte cache voor autocomplete...');
-            
-            // Gebruik getBeperkteHonden voor snelle caching
-            if (hondenService && typeof hondenService.getBeperkteHonden === 'function') {
-                this.allDogs = await hondenService.getBeperkteHonden(500); // Max 500 voor cache
-                console.log(`DogDataManager: ${this.allDogs.length} honden in cache geladen`);
-            } else {
-                // Fallback: gebruik eerste pagina
-                const result = await hondenService.getHonden(1, 500);
-                this.allDogs = result.honden || [];
-                console.log(`DogDataManager: ${this.allDogs.length} honden in cache geladen (fallback)`);
-            }
-            
-        } catch (error) {
-            console.error('Fout bij laden cache:', error);
-            this.allDogs = [];
-        }
-    }
-    
-    /**
-     * Server-side zoeken (optimalisatie voor grote datasets)
-     */
-    async performSearch(searchTerm, page = 1) {
-        try {
-            console.log(`Zoeken naar '${searchTerm}', pagina ${page}`);
-            
-            // Toon loading indicator
-            const container = document.getElementById('searchResults');
-            if (page === 1) {
-                container.innerHTML = `
-                    <div class="loading-more">
-                        <div class="spinner-border spinner-border-sm" role="status">
-                            <span class="visually-hidden">Laden...</span>
-                        </div>
-                        <span class="ms-2">${this.t('loadingDogs')}</span>
-                    </div>
-                `;
-            } else {
-                const loadMoreDiv = container.querySelector('.load-more-container');
-                if (loadMoreDiv) {
-                    loadMoreDiv.innerHTML = `
-                        <div class="loading-more">
-                            <div class="spinner-border spinner-border-sm" role="status">
-                                <span class="visually-hidden">Laden...</span>
-                            </div>
-                            <span class="ms-2">${this.t('loadingMore')}</span>
-                        </div>
-                    `;
-                }
-            }
-            
-            // Server-side zoeken via hondenService.zoekHonden
-            const criteria = {
-                naam: searchTerm,
-                stamboomnr: searchTerm
-            };
-            
-            const result = await hondenService.zoekHonden(criteria, page, 50);
-            
-            if (page === 1) {
-                this.displaySearchResults(result.honden, result.totaal, page, result.heeftVolgende);
-            } else {
-                this.appendSearchResults(result.honden, result.heeftVolgende);
-            }
-            
-        } catch (error) {
-            console.error('Fout bij zoeken:', error);
-            this.showError(`${this.t('searchFailed')}${error.message}`);
-        }
     }
     
     /**
@@ -1383,6 +1277,48 @@ class DogDataManager extends BaseModule {
     }
     
     /**
+     * Laad alle honden voor autocomplete
+     */
+    async loadAllDogs() {
+        if (this.allDogs.length === 0) {
+            try {
+                this.allDogs = await hondenService.getHonden();
+                this.allDogs.sort((a, b) => a.naam.localeCompare(b.naam));
+                console.log(`DogDataManager: ${this.allDogs.length} honden geladen voor zoeken`);
+            } catch (error) {
+                console.error('Fout bij laden honden voor zoeken:', error);
+                this.showError(this.t('loadFailed') + error.message);
+            }
+        }
+    }
+    
+    /**
+     * Zoekfunctionaliteit voor hoofdzoekveld - GEWIJZIGD: Zoekt op naam + kennelnaam (zoals bij ouders) EN stamboomnummer
+     */
+    filterDogsForSearchField(searchTerm = '') {
+        // Filter honden zoals bij ouders: zoek in naam + kennelnaam EN stamboomnummer
+        this.filteredSearchResults = this.allDogs.filter(dog => {
+            const naam = dog.naam ? dog.naam.toLowerCase() : '';
+            const kennelnaam = dog.kennelnaam ? dog.kennelnaam.toLowerCase() : '';
+            const stamboomnr = dog.stamboomnr ? dog.stamboomnr.toLowerCase() : '';
+            
+            // Combineer naam en kennelnaam voor zoeken (zoals bij ouders)
+            const fullName = `${naam} ${kennelnaam}`.trim().toLowerCase();
+            
+            // Controleer op naam + kennelnaam (zoals bij ouders)
+            const nameMatch = fullName.includes(searchTerm);
+            
+            // Controleer op stamboomnummer
+            const stamboomMatch = stamboomnr.includes(searchTerm);
+            
+            return nameMatch || stamboomMatch;
+        });
+        
+        console.log(`Zoeken naar '${searchTerm}': ${this.filteredSearchResults.length} resultaten gevonden`);
+        this.displaySearchResults();
+    }
+    
+    /**
      * Toon initiële view voor zoeken
      */
     showInitialView() {
@@ -1393,25 +1329,23 @@ class DogDataManager extends BaseModule {
             <div class="text-center py-5">
                 <i class="bi bi-search display-1 text-muted opacity-50"></i>
                 <p class="mt-3 text-muted">${t('typeToSearch')}</p>
-                <small class="text-muted">Minimaal 2 karakters invoeren</small>
             </div>
         `;
     }
     
     /**
-     * Display search results - OPTIMALISATIE: Met paginatie
+     * Display search results
      */
-    displaySearchResults(honden, totaal, pagina, heeftVolgende) {
+    displaySearchResults() {
         const t = this.t.bind(this);
         const container = document.getElementById('searchResults');
         if (!container) return;
         
-        if (!honden || honden.length === 0) {
+        if (this.filteredSearchResults.length === 0) {
             container.innerHTML = `
                 <div class="text-center py-5">
                     <i class="bi bi-search-x display-1 text-muted opacity-50"></i>
                     <p class="mt-3 text-muted">${t('noResults')}</p>
-                    <small class="text-muted">Geen honden gevonden voor deze zoekopdracht</small>
                 </div>
             `;
             return;
@@ -1420,12 +1354,11 @@ class DogDataManager extends BaseModule {
         let html = `
             <div class="search-stats">
                 <i class="bi bi-info-circle me-1"></i>
-                ${t('searchResults')}: <strong>${honden.length}</strong>
-                ${totaal ? `<span class="ms-3 text-muted">(van ${totaal} honden)</span>` : ''}
+                ${t('searchResults')}: <strong>${this.filteredSearchResults.length}</strong>
             </div>
         `;
         
-        honden.forEach(dog => {
+        this.filteredSearchResults.forEach(dog => {
             const genderText = dog.geslacht === 'reuen' ? t('male') : 
                              dog.geslacht === 'teven' ? t('female') : t('unknown');
             
@@ -1451,18 +1384,6 @@ class DogDataManager extends BaseModule {
             `;
         });
         
-        // Voeg "load more" knop toe als er meer resultaten zijn
-        if (heeftVolgende) {
-            html += `
-                <div class="load-more-container">
-                    <button type="button" class="btn btn-outline-primary load-more-btn">
-                        <i class="bi bi-chevron-down me-1"></i>
-                        ${t('showMore')}
-                    </button>
-                </div>
-            `;
-        }
-        
         container.innerHTML = html;
         
         // Voeg click event listeners toe aan zoekresultaten
@@ -1472,93 +1393,10 @@ class DogDataManager extends BaseModule {
                 this.selectDogForEditing(dogId);
             });
         });
-        
-        // Load more knop event listener
-        const loadMoreBtn = container.querySelector('.load-more-btn');
-        if (loadMoreBtn) {
-            loadMoreBtn.addEventListener('click', () => {
-                this.searchPage++;
-                this.performSearch(this.currentSearchTerm, this.searchPage);
-            });
-        }
     }
     
     /**
-     * Voeg meer resultaten toe aan bestaande lijst
-     */
-    appendSearchResults(honden, heeftVolgende) {
-        const container = document.getElementById('searchResults');
-        if (!container) return;
-        
-        // Verwijder load-more container
-        const loadMoreContainer = container.querySelector('.load-more-container');
-        if (loadMoreContainer) {
-            loadMoreContainer.remove();
-        }
-        
-        // Voeg nieuwe resultaten toe
-        honden.forEach(dog => {
-            const genderText = dog.geslacht === 'reuen' ? this.t('male') : 
-                             dog.geslacht === 'teven' ? this.t('female') : this.t('unknown');
-            
-            const coatColorText = dog.vachtkleur ? `<span><i class="bi bi-palette me-1"></i>${dog.vachtkleur}</span>` : '';
-            
-            const html = `
-                <div class="search-result-item" data-id="${dog.id}">
-                    <div class="dog-name">${dog.naam || 'Onbekend'} ${dog.kennelnaam ? dog.kennelnaam : ''}</div>
-                    <div class="dog-info">
-                        ${dog.ras ? `
-                        <span><i class="bi bi-tag me-1"></i>${dog.ras}</span>
-                        ` : ''}
-                        
-                        ${dog.stamboomnr ? `
-                        <span><i class="bi bi-hash me-1"></i>${dog.stamboomnr}</span>
-                        ` : ''}
-                        
-                        ${coatColorText}
-                        
-                        <span><i class="bi bi-gender-ambiguous me-1"></i>${genderText}</span>
-                    </div>
-                </div>
-            `;
-            
-            container.insertAdjacentHTML('beforeend', html);
-        });
-        
-        // Voeg nieuwe load-more knop toe indien nodig
-        if (heeftVolgende) {
-            const loadMoreHtml = `
-                <div class="load-more-container">
-                    <button type="button" class="btn btn-outline-primary load-more-btn">
-                        <i class="bi bi-chevron-down me-1"></i>
-                        ${this.t('showMore')}
-                    </button>
-                </div>
-            `;
-            container.insertAdjacentHTML('beforeend', loadMoreHtml);
-            
-            // Voeg event listener toe aan nieuwe knop
-            const newLoadMoreBtn = container.querySelector('.load-more-btn:last-child');
-            if (newLoadMoreBtn) {
-                newLoadMoreBtn.addEventListener('click', () => {
-                    this.searchPage++;
-                    this.performSearch(this.currentSearchTerm, this.searchPage);
-                });
-            }
-        }
-        
-        // Voeg event listeners toe aan nieuwe items
-        container.querySelectorAll('.search-result-item:not(.has-listener)').forEach(item => {
-            item.classList.add('has-listener');
-            item.addEventListener('click', (e) => {
-                const dogId = parseInt(item.getAttribute('data-id'));
-                this.selectDogForEditing(dogId);
-            });
-        });
-    }
-    
-    /**
-     * Selecteer hond voor bewerking - OPTIMALISATIE: Directe database call
+     * Selecteer hond voor bewerking
      */
     async selectDogForEditing(dogId) {
         try {
@@ -1577,22 +1415,15 @@ class DogDataManager extends BaseModule {
                 }
             });
             
-            // Zoek eerst in cache
+            // Zoek in lokale cache eerst
             let dog = this.allDogs.find(d => d.id === dogId);
             
             if (!dog) {
-                // Haal direct uit database
+                // Probeer opnieuw te laden uit database
                 this.showProgress(this.t('loadingDogs'));
-                dog = await hondenService.getHondById(dogId);
+                await this.loadAllDogs();
+                dog = this.allDogs.find(d => d.id === dogId);
                 this.hideProgress();
-                
-                if (dog) {
-                    // Voeg toe aan cache (beperkte grootte)
-                    this.allDogs.push(dog);
-                    if (this.allDogs.length > 1000) {
-                        this.allDogs = this.allDogs.slice(-1000); // Beperk cache tot 1000
-                    }
-                }
             }
             
             if (!dog) {
@@ -1637,6 +1468,8 @@ class DogDataManager extends BaseModule {
      */
     fillFormWithDogData(dog) {
         console.log('Filling form with dog data:', dog);
+        console.log('VaderId in data:', dog.vaderId);
+        console.log('MoederId in data:', dog.moederId);
         
         // Basis velden
         document.getElementById('dogId').value = dog.id || '';
@@ -1650,7 +1483,7 @@ class DogDataManager extends BaseModule {
         document.getElementById('coatColor').value = dog.vachtkleur || '';
         
         // Ouders - CORRECT ID'S OPSLAAN IN HET NEDERLANDS
-        const vaderId = dog.vader_id || null;
+        const vaderId = dog.vaderId || null;
         let vaderDisplayNaam = '';
         
         if (vaderId) {
@@ -1658,15 +1491,18 @@ class DogDataManager extends BaseModule {
             if (vaderHond) {
                 vaderDisplayNaam = this.makeDisplayName(vaderHond);
             } else {
-                vaderDisplayNaam = dog.vader_naam || '';
+                vaderDisplayNaam = dog.vader || '';
             }
+            // Sla ID op in het verborgen veld
             document.getElementById('vaderId').value = vaderId;
+            console.log(`Vader ID gevuld: ${vaderId} (display: ${vaderDisplayNaam})`);
         } else {
-            vaderDisplayNaam = dog.vader_naam || '';
+            vaderDisplayNaam = dog.vader || '';
             document.getElementById('vaderId').value = '';
+            console.log('Geen vader ID gevonden in database, gebruik tekst:', vaderDisplayNaam);
         }
         
-        const moederId = dog.moeder_id || null;
+        const moederId = dog.moederId || null;
         let moederDisplayNaam = '';
         
         if (moederId) {
@@ -1674,12 +1510,15 @@ class DogDataManager extends BaseModule {
             if (moederHond) {
                 moederDisplayNaam = this.makeDisplayName(moederHond);
             } else {
-                moederDisplayNaam = dog.moeder_naam || '';
+                moederDisplayNaam = dog.moeder || '';
             }
+            // Sla ID op in het verborgen veld
             document.getElementById('moederId').value = moederId;
+            console.log(`Moeder ID gevuld: ${moederId} (display: ${moederDisplayNaam})`);
         } else {
-            moederDisplayNaam = dog.moeder_naam || '';
+            moederDisplayNaam = dog.moeder || '';
             document.getElementById('moederId').value = '';
+            console.log('Geen moeder ID gevonden in database, gebruik tekst:', moederDisplayNaam);
         }
         
         document.getElementById('father').value = vaderDisplayNaam;
@@ -1707,26 +1546,15 @@ class DogDataManager extends BaseModule {
         document.getElementById('deathDate').value = formatDateForDisplay(dog.overlijdensdatum);
         document.getElementById('deathDate').setAttribute('data-original-value', formatDateForDisplay(dog.overlijdensdatum));
         
-        // Gezondheidsinformatie (JSON parsing voor backward compatibility)
-        let healthInfo = {};
-        try {
-            if (dog.gezondheidsinfo && typeof dog.gezondheidsinfo === 'string') {
-                healthInfo = JSON.parse(dog.gezondheidsinfo);
-            } else if (dog.gezondheidsinfo && typeof dog.gezondheidsinfo === 'object') {
-                healthInfo = dog.gezondheidsinfo;
-            }
-        } catch (e) {
-            console.warn('Kon gezondheidsinfo niet parsen:', e);
-        }
-        
-        document.getElementById('hipDysplasia').value = healthInfo.heupdysplasie || '';
-        document.getElementById('elbowDysplasia').value = healthInfo.elleboogdysplasie || '';
-        document.getElementById('patellaLuxation').value = healthInfo.patella || '';
-        document.getElementById('eyes').value = healthInfo.ogen || '';
-        document.getElementById('eyesExplanation').value = healthInfo.ogenVerklaring || '';
-        document.getElementById('dandyWalker').value = healthInfo.dandyWalker || '';
-        document.getElementById('thyroid').value = healthInfo.schildklier || '';
-        document.getElementById('thyroidExplanation').value = healthInfo.schildklierVerklaring || '';
+        // Gezondheidsinformatie
+        document.getElementById('hipDysplasia').value = dog.heupdysplasie || '';
+        document.getElementById('elbowDysplasia').value = dog.elleboogdysplasie || '';
+        document.getElementById('patellaLuxation').value = dog.patella || '';
+        document.getElementById('eyes').value = dog.ogen || '';
+        document.getElementById('eyesExplanation').value = dog.ogenVerklaring || '';
+        document.getElementById('dandyWalker').value = dog.dandyWalker || '';
+        document.getElementById('thyroid').value = dog.schildklier || '';
+        document.getElementById('thyroidExplanation').value = dog.schildklierVerklaring || '';
         
         // Locatie
         document.getElementById('country').value = dog.land || '';
@@ -1746,10 +1574,10 @@ class DogDataManager extends BaseModule {
         const thyroidExplanationContainer = document.getElementById('thyroidExplanationContainer');
         
         if (eyesExplanationContainer) {
-            eyesExplanationContainer.style.display = (healthInfo.ogen === 'Overig') ? 'block' : 'none';
+            eyesExplanationContainer.style.display = (dog.ogen === 'Overig') ? 'block' : 'none';
         }
         if (thyroidExplanationContainer) {
-            thyroidExplanationContainer.style.display = (healthInfo.schildklier === 'Positief') ? 'block' : 'none';
+            thyroidExplanationContainer.style.display = (dog.schildklier === 'Positief') ? 'block' : 'none';
         }
     }
     
@@ -1807,19 +1635,16 @@ class DogDataManager extends BaseModule {
         
         this.selectedDog = null;
         this.currentDogId = null;
-        this.searchPage = 1;
         
-        // Herlaad zoekresultaten als nodig
+        // Herlaad zoekresultaten
         const searchInput = document.getElementById('dogSearch');
-        if (searchInput && searchInput.value.length >= 2) {
-            this.performSearch(searchInput.value, 1);
-        } else {
-            this.showInitialView();
+        if (searchInput && searchInput.value) {
+            this.filterDogsForSearchField(searchInput.value);
         }
     }
     
     /**
-     * Opslaan wijzigingen - OPTIMALISATIE: Efficiente update
+     * Opslaan wijzigingen - MET CORRECTE NEDERLANDSE OUDER ID OPSLAG EN CONSOLE LOGGING
      */
     async saveDogChanges() {
         if (!auth.isAdmin()) {
@@ -1849,21 +1674,58 @@ class DogDataManager extends BaseModule {
         const birthDateValue = document.getElementById('birthDate').value;
         const deathDateValue = document.getElementById('deathDate').value;
         
-        // Formatteer datums voor opslag
+        // Formatteer datums voor opslag (YYYY-MM-DD formaat)
         const formatDateForStorage = (dateString) => {
-            if (!dateString) return null;
+            if (!dateString) return '';
             try {
                 const date = new Date(dateString);
-                if (isNaN(date.getTime())) return null;
-                return date.toISOString().split('T')[0]; // YYYY-MM-DD
+                if (isNaN(date.getTime())) return '';
+                
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`; // YYYY-MM-DD formaat
             } catch (e) {
-                return null;
+                return '';
             }
         };
         
-        // Haal ouder IDs op
-        const vaderId = document.getElementById('vaderId').value ? parseInt(document.getElementById('vaderId').value) : null;
-        const moederId = document.getElementById('moederId').value ? parseInt(document.getElementById('moederId').value) : null;
+        // Haal ouder IDs op - CORRECT VAN HET NEDERLANDSE HIDDEN INPUT VELD
+        const vaderIdValue = document.getElementById('vaderId').value;
+        const moederIdValue = document.getElementById('moederId').value;
+        
+        const vaderId = vaderIdValue ? parseInt(vaderIdValue) : null;
+        const moederId = moederIdValue ? parseInt(moederIdValue) : null;
+        
+        // CONSOLE LOGGING VOOR DEBUGGING
+        console.log('=== OUDER ID LOGGING ===');
+        console.log('Vader ID uit hidden veld (vaderId):', vaderIdValue, '(geparsed:', vaderId, ')');
+        console.log('Moeder ID uit hidden veld (moederId):', moederIdValue, '(geparsed:', moederId, ')');
+        console.log('Vader input veld waarde:', document.getElementById('father').value);
+        console.log('Moeder input veld waarde:', document.getElementById('mother').value);
+        console.log('=== EINDE LOGGING ===');
+        
+        // Zoek ouder namen op basis van IDs
+        let vaderNaam = '';
+        let moederNaam = '';
+        
+        if (vaderId) {
+            const vaderHond = this.allDogs.find(d => d.id === vaderId);
+            vaderNaam = vaderHond ? vaderHond.naam || '' : '';
+            console.log(`Vader gevonden: ID=${vaderId}, Naam=${vaderNaam}`);
+        } else {
+            console.log('Geen vader ID opgegeven, gebruik tekst uit input veld');
+            vaderNaam = document.getElementById('father').value.split(' ')[0] || ''; // Neem eerste woord als naam
+        }
+        
+        if (moederId) {
+            const moederHond = this.allDogs.find(d => d.id === moederId);
+            moederNaam = moederHond ? moederHond.naam || '' : '';
+            console.log(`Moeder gevonden: ID=${moederId}, Naam=${moederNaam}`);
+        } else {
+            console.log('Geen moeder ID opgegeven, gebruik tekst uit input veld');
+            moederNaam = document.getElementById('mother').value.split(' ')[0] || ''; // Neem eerste woord als naam
+        }
         
         const dogData = {
             id: parsedId,
@@ -1873,10 +1735,10 @@ class DogDataManager extends BaseModule {
             ras: document.getElementById('breed').value.trim(),
             vachtkleur: document.getElementById('coatColor').value.trim(),
             geslacht: document.getElementById('gender').value,
-            vaderId: vaderId,
-            moederId: moederId,
-            vader: document.getElementById('father').value.split(' ')[0] || '',
-            moeder: document.getElementById('mother').value.split(' ')[0] || '',
+            vader: vaderNaam, // Alleen naam
+            vaderId: vaderId, // ID in het Nederlands
+            moeder: moederNaam, // Alleen naam
+            moederId: moederId, // ID in het Nederlands
             geboortedatum: formatDateForStorage(birthDateValue),
             overlijdensdatum: formatDateForStorage(deathDateValue),
             heupdysplasie: document.getElementById('hipDysplasia').value,
@@ -1889,8 +1751,16 @@ class DogDataManager extends BaseModule {
             schildklierVerklaring: document.getElementById('thyroidExplanation')?.value.trim() || '',
             land: document.getElementById('country').value.trim(),
             postcode: document.getElementById('zipCode').value.trim(),
-            opmerkingen: document.getElementById('remarks').value.trim()
+            opmerkingen: document.getElementById('remarks').value.trim(),
+            updatedAt: new Date().toISOString()
         };
+        
+        // CONSOLE LOG DE DATA DIE NAAR DE DATABASE GAAT
+        console.log('=== DATA NAAR DATABASE ===');
+        console.log('Volledige dogData:', dogData);
+        console.log('vaderId waarde:', dogData.vaderId, '(type:', typeof dogData.vaderId, ')');
+        console.log('moederId waarde:', dogData.moederId, '(type:', typeof dogData.moederId, ')');
+        console.log('=== EINDE DATA LOG ===');
         
         // Valideer verplichte velden
         if (!dogData.naam || !dogData.stamboomnr || !dogData.ras) {
@@ -1901,23 +1771,41 @@ class DogDataManager extends BaseModule {
         // Voeg ras toe aan recente rassen
         this.addToLastBreeds(dogData.ras);
         
+        console.log('Saving dog data (with correct Dutch parent IDs):', dogData);
         this.showProgress(this.t('savingChanges'));
         
         try {
-            await hondenService.updateHond(dogData);
+            // Gebruik de updateHond methode van de hondenService
+            if (hondenService && typeof hondenService.updateHond === 'function') {
+                console.log('Calling updateHond with ID:', dogData.id);
+                const result = await hondenService.updateHond(dogData);
+                console.log('Update result:', result);
+            } 
+            else {
+                throw new Error('Geen geschikte update methode gevonden in hondenService');
+            }
             
             this.hideProgress();
             this.showSuccess(this.t('dogUpdated'));
             
-            // Update cache
+            // Foto uploaden als er een is geselecteerd
+            const photoInput = document.getElementById('dogPhoto');
+            if (photoInput && photoInput.files.length > 0) {
+                await this.uploadPhoto(dogData.stamboomnr, photoInput.files[0]);
+            }
+            
+            // Update lokale cache
             const index = this.allDogs.findIndex(d => d.id === dogData.id);
             if (index !== -1) {
                 this.allDogs[index] = { ...this.allDogs[index], ...dogData };
             } else {
                 this.allDogs.push(dogData);
-                if (this.allDogs.length > 1000) {
-                    this.allDogs = this.allDogs.slice(-1000);
-                }
+            }
+            
+            // Refresh zoekresultaten als nodig
+            const searchInput = document.getElementById('dogSearch');
+            if (searchInput && searchInput.value) {
+                this.filterDogsForSearchField(searchInput.value);
             }
             
             // Terug naar zoeken na succes
@@ -1962,12 +1850,18 @@ class DogDataManager extends BaseModule {
         this.showProgress(this.t('deleting'));
         
         try {
-            await hondenService.verwijderHond(parsedId);
+            // Gebruik de verwijderHond methode van de hondenService
+            if (hondenService && typeof hondenService.verwijderHond === 'function') {
+                console.log('Calling verwijderHond with ID:', parsedId);
+                await hondenService.verwijderHond(parsedId);
+            } else {
+                throw new Error('Geen geschikte delete methode gevonden in hondenService');
+            }
             
             this.hideProgress();
             this.showSuccess(`${this.t('dogDeleted')}: ${dogName}`);
             
-            // Verwijder uit cache
+            // Update lokale cache
             this.allDogs = this.allDogs.filter(d => d.id !== parsedId);
             
             // Terug naar zoeken
@@ -1983,38 +1877,96 @@ class DogDataManager extends BaseModule {
     }
     
     /**
-     * Setup autocomplete voor ouders - OPTIMALISATIE: Client-side filtering op cache
+     * Upload foto
+     */
+    async uploadPhoto(pedigreeNumber, file) {
+        try {
+            const reader = new FileReader();
+            
+            return new Promise((resolve, reject) => {
+                reader.onload = async (e) => {
+                    try {
+                        const photoData = {
+                            stamboomnr: pedigreeNumber,
+                            data: e.target.result,
+                            filename: file.name,
+                            size: file.size,
+                            type: file.type,
+                            uploadedAt: new Date().toISOString()
+                        };
+                        
+                        if (fotoService && typeof fotoService.voegFotoToe === 'function') {
+                            await fotoService.voegFotoToe(photoData);
+                            this.showSuccess(this.t('photoAdded'));
+                            resolve();
+                        } else {
+                            console.warn('voegFotoToe methode niet beschikbaar in fotoService');
+                            resolve();
+                        }
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                
+                reader.onerror = () => {
+                    reject(new Error('Fout bij lezen bestand'));
+                };
+                
+                reader.readAsDataURL(file);
+            });
+        } catch (error) {
+            this.showError(`${this.t('photoError')}${error.message}`);
+        }
+    }
+    
+    /**
+     * Setup autocomplete voor ouders - MET CORRECTE NEDERLANDSE ID OPSLAG EN CONSOLE LOGGING
      */
     setupParentAutocomplete() {
+        // Event listeners voor vader en moeder velden
         const fatherInput = document.getElementById('father');
         const motherInput = document.getElementById('mother');
         
         if (fatherInput) {
-            this.setupSingleParentAutocomplete(fatherInput, 'father', 'vaderId', 'reuen');
+            this.setupSingleParentAutocomplete(fatherInput, 'father', 'vaderId');
         }
         
         if (motherInput) {
-            this.setupSingleParentAutocomplete(motherInput, 'mother', 'moederId', 'teven');
+            this.setupSingleParentAutocomplete(motherInput, 'mother', 'moederId');
         }
     }
     
     /**
      * Setup autocomplete voor een individueel ouder veld
      */
-    setupSingleParentAutocomplete(inputElement, parentField, hiddenIdField, geslachtFilter) {
+    setupSingleParentAutocomplete(inputElement, parentField, hiddenIdField) {
         // Verwijder bestaande event listeners
         const oldInput = inputElement.cloneNode(true);
         inputElement.parentNode.replaceChild(oldInput, inputElement);
         inputElement = oldInput;
         
+        inputElement.addEventListener('focus', async () => {
+            if (this.allDogs.length === 0) {
+                await this.loadAllDogs();
+            }
+            
+            const searchTerm = inputElement.value.toLowerCase().trim();
+            
+            if (searchTerm.length >= 1) {
+                this.showParentAutocomplete(searchTerm, parentField);
+            }
+        });
+        
         inputElement.addEventListener('input', (e) => {
             const searchTerm = e.target.value.toLowerCase().trim();
             
             if (searchTerm.length >= 1) {
-                this.showParentAutocomplete(searchTerm, parentField, geslachtFilter);
+                this.showParentAutocomplete(searchTerm, parentField);
             } else {
                 this.hideParentAutocomplete(parentField);
+                // Reset hidden ID als het veld leeg is
                 document.getElementById(hiddenIdField).value = '';
+                console.log(`${hiddenIdField} gereset omdat input veld leeg is`);
             }
         });
         
@@ -2026,27 +1978,38 @@ class DogDataManager extends BaseModule {
     }
     
     /**
-     * Toon parent autocomplete - OPTIMALISATIE: Client-side filtering
+     * Toon parent autocomplete - MET NEDERLANDSE ID OPSLAG EN CONSOLE LOGGING
      */
-    showParentAutocomplete(searchTerm, parentField, geslachtFilter) {
+    showParentAutocomplete(searchTerm, parentField) {
         const input = document.getElementById(parentField);
         const hiddenIdField = parentField === 'father' ? 'vaderId' : 'moederId';
         
         if (!input) return;
         
+        // Zoek de dropdown
         let dropdown = document.getElementById(`${parentField}Autocomplete`);
         
-        // Filter op cache (max 500 honden)
+        // Filter honden voor autocomplete - ALLEEN DIE BEGINT MET ZOEKTERM
         const suggestions = this.allDogs.filter(dog => {
             const naam = dog.naam ? dog.naam.toLowerCase() : '';
             const kennelnaam = dog.kennelnaam ? dog.kennelnaam.toLowerCase() : '';
+            
+            // Combineer naam en kennelnaam voor zoeken
             const fullName = `${naam} ${kennelnaam}`.trim().toLowerCase();
             
+            // Controleer of de volledige naam begint met de zoekterm
             const matchesSearch = fullName.startsWith(searchTerm);
-            const matchesGender = dog.geslacht === geslachtFilter;
             
-            return matchesSearch && matchesGender;
-        }).slice(0, 20); // Beperk tot 20 suggesties
+            // Filter op geslacht
+            if (parentField === 'father') {
+                return matchesSearch && dog.geslacht === 'reuen';
+            } else if (parentField === 'mother') {
+                return matchesSearch && dog.geslacht === 'teven';
+            }
+            return matchesSearch;
+        });
+        
+        console.log(`Autocomplete voor ${parentField}: ${suggestions.length} resultaten gevonden voor zoekterm '${searchTerm}'`);
         
         if (suggestions.length === 0) {
             if (dropdown) {
@@ -2075,7 +2038,10 @@ class DogDataManager extends BaseModule {
             `;
         });
         
-        if (!dropdown) return;
+        if (!dropdown) {
+            console.error(`Dropdown ${parentField}Autocomplete niet gevonden!`);
+            return;
+        }
         
         dropdown.innerHTML = html;
         dropdown.style.display = 'block';
@@ -2087,11 +2053,25 @@ class DogDataManager extends BaseModule {
                 const dogName = item.getAttribute('data-name');
                 const dogKennelnaam = item.getAttribute('data-kennelnaam');
                 
+                // Vul het input veld met de volledige naam + kennelnaam
                 const displayName = dogName ? `${dogName} ${dogKennelnaam ? dogKennelnaam : ''}`.trim() : '';
                 input.value = displayName;
+                
+                // Vul het hidden ID veld - BELANGRIJK: Sla op in het Nederlandse veld
                 document.getElementById(hiddenIdField).value = dogId;
                 
+                // CONSOLE LOGGING
+                console.log(`Parent autocomplete geselecteerd: ${parentField}`);
+                console.log(`- Hond ID: ${dogId}`);
+                console.log(`- Naam: ${dogName}`);
+                console.log(`- Kennelnaam: ${dogKennelnaam}`);
+                console.log(`- Hidden ID veld (${hiddenIdField}): ${dogId}`);
+                console.log(`- Display naam in input: ${displayName}`);
+                
+                // Verberg de dropdown
                 dropdown.style.display = 'none';
+                
+                // Focus terug op het input veld
                 input.focus();
             });
             
@@ -2176,7 +2156,7 @@ class DogDataManager extends BaseModule {
      * Initialiseer de module
      */
     async init() {
-        console.log('DogDataManager geïnitialiseerd voor grote datasets');
+        console.log('DogDataManager geïnitialiseerd');
         return true;
     }
     
@@ -2216,7 +2196,7 @@ class DogDataManager extends BaseModule {
     }
 }
 
-// Maak globaal beschikbaar
+// Maak globaal beschikbaar voor debug doeleinden
 if (typeof window !== 'undefined') {
     window.DogDataManager = DogDataManager;
 }
