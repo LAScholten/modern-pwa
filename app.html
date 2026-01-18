@@ -217,16 +217,17 @@
     
     <!-- Tweede controle: Supabase sessie -->
     <script>
-        // Controleer Supabase sessie maar blokkeer niet als er local data is
+        // Supabase client initialiseren
         const supabase = window.supabase.createClient(
             'https://owjwkjrktftugjjrcwml.supabase.co',
             'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93andranJrdGZ0dWdqanJjd21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2MzA4OTAsImV4cCI6MjA4NDIwNjg5MH0.oW6HTAlMBkjUu_4e3kn4iozjn5wK-15h4wCKcaHrtp8'
         );
         
+        window.supabaseClient = supabase;
+        
         supabase.auth.getSession().then(({ data }) => {
             if (!data.session) {
                 console.log('⚠️ Geen actieve Supabase sessie, maar local data wel aanwezig - app blijft werken');
-                // App mag blijven werken op basis van localStorage
             } else {
                 console.log('✅ Supabase sessie actief:', data.session.user.email);
             }
@@ -599,8 +600,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             if (window.welcomeScreen) {
-                // Delay voor initialisatie andere componenten
-                setTimeout(() => welcomeScreen.show(), 1000);
+                setTimeout(() => window.welcomeScreen.show(), 1000);
             }
         });
     </script>
@@ -755,11 +755,11 @@
                 dashboard: "Dashboard",
                 welcomeTitle: "Willkommen bei der Hundendatenbank PWA - Desktop Edition",
                 welcomeText: "Wählen Sie eine option aus dem menü, um zu beginnen. Diese App arbeitet vollständig in Ihrem Browser.",
-                aboutApp: "Über diese PWA",
+                aboutApp: "Über deze PWA",
                 appDescription: "Diese PWA (Progressive Web App) speichert alle Daten lokal in Ihrem Browser. Sie können:",
                 feature1: "Hunde hinzufügen en verwalten",
                 feature2: "Hundedaten bearbeiten",
-                feature3: "Fotos hochladen und ansehen",
+                feature3: "Fotos hochladen en ansehen",
                 feature4: "Zuchtpläne erstellen",
                 feature5: "Private Informationen speichern",
                 feature6: "Daten importieren/exportieren",
@@ -775,7 +775,7 @@
                 learnMore: "Info",
                 backupWarningTitle: "Backup empfohlen",
                 backupNowDashboard: "Jetzt Backup erstellen",
-                dismissBackup: "Nicht mehr anzeigen",
+                dismissBackup: "Nicht meer anzeigen",
                 backupModalTitle: "Data Backup - Warum is das wichtig?",
                 backupRisksTitle: "Risiken ohne Backup",
                 backupRisksText1: "Diese App speichert alle Daten <strong>nur lokal in Ihrem Browser</strong>.",
@@ -1505,4 +1505,4 @@
     
 
 </body>
-</html>        
+</html>
