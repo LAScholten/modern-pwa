@@ -3,9 +3,13 @@
  * Coördineert alle modules en toont de juiste modals
  */
 
+import { hondenService } from './supabase-honden.js';
+import { fotoService } from './supabase-fotos.js';
+import { priveInfoService } from './supabase-prive-info.js';
+
 class UIHandler {
     constructor() {
-        this.db = db;
+        this.db = hondenService;
         this.auth = auth;
         this.currentModal = null;
         
