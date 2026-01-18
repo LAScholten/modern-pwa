@@ -3,8 +3,6 @@
  * Beheert toevoegen en bewerken van nesten
  */
 
-import { hondenService } from './supabase-honden.js';
-
 class LitterManager {
     constructor() {
         console.log('LitterManager constructor aangeroepen');
@@ -13,6 +11,12 @@ class LitterManager {
         this.lastCoatColors = JSON.parse(localStorage.getItem('lastCoatColors') || '[]'); // NIEUW: recente vachtkleuren
         this.allDogs = []; // Voor autocomplete van ouders
         this.currentLitterDogs = []; // Houdt de ingevoerde honden van het huidige nest bij
+        
+        // GEBRUIK WINDOW OBJECT VOOR DEPENDENCIES
+        this.db = window.hondenService;
+        this.auth = window.auth;
+        this.isInitialized = !!this.db && !!this.auth;
+        
         this.translations = {
             nl: {
                 // Modal titels
@@ -387,11 +391,6 @@ class LitterManager {
                 healthGender: "Geschlecht"
             }
         };
-        
-        // Referenties naar externe objecten (worden later geïnjecteerd)
-        this.db = null;
-        this.auth = null;
-        this.isInitialized = false;
     }
     
     t(key) {
@@ -403,12 +402,13 @@ class LitterManager {
     }
     
     /**
-     * Injecteer database en auth objecten
+     * Injecteer database en auth objecten (fallback voor backward compatibility)
      */
     injectDependencies(db, auth) {
         console.log('LitterManager: injectDependencies aangeroepen');
-        this.db = db;
-        this.auth = auth;
+        // Gebruik window object als primaire bron, anders de geïnjecteerde dependencies
+        this.db = window.hondenService || db;
+        this.auth = window.auth || auth;
         this.isInitialized = true;
         console.log('LitterManager: Dependencies geïnjecteerd - db:', !!this.db, 'auth:', !!this.auth);
     }
@@ -823,7 +823,7 @@ class LitterManager {
                 .recent-coat-color-btn {
                     white-space: nowrap;
                     font-size: 0.8em;
-                    padding: 4px 8px;
+                        padding: 4px 8px;
                 }
                 
                 /* Opslaan knoppen container */
@@ -1826,7 +1826,8 @@ class LitterManager {
         
         try {
             console.log('LitterManager: Laad honden van database...');
-            this.allDogs = await hondenService.getHonden();
+            // GEBRUIK this.db IPV hondenService DIRECT
+            this.allDogs = await this.db.getHonden();
             console.log('LitterManager: Aantal honden geladen:', this.allDogs.length);
             this.allDogs.sort((a, b) => a.naam.localeCompare(b.naam));
         } catch (error) {
@@ -2120,13 +2121,14 @@ class LitterManager {
         this.showProgress(this.t('savingDog'));
         
         try {
-            console.log('LitterManager: Probeer hond op te slaan via hondenService...');
-            console.log('LitterManager: Data die naar hondenService.voegHondToe wordt gestuurd:');
+            console.log('LitterManager: Probeer hond op te slaan via database service...');
+            console.log('LitterManager: Data die naar db.voegHondToe wordt gestuurd:');
             console.log('  - naam:', dogData.naam);
             console.log('  - vader:', dogData.vader, 'vaderId:', dogData.vaderId);
             console.log('  - moeder:', dogData.moeder, 'moederId:', dogData.moederId);
             
-            const result = await hondenService.voegHondToe(dogData);
+            // GEBRUIK this.db IPV hondenService DIRECT
+            const result = await this.db.voegHondToe(dogData);
             console.log('LitterManager: Hond opgeslagen met ID:', result);
             
             // Foto uploaden als er een is geselecteerd
@@ -2226,6 +2228,7 @@ class LitterManager {
                             uploadedAt: new Date().toISOString()
                         };
                         
+                        // GEBRUIK this.db IPV hondenService DIRECT
                         await this.db.voegFotoToe(photoData);
                         this.showSuccess(this.t('photoAdded'));
                         resolve();
