@@ -417,7 +417,7 @@ class ZoekReu {
                 unknown: "Unbekannt",
                 notTested: "Niet getestet",
                 invalidDate: "Ungültiges Datum. Format: dd-mm-jjjj",
-                invalidCOI: "Ungültiger COI-Wert. Verwenden Sie eine Zahl zwischen 0 und 100",
+                invalidCOI: "Ungültiger COI-Wert. Verwenden Sie eine Zahl tussen 0 en 100",
                 noTeefSelected: "Wählen Sie zuerst eine Hündin, um die COI-Berechnung zu verwenden",
                 showPedigree: "Stammbaum anzeigen",
                 pedigreeTooltip: "Klicken, um den 4-Generationen-Stammbaum dieses Rüden anzuzeigen",
@@ -437,7 +437,7 @@ class ZoekReu {
                 selectFemaleToStart: "Wählen Sie eine Hündin, um zu beginnen",
                 useSearchCriteria: "Verwenden Sie Suchkriterien, um Rüden zu finden",
                 searchingMales: "Suche nach geeigneten Rüden...",
-                pedigreeFunctionalityUnavailable: "Stamboomfunktionalität ist derzeit niet verfügbaar",
+                pedigreeFunctionalityUnavailable: "Stamboomfunktionalität ist derzeit nicht verfügbar",
                 maleNotFound: "Konnte Rüdendaten nicht finden",
                 errorShowingPedigree: "Beim Anzeigen des Stamboons is een Fehler aufgetreten",
                 combinedParents: "Kombinierte Eltern",
@@ -465,45 +465,66 @@ class ZoekReu {
     async loadAllHonden() {
         try {
             if (this.db && typeof this.db.getHonden === 'function') {
-                console.log('🔄 Laden van alle honden met paginatie...');
+                console.log('🔄 Laden van alle honden...');
                 
                 // Reset arrays
                 this.allHonden = [];
                 this.allTeven = [];
                 
-                // Paginatie parameters
-                let currentPage = 1;
-                const pageSize = 1000; // Maximaal wat Supabase toestaat
-                let hasMorePages = true;
+                // Eerst: probeer de nieuwe getHonden() methode met paginatie
+                // Die zou een object moeten teruggeven met { honden: [], heeftVolgende: boolean }
+                let currentPage = 0;
+                const pageSize = 1000;
+                let hasMore = true;
                 
-                // Laad alle pagina's
-                while (hasMorePages) {
-                    console.log(`   Pagina ${currentPage} laden...`);
+                // Als de getHonden methode paginatie ondersteunt (met page en pageSize parameters)
+                if (this.db.getHonden.length >= 2) {
+                    console.log('📖 Gebruik paginatie voor getHonden()');
                     
-                    // Roep de getHonden methode aan met paginatie
-                    const result = await this.db.getHonden(currentPage, pageSize);
-                    
-                    if (result && result.honden && result.honden.length > 0) {
-                        // Voeg honden toe aan array
-                        this.allHonden = this.allHonden.concat(result.honden);
-                        
-                        console.log(`   Pagina ${currentPage} geladen: ${result.honden.length} honden`);
-                        
-                        // Controleer of er nog meer pagina's zijn
-                        hasMorePages = result.heeftVolgende || false;
+                    while (hasMore) {
                         currentPage++;
+                        console.log(`   Pagina ${currentPage} laden...`);
                         
-                        // Veiligheidslimiet voor oneindige lus
-                        if (currentPage > 100) {
-                            console.warn('⚠️ Veiligheidslimiet bereikt: te veel pagina\'s geladen');
-                            break;
+                        try {
+                            const result = await this.db.getHonden(currentPage, pageSize);
+                            
+                            if (result && Array.isArray(result.honden) && result.honden.length > 0) {
+                                this.allHonden = this.allHonden.concat(result.honden);
+                                console.log(`   Pagina ${currentPage} geladen: ${result.honden.length} honden`);
+                                
+                                // Controleer of er meer pagina's zijn
+                                hasMore = result.heeftVolgende === true;
+                                
+                                // Veiligheidslimiet
+                                if (currentPage > 50) {
+                                    console.warn('⚠️ Veiligheidslimiet bereikt (50 pagina\'s)');
+                                    break;
+                                }
+                            } else {
+                                hasMore = false;
+                            }
+                            
+                            // Kleine pauze
+                            await new Promise(resolve => setTimeout(resolve, 50));
+                            
+                        } catch (pageError) {
+                            console.error('❌ Fout bij laden pagina:', pageError);
+                            hasMore = false;
                         }
-                    } else {
-                        hasMorePages = false;
                     }
+                } 
+                // Als getHonden geen paginatie ondersteunt (geeft direct array terug)
+                else {
+                    console.log('📖 Gebruik directe getHonden() (geen paginatie)');
+                    const result = await this.db.getHonden();
                     
-                    // Kleine pauze om de server niet te overbelasten
-                    await new Promise(resolve => setTimeout(resolve, 100));
+                    if (Array.isArray(result)) {
+                        this.allHonden = result;
+                        console.log(`✅ Direct geladen: ${this.allHonden.length} honden`);
+                    } else if (result && Array.isArray(result.honden)) {
+                        this.allHonden = result.honden;
+                        console.log(`✅ Geladen via object: ${this.allHonden.length} honden`);
+                    }
                 }
                 
                 // Verwerk de honden zoals voorheen
@@ -524,11 +545,20 @@ class ZoekReu {
                 // Filter teven
                 this.allTeven = this.allHonden.filter(h => h.geslacht === 'teven');
                 
-                console.log(`✅ Geladen: ${this.allHonden.length} honden voor COI berekening`);
+                console.log(`✅ Totaal: ${this.allHonden.length} honden voor COI berekening`);
                 console.log(`✅ Teven: ${this.allTeven.length} teven gevonden`);
+                
+                // Debug: toon enkele teven voor testing
+                if (this.allTeven.length > 0) {
+                    console.log('🔍 Eerste 5 teven voor debugging:');
+                    this.allTeven.slice(0, 5).forEach((teef, i) => {
+                        console.log(`   ${i+1}. ${teef.naam || 'Geen naam'} (${teef.id}) - ${teef.kennelnaam || ''}`);
+                    });
+                }
             }
         } catch (error) {
             console.error('❌ Fout bij laden honden:', error);
+            console.error('Error details:', error.message);
             this.allHonden = [];
             this.allTeven = [];
         }
@@ -1447,6 +1477,8 @@ class ZoekReu {
             return;
         }
         
+        console.log(`🔍 Zoek teven voor: "${searchTerm}" (${this.allTeven.length} teven in totaal)`);
+        
         const searchTerms = searchTerm.toLowerCase().split(' ');
         
         const filteredTeven = this.allTeven.filter(teef => {
@@ -1460,6 +1492,8 @@ class ZoekReu {
                 searchableText.includes(term)
             );
         });
+        
+        console.log(`   ➡ ${filteredTeven.length} teven gevonden`);
         
         filteredTeven.sort((a, b) => {
             const aName = (a.naam || '').toLowerCase();
@@ -1680,9 +1714,14 @@ class ZoekReu {
     }
     
     async selectTeef(teefId) {
+        console.log(`✅ Teef geselecteerd: ${teefId}`);
+        
         const teef = this.allHonden.find(h => h.id == teefId);
         
-        if (!teef) return;
+        if (!teef) {
+            console.error(`❌ Teef niet gevonden met ID: ${teefId}`);
+            return;
+        }
         
         this.selectedTeef = teef;
         this.updateTeefInfoDisplay(teef);
@@ -1694,6 +1733,8 @@ class ZoekReu {
     }
     
     handleManualTeefEntry(entry) {
+        console.log(`✅ Handmatige teef ingevoerd: "${entry}"`);
+        
         this.selectedTeef = {
             id: 'manual',
             naam: entry,
