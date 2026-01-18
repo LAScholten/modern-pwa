@@ -59,15 +59,9 @@
                                        placeholder="Je wachtwoord">
                             </div>
                             
-                            <div class="d-grid gap-2">
-                                <button type="submit" class="btn btn-login btn-lg text-white">
-                                    <i class="bi bi-box-arrow-in-right"></i> INLOGGEN
-                                </button>
-                                
-                                <button type="button" onclick="directAccess()" class="btn btn-success btn-lg">
-                                    <i class="bi bi-lightning"></i> SNEL INLOGGEN ALS BEHEERDER
-                                </button>
-                            </div>
+                            <button type="submit" class="btn btn-login btn-lg text-white w-100">
+                                <i class="bi bi-box-arrow-in-right"></i> INLOGGEN
+                            </button>
                         </form>
                         
                         <div class="mt-4 text-center">
@@ -121,20 +115,6 @@
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             `;
-        }
-        
-        // Directe toegang (test modus)
-        function directAccess() {
-            // Zet beheerder data
-            localStorage.setItem('userEmail', 'beheerder@hondendatabase.nl');
-            localStorage.setItem('userId', 'beheerder-direct');
-            localStorage.setItem('isAdmin', 'true');
-            
-            showMessage('✅ Directe toegang als beheerder! Doorsturen...', 'success');
-            
-            setTimeout(() => {
-                window.location.href = 'app.html';
-            }, 1000);
         }
         
         // Normale login
