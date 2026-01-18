@@ -344,12 +344,12 @@ class DogDataManager extends BaseModule {
                 editingDog: "Hond bearbeiten",
                 savingChanges: "Änderungen speichern...",
                 changesSaved: "Änderungen gespeichert!",
-                dogDeleted: "Hond erfolgreich gelöscht!",
-                confirmDelete: "Sind Sie sicher, dass Sie diesen Hund löschen möchten?",
-                photoAdded: "Foto hinzugefügt",
-                updatingDog: "Hond aktualisieren...",
-                dogUpdated: "Hond aktualisiert!",
-                deleting: "Löschen...",
+                dogDeleted: "Hond succesvol verwijderen!",
+                confirmDelete: "Weet u zeker dat u deze hond wilt verwijderen?",
+                photoAdded: "Foto toegevoegd",
+                updatingDog: "Hond bijwerken...",
+                dogUpdated: "Hond bijgewerkt!",
+                deleting: "Verwijderen...",
                 
                 // Fehlermeldungen
                 searchFailed: "Fehler bei der Suche: ",
@@ -362,7 +362,7 @@ class DogDataManager extends BaseModule {
                 adminOnly: "Nur Administratoren können Hunde bearbeiten",
                 invalidId: "Ungültige Hunde-ID",
                 dateFormatError: "Datum muss im Format TT-MM-JJJJ sein",
-                deathBeforeBirthError: "Sterbedatum kan nicht vor dem Geburtsdatum liegen"
+                deathBeforeBirthError: "Sterbedatum kann nicht vor dem Geburtsdatum liegen"
             }
         };
     }
@@ -1277,12 +1277,12 @@ class DogDataManager extends BaseModule {
     }
     
     /**
-     * Laad ALLE honden voor autocomplete - GECORRIGEERDE VERSIE MET PAGINATIE
+     * Laad alle honden voor autocomplete - AANGEPAST: ALLEEN DEZE METHODE GEWIJZIGD
      */
     async loadAllDogs() {
         if (this.allDogs.length === 0) {
             try {
-                console.log('DogDataManager: Laden van ALLE honden met paginatie...');
+                console.log('DogDataManager: Laden van alle honden met paginatie...');
                 
                 // Reset array
                 this.allDogs = [];
@@ -1353,7 +1353,7 @@ class DogDataManager extends BaseModule {
     }
     
     /**
-     * Zoekfunctionaliteit voor hoofdzoekveld
+     * Zoekfunctionaliteit voor hoofdzoekveld - GEWIJZIGD: Zoekt op naam + kennelnaam (zoals bij ouders) EN stamboomnummer
      */
     filterDogsForSearchField(searchTerm = '') {
         // DEBUG: Controleer of we honden hebben
@@ -1487,19 +1487,11 @@ class DogDataManager extends BaseModule {
             if (!foundInList) {
                 console.warn(`Hond ID ${dogId} niet gevonden in ${this.allDogs.length} geladen honden`);
                 
-                // Als hond niet in cache staat, probeer direct uit database te laden
-                this.showProgress(this.t('loadingDogs'));
-                const dog = await hondenService.getHondById(dogId);
-                this.hideProgress();
-                
-                if (dog) {
-                    // Voeg toe aan cache
-                    this.allDogs.push(dog);
-                    this.allDogs.sort((a, b) => (a.naam || '').localeCompare(b.naam || ''));
-                    console.log(`Hond ${dogId} toegevoegd aan cache. Totaal: ${this.allDogs.length}`);
-                } else {
-                    this.showError(this.t('dogNotFound'));
-                    return;
+                // Als we minder dan 1153 honden hebben, probeer dan opnieuw te laden
+                if (this.allDogs.length < 1153) {
+                    console.warn('Mogelijk ontbreken er honden - probeer opnieuw te laden');
+                    this.allDogs = []; // Reset cache
+                    await this.loadAllDogs();
                 }
             }
             
@@ -1511,8 +1503,23 @@ class DogDataManager extends BaseModule {
                 }
             });
             
-            // Zoek in lokale cache
+            // Zoek in lokale cache eerst
             let dog = this.allDogs.find(d => d.id === dogId);
+            
+            if (!dog) {
+                // Probeer direct uit database te laden als specifieke methode beschikbaar is
+                if (hondenService && typeof hondenService.getHondById === 'function') {
+                    console.log(`Probeer hond ${dogId} direct uit database te laden`);
+                    dog = await hondenService.getHondById(dogId);
+                    
+                    if (dog) {
+                        // Voeg toe aan cache
+                        this.allDogs.push(dog);
+                        this.allDogs.sort((a, b) => a.naam.localeCompare(b.naam));
+                        console.log(`Hond ${dogId} toegevoegd aan cache. Totaal: ${this.allDogs.length}`);
+                    }
+                }
+            }
             
             if (!dog) {
                 this.showError(this.t('dogNotFound'));
@@ -1556,8 +1563,8 @@ class DogDataManager extends BaseModule {
      */
     fillFormWithDogData(dog) {
         console.log('Filling form with dog data:', dog);
-        console.log('VaderId in data:', dog.vader_id);
-        console.log('MoederId in data:', dog.moeder_id);
+        console.log('VaderId in data:', dog.vaderId);
+        console.log('MoederId in data:', dog.moederId);
         
         // Basis velden
         document.getElementById('dogId').value = dog.id || '';
@@ -1571,7 +1578,7 @@ class DogDataManager extends BaseModule {
         document.getElementById('coatColor').value = dog.vachtkleur || '';
         
         // Ouders - CORRECT ID'S OPSLAAN IN HET NEDERLANDS
-        const vaderId = dog.vader_id || null;
+        const vaderId = dog.vaderId || null;
         let vaderDisplayNaam = '';
         
         if (vaderId) {
@@ -1579,18 +1586,18 @@ class DogDataManager extends BaseModule {
             if (vaderHond) {
                 vaderDisplayNaam = this.makeDisplayName(vaderHond);
             } else {
-                vaderDisplayNaam = dog.vader_naam || '';
+                vaderDisplayNaam = dog.vader || '';
             }
             // Sla ID op in het verborgen veld
             document.getElementById('vaderId').value = vaderId;
             console.log(`Vader ID gevuld: ${vaderId} (display: ${vaderDisplayNaam})`);
         } else {
-            vaderDisplayNaam = dog.vader_naam || '';
+            vaderDisplayNaam = dog.vader || '';
             document.getElementById('vaderId').value = '';
             console.log('Geen vader ID gevonden in database, gebruik tekst:', vaderDisplayNaam);
         }
         
-        const moederId = dog.moeder_id || null;
+        const moederId = dog.moederId || null;
         let moederDisplayNaam = '';
         
         if (moederId) {
@@ -1598,13 +1605,13 @@ class DogDataManager extends BaseModule {
             if (moederHond) {
                 moederDisplayNaam = this.makeDisplayName(moederHond);
             } else {
-                moederDisplayNaam = dog.moeder_naam || '';
+                moederDisplayNaam = dog.moeder || '';
             }
             // Sla ID op in het verborgen veld
             document.getElementById('moederId').value = moederId;
             console.log(`Moeder ID gevuld: ${moederId} (display: ${moederDisplayNaam})`);
         } else {
-            moederDisplayNaam = dog.moeder_naam || '';
+            moederDisplayNaam = dog.moeder || '';
             document.getElementById('moederId').value = '';
             console.log('Geen moeder ID gevonden in database, gebruik tekst:', moederDisplayNaam);
         }
@@ -1634,26 +1641,15 @@ class DogDataManager extends BaseModule {
         document.getElementById('deathDate').value = formatDateForDisplay(dog.overlijdensdatum);
         document.getElementById('deathDate').setAttribute('data-original-value', formatDateForDisplay(dog.overlijdensdatum));
         
-        // Gezondheidsinformatie (JSON parsing voor backward compatibility)
-        let healthInfo = {};
-        try {
-            if (dog.gezondheidsinfo && typeof dog.gezondheidsinfo === 'string') {
-                healthInfo = JSON.parse(dog.gezondheidsinfo);
-            } else if (dog.gezondheidsinfo && typeof dog.gezondheidsinfo === 'object') {
-                healthInfo = dog.gezondheidsinfo;
-            }
-        } catch (e) {
-            console.warn('Kon gezondheidsinfo niet parsen:', e);
-        }
-        
-        document.getElementById('hipDysplasia').value = healthInfo.heupdysplasie || '';
-        document.getElementById('elbowDysplasia').value = healthInfo.elleboogdysplasie || '';
-        document.getElementById('patellaLuxation').value = healthInfo.patella || '';
-        document.getElementById('eyes').value = healthInfo.ogen || '';
-        document.getElementById('eyesExplanation').value = healthInfo.ogenVerklaring || '';
-        document.getElementById('dandyWalker').value = healthInfo.dandyWalker || '';
-        document.getElementById('thyroid').value = healthInfo.schildklier || '';
-        document.getElementById('thyroidExplanation').value = healthInfo.schildklierVerklaring || '';
+        // Gezondheidsinformatie
+        document.getElementById('hipDysplasia').value = dog.heupdysplasie || '';
+        document.getElementById('elbowDysplasia').value = dog.elleboogdysplasie || '';
+        document.getElementById('patellaLuxation').value = dog.patella || '';
+        document.getElementById('eyes').value = dog.ogen || '';
+        document.getElementById('eyesExplanation').value = dog.ogenVerklaring || '';
+        document.getElementById('dandyWalker').value = dog.dandyWalker || '';
+        document.getElementById('thyroid').value = dog.schildklier || '';
+        document.getElementById('thyroidExplanation').value = dog.schildklierVerklaring || '';
         
         // Locatie
         document.getElementById('country').value = dog.land || '';
@@ -1673,10 +1669,10 @@ class DogDataManager extends BaseModule {
         const thyroidExplanationContainer = document.getElementById('thyroidExplanationContainer');
         
         if (eyesExplanationContainer) {
-            eyesExplanationContainer.style.display = (healthInfo.ogen === 'Overig') ? 'block' : 'none';
+            eyesExplanationContainer.style.display = (dog.ogen === 'Overig') ? 'block' : 'none';
         }
         if (thyroidExplanationContainer) {
-            thyroidExplanationContainer.style.display = (healthInfo.schildklier === 'Positief') ? 'block' : 'none';
+            thyroidExplanationContainer.style.display = (dog.schildklier === 'Positief') ? 'block' : 'none';
         }
     }
     
@@ -1899,7 +1895,7 @@ class DogDataManager extends BaseModule {
                 this.allDogs[index] = { ...this.allDogs[index], ...dogData };
             } else {
                 this.allDogs.push(dogData);
-                this.allDogs.sort((a, b) => (a.naam || '').localeCompare(b.naam || ''));
+                this.allDogs.sort((a, b) => a.naam.localeCompare(b.naam));
             }
             
             // Refresh zoekresultaten als nodig
