@@ -124,7 +124,7 @@ class PrivateInfoManager extends BaseModule {
                 // Sicherheitsinfo
                 securityInfo: "Sicherheitsinfo",
                 privateStorage: "Alle Informationen werden nur lokal in Ihrem Browser gespeichert",
-                privateNote: "Diese Notizen sind nur für Sie sichtbar und werden nicht geteilt",
+                privateNote: "Diese Notizen zijn alleen voor u sichtbaar en werden niet geteilt",
                 
                 // Knöpfe
                 clear: "Löschen",
@@ -311,7 +311,7 @@ class PrivateInfoManager extends BaseModule {
     
     async loadPrivateInfoData() {
         try {
-            this.allDogs = await this.db.getHonden();
+            this.allDogs = await hondenService.getHonden();
             this.allDogs.sort((a, b) => a.naam.localeCompare(b.naam));
         } catch (error) {
             console.error('Fout bij laden honden:', error);
