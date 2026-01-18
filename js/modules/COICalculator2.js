@@ -1,5 +1,4 @@
 // COICalculator2 V9.5 - MET OUDER-KIND COMBINATIE DETECTIE
-import { hondenService } from './supabase-honden.js';
 
 class COICalculator2 {
     constructor(allDogs = []) {
@@ -393,6 +392,4 @@ class COICalculator2 {
 if (typeof window !== 'undefined') {
     window.COICalculator2 = COICalculator2;
     console.log('✅ COICalculator2 V9.5 geladen (6 generaties, ouder-kind detectie, 3 decimalen)');
-    window.ZoekReu = ZoekReu;
-    console.log('✅ ZoekReu module geladen (COI waarden getoond in resultaten)');
 }
