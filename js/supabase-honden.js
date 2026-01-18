@@ -278,7 +278,7 @@ const hondenService = {
       
       const { data: hondenData, error: dataError } = await window.supabase
         .from('honden')
-        .select('kennelnaam, kleur, bijgewerkt_op');
+        .select('kennelnaam, vachtkleur, bijgewerkt_op');
       
       if (dataError) throw dataError;
       
@@ -290,7 +290,7 @@ const hondenService = {
         const kennel = hond.kennelnaam || 'Geen kennel';
         kennelStats[kennel] = (kennelStats[kennel] || 0) + 1;
         
-        const vachtkleur = hond.kleur || 'Geen vachtkleur opgegeven';
+        const vachtkleur = hond.vachtkleur || 'Geen vachtkleur opgegeven';
         vachtkleurStats[vachtkleur] = (vachtkleurStats[vachtkleur] || 0) + 1;
         
         if (hond.bijgewerkt_op) {
