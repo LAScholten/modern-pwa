@@ -3,6 +3,8 @@
  * Beheert toevoegen en bewerken van nesten
  */
 
+import { hondenService } from './supabase-honden.js';
+
 class LitterManager {
     constructor() {
         console.log('LitterManager constructor aangeroepen');
@@ -314,7 +316,7 @@ class LitterManager {
                 eyesExplanation: "Erklärung andere",
                 dandyWalker: "Dandy Walker Malformation",
                 dandyOptions: "Status wählen...",
-                dandyFreeDNA: "Frei auf DNA",
+                dandyFreeDNA: "Frei op DNA",
                 dandyFreeParents: "Frei op ouders",
                 dandyCarrier: "Träger",
                 dandyAffected: "Betroffen",
@@ -1824,7 +1826,7 @@ class LitterManager {
         
         try {
             console.log('LitterManager: Laad honden van database...');
-            this.allDogs = await this.db.getHonden();
+            this.allDogs = await hondenService.getHonden();
             console.log('LitterManager: Aantal honden geladen:', this.allDogs.length);
             this.allDogs.sort((a, b) => a.naam.localeCompare(b.naam));
         } catch (error) {
@@ -2118,13 +2120,13 @@ class LitterManager {
         this.showProgress(this.t('savingDog'));
         
         try {
-            console.log('LitterManager: Probeer hond op te slaan via db...');
-            console.log('LitterManager: Data die naar db.voegHondToe wordt gestuurd:');
+            console.log('LitterManager: Probeer hond op te slaan via hondenService...');
+            console.log('LitterManager: Data die naar hondenService.voegHondToe wordt gestuurd:');
             console.log('  - naam:', dogData.naam);
             console.log('  - vader:', dogData.vader, 'vaderId:', dogData.vaderId);
             console.log('  - moeder:', dogData.moeder, 'moederId:', dogData.moederId);
             
-            const result = await this.db.voegHondToe(dogData);
+            const result = await hondenService.voegHondToe(dogData);
             console.log('LitterManager: Hond opgeslagen met ID:', result);
             
             // Foto uploaden als er een is geselecteerd
