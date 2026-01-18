@@ -1,157 +1,85 @@
 <!DOCTYPE html>
-<html lang="nl">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hondendatabase - Login</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <title>Login</title>
 </head>
-<body style="background: #f5f5f5; min-height: 100vh; display: flex; align-items: center; justify-content: center;">
-    <div style="width: 100%; max-width: 400px; padding: 20px;">
-        <div style="background: white; border-radius: 10px; padding: 30px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
-            <h2 style="text-align: center; margin-bottom: 10px;">
-                <i class="bi bi-database" style="color: #0d6efd;"></i><br>
-                Hondendatabase
-            </h2>
-            <p style="text-align: center; color: #666; margin-bottom: 30px;">Beheerder Login</p>
-            
-            <div id="loginResult" style="margin-bottom: 15px;"></div>
-            
-            <form id="loginForm">
-                <div style="margin-bottom: 15px;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Email</label>
-                    <input type="email" id="email" 
-                           style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;"
-                           value="leoneurasier@gmail.com" required>
-                </div>
-                
-                <div style="margin-bottom: 20px;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Wachtwoord</label>
-                    <input type="password" id="password" 
-                           style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;"
-                           value="admin1903" required>
-                </div>
-                
-                <button type="submit" 
-                        style="width: 100%; padding: 12px; background: #0d6efd; color: white; border: none; border-radius: 5px; font-weight: bold;">
-                    <i class="bi bi-box-arrow-in-right"></i> INLOGGEN
-                </button>
-            </form>
-            
-            <div style="margin-top: 20px; text-align: center;">
-                <button onclick="goDirectToApp()" 
-                        style="width: 100%; padding: 12px; background: #28a745; color: white; border: none; border-radius: 5px;">
-                    <i class="bi bi-lightning"></i> DIRECT NAAR APP
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Supabase JS -->
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<body>
+    <h2>Hondendatabase Login</h2>
     
+    <div>
+        <p>Email: leoneurasier@gmail.com</p>
+        <p>Wachtwoord: admin1903</p>
+        
+        <button onclick="doLogin()" style="padding: 15px; background: blue; color: white;">
+            INLOGGEN
+        </button>
+        
+        <button onclick="directAccess()" style="padding: 15px; background: green; color: white; margin-left: 10px;">
+            DIRECT NAAR APP
+        </button>
+    </div>
+    
+    <div id="result" style="margin-top: 20px;"></div>
+
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script>
-        // INIT SUPABASE - ÉÉN KEER
+        // Supabase
         const supabase = window.supabase.createClient(
             'https://owjwkjrktftugjjrcwml.supabase.co',
             'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93andranJrdGZ0dWdqanJjd21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2MzA4OTAsImV4cCI6MjA4NDIwNjg5MH0.oW6HTAlMBkjUu_4e3kn4iozjn5wK-15h4wCKcaHrtp8'
         );
 
-        // Show message
-        function showMessage(message, type = 'info') {
-            const colors = {
-                'info': '#17a2b8',
-                'success': '#28a745', 
-                'error': '#dc3545'
-            };
-            
-            document.getElementById('loginResult').innerHTML = `
-                <div style="padding: 10px; background: ${colors[type]}; color: white; border-radius: 5px; margin-bottom: 15px;">
-                    ${message}
-                </div>
-            `;
-        }
-
-        // Direct to app function
-        function goDirectToApp() {
-            localStorage.setItem('userEmail', 'leoneurasier@gmail.com');
-            localStorage.setItem('userId', 'direct-beheerder');
-            localStorage.setItem('isAdmin', 'true');
-            
-            showMessage('✅ Directe toegang verleend! Doorsturen...', 'success');
-            
-            setTimeout(() => {
-                window.location.href = 'app.html';
-            }, 1000);
-        }
-
-        // Login function
-        async function doLogin(email, password) {
-            showMessage('Inloggen...', 'info');
+        // Login
+        async function doLogin() {
+            document.getElementById('result').innerHTML = 'Inloggen...';
             
             try {
                 const { data, error } = await supabase.auth.signInWithPassword({
-                    email: email,
-                    password: password
+                    email: 'leoneurasier@gmail.com',
+                    password: 'admin1903'
                 });
                 
                 if (error) {
-                    showMessage(`❌ Fout: ${error.message}`, 'error');
-                    return false;
+                    document.getElementById('result').innerHTML = '❌ Fout: ' + error.message;
+                    return;
                 }
                 
-                // SUCCESS
                 localStorage.setItem('userEmail', data.user.email);
                 localStorage.setItem('userId', data.user.id);
                 localStorage.setItem('isAdmin', 'true');
                 
-                showMessage('✅ Ingelogd! Doorsturen...', 'success');
+                document.getElementById('result').innerHTML = '✅ Ingelogd!';
                 
                 setTimeout(() => {
                     window.location.href = 'app.html';
-                }, 1500);
-                
-                return true;
+                }, 1000);
                 
             } catch (error) {
-                showMessage(`❌ Error: ${error.message}`, 'error');
-                return false;
+                document.getElementById('result').innerHTML = '❌ Error: ' + error.message;
             }
         }
 
-        // Form submit
-        document.getElementById('loginForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
+        // Direct access
+        function directAccess() {
+            localStorage.setItem('userEmail', 'leoneurasier@gmail.com');
+            localStorage.setItem('userId', 'direct');
+            localStorage.setItem('isAdmin', 'true');
             
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
+            document.getElementById('result').innerHTML = '✅ Directe toegang!';
             
-            const btn = this.querySelector('button');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> INLOGGEN...';
-            
-            await doLogin(email, password);
-            
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-box-arrow-in-right"></i> INLOGGEN';
-        });
+            setTimeout(() => {
+                window.location.href = 'app.html';
+            }, 500);
+        }
 
-        // Check existing session
-        document.addEventListener('DOMContentLoaded', function() {
-            supabase.auth.getSession().then(({ data }) => {
-                if (data.session) {
-                    showMessage('Je bent al ingelogd. Doorsturen...', 'info');
-                    
-                    localStorage.setItem('userEmail', data.session.user.email);
-                    localStorage.setItem('userId', data.session.user.id);
-                    localStorage.setItem('isAdmin', 'true');
-                    
-                    setTimeout(() => {
-                        window.location.href = 'app.html';
-                    }, 1000);
-                }
-            });
+        // Check session
+        supabase.auth.getSession().then(({ data }) => {
+            if (data.session) {
+                document.getElementById('result').innerHTML = 'Al ingelogd, ga naar app...';
+                setTimeout(() => {
+                    window.location.href = 'app.html';
+                }, 500);
+            }
         });
     </script>
 </body>
