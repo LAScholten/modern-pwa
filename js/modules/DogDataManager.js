@@ -326,7 +326,7 @@ class DogDataManager extends BaseModule {
                 insufficientPermissionsText: "Sie haben keine Berechtigung, Hunde zu bearbeiten. Nur Administratoren können diese Funktion nutzen.",
                 loggedInAs: "Sie sind eingeloggt als:",
                 user: "Benutzer",
-                availableFeatures: "Verfügbare Funktionen für Benutzer",
+                availableFeatures: "Verfügbare functies voor Benutzer",
                 searchDogs: "Hunde suchen en anzeigen",
                 viewGallery: "Fotogalerie anzeigen",
                 managePrivateInfo: "Private Informationen verwalten",
@@ -1282,7 +1282,7 @@ class DogDataManager extends BaseModule {
     async loadAllDogs() {
         if (this.allDogs.length === 0) {
             try {
-                this.allDogs = await db.getHonden();
+                this.allDogs = await hondenService.getHonden();
                 this.allDogs.sort((a, b) => a.naam.localeCompare(b.naam));
                 console.log(`DogDataManager: ${this.allDogs.length} honden geladen voor zoeken`);
             } catch (error) {
@@ -1775,14 +1775,14 @@ class DogDataManager extends BaseModule {
         this.showProgress(this.t('savingChanges'));
         
         try {
-            // Gebruik de updateHond methode van de database
-            if (db && typeof db.updateHond === 'function') {
+            // Gebruik de updateHond methode van de hondenService
+            if (hondenService && typeof hondenService.updateHond === 'function') {
                 console.log('Calling updateHond with ID:', dogData.id);
-                const result = await db.updateHond(dogData);
+                const result = await hondenService.updateHond(dogData);
                 console.log('Update result:', result);
             } 
             else {
-                throw new Error('Geen geschikte update methode gevonden in database');
+                throw new Error('Geen geschikte update methode gevonden in hondenService');
             }
             
             this.hideProgress();
@@ -1850,12 +1850,12 @@ class DogDataManager extends BaseModule {
         this.showProgress(this.t('deleting'));
         
         try {
-            // Gebruik de verwijderHond methode van de database
-            if (db && typeof db.verwijderHond === 'function') {
+            // Gebruik de verwijderHond methode van de hondenService
+            if (hondenService && typeof hondenService.verwijderHond === 'function') {
                 console.log('Calling verwijderHond with ID:', parsedId);
-                await db.verwijderHond(parsedId);
+                await hondenService.verwijderHond(parsedId);
             } else {
-                throw new Error('Geen geschikte delete methode gevonden in database');
+                throw new Error('Geen geschikte delete methode gevonden in hondenService');
             }
             
             this.hideProgress();
@@ -1895,12 +1895,12 @@ class DogDataManager extends BaseModule {
                             uploadedAt: new Date().toISOString()
                         };
                         
-                        if (db && typeof db.voegFotoToe === 'function') {
-                            await db.voegFotoToe(photoData);
+                        if (fotoService && typeof fotoService.voegFotoToe === 'function') {
+                            await fotoService.voegFotoToe(photoData);
                             this.showSuccess(this.t('photoAdded'));
                             resolve();
                         } else {
-                            console.warn('voegFotoToe methode niet beschikbaar');
+                            console.warn('voegFotoToe methode niet beschikbaar in fotoService');
                             resolve();
                         }
                     } catch (error) {

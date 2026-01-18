@@ -1,4 +1,6 @@
 // COICalculator V11.0 - WETENSCHAPPELIJKE HOMOZYGOTIE BEREKENING
+import { hondenService } from './supabase-honden.js';
+
 class COICalculator {
     constructor(allDogs = []) {
         this.allDogs = allDogs;

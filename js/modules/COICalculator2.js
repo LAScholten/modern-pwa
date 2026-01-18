@@ -1,4 +1,6 @@
 // COICalculator2 V9.5 - MET OUDER-KIND COMBINATIE DETECTIE
+import { hondenService } from './supabase-honden.js';
+
 class COICalculator2 {
     constructor(allDogs = []) {
         this.allDogs = allDogs;

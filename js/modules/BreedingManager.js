@@ -3,6 +3,8 @@
  * Beheert fokplannen en nest planning
  */
 
+import { hondenService } from './supabase-honden.js';
+
 class BreedingManager {
     constructor() {
         this.currentLang = localStorage.getItem('appLanguage') || 'nl';

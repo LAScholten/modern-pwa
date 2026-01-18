@@ -521,7 +521,7 @@
     
     <!-- Core Modules -->
     <script src="js/auth.js"></script>
-    <script src="js/database.js"></script>
+    <script src="js/supabase-honden.js"></script>
     
     <!-- Base Module -->
     <script src="js/modules/BaseModule.js"></script>
@@ -1246,8 +1246,8 @@
         async function loadInitialStats() {
             console.log('Loading initial stats');
             try {
-                await db.init();
-                const stats = await db.getStatistieken();
+                await hondenService.init();
+                const stats = await hondenService.getStatistieken();
                 document.getElementById('quickStatsHonden').textContent = stats.totaalHonden;
                 document.getElementById('quickStatsFotos').textContent = stats.totaalFotos;
                 console.log('Stats loaded:', stats);
@@ -1457,4 +1457,4 @@
     
 
 </body>
-</html>                                       
+</html>              

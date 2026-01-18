@@ -211,17 +211,17 @@ class DataManager extends BaseModule {
     
     // Methode om database connectie te initialiseren
     initializeDatabaseConnection() {
-        if (window.db) {
-            this._db = window.db;
-            console.log('DataManager: Database verbonden via window.db');
-        } else if (window.hondenDatabase) {
-            this._db = window.hondenDatabase;
-            console.log('DataManager: Database verbonden via window.hondenDatabase');
-        } else if (window.database) {
-            this._db = window.database;
-            console.log('DataManager: Database verbonden via window.database');
+        if (window.hondenService) {
+            this._db = window.hondenService;
+            console.log('DataManager: Database verbonden via window.hondenService');
+        } else if (window.fotoService) {
+            // Foto service apart bewaren
+            console.log('DataManager: Foto service gevonden');
+        } else if (window.priveInfoService) {
+            // Privé info service apart bewaren
+            console.log('DataManager: Privé info service gevonden');
         } else {
-            console.log('DataManager: Database nog niet beschikbaar, zal later proberen');
+            console.log('DataManager: Services nog niet beschikbaar, zal later proberen');
             // Plan nog een poging
             setTimeout(() => this.initializeDatabaseConnection(), 2000);
         }
@@ -242,7 +242,7 @@ class DataManager extends BaseModule {
     
     // Methode om te controleren of database beschikbaar is
     isDatabaseAvailable() {
-        return !!this._db || !!window.db || !!window.hondenDatabase || !!window.database;
+        return !!this._db || !!window.hondenService;
     }
     
     t(key) {
@@ -835,7 +835,7 @@ class DataManager extends BaseModule {
             
             if (exportData) {
                 try {
-                    const honden = await this.db.getHonden();
+                    const honden = await window.hondenService.getHonden();
                     
                     const parentLookupMap = new Map();
                     honden.forEach(hond => {
@@ -877,9 +877,9 @@ class DataManager extends BaseModule {
             
             if (exportPhotos) {
                 try {
-                    if (typeof this.db.getAllFotos === 'function') {
+                    if (window.fotoService && typeof window.fotoService.getAllFotos === 'function') {
                         try {
-                            exportDataObj.fotos = await this.db.getAllFotos();
+                            exportDataObj.fotos = await window.fotoService.getAllFotos();
                             fotosCount = exportDataObj.fotos.length;
                         } catch (fotoError) {
                             console.log('Kon foto\'s niet exporteren:', fotoError);
@@ -896,9 +896,9 @@ class DataManager extends BaseModule {
             
             if (exportPrivateInfo) {
                 try {
-                    if (typeof this.db.getAllPriveInfo === 'function') {
+                    if (window.priveInfoService && typeof window.priveInfoService.getAllPriveInfo === 'function') {
                         try {
-                            exportDataObj.priveInfo = await this.db.getAllPriveInfo();
+                            exportDataObj.priveInfo = await window.priveInfoService.getAllPriveInfo();
                             priveCount = exportDataObj.priveInfo.length;
                         } catch (priveError) {
                             console.log('Geen rechten voor privé info export:', priveError);
@@ -993,7 +993,7 @@ class DataManager extends BaseModule {
         console.log('=== START IMPORT ===');
         
         // Extra veiligheidscontrole
-        if (!this.db) {
+        if (!window.hondenService) {
             throw new Error('Database niet beschikbaar voor import.');
         }
         
@@ -1004,7 +1004,7 @@ class DataManager extends BaseModule {
         if (importData.honden && Array.isArray(importData.honden)) {
             console.log(`Fase 1: Importeer ${importData.honden.length} honden...`);
             
-            const existingHonden = await this.db.getHonden();
+            const existingHonden = await window.hondenService.getHonden();
             const existingStamboomMap = new Map();
             existingHonden.forEach(hond => {
                 if (hond.stamboomnr) {
@@ -1054,7 +1054,7 @@ class DataManager extends BaseModule {
                         };
                         
                         try {
-                            const newId = await this.db.voegHondToe(hondZonderIds);
+                            const newId = await window.hondenService.voegHondToe(hondZonderIds);
                             stamboomToIdMap.set(stamboomnr, newId);
                             result.honden.toegevoegd++;
                         } catch (addError) {
@@ -1089,7 +1089,7 @@ class DataManager extends BaseModule {
                         };
                         
                         try {
-                            await this.db.updateHond(updateData);
+                            await window.hondenService.updateHond(updateData);
                             stamboomToIdMap.set(stamboomnr, existingHond.id);
                             result.honden.bijgewerkt++;
                         } catch (updateError) {
@@ -1149,7 +1149,7 @@ class DataManager extends BaseModule {
                         };
                         
                         try {
-                            await this.db.updateHond(updateData);
+                            await window.hondenService.updateHond(updateData);
                             relatiesGemaakt++;
                         } catch (updateError) {
                             console.error(`Fout bij updaten relaties voor ${stamboomnr}:`, updateError);
@@ -1165,13 +1165,13 @@ class DataManager extends BaseModule {
         }
         
         // === FASE 3: Foto's (indien aanwezig) ===
-        if (importData.fotos && Array.isArray(importData.fotos) && typeof this.db.voegFotoToe === 'function') {
+        if (importData.fotos && Array.isArray(importData.fotos) && window.fotoService && typeof window.fotoService.voegFotoToe === 'function') {
             console.log(`Fase 3: Importeer ${importData.fotos.length} foto's...`);
             
             let existingFotos = [];
             try {
-                if (typeof this.db.getAllFotos === 'function') {
-                    existingFotos = await this.db.getAllFotos();
+                if (typeof window.fotoService.getAllFotos === 'function') {
+                    existingFotos = await window.fotoService.getAllFotos();
                 }
             } catch (error) {
                 console.log('Kon bestaande foto\'s niet ophalen:', error);
@@ -1206,7 +1206,7 @@ class DataManager extends BaseModule {
                                 geuploadDoor: foto.geuploadDoor || window.auth?.getCurrentUser()?.username || 'unknown'
                             };
                             
-                            await this.db.voegFotoToe(fotoZonderId);
+                            await window.fotoService.voegFotoToe(fotoZonderId);
                             result.fotos.toegevoegd++;
                         }
                     }
@@ -1217,7 +1217,7 @@ class DataManager extends BaseModule {
         }
         
         // === FASE 4: Privé info (indien aanwezig) ===
-        if (importData.priveInfo && Array.isArray(importData.priveInfo) && typeof this.db.bewaarPriveInfo === 'function') {
+        if (importData.priveInfo && Array.isArray(importData.priveInfo) && window.priveInfoService && typeof window.priveInfoService.bewaarPriveInfo === 'function') {
             console.log(`Fase 4: Importeer ${importData.priveInfo.length} privé records...`);
             
             try {
@@ -1233,7 +1233,7 @@ class DataManager extends BaseModule {
                                 gewijzigdDoor: window.auth?.getCurrentUser()?.username || 'unknown'
                             };
                             
-                            await this.db.bewaarPriveInfo(priveZonderId);
+                            await window.priveInfoService.bewaarPriveInfo(priveZonderId);
                             result.priveInfo.bijgewerkt++;
                         }
                     } catch (error) {
@@ -1484,12 +1484,12 @@ class DataManager extends BaseModule {
                 return;
             }
             
-            if (typeof this.db.getStatistieken !== 'function') {
+            if (typeof window.hondenService.getStatistieken !== 'function') {
                 console.error('getStatistieken functie niet beschikbaar');
                 return;
             }
             
-            const stats = await this.db.getStatistieken();
+            const stats = await window.hondenService.getStatistieken();
             
             const hondenElement = document.getElementById('statsHonden');
             const fotosElement = document.getElementById('statsFotos');
