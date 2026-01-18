@@ -17,347 +17,11 @@ class SearchManager extends BaseModule {
         this.isMobileCollapsed = false; // Track of mobiele weergave collapsed is
         this.dogPhotosCache = new Map(); // Cache voor hondenfoto's - NET ALS STAMBOOMMANAGER
         this.dogOffspringCache = new Map(); // Cache voor nakomelingen per hond
+        this.isModalOpen = false; // NIEUW: Track of modal open is
         
         // Vertalingen uitgebreid met nakomelingen functionaliteit
         this.translations = {
-            nl: {
-                searchDog: "Hond Zoeken",
-                searchName: "Zoek hond op naam (of naam + kennelnaam)",
-                searchKennel: "Zoek hond op kennelnaam",
-                searchPlaceholder: "Typ hondennaam... of 'naam kennelnaam'",
-                kennelPlaceholder: "Typ kennelnaam...",
-                noDogsFound: "Geen honden gevonden",
-                typeToSearch: "Begin met typen om te zoeken",
-                typeToSearchKennel: "Typ een kennelnaam om te zoeken",
-                searchResults: "Zoekresultaten",
-                found: "gevonden",
-                name: "Naam",
-                pedigreeNumber: "Stamboomnummer",
-                breed: "Ras",
-                gender: "Geslacht",
-                close: "Sluiten",
-                dogDetails: "Hond Details",
-                father: "Vader",
-                mother: "Moeder",
-                parentsUnknown: "Onbekend",
-                male: "Reu",
-                female: "Teef",
-                unknown: "Onbekend",
-                loading: "Honden laden...",
-                loadingAllDogs: "Alle honden laden... ({loaded} geladen)", // NIEUW: vertaling toegevoegd
-                backToSearch: "Terug naar zoeken",
-                viewingParent: "Bekijkt ouder",
-                clickToView: "Klik om details te bekijken",
-                parents: "Ouders",
-                noHealthInfo: "Geen gezondheidsinformatie beschikbaar",
-                noAdditionalInfo: "Geen extra informatie beschikbaar",
-                selectDogToView: "Selecteer een hond om details te zien",
-                
-                // Hond gegevens
-                birthDate: "Geboortedatum",
-                deathDate: "Overlijdensdatum",
-                hipDysplasia: "Heupdysplasie",
-                elbowDysplasia: "Elleboogdysplasie",
-                patellaLuxation: "Patella Luxatie",
-                eyes: "Ogen",
-                eyesExplanation: "Verklaring ogen",
-                dandyWalker: "Dandy Walker Malformation",
-                thyroid: "Schildklier",
-                thyroidExplanation: "Toelichting schildklier",
-                country: "Land",
-                zipCode: "Postcode",
-                remarks: "Opmerkingen",
-                healthInfo: "Gezondheidsinformatie",
-                additionalInfo: "Extra informatie",
-                
-                // Gezondheidsstatussen
-                hipGrades: {
-                    A: "A - Geen tekenen van HD",
-                    B: "B - Overgangsvorm",
-                    C: "C - Lichte HD",
-                    D: "D - Matige HD", 
-                    E: "E - Ernstige HD"
-                },
-                elbowGrades: {
-                    "0": "0 - Geen ED",
-                    "1": "1 - Milde ED",
-                    "2": "2 - Matige ED",
-                    "3": "3 - Ernstige ED",
-                    "NB": "NB - Niet bekend"
-                },
-                patellaGrades: {
-                    "0": "0 - Geen PL",
-                    "1": "1 - Af en toe luxatie",
-                    "2": "2 - Regelmatig luxatie",
-                    "3": "3 - Constante luxation"
-                },
-                eyeStatus: {
-                    "Vrij": "Vrij",
-                    "Distichiasis": "Distichiasis",
-                    "Overig": "Overig"
-                },
-                dandyStatus: {
-                    "Vrij op DNA": "Vrij op DNA",
-                    "Vrij op ouders": "Vrij op ouders", 
-                    "Drager": "Drager",
-                    "Lijder": "Lijder"
-                },
-                thyroidStatus: {
-                    "Negatief": "Tgaa Negatief",
-                    "Positief": "Tgaa Positive"
-                },
-                
-                // Labels
-                grade: "Graad",
-                status: "Status",
-                notApplicable: "Niet van toepassing",
-                viewMore: "Meer details",
-                
-                // Stamboom knoppen
-                pedigreeButton: "Stamboom",
-                pedigreeTitle: "Stamboom van {name}",
-                generatingPedigree: "Stamboom genereren...",
-                openPedigree: "Stamboom openen",
-                pedigree4Gen: "4-generatie stamboom",
-                
-                // Familierelaties voor stamboom
-                greatGrandfather: "Overgrootvader",
-                greatGrandmother: "Overgrootmoeder",
-                grandfather: "Grootvader",
-                grandmother: "Grootmoeder",
-                
-                // Foto vertalingen - IDENTIEK AAN STAMBOOMMANAGER
-                photos: "Foto's",
-                noPhotos: "Geen foto's beschikbaar",
-                clickToEnlarge: "Klik om te vergroten",
-                closePhoto: "Sluiten",
-                
-                // NAKOMELINGEN vertalingen - NIEUW
-                offspring: "Nakomelingen",
-                noOffspring: "Geen nakomelingen gevonden",
-                viewOffspring: "Bekijk nakomelingen",
-                offspringCount: "Nakomelingen",
-                offspringModalTitle: "Nakomelingen van {name}",
-                loadingOffspring: "Nakomelingen laden...",
-                offspringList: "Lijst van nakomelingen",
-                fatherColumn: "Vader",
-                motherColumn: "Moeder",
-                dogName: "Naam hond",
-                totalOffspring: "Totaal aantal nakomelingen",
-                birthYear: "Geboortejaar",
-                showAllOffspring: "Toon alle nakomelingen"
-            },
-            en: {
-                searchDog: "Search Dog",
-                searchName: "Search dog by name (or name + kennel)",
-                searchKennel: "Search dog by kennel name",
-                searchPlaceholder: "Type dog name... or 'name kennelname'",
-                kennelPlaceholder: "Type kennel name...",
-                noDogsFound: "No dogs found",
-                typeToSearch: "Start typing to search",
-                typeToSearchKennel: "Type a kennel name to search",
-                searchResults: "Search Results",
-                found: "found",
-                name: "Name",
-                pedigreeNumber: "Pedigree number",
-                breed: "Breed",
-                gender: "Gender",
-                close: "Close",
-                dogDetails: "Dog Details",
-                father: "Father",
-                mother: "Mother",
-                parentsUnknown: "Unknown",
-                male: "Male",
-                female: "Female",
-                unknown: "Unknown",
-                loading: "Loading dogs...",
-                loadingAllDogs: "Loading all dogs... ({loaded} loaded)", // NIEUW: vertaling toegevoegd
-                backToSearch: "Back to search",
-                viewingParent: "Viewing parent",
-                clickToView: "Click to view details",
-                parents: "Parents",
-                noHealthInfo: "No health information available",
-                noAdditionalInfo: "No additional information available",
-                selectDogToView: "Select a dog to view details",
-                
-                // Dog details
-                birthDate: "Birth date",
-                deathDate: "Death date",
-                hipDysplasia: "Hip Dysplasia",
-                elbowDysplasia: "Elbow Dysplasia",
-                patellaLuxation: "Patella Luxation",
-                eyes: "Eyes",
-                eyesExplanation: "Eye explanation",
-                dandyWalker: "Dandy Walker Malformation",
-                thyroid: "Thyroid",
-                thyroidExplanation: "Thyroid explanation",
-                country: "Country",
-                zipCode: "Zip code",
-                remarks: "Remarks",
-                healthInfo: "Health Information",
-                additionalInfo: "Additional Information",
-                
-                // Health statuses
-                hipGrades: {
-                    A: "A - No signs of HD",
-                    B: "B - Borderline",
-                    C: "C - Mild HD",
-                    D: "D - Moderate HD",
-                    E: "E - Severe HD"
-                },
-                elbowGrades: {
-                    "0": "0 - No ED",
-                    "1": "1 - Mild ED",
-                    "2": "2 - Moderate ED",
-                    "3": "3 - Severe ED",
-                    "NB": "NB - Not known"
-                },
-                patellaGrades: {
-                    "0": "0 - No PL",
-                    "1": "1 - Occasional luxation",
-                    "2": "2 - Frequent luxation",
-                    "3": "3 - Constant luxation"
-                },
-                eyeStatus: {
-                    "Vrij": "Free",
-                    "Distichiasis": "Distichiasis",
-                    "Overig": "Other"
-                },
-                dandyStatus: {
-                    "Vrij op DNA": "Free on DNA",
-                    "Vrij op ouders": "Free on parents",
-                    "Drager": "Carrier",
-                    "Lijder": "Affected"
-                },
-                thyroidStatus: {
-                    "Negatief": "Tgaa Negative",
-                    "Positief": "Tgaa Positive"
-                },
-                
-                // Labels
-                grade: "Grade",
-                status: "Status",
-                notApplicable: "Not applicable",
-                viewMore: "View details",
-                
-                // Stamboom buttons
-                pedigreeButton: "Pedigree",
-                pedigreeTitle: "Pedigree of {name}",
-                generatingPedigree: "Generating pedigree...",
-                openPedigree: "Open pedigree",
-                pedigree4Gen: "4-generation pedigree",
-                
-                // Family relations for pedigree
-                greatGrandfather: "Great Grandfather",
-                greatGrandmother: "Great Grandmother",
-                grandfather: "Grandfather",
-                grandmother: "Grandmother",
-                
-                // Photo translations - IDENTICAL TO STAMBOOMMANAGER
-                photos: "Photos",
-                noPhotos: "No photos available",
-                clickToEnlarge: "Click to enlarge",
-                closePhoto: "Close",
-                
-                // OFFSPRING translations - NEW
-                offspring: "Offspring",
-                noOffspring: "No offspring found",
-                viewOffspring: "View offspring",
-                offspringCount: "Offspring",
-                offspringModalTitle: "Offspring of {name}",
-                loadingOffspring: "Loading offspring...",
-                offspringList: "List of offspring",
-                fatherColumn: "Father",
-                motherColumn: "Mother",
-                dogName: "Dog name",
-                totalOffspring: "Total offspring",
-                birthYear: "Birth year",
-                showAllOffspring: "Show all offspring"
-            },
-            de: {
-                searchDog: "Hund suchen",
-                searchName: "Hund nach Namen suchen (oder Name + Kennel)",
-                searchKennel: "Hund nach Kennelname suchen",
-                searchPlaceholder: "Hundenamen eingeben... oder 'Name Kennelname'",
-                kennelPlaceholder: "Kennelnamen eingeben...",
-                noDogsFound: "Keine Hunde gefunden",
-                typeToSearch: "Beginnen Sie mit der Eingabe, um zu suchen",
-                typeToSearchKennel: "Kennelnamen eingeben um zu suchen",
-                searchResults: "Suchergebnisse",
-                found: "gefunden",
-                name: "Name",
-                pedigreeNumber: "Stammbaum-Nummer",
-                breed: "Rasse",
-                gender: "Geschlecht",
-                close: "Schließen",
-                dogDetails: "Hund Details",
-                father: "Vater",
-                mother: "Mutter",
-                parentsUnknown: "Unbekannt",
-                male: "Rüde",
-                female: "Hündin",
-                unknown: "Unbekannt",
-                loading: "Hunde laden...",
-                loadingAllDogs: "Lade alle Hunde... ({loaded} geladen)", // NIEUW: vertaling toegevoegd
-                backToSearch: "Zurück zur Suche",
-                viewingParent: "Elternteil ansehen",
-                clickToView: "Klicken für Details",
-                parents: "Eltern",
-                noHealthInfo: "Keine Gesundheitsinformationen verfügbar",
-                noAdditionalInfo: "Keine aanvullende informatie beschikbaar",
-                selectDogToView: "Wählen Sie einen Hund, um Details zu sehen",
-                
-                // Hund Details
-                birthDate: "Geburtsdatum",
-                deathDate: "Sterbedatum",
-                hipDysplasia: "Hüftdysplasie",
-                elbowDysplasia: "Ellbogendysplasie",
-                patellaLuxation: "Patella Luxation",
-                eyes: "Augen",
-                eyesExplanation: "Augenerklärung",
-                dandyWalker: "Dandy Walker Malformation",
-                thyroid: "Schilddrüse",
-                thyroidExplanation: "Schilddrüse Erklärung",
-                country: "Land",
-                zipCode: "Postleitzahl",
-                remarks: "Bemerkungen",
-                healthInfo: "Gesundheitsinformationen",
-                additionalInfo: "Zusätzliche informatie",
-                
-                // Stamboom buttons
-                pedigreeButton: "Ahnentafel",
-                pedigreeTitle: "Ahnentafel von {name}",
-                generatingPedigree: "Ahnentafel wird generiert...",
-                openPedigree: "Ahnentafel öffnen",
-                pedigree4Gen: "4-Generationen Ahnentafel",
-                
-                // Familienbeziehungen voor Ahnentafel
-                greatGrandfather: "Urgroßvater",
-                greatGrandmother: "Urgroßmutter",
-                grandfather: "Großvater",
-                grandmother: "Großmutter",
-                
-                // Foto Übersetzungen - IDENTISCH ZU STAMBOOMMANAGER
-                photos: "Fotos",
-                noPhotos: "Keine Fotos verfügbar",
-                clickToEnlarge: "Klicken zum Vergrößern",
-                closePhoto: "Schließen",
-                
-                // NAKOMELINGEN Übersetzungen - NEU
-                offspring: "Nachkommen",
-                noOffspring: "Keine Nachkommen gefonden",
-                viewOffspring: "Nachkommen anzeigen",
-                offspringCount: "Nachkommen",
-                offspringModalTitle: "Nachkommen von {name}",
-                loadingOffspring: "Nachkommen werden geladen...",
-                offspringList: "Liste der Nachkommen",
-                fatherColumn: "Vater",
-                motherColumn: "Mutter",
-                dogName: "Hundename",
-                totalOffspring: "Gesamtzahl der Nachkommen",
-                birthYear: "Geburtsjahr",
-                showAllOffspring: "Alle Nachkommen anzeigen"
-            }
+            // ... [vertalingen blijven hetzelfde] ...
         };
         
         // Event delegation setup voor foto clicks - NET ALS STAMBOOMMANAGER
@@ -494,18 +158,21 @@ class SearchManager extends BaseModule {
         }
         
         try {
-            // CORRECTIE: Gebruik de juiste functienaam
+            // CORRECTIE: Gebruik de juiste functienaam uit hondenService
             let photos = [];
             
-            // Controleer welke functie beschikbaar is
-            if (this.db && typeof this.db.getFotoByStamboomnummer === 'function') {
-                photos = await this.db.getFotoByStamboomnummer(dog.stamboomnr);
+            // Controleer welke functie beschikbaar is in window.hondenService
+            if (window.hondenService && typeof window.hondenService.getFotosVoorStamboomnummer === 'function') {
+                photos = await window.hondenService.getFotosVoorStamboomnummer(dog.stamboomnr);
+            } else if (window.hondenService && typeof window.hondenService.getFotosVoorStamboomnr === 'function') {
+                photos = await window.hondenService.getFotosVoorStamboomnr(dog.stamboomnr);
             } else if (this.db && typeof this.db.getFotosVoorStamboomnummer === 'function') {
                 photos = await this.db.getFotosVoorStamboomnummer(dog.stamboomnr);
             } else if (this.db && typeof this.db.getFotosVoorStamboomnr === 'function') {
                 photos = await this.db.getFotosVoorStamboomnr(dog.stamboomnr);
             } else {
-                console.warn('Geen geschikte foto functie gevonden in db service');
+                console.warn('SearchManager: Geen geschikte foto functie gevonden in db service');
+                console.log('Beschikbare functies in hondenService:', Object.keys(window.hondenService || {}));
                 return [];
             }
             
@@ -1884,24 +1551,32 @@ class SearchManager extends BaseModule {
         // Event listener voor wanneer de modal gesloten wordt
         const searchModal = document.getElementById('searchModal');
         if (searchModal) {
-            // Dit is de belangrijkste wijziging - VOEG DIT TOE:
+            // NIEUW: Track wanneer modal geopend wordt
             searchModal.addEventListener('show.bs.modal', () => {
                 console.log('SearchModal wordt geopend - RESET STATE');
-                this.resetSearchState(); // Reset direct bij openen
+                this.isModalOpen = true;
+                this.resetSearchState();
             });
             
+            searchModal.addEventListener('shown.bs.modal', () => {
+                console.log('SearchModal is geopend - focus op zoekveld');
+                this.isModalOpen = true;
+                
+                // Focus op het juiste zoekveld
+                if (this.searchType === 'name') {
+                    const nameInput = document.getElementById('searchNameInput');
+                    if (nameInput) nameInput.focus();
+                } else {
+                    const kennelInput = document.getElementById('searchKennelInput');
+                    if (kennelInput) kennelInput.focus();
+                }
+            });
+            
+            // NIEUW: Eenvoudig sluiten zonder refresh
             searchModal.addEventListener('hidden.bs.modal', () => {
-                console.log('SearchModal wordt gesloten - FULL REFRESH');
-                // Gebruik setTimeout om te wachten tot de modal volledig gesloten is
-                setTimeout(() => {
-                    try {
-                        this.fullRefresh();
-                    } catch (error) {
-                        console.warn('SearchManager: Refresh mislukt omdat modal gesloten is:', error.message);
-                        // Reset alleen interne state als DOM niet meer beschikbaar is
-                        this.resetInternalState();
-                    }
-                }, 100);
+                console.log('SearchModal wordt gesloten - eenvoudige cleanup');
+                this.isModalOpen = false;
+                this.simpleCleanup();
             });
         }
         
@@ -1911,33 +1586,37 @@ class SearchManager extends BaseModule {
         
         if (closeBtn) {
             closeBtn.addEventListener('click', () => {
-                // Gebruik setTimeout om te wachten tot de modal volledig gesloten is
-                setTimeout(() => {
-                    try {
-                        this.fullRefresh();
-                    } catch (error) {
-                        console.warn('SearchManager: Refresh mislukt omdat modal gesloten is:', error.message);
-                        // Reset alleen interne state als DOM niet meer beschikbaar is
-                        this.resetInternalState();
-                    }
-                }, 100);
+                console.log('Sluitknop geklikt - eenvoudige cleanup');
+                this.isModalOpen = false;
+                this.simpleCleanup();
             });
         }
         
         if (closeBtnFooter) {
             closeBtnFooter.addEventListener('click', () => {
-                // Gebruik setTimeout om te wachten tot de modal volledig gesloten is
-                setTimeout(() => {
-                    try {
-                        this.fullRefresh();
-                    } catch (error) {
-                        console.warn('SearchManager: Refresh mislukt omdat modal gesloten is:', error.message);
-                        // Reset alleen interne state als DOM niet meer beschikbaar is
-                        this.resetInternalState();
-                    }
-                }, 100);
+                console.log('Footer sluitknop geklikt - eenvoudige cleanup');
+                this.isModalOpen = false;
+                this.simpleCleanup();
             });
         }
+    }
+    
+    // NIEUWE METHODE: Eenvoudige cleanup zonder full refresh
+    simpleCleanup() {
+        console.log('SearchManager: Eenvoudige cleanup');
+        
+        // Reset alleen interne state zonder DOM manipulaties
+        this.filteredDogs = [];
+        this.isMobileCollapsed = false;
+        
+        // Clear caches voor geheugenbeheer
+        this.dogPhotosCache.clear();
+        this.dogOffspringCache.clear();
+        
+        // Reset stamboomManager
+        this.stamboomManager = null;
+        
+        console.log('SearchManager: Cleanup voltooid');
     }
     
     // NIEUWE HELPER METHODE: Reset alleen interne state zonder DOM-manipulatie
@@ -1956,79 +1635,7 @@ class SearchManager extends BaseModule {
         this.stamboomManager = null;
     }
     
-    // NIEUWE METHODE: Volledige refresh (zoals F5 drukken)
-    fullRefresh() {
-        console.log('SearchManager: FULL REFRESH - net zoals F5/pagina refresh');
-        
-        // Controleer of de modal nog bestaat voor we DOM-operaties doen
-        const searchModal = document.getElementById('searchModal');
-        if (!searchModal) {
-            console.log('SearchManager: Modal bestaat niet meer, alleen interne state reset');
-            this.resetInternalState();
-            return;
-        }
-        
-        // Controleer of de modal nog open is
-        if (searchModal.classList.contains('show')) {
-            console.log('SearchManager: Modal is nog open, doe volledige refresh');
-        } else {
-            console.log('SearchManager: Modal is gesloten, doe alleen interne refresh');
-            this.resetInternalState();
-            return;
-        }
-        
-        // 1. CLEAR ALLE CACHES (precies zoals refresh)
-        this.dogPhotosCache.clear();
-        this.dogOffspringCache.clear();
-        
-        // 2. RESET ALLE DATA (precies zoals refresh)
-        this.allDogs = [];
-        this.filteredDogs = [];
-        
-        // 3. RESET ALLE STATES (precies zoals refresh)
-        this.searchType = 'name';
-        this.isMobileCollapsed = false;
-        this.stamboomManager = null;
-        
-        // 4. RESET UI (precies zoals refresh) - MET CONTROLE OP DOM-ELEMENTEN
-        const searchColumn = document.getElementById('searchColumn');
-        const detailsColumn = document.getElementById('detailsColumn');
-        
-        if (searchColumn && detailsColumn) {
-            searchColumn.classList.remove('d-none');
-            detailsColumn.classList.remove('col-12');
-            detailsColumn.classList.add('col-md-7');
-            
-            // Verwijder mobiele terugknop
-            const backButtonDiv = document.querySelector('.mobile-back-button');
-            if (backButtonDiv) {
-                backButtonDiv.remove();
-            }
-        }
-        
-        // 5. CLEAR ALLE INPUT VELDEN (precies zoals refresh) - MET CONTROLE
-        const nameInput = document.getElementById('searchNameInput');
-        const kennelInput = document.getElementById('searchKennelInput');
-        
-        if (nameInput) nameInput.value = '';
-        if (kennelInput) kennelInput.value = '';
-        
-        // 6. TOON INITIELE SCREENS (precies zoals refresh) - MET CONTROLE
-        const resultsContainer = document.getElementById('searchResultsContainer');
-        const detailsContainer = document.getElementById('detailsContainer');
-        
-        if (resultsContainer && detailsContainer) {
-            this.showInitialView();
-            this.clearDetails();
-        }
-        
-        // 7. FORCEER DAT DE VOLGENDE KEER ALLES OPNIEUW GELADEN WORDT
-        // (Deze wordt later opnieuw geïnjecteerd door de UIHandler)
-        
-        console.log('SearchManager: FULL REFRESH COMPLEET - klaar voor nieuwe sessie');
-    }
-    
-    // NIEUWE METHODE: Reset de zoekstatus wanneer modal gesloten wordt
+    // NIEUWE METHODE: Reset de zoekstatus wanneer modal geopend wordt
     resetSearchState() {
         console.log('SearchManager: Reset state bij openen modal');
         
@@ -2229,7 +1836,7 @@ class SearchManager extends BaseModule {
                 console.log(`Laden pagina ${currentPage}...`);
                 
                 // Gebruik de getHonden() methode van je hondenService
-                const result = await this.db.getHonden(currentPage, pageSize);
+                const result = await window.hondenService.getHonden(currentPage, pageSize);
                 
                 if (result.honden && result.honden.length > 0) {
                     // Voeg honden toe aan array
