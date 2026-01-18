@@ -215,25 +215,15 @@
     <!-- Supabase client -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     
-    <!-- Tweede controle: Supabase sessie -->
+    <!-- MAAK GLOBALE SUPABASE BESCHIKBAAR -->
     <script>
-        // Supabase client initialiseren
-        const supabase = window.supabase.createClient(
+        // Supabase client initialiseren en globaal beschikbaar maken
+        window.supabase = window.supabase.createClient(
             'https://owjwkjrktftugjjrcwml.supabase.co',
             'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93andranJrdGZ0dWdqanJjd21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2MzA4OTAsImV4cCI6MjA4NDIwNjg5MH0.oW6HTAlMBkjUu_4e3kn4iozjn5wK-15h4wCKcaHrtp8'
         );
         
-        window.supabaseClient = supabase;
-        
-        supabase.auth.getSession().then(({ data }) => {
-            if (!data.session) {
-                console.log('⚠️ Geen actieve Supabase sessie, maar local data wel aanwezig - app blijft werken');
-            } else {
-                console.log('✅ Supabase sessie actief:', data.session.user.email);
-            }
-        }).catch(error => {
-            console.log('ℹ️ Supabase check mislukt, app blijft werken:', error.message);
-        });
+        console.log('✅ Supabase client geïnitialiseerd');
     </script>
 
     <!-- Navigation -->
@@ -768,18 +758,18 @@
                 adminRole: "Administrator",
                 adminRights: "Volle Rechte, einschließlich neuer Hunde hinzufügen.",
                 userRole: "Benutzer",
-                userRights: "Kann Daten importieren/exportieren en ansehen, maar keine neuen Hunde hinzufügen of bearbeiten.",
+                userRights: "Kann Daten importieren/exportieren en ansehen, aber keine neuen Hunde hinzufügen of bearbeiten.",
                 
                 // Backup Texte
                 backupNow: "Backup",
                 learnMore: "Info",
                 backupWarningTitle: "Backup empfohlen",
                 backupNowDashboard: "Jetzt Backup erstellen",
-                dismissBackup: "Nicht meer anzeigen",
+                dismissBackup: "Nicht mehr anzeigen",
                 backupModalTitle: "Data Backup - Warum is das wichtig?",
                 backupRisksTitle: "Risiken ohne Backup",
                 backupRisksText1: "Diese App speichert alle Daten <strong>nur lokal in Ihrem Browser</strong>.",
-                backupRisksText2: "Ihre Daten kunnen verloren gehen, wenn Sie: ",
+                backupRisksText2: "Ihre Daten können verloren gehen, wenn Sie: ",
                 backupHowToTitle: "Wie man ein Backup erstellt",
                 backupHowToText1: "<strong>Empfohlen:</strong> Erstellen Sie wöchentliche Backups",
                 backupIOSHeading: "Auf iPhone/iPad:",
@@ -1097,9 +1087,6 @@
             });
         });
 
-        // Verwijder de oude auth.isLoggedIn() controle hier
-        // Dit wordt nu gedaan door de scripts bovenaan
-        
         // Initialiseer UI Handler
         let ui = null;
         
@@ -1150,8 +1137,12 @@
                 setupResponsiveLayout();
                 
                 // Maak de nieuwe modules beschikbaar in window object
-                window.reuTeefCombinatie = ReuTeefCombinatie;
-                window.zoekReu = ZoekReu;
+                if (typeof ReuTeefCombinatie !== 'undefined') {
+                    window.reuTeefCombinatie = ReuTeefCombinatie;
+                }
+                if (typeof ZoekReu !== 'undefined') {
+                    window.zoekReu = ZoekReu;
+                }
                 
                 // **BELANGRIJK: Initialiseer de DisclaimerManager NA de pagina is geladen**
                 setTimeout(() => {
@@ -1204,39 +1195,29 @@
         function setupOtherEventListeners() {
             console.log('Setting up other event listeners');
             
-            // Uitloggen - desktop knop
-            const logoutBtn = document.getElementById('logoutBtn');
-            if (logoutBtn) {
-                logoutBtn.addEventListener('click', function() {
-                    console.log('Logout button clicked');
-                    
-                    // Verwijder localStorage data
-                    localStorage.removeItem('userEmail');
-                    localStorage.removeItem('userId');
-                    localStorage.removeItem('isAdmin');
-                    
-                    // Ga terug naar login
-                    window.location.href = 'index.html';
-                });
-            } else {
-                console.error('Logout button not found');
-            }
+            // Uitloggen - gebruik nu de auth.js functie
+            const logoutButtons = ['logoutBtn', 'logoutBtnMobile'];
             
-            // Uitloggen - mobiele knop
-            const logoutBtnMobile = document.getElementById('logoutBtnMobile');
-            if (logoutBtnMobile) {
-                logoutBtnMobile.addEventListener('click', function() {
-                    console.log('Mobile logout button clicked');
-                    
-                    // Verwijder localStorage data
-                    localStorage.removeItem('userEmail');
-                    localStorage.removeItem('userId');
-                    localStorage.removeItem('isAdmin');
-                    
-                    // Ga terug naar login
-                    window.location.href = 'index.html';
-                });
-            }
+            logoutButtons.forEach(btnId => {
+                const btn = document.getElementById(btnId);
+                if (btn) {
+                    btn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('Logout button clicked, calling window.auth.logout()');
+                        
+                        if (window.auth && window.auth.logout) {
+                            window.auth.logout();
+                        } else {
+                            // Fallback: verwijder localStorage en ga naar login
+                            localStorage.removeItem('userEmail');
+                            localStorage.removeItem('userId');
+                            localStorage.removeItem('isAdmin');
+                            window.location.href = 'index.html';
+                        }
+                    });
+                }
+            });
             
             // Vernieuw statistieken
             const refreshStatsBtn = document.getElementById('refreshStatsBtn');
@@ -1244,7 +1225,7 @@
                 refreshStatsBtn.addEventListener('click', async function() {
                     console.log('Refresh stats button clicked');
                     try {
-                        const stats = await hondenService.getStatistieken();
+                        const stats = await window.hondenService.getStatistieken();
                         document.getElementById('quickStatsHonden').textContent = stats.totaalHonden;
                         document.getElementById('quickStatsFotos').textContent = stats.totaalFotos;
                         if (ui && ui.showSuccess) {
@@ -1294,13 +1275,13 @@
         async function loadInitialStats() {
             console.log('Loading initial stats');
             try {
-                await hondenService.init();
-                const stats = await hondenService.getStatistieken();
+                // Gebruik getStatistieken in plaats van init
+                const stats = await window.hondenService.getStatistieken();
                 document.getElementById('quickStatsHonden').textContent = stats.totaalHonden;
                 document.getElementById('quickStatsFotos').textContent = stats.totaalFotos;
                 console.log('Stats loaded:', stats);
             } catch (error) {
-                console.error('Fout bij initialiseren:', error);
+                console.error('Fout bij laden statistieken:', error);
             }
         }
         
@@ -1405,91 +1386,95 @@
         
         // VERWIJDER de override van showModal in UIHandler.prototype
         // UI Handler aanpassing voor LitterManager
-        const originalShowModal = UIHandler.prototype.showModal;
-        UIHandler.prototype.showModal = function(modalType) {
-            console.log('Modified showModal called with:', modalType);
-            
-            if (modalType === 'litter') {
-                console.log('Creating litter modal');
+        if (UIHandler && UIHandler.prototype) {
+            const originalShowModal = UIHandler.prototype.showModal;
+            UIHandler.prototype.showModal = function(modalType) {
+                console.log('Modified showModal called with:', modalType);
                 
-                const litterManager = new LitterManager();
-                
-                if (litterManager.injectDependencies) {
-                    litterManager.injectDependencies(this.db, this.auth);
-                    console.log('Dependencies injected into LitterManager');
-                }
-                
-                const modalHTML = litterManager.getModalHTML();
-                console.log('Got modal HTML from LitterManager');
-                
-                this.showCustomModal(modalHTML, 'addLitterModal', 'addLitterModalLabel');
-                
-                setTimeout(() => {
-                    try {
-                        if (litterManager.setupEvents) {
-                            const isAdmin = this.auth.isAdmin();
-                            if (!isAdmin) {
-                                console.log('User is not admin, showing access denied popup');
-                                return;
+                if (modalType === 'litter') {
+                    console.log('Creating litter modal');
+                    
+                    const litterManager = new LitterManager();
+                    
+                    if (litterManager.injectDependencies) {
+                        litterManager.injectDependencies(this.db, this.auth);
+                        console.log('Dependencies injected into LitterManager');
+                    }
+                    
+                    const modalHTML = litterManager.getModalHTML();
+                    console.log('Got modal HTML from LitterManager');
+                    
+                    this.showCustomModal(modalHTML, 'addLitterModal', 'addLitterModalLabel');
+                    
+                    setTimeout(() => {
+                        try {
+                            if (litterManager.setupEvents) {
+                                const isAdmin = this.auth.isAdmin();
+                                if (!isAdmin) {
+                                    console.log('User is not admin, showing access denied popup');
+                                    return;
+                                }
+                                litterManager.setupEvents();
+                                console.log('LitterManager events setup complete');
                             }
-                            litterManager.setupEvents();
-                            console.log('LitterManager events setup complete');
+                        } catch (error) {
+                            console.error('Error setting up LitterManager events:', error);
                         }
-                    } catch (error) {
-                        console.error('Error setting up LitterManager events:', error);
-                    }
-                }, 500);
-                
-                return;
-            }
-            
-            originalShowModal.call(this, modalType);
-        };
-        
-        UIHandler.prototype.showCustomModal = function(html, modalId, modalLabelId) {
-            console.log('showCustomModal called:', modalId);
-            
-            const existingModal = document.getElementById(modalId);
-            if (existingModal) {
-                existingModal.remove();
-            }
-            
-            const modalsContainer = document.getElementById('modalsContainer');
-            if (modalsContainer) {
-                modalsContainer.innerHTML = html;
-                
-                const modalElement = document.getElementById(modalId);
-                if (modalElement) {
-                    const modal = new bootstrap.Modal(modalElement);
-                    modal.show();
+                    }, 500);
                     
-                    this.translateModalContent(modalElement);
-                    
-                    console.log('Modal shown:', modalId);
-                } else {
-                    console.error('Modal element not found after adding to DOM:', modalId);
+                    return;
                 }
-            } else {
-                console.error('Modals container not found');
-            }
-        };
-        
-        UIHandler.prototype.translateModalContent = function(modalElement) {
-            const lang = localStorage.getItem('appLanguage') || 'nl';
+                
+                if (originalShowModal) {
+                    originalShowModal.call(this, modalType);
+                }
+            };
             
-            const elements = modalElement.querySelectorAll('[data-key]');
-            elements.forEach(element => {
-                const key = element.getAttribute('data-key');
-                const translations = appTranslations[lang];
-                if (translations && translations[key]) {
-                    if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
-                        element.placeholder = translations[key];
+            UIHandler.prototype.showCustomModal = function(html, modalId, modalLabelId) {
+                console.log('showCustomModal called:', modalId);
+                
+                const existingModal = document.getElementById(modalId);
+                if (existingModal) {
+                    existingModal.remove();
+                }
+                
+                const modalsContainer = document.getElementById('modalsContainer');
+                if (modalsContainer) {
+                    modalsContainer.innerHTML = html;
+                    
+                    const modalElement = document.getElementById(modalId);
+                    if (modalElement) {
+                        const modal = new bootstrap.Modal(modalElement);
+                        modal.show();
+                        
+                        this.translateModalContent(modalElement);
+                        
+                        console.log('Modal shown:', modalId);
                     } else {
-                        element.textContent = translations[key];
+                        console.error('Modal element not found after adding to DOM:', modalId);
                     }
+                } else {
+                    console.error('Modals container not found');
                 }
-            });
-        };
+            };
+            
+            UIHandler.prototype.translateModalContent = function(modalElement) {
+                const lang = localStorage.getItem('appLanguage') || 'nl';
+                
+                const elements = modalElement.querySelectorAll('[data-key]');
+                elements.forEach(element => {
+                    const key = element.getAttribute('data-key');
+                    const translations = appTranslations[lang];
+                    if (translations && translations[key]) {
+                        if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+                            element.placeholder = translations[key];
+                        } else {
+                            element.textContent = translations[key];
+                        }
+                    }
+                });
+            };
+        }
         
         // **BELANGRIJKE TOEVOEGING: Reset backup status voor bestaande gebruikers**
         // Als je al een backup hebt gemaakt maar de app zegt van niet,
