@@ -345,7 +345,7 @@ class SearchManager extends BaseModule {
                 
                 // NAKOMELINGEN Übersetzungen - NEU
                 offspring: "Nachkommen",
-                noOffspring: "Keine Nachkommen gefunden",
+                noOffspring: "Keine Nachkommen gefonden",
                 viewOffspring: "Nachkommen anzeigen",
                 offspringCount: "Nachkommen",
                 offspringModalTitle: "Nachkommen von {name}",
@@ -494,8 +494,21 @@ class SearchManager extends BaseModule {
         }
         
         try {
-            // VERANDERD: gebruik this.db ipv hondenService
-            const photos = await this.db.getFotosVoorStamboomnr(dog.stamboomnr);
+            // CORRECTIE: Gebruik de juiste functienaam
+            let photos = [];
+            
+            // Controleer welke functie beschikbaar is
+            if (this.db && typeof this.db.getFotoByStamboomnummer === 'function') {
+                photos = await this.db.getFotoByStamboomnummer(dog.stamboomnr);
+            } else if (this.db && typeof this.db.getFotosVoorStamboomnummer === 'function') {
+                photos = await this.db.getFotosVoorStamboomnummer(dog.stamboomnr);
+            } else if (this.db && typeof this.db.getFotosVoorStamboomnr === 'function') {
+                photos = await this.db.getFotosVoorStamboomnr(dog.stamboomnr);
+            } else {
+                console.warn('Geen geschikte foto functie gevonden in db service');
+                return [];
+            }
+            
             this.dogPhotosCache.set(cacheKey, photos || []);
             return photos || [];
         } catch (error) {
@@ -2854,7 +2867,7 @@ class SearchManager extends BaseModule {
             }
         }
     }
-    
+      
     // METHODE: Foto's laden en tonen - NIEUWE LAYOUT
     async loadAndDisplayPhotos(dog) {
         try {
