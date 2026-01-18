@@ -5,17 +5,9 @@
 
 class UIHandler {
     constructor() {
-        // Wacht met initialiseren tot services beschikbaar zijn
-        this.db = window.hondenService;  // Verwijder de import en gebruik window
-        this.auth = window.auth || auth;  // Gebruik window.auth als het globaal is
+        this.db = db;
+        this.auth = auth;
         this.currentModal = null;
-        
-        // Controleer of services beschikbaar zijn
-        if (!this.db) {
-            console.error('hondenService niet gevonden op window object');
-            // Optioneel: laad asynchroon
-            this.loadServices();
-        }
         
         // Debug logging
         console.log('UIHandler constructor aangeroepen');
@@ -61,20 +53,6 @@ class UIHandler {
         
         // Voeg CSS toe voor styling
         this.addStyles();
-    }
-    
-    loadServices() {
-        // Laad services asynchroon als ze niet beschikbaar zijn
-        console.log('Services laden...');
-        // Zorg ervoor dat je services in globale scope staan
-        setTimeout(() => {
-            this.db = window.hondenService;
-            if (this.db) {
-                console.log('hondenService geladen');
-            } else {
-                console.error('hondenService nog steeds niet beschikbaar');
-            }
-        }, 100);
     }
     
     addStyles() {
