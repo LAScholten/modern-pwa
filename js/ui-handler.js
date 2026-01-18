@@ -5,7 +5,7 @@
 
 class UIHandler {
     constructor() {
-        this.db = db;
+        this.db = hondenService;
         this.auth = auth;
         this.currentModal = null;
         
