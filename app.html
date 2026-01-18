@@ -212,7 +212,28 @@
     </script>
 </head>
 <body>
-    <!-- Supabase client wordt nu in supabase-honden.js geladen -->
+    <!-- Supabase client -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    
+    <!-- Tweede controle: Supabase sessie -->
+    <script>
+        // Controleer Supabase sessie maar blokkeer niet als er local data is
+        const supabase = window.supabase.createClient(
+            'https://owjwkjrktftugjjrcwml.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93andranJrdGZ0dWdqanJjd21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2MzA4OTAsImV4cCI6MjA4NDIwNjg5MH0.oW6HTAlMBkjUu_4e3kn4iozjn5wK-15h4wCKcaHrtp8'
+        );
+        
+        supabase.auth.getSession().then(({ data }) => {
+            if (!data.session) {
+                console.log('⚠️ Geen actieve Supabase sessie, maar local data wel aanwezig - app blijft werken');
+                // App mag blijven werken op basis van localStorage
+            } else {
+                console.log('✅ Supabase sessie actief:', data.session.user.email);
+            }
+        }).catch(error => {
+            console.log('ℹ️ Supabase check mislukt, app blijft werken:', error.message);
+        });
+    </script>
 
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
@@ -534,68 +555,58 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <!-- Core Modules -->
-    <script type="module" src="js/auth.js"></script>
-    <script type="module" src="js/supabase-honden.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/supabase-honden.js"></script>
     
     <!-- Base Module -->
-    <script type="module" src="js/modules/BaseModule.js"></script>
+    <script src="js/modules/BaseModule.js"></script>
     
     <!-- COICalculator apart bestand -->
-    <script type="module" src="js/modules/COICalculator.js"></script>    
-    <script type="module" src="js/modules/COICalculator2.js"></script>
+    <script src="js/modules/COICalculator.js"></script>    
+    <script src="js/modules/COICalculator2.js"></script>
     
     <!-- Feature Modules -->
-    <script type="module" src="js/modules/DataManager.js"></script>
-    <script type="module" src="js/modules/DogManager.js"></script>
-    <script type="module" src="js/modules/LitterManager.js"></script>
-    <script type="module" src="js/modules/DogDataManager.js"></script>
-    <script type="module" src="js/modules/SearchManager.js"></script>
-    <script type="module" src="js/modules/PhotoManager.js"></script>
+    <script src="js/modules/DataManager.js"></script>
+    <script src="js/modules/DogManager.js"></script>
+    <script src="js/modules/LitterManager.js"></script>
+    <script src="js/modules/DogDataManager.js"></script>
+    <script src="js/modules/SearchManager.js"></script>
+    <script src="js/modules/PhotoManager.js"></script>
     
     <!-- BREEDING MODULES - ALLE DRIE ALTIJD LADEN -->
-    <script type="module" src="js/modules/BreedingManager.js"></script>
-    <script type="module" src="js/modules/ReuTeefCombinatie.js"></script>
-    <script type="module" src="js/modules/ReuTeefStamboom.js"></script>
-    <script type="module" src="js/modules/ZoekReu.js"></script>
+    <script src="js/modules/BreedingManager.js"></script>
+    <script src="js/modules/ReuTeefCombinatie.js"></script>
+    <script src="js/modules/ReuTeefStamboom.js"></script>
+    <script src="js/modules/ZoekReu.js"></script>
     
-    <script type="module" src="js/modules/PrivateInfoManager.js"></script>
+    <script src="js/modules/PrivateInfoManager.js"></script>
     
     <!-- StamboomManager -->
-    <script type="module" src="js/modules/StamboomManager.js"></script>
+    <script src="js/modules/StamboomManager.js"></script>
     
     <!-- Main UI Handler -->
-    <script type="module" src="js/ui-handler.js"></script>
+    <script src="js/ui-handler.js"></script>
     
     <!-- Desktop Edition Welkomstscherm -->
-    <script type="module" src="js/welcome-screen.js"></script>
+    <script src="js/welcome-screen.js"></script>
     
     <!-- Installatie Wizard JavaScript -->
-    <script type="module" src="js/installatie-wizard.js"></script>
+    <script src="js/installatie-wizard.js"></script>
     
     <!-- DISCLAIMER MANAGER -->
-    <script type="module" src="js/disclaimer-NIEUW.js"></script>
+    <script src="js/disclaimer-NIEUW.js"></script>
     
-    <script type="module">
-        // Importeer de benodigde modules
-        import { initApp, showWelcomeScreen } from './js/welcome-screen.js';
-        
+    <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialiseer de app
-            initApp();
-            
-            // Toon welkomstscherm met vertraging
-            setTimeout(() => showWelcomeScreen(), 1000);
+            if (window.welcomeScreen) {
+                // Delay voor initialisatie andere componenten
+                setTimeout(() => welcomeScreen.show(), 1000);
+            }
         });
     </script>
     
     <!-- App Initialization -->
-    <script type="module">
-        // Importeer de Supabase client van supabase-honden.js
-        import { supabase } from './js/supabase-honden.js';
-        import { hondenService } from './js/supabase-honden.js';
-        import UIHandler from './js/ui-handler.js';
-        import LitterManager from './js/modules/LitterManager.js';
-        
+    <script>
         // Laad taal uit localStorage
         const appLanguage = localStorage.getItem('appLanguage') || 'nl';
         
@@ -1086,6 +1097,9 @@
             });
         });
 
+        // Verwijder de oude auth.isLoggedIn() controle hier
+        // Dit wordt nu gedaan door de scripts bovenaan
+        
         // Initialiseer UI Handler
         let ui = null;
         
@@ -1491,4 +1505,4 @@
     
 
 </body>
-</html>
+</html>        
