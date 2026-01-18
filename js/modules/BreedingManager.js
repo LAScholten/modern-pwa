@@ -3,13 +3,11 @@
  * Beheert fokplannen en nest planning
  */
 
-import { hondenService } from './supabase-honden.js';
-
 class BreedingManager {
     constructor() {
         this.currentLang = localStorage.getItem('appLanguage') || 'nl';
-        this.db = null;
-        this.auth = null;
+        this.db = window.hondenService; // VERANDERD: gebruik window object
+        this.auth = window.auth; // VERANDERD: gebruik window object
         this.translations = {
             nl: {
                 breedingPlan: "Fok Planning",
@@ -35,7 +33,7 @@ class BreedingManager {
             },
             de: {
                 breedingPlan: "Zuchtplanung",
-                breedingInfo: "Erstellen und verwalten Sie Zuchtpläne für Ihre Hunde. Wählen Sie eine Methode:",
+                breedingInfo: "Erstellen und verwalten Sie Zuchtpläne für Ihre Hunde. Wählen Sie een Methode:",
                 method1: "1. Rüde und Hündin Kombination",
                 method1Desc: "Wählen Sie einen bestimmten Rüden und eine Hündin für einen Zuchtplan",
                 method2: "2. Finde einen Rüden",
@@ -47,10 +45,7 @@ class BreedingManager {
         };
     }
     
-    injectDependencies(db, auth) {
-        this.db = db;
-        this.auth = auth;
-    }
+    // VERWIJDERD: injectDependencies functie niet meer nodig
     
     t(key) {
         return this.translations[this.currentLang][key] || key;
@@ -189,9 +184,16 @@ class BreedingManager {
         
         // Laad de ReuTeefCombinatie module
         try {
-            const module = new ReuTeefCombinatie();
-            module.injectDependencies(this.db, this.auth);
-            await module.loadContent();
+            // Maak nieuwe instantie en laad content
+            if (window.reuTeefCombinatie) {
+                // Hergebruik bestaande instantie als beschikbaar
+                await window.reuTeefCombinatie.loadContent();
+            } else {
+                // Maak nieuwe instantie
+                const module = new ReuTeefCombinatie();
+                window.reuTeefCombinatie = module;
+                await module.loadContent();
+            }
             
         } catch (error) {
             console.error('Fout bij laden ReuTeefCombinatie:', error);
@@ -232,10 +234,13 @@ class BreedingManager {
             this.loadMainScreen();
         });
         
-        // Laad de ZoekReu module
+        // Laad de ZoekReu module - controleer eerst of deze bestaat
         try {
+            if (typeof ZoekReu === 'undefined') {
+                throw new Error('ZoekReu module is niet beschikbaar');
+            }
+            
             const module = new ZoekReu();
-            module.injectDependencies(this.db, this.auth);
             await module.loadContent();
             
         } catch (error) {
@@ -243,7 +248,7 @@ class BreedingManager {
             content.innerHTML = `
                 <div class="alert alert-danger">
                     <i class="bi bi-exclamation-triangle"></i>
-                    Kon de Zoek Reu module niet laden. Probeer het opnieuw.
+                    Kon de Zoek Reu module niet laden. Deze module is nog niet geïmplementeerd.
                     <br><small>${error.message}</small>
                 </div>
             `;
