@@ -3,13 +3,11 @@
  * Voor het maken van fokplannen met specifieke reu en teef
  */
 
-import { hondenService } from './supabase-honden.js';
-
 class ReuTeefCombinatie {
     constructor() {
         this.currentLang = localStorage.getItem('appLanguage') || 'nl';
-        this.db = null;
-        this.auth = null;
+        this.db = window.hondenService; // VERANDERD: gebruik window object
+        this.auth = window.auth; // VERANDERD: gebruik window object
         this.selectedTeef = null;
         this.selectedReu = null;
         this.allHonden = [];
@@ -386,7 +384,7 @@ class ReuTeefCombinatie {
                 zipCode: "Postleitzahl",
                 deathDate: "Sterbedatum",
                 hipDysplasia: "Hüftdysplasie",
-                elbowDysplasia: "Ellbogendysplasie",
+                elbowDysplasie: "Ellbogendysplasie",
                 patellaLuxation: "Patella Luxation",
                 eyes: "Augen",
                 dandyWalker: "Dandy Walker Malformation",
@@ -403,10 +401,7 @@ class ReuTeefCombinatie {
         this.setupGlobalEventListeners();
     }
     
-    injectDependencies(db, auth) {
-        this.db = db;
-        this.auth = auth;
-    }
+    // VERWIJDERD: injectDependencies() functie niet meer nodig
     
     t(key, params = {}) {
         let text = this.translations[this.currentLang][key] || key;
@@ -1137,8 +1132,8 @@ class ReuTeefCombinatie {
     
     async loadAllHonden() {
         try {
-            if (hondenService && typeof hondenService.getHonden === 'function') {
-                this.allHonden = await hondenService.getHonden();
+            if (this.db && typeof this.db.getHonden === 'function') {
+                this.allHonden = await this.db.getHonden();
                 console.log(`✅ Geladen: ${this.allHonden.length} honden uit database voor ReuTeefCombinatie`);
                 
                 // Zorg dat alle gezondheidsvelden aanwezig zijn
@@ -1201,7 +1196,7 @@ class ReuTeefCombinatie {
         }
         
         try {
-            const hond = await hondenService.getHondByStamboomnr(id);
+            const hond = await this.db.getHondByStamboomnr(id);
             if (hond) {
                 const volledigeHond = {
                     ...hond,
@@ -1248,7 +1243,7 @@ class ReuTeefCombinatie {
         }
         
         try {
-            const result = await hondenService.zoekHonden({ naam: name });
+            const result = await this.db.zoekHonden({ naam: name });
             if (result && result.length > 0) {
                 result.forEach(hond => {
                     const volledigeHond = {
