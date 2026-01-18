@@ -278,13 +278,12 @@ const hondenService = {
       
       const { data: hondenData, error: dataError } = await window.supabase
         .from('honden')
-        .select('kennelnaam, vachtkleur, bijgewerkt_op');
+        .select('kennelnaam, vachtkleur');
       
       if (dataError) throw dataError;
       
       const kennelStats = {};
       const vachtkleurStats = {};
-      let laatsteUpdate = new Date(0);
       
       (hondenData || []).forEach(hond => {
         const kennel = hond.kennelnaam || 'Geen kennel';
@@ -292,11 +291,6 @@ const hondenService = {
         
         const vachtkleur = hond.vachtkleur || 'Geen vachtkleur opgegeven';
         vachtkleurStats[vachtkleur] = (vachtkleurStats[vachtkleur] || 0) + 1;
-        
-        if (hond.bijgewerkt_op) {
-          const datum = new Date(hond.bijgewerkt_op);
-          if (datum > laatsteUpdate) laatsteUpdate = datum;
-        }
       });
       
       return {
@@ -309,7 +303,7 @@ const hondenService = {
           totaalVachtkleuren: Object.keys(vachtkleurStats).length,
           hondenPerVachtkleur: vachtkleurStats
         },
-        laatsteUpdate: laatsteUpdate > new Date(0) ? laatsteUpdate.toISOString() : null
+        laatsteUpdate: new Date().toISOString()
       };
     } catch (error) {
       console.error('Fout bij ophalen statistieken:', error);
