@@ -9,6 +9,10 @@
 class SearchManager extends BaseModule {
     constructor() {
         super();
+        
+        // NIEUW: Eerst vertalingen initialiseren, dan taal instellen
+        this.initializeTranslations();
+        
         this.currentLang = localStorage.getItem('appLanguage') || 'nl';
         this.allDogs = [];
         this.filteredDogs = [];
@@ -19,19 +23,359 @@ class SearchManager extends BaseModule {
         this.dogOffspringCache = new Map(); // Cache voor nakomelingen per hond
         this.isModalOpen = false; // NIEUW: Track of modal open is
         
-        // Vertalingen uitgebreid met nakomelingen functionaliteit
-        this.translations = {
-            // ... [vertalingen blijven hetzelfde] ...
-        };
-        
         // Event delegation setup voor foto clicks - NET ALS STAMBOOMMANAGER
         this.setupGlobalEventListeners();
     }
     
+    // NIEUWE METHODE: Initialiseer vertalingen
+    initializeTranslations() {
+        // Vertalingen uitgebreid met nakomelingen functionaliteit
+        this.translations = {
+            nl: {
+                searchDog: "Hond Zoeken",
+                searchName: "Zoek hond op naam (of naam + kennelnaam)",
+                searchKennel: "Zoek hond op kennelnaam",
+                searchPlaceholder: "Typ hondennaam... of 'naam kennelnaam'",
+                kennelPlaceholder: "Typ kennelnaam...",
+                noDogsFound: "Geen honden gevonden",
+                typeToSearch: "Begin met typen om te zoeken",
+                typeToSearchKennel: "Typ een kennelnaam om te zoeken",
+                searchResults: "Zoekresultaten",
+                found: "gevonden",
+                name: "Naam",
+                pedigreeNumber: "Stamboomnummer",
+                breed: "Ras",
+                gender: "Geslacht",
+                close: "Sluiten",
+                dogDetails: "Hond Details",
+                father: "Vader",
+                mother: "Moeder",
+                parentsUnknown: "Onbekend",
+                male: "Reu",
+                female: "Teef",
+                unknown: "Onbekend",
+                loading: "Honden laden...",
+                loadingAllDogs: "Alle honden laden... ({loaded} geladen)",
+                backToSearch: "Terug naar zoeken",
+                viewingParent: "Bekijkt ouder",
+                clickToView: "Klik om details te bekijken",
+                parents: "Ouders",
+                noHealthInfo: "Geen gezondheidsinformatie beschikbaar",
+                noAdditionalInfo: "Geen extra informatie beschikbaar",
+                selectDogToView: "Selecteer een hond om details te zien",
+                
+                // Hond gegevens
+                birthDate: "Geboortedatum",
+                deathDate: "Overlijdensdatum",
+                hipDysplasia: "Heupdysplasie",
+                elbowDysplasia: "Elleboogdysplasie",
+                patellaLuxation: "Patella Luxatie",
+                eyes: "Ogen",
+                eyesExplanation: "Verklaring ogen",
+                dandyWalker: "Dandy Walker Malformation",
+                thyroid: "Schildklier",
+                thyroidExplanation: "Toelichting schildklier",
+                country: "Land",
+                zipCode: "Postcode",
+                remarks: "Opmerkingen",
+                healthInfo: "Gezondheidsinformatie",
+                additionalInfo: "Extra informatie",
+                
+                // Gezondheidsstatussen
+                hipGrades: {
+                    A: "A - Geen tekenen van HD",
+                    B: "B - Overgangsvorm",
+                    C: "C - Lichte HD",
+                    D: "D - Matige HD", 
+                    E: "E - Ernstige HD"
+                },
+                elbowGrades: {
+                    "0": "0 - Geen ED",
+                    "1": "1 - Milde ED",
+                    "2": "2 - Matige ED",
+                    "3": "3 - Ernstige ED",
+                    "NB": "NB - Niet bekend"
+                },
+                patellaGrades: {
+                    "0": "0 - Geen PL",
+                    "1": "1 - Af en toe luxatie",
+                    "2": "2 - Regelmatig luxatie",
+                    "3": "3 - Constante luxation"
+                },
+                eyeStatus: {
+                    "Vrij": "Vrij",
+                    "Distichiasis": "Distichiasis",
+                    "Overig": "Overig"
+                },
+                dandyStatus: {
+                    "Vrij op DNA": "Vrij op DNA",
+                    "Vrij op ouders": "Vrij op ouders", 
+                    "Drager": "Drager",
+                    "Lijder": "Lijder"
+                },
+                thyroidStatus: {
+                    "Negatief": "Tgaa Negatief",
+                    "Positief": "Tgaa Positive"
+                },
+                
+                // Labels
+                grade: "Graad",
+                status: "Status",
+                notApplicable: "Niet van toepassing",
+                viewMore: "Meer details",
+                
+                // Stamboom knoppen
+                pedigreeButton: "Stamboom",
+                pedigreeTitle: "Stamboom van {name}",
+                generatingPedigree: "Stamboom genereren...",
+                openPedigree: "Stamboom openen",
+                pedigree4Gen: "4-generatie stamboom",
+                
+                // Familierelaties voor stamboom
+                greatGrandfather: "Overgrootvater",
+                greatGrandmother: "Overgrootmoeder",
+                grandfather: "Grootvader",
+                grandmother: "Grootmoeder",
+                
+                // Foto vertalingen - IDENTIEK AAN STAMBOOMMANAGER
+                photos: "Foto's",
+                noPhotos: "Geen foto's beschikbaar",
+                clickToEnlarge: "Klik om te vergroten",
+                closePhoto: "Sluiten",
+                
+                // NAKOMELINGEN vertalingen - NIEUW
+                offspring: "Nakomelingen",
+                noOffspring: "Geen nakomelingen gevonden",
+                viewOffspring: "Bekijk nakomelingen",
+                offspringCount: "Nakomelingen",
+                offspringModalTitle: "Nakomelingen van {name}",
+                loadingOffspring: "Nakomelingen laden...",
+                offspringList: "Lijst van nakomelingen",
+                fatherColumn: "Vader",
+                motherColumn: "Moeder",
+                dogName: "Naam hond",
+                totalOffspring: "Totaal aantal nakomelingen",
+                birthYear: "Geboortejaar",
+                showAllOffspring: "Toon alle nakomelingen"
+            },
+            en: {
+                searchDog: "Search Dog",
+                searchName: "Search dog by name (or name + kennel)",
+                searchKennel: "Search dog by kennel name",
+                searchPlaceholder: "Type dog name... or 'name kennelname'",
+                kennelPlaceholder: "Type kennel name...",
+                noDogsFound: "No dogs found",
+                typeToSearch: "Start typing to search",
+                typeToSearchKennel: "Type a kennel name to search",
+                searchResults: "Search Results",
+                found: "found",
+                name: "Name",
+                pedigreeNumber: "Pedigree number",
+                breed: "Breed",
+                gender: "Gender",
+                close: "Close",
+                dogDetails: "Dog Details",
+                father: "Father",
+                mother: "Mother",
+                parentsUnknown: "Unknown",
+                male: "Male",
+                female: "Female",
+                unknown: "Unknown",
+                loading: "Loading dogs...",
+                loadingAllDogs: "Loading all dogs... ({loaded} loaded)",
+                backToSearch: "Back to search",
+                viewingParent: "Viewing parent",
+                clickToView: "Click to view details",
+                parents: "Parents",
+                noHealthInfo: "No health information available",
+                noAdditionalInfo: "No additional information available",
+                selectDogToView: "Select a dog to view details",
+                
+                // Dog details
+                birthDate: "Birth date",
+                deathDate: "Death date",
+                hipDysplasia: "Hip Dysplasia",
+                elbowDysplasia: "Elbow Dysplasia",
+                patellaLuxation: "Patella Luxation",
+                eyes: "Eyes",
+                eyesExplanation: "Eye explanation",
+                dandyWalker: "Dandy Walker Malformation",
+                thyroid: "Thyroid",
+                thyroidExplanation: "Thyroid explanation",
+                country: "Country",
+                zipCode: "Zip code",
+                remarks: "Remarks",
+                healthInfo: "Health Information",
+                additionalInfo: "Additional Information",
+                
+                // Health statuses
+                hipGrades: {
+                    A: "A - No signs of HD",
+                    B: "B - Borderline",
+                    C: "C - Mild HD",
+                    D: "D - Moderate HD",
+                    E: "E - Severe HD"
+                },
+                elbowGrades: {
+                    "0": "0 - No ED",
+                    "1": "1 - Mild ED",
+                    "2": "2 - Moderate ED",
+                    "3": "3 - Severe ED",
+                    "NB": "NB - Not known"
+                },
+                patellaGrades: {
+                    "0": "0 - No PL",
+                    "1": "1 - Occasional luxation",
+                    "2": "2 - Frequent luxation",
+                    "3": "3 - Constant luxation"
+                },
+                eyeStatus: {
+                    "Vrij": "Free",
+                    "Distichiasis": "Distichiasis",
+                    "Overig": "Other"
+                },
+                dandyStatus: {
+                    "Vrij op DNA": "Free on DNA",
+                    "Vrij op ouders": "Free on parents",
+                    "Drager": "Carrier",
+                    "Lijder": "Affected"
+                },
+                thyroidStatus: {
+                    "Negatief": "Tgaa Negative",
+                    "Positief": "Tgaa Positive"
+                },
+                
+                // Labels
+                grade: "Grade",
+                status: "Status",
+                notApplicable: "Not applicable",
+                viewMore: "View details",
+                
+                // Stamboom buttons
+                pedigreeButton: "Pedigree",
+                pedigreeTitle: "Pedigree of {name}",
+                generatingPedigree: "Generating pedigree...",
+                openPedigree: "Open pedigree",
+                pedigree4Gen: "4-generation pedigree",
+                
+                // Family relations for pedigree
+                greatGrandfather: "Great Grandfather",
+                greatGrandmother: "Great Grandmother",
+                grandfather: "Grandfather",
+                grandmother: "Grandmother",
+                
+                // Photo translations - IDENTICAL TO STAMBOOMMANAGER
+                photos: "Photos",
+                noPhotos: "No photos available",
+                clickToEnlarge: "Click to enlarge",
+                closePhoto: "Close",
+                
+                // OFFSPRING translations - NEW
+                offspring: "Offspring",
+                noOffspring: "No offspring found",
+                viewOffspring: "View offspring",
+                offspringCount: "Offspring",
+                offspringModalTitle: "Offspring of {name}",
+                loadingOffspring: "Loading offspring...",
+                offspringList: "List of offspring",
+                fatherColumn: "Father",
+                motherColumn: "Mother",
+                dogName: "Dog name",
+                totalOffspring: "Total offspring",
+                birthYear: "Birth year",
+                showAllOffspring: "Show all offspring"
+            },
+            de: {
+                searchDog: "Hund suchen",
+                searchName: "Hund nach Namen suchen (oder Name + Kennel)",
+                searchKennel: "Hund nach Kennelname suchen",
+                searchPlaceholder: "Hundenamen eingeben... oder 'Name Kennelname'",
+                kennelPlaceholder: "Kennelnamen eingeben...",
+                noDogsFound: "Keine Hunde gefunden",
+                typeToSearch: "Beginnen Sie mit der Eingabe, um zu suchen",
+                typeToSearchKennel: "Kennelnamen eingeben um zu suchen",
+                searchResults: "Suchergebnisse",
+                found: "gefunden",
+                name: "Name",
+                pedigreeNumber: "Stammbaum-Nummer",
+                breed: "Rasse",
+                gender: "Geschlecht",
+                close: "Schließen",
+                dogDetails: "Hund Details",
+                father: "Vater",
+                mother: "Mutter",
+                parentsUnknown: "Unbekannt",
+                male: "Rüde",
+                female: "Hündin",
+                unknown: "Unbekannt",
+                loading: "Hunde laden...",
+                loadingAllDogs: "Lade alle Hunde... ({loaded} geladen)",
+                backToSearch: "Zurück zur Suche",
+                viewingParent: "Elternteil ansehen",
+                clickToView: "Klicken für Details",
+                parents: "Eltern",
+                noHealthInfo: "Keine Gesundheitsinformationen verfügbar",
+                noAdditionalInfo: "Keine aanvullende informatie beschikbaar",
+                selectDogToView: "Wählen Sie einen Hund, um Details zu sehen",
+                
+                // Hund Details
+                birthDate: "Geburtsdatum",
+                deathDate: "Sterbedatum",
+                hipDysplasia: "Hüftdysplasie",
+                elbowDysplasia: "Ellbogendysplasie",
+                patellaLuxation: "Patella Luxation",
+                eyes: "Augen",
+                eyesExplanation: "Augenerklärung",
+                dandyWalker: "Dandy Walker Malformation",
+                thyroid: "Schilddrüse",
+                thyroidExplanation: "Schilddrüse Erklärung",
+                country: "Land",
+                zipCode: "Postleitzahl",
+                remarks: "Bemerkungen",
+                healthInfo: "Gesundheitsinformationen",
+                additionalInfo: "Zusätzliche informatie",
+                
+                // Stamboom buttons
+                pedigreeButton: "Ahnentafel",
+                pedigreeTitle: "Ahnentafel von {name}",
+                generatingPedigree: "Ahnentafel wird generiert...",
+                openPedigree: "Ahnentafel öffnen",
+                pedigree4Gen: "4-Generationen Ahnentafel",
+                
+                // Familienbeziehungen voor Ahnentafel
+                greatGrandfather: "Urgroßvater",
+                greatGrandmother: "Urgroßmutter",
+                grandfather: "Großvater",
+                grandmother: "Großmutter",
+                
+                // Foto Übersetzungen - IDENTISCH ZU STAMBOOMMANAGER
+                photos: "Fotos",
+                noPhotos: "Keine Fotos verfügbar",
+                clickToEnlarge: "Klicken zum Vergrößern",
+                closePhoto: "Schließen",
+                
+                // NAKOMELINGEN Übersetzungen - NEU
+                offspring: "Nachkommen",
+                noOffspring: "Keine Nachkommen gefonden",
+                viewOffspring: "Nachkommen anzeigen",
+                offspringCount: "Nachkommen",
+                offspringModalTitle: "Nachkommen von {name}",
+                loadingOffspring: "Nachkommen werden geladen...",
+                offspringList: "Liste der Nachkommen",
+                fatherColumn: "Vater",
+                motherColumn: "Mutter",
+                dogName: "Hundename",
+                totalOffspring: "Gesamtzahl der Nachkommen",
+                birthYear: "Geburtsjahr",
+                showAllOffspring: "Alle Nachkommen anzeigen"
+            }
+        };
+    }
+    
     // NIEUW: Inject dependencies method voor UIHandler compatibiliteit
     injectDependencies(db, auth) {
-        this.db = window.hondenService || db; // VERANDERD: gebruik window object
-        this.auth = window.auth || auth; // VERANDERD: gebruik window object
+        this.db = window.hondenService || db;
+        this.auth = window.auth || auth;
         console.log('SearchManager: dependencies geïnjecteerd');
     }
     
@@ -44,10 +388,35 @@ class SearchManager extends BaseModule {
     }
     
     t(key, subKey = null) {
-        if (subKey && this.translations[this.currentLang][key] && typeof this.translations[this.currentLang][key] === 'object') {
-            return this.translations[this.currentLang][key][subKey] || subKey;
+        // Verbeterde foutafhandeling
+        if (!this.translations) {
+            console.error('SearchManager: translations not initialized');
+            this.initializeTranslations();
         }
-        return this.translations[this.currentLang][key] || key;
+        
+        if (!this.currentLang) {
+            this.currentLang = localStorage.getItem('appLanguage') || 'nl';
+        }
+        
+        if (!this.translations[this.currentLang]) {
+            console.warn(`SearchManager: Language '${this.currentLang}' not found, using 'nl'`);
+            this.currentLang = 'nl';
+        }
+        
+        const langTranslations = this.translations[this.currentLang];
+        
+        if (!langTranslations) {
+            console.error(`SearchManager: No translations for language '${this.currentLang}'`);
+            return key;
+        }
+        
+        if (subKey && langTranslations[key] && typeof langTranslations[key] === 'object') {
+            const result = langTranslations[key][subKey];
+            return result !== undefined ? result : subKey;
+        }
+        
+        const result = langTranslations[key];
+        return result !== undefined ? result : key;
     }
     
     // METHODE: Setup globale event listeners eenmalig - IDENTIEK AAN STAMBOOMMANAGER
@@ -522,7 +891,10 @@ class SearchManager extends BaseModule {
     }
     
     getModalHTML() {
-        const t = this.t.bind(this);
+        // Roep t() functie aan met context binding
+        const translation = (key, subKey = null) => {
+            return this.t(key, subKey);
+        };
         
         return `
             <div class="modal fade" id="searchModal" tabindex="-1" aria-labelledby="searchModalLabel" aria-hidden="true">
@@ -530,9 +902,9 @@ class SearchManager extends BaseModule {
                     <div class="modal-content h-100">
                         <div class="modal-header bg-info text-white">
                             <h5 class="modal-title" id="searchModalLabel">
-                                <i class="bi bi-search me-2"></i> ${t('searchDog')}
+                                <i class="bi bi-search me-2"></i> ${translation('searchDog')}
                             </h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="${t('close')}" id="searchModalCloseBtn"></button>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="${translation('close')}" id="searchModalCloseBtn"></button>
                         </div>
                         <div class="modal-body p-0 flex-grow-1">
                             <div class="container-fluid h-100">
@@ -546,41 +918,41 @@ class SearchManager extends BaseModule {
                                                 <div class="p-3 pb-2">
                                                     <div class="d-flex mb-3">
                                                         <button type="button" class="btn btn-search-type btn-outline-info active me-2" data-search-type="name">
-                                                            ${t('searchName')}
+                                                            ${translation('searchName')}
                                                         </button>
                                                         <button type="button" class="btn btn-search-type btn-outline-info" data-search-type="kennel">
-                                                            ${t('searchKennel')}
+                                                            ${translation('searchKennel')}
                                                         </button>
                                                     </div>
                                                     
                                                     <!-- Zoekveld voor naam -->
                                                     <div class="mb-3" id="nameSearchField">
-                                                        <label for="searchNameInput" class="form-label fw-bold small">${t('searchName')}</label>
+                                                        <label for="searchNameInput" class="form-label fw-bold small">${translation('searchName')}</label>
                                                         <div class="input-group">
                                                             <span class="input-group-text bg-white border-end-0">
                                                                 <i class="bi bi-person text-muted"></i>
                                                             </span>
                                                             <input type="text" class="form-control search-input border-start-0 ps-0" 
                                                                    id="searchNameInput" 
-                                                                   placeholder="${t('searchPlaceholder')}" 
+                                                                   placeholder="${translation('searchPlaceholder')}" 
                                                                    autocomplete="off">
                                                         </div>
-                                                        <div class="form-text mt-1 small">${t('typeToSearch')}</div>
+                                                        <div class="form-text mt-1 small">${translation('typeToSearch')}</div>
                                                     </div>
                                                     
                                                     <!-- Zoekveld voor kennelnaam -->
                                                     <div class="mb-3 d-none" id="kennelSearchField">
-                                                        <label for="searchKennelInput" class="form-label fw-bold small">${t('searchKennel')}</label>
+                                                        <label for="searchKennelInput" class="form-label fw-bold small">${translation('searchKennel')}</label>
                                                         <div class="input-group">
                                                             <span class="input-group-text bg-white border-end-0">
                                                                 <i class="bi bi-house text-muted"></i>
                                                             </span>
                                                             <input type="text" class="form-control search-input border-start-0 ps-0" 
                                                                    id="searchKennelInput" 
-                                                                   placeholder="${t('kennelPlaceholder')}" 
+                                                                   placeholder="${translation('kennelPlaceholder')}" 
                                                                    autocomplete="off">
                                                         </div>
-                                                        <div class="form-text mt-1 small">${t('typeToSearchKennel')}</div>
+                                                        <div class="form-text mt-1 small">${translation('typeToSearchKennel')}</div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -590,7 +962,7 @@ class SearchManager extends BaseModule {
                                                 <div class="p-3">
                                                     <div class="text-center py-5">
                                                         <i class="bi bi-search display-1 text-muted opacity-50"></i>
-                                                        <p class="mt-3 text-muted">${t('typeToSearch')}</p>
+                                                        <p class="mt-3 text-muted">${translation('typeToSearch')}</p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -604,7 +976,7 @@ class SearchManager extends BaseModule {
                                             <div class="d-none d-md-block sticky-top bg-white z-1 border-bottom" style="top: 0;">
                                                 <div class="p-3">
                                                     <h6 class="mb-0 text-muted">
-                                                        <i class="bi bi-info-circle me-2"></i> ${t('dogDetails')}
+                                                        <i class="bi bi-info-circle me-2"></i> ${translation('dogDetails')}
                                                     </h6>
                                                 </div>
                                             </div>
@@ -614,7 +986,7 @@ class SearchManager extends BaseModule {
                                                 <div class="p-3">
                                                     <div class="text-center py-5">
                                                         <i class="bi bi-eye display-1 text-muted opacity-50"></i>
-                                                        <p class="mt-3 text-muted">${t('selectDogToView')}</p>
+                                                        <p class="mt-3 text-muted">${translation('selectDogToView')}</p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -625,7 +997,7 @@ class SearchManager extends BaseModule {
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="searchModalCloseBtnFooter">
-                                <i class="bi bi-x-circle me-1"></i> ${t('close')}
+                                <i class="bi bi-x-circle me-1"></i> ${translation('close')}
                             </button>
                         </div>
                     </div>
@@ -1773,9 +2145,7 @@ class SearchManager extends BaseModule {
         const container = document.getElementById('searchResultsContainer');
         if (!container) return;
         
-        const t = this.t.bind(this);
-        
-        const message = this.searchType === 'name' ? t('typeToSearch') : t('typeToSearchKennel');
+        const message = this.searchType === 'name' ? this.t('typeToSearch') : this.t('typeToSearchKennel');
         
         container.innerHTML = `
             <div class="p-3">
@@ -1791,13 +2161,11 @@ class SearchManager extends BaseModule {
         const container = document.getElementById('detailsContainer');
         if (!container) return;
         
-        const t = this.t.bind(this);
-        
         container.innerHTML = `
             <div class="p-3">
                 <div class="text-center py-5">
                     <i class="bi bi-eye display-1 text-muted opacity-50"></i>
-                    <p class="mt-3 text-muted">${t('selectDogToView')}</p>
+                    <p class="mt-3 text-muted">${this.t('selectDogToView')}</p>
                 </div>
             </div>
         `;
@@ -1923,7 +2291,6 @@ class SearchManager extends BaseModule {
     }
     
     displaySearchResults() {
-        const t = this.t.bind(this);
         const container = document.getElementById('searchResultsContainer');
         if (!container) return;
         
@@ -1932,7 +2299,7 @@ class SearchManager extends BaseModule {
                 <div class="p-3">
                     <div class="text-center py-5">
                         <i class="bi bi-search-x display-1 text-muted opacity-50"></i>
-                        <p class="mt-3 text-muted">${t('noDogsFound')}</p>
+                        <p class="mt-3 text-muted">${this.t('noDogsFound')}</p>
                     </div>
                 </div>
             `;
@@ -1943,19 +2310,19 @@ class SearchManager extends BaseModule {
             <div class="p-3">
                 <div class="search-stats">
                     <i class="bi bi-info-circle me-1"></i>
-                    ${this.filteredDogs.length} ${t('found')}
+                    ${this.filteredDogs.length} ${this.t('found')}
                 </div>
         `;
         
         this.filteredDogs.forEach(dog => {
-            const genderText = dog.geslacht === 'reuen' ? t('male') : 
-                             dog.geslacht === 'teven' ? t('female') : t('unknown');
+            const genderText = dog.geslacht === 'reuen' ? this.t('male') : 
+                             dog.geslacht === 'teven' ? this.t('female') : this.t('unknown');
             
             html += `
                 <div class="dog-result-item" data-id="${dog.id}">
                     <!-- REGEL 1: Naam + Kennelnaam -->
                     <div class="dog-name-line">
-                        <span class="dog-name">${dog.naam || t('unknown')}</span>
+                        <span class="dog-name">${dog.naam || this.t('unknown')}</span>
                         ${dog.kennelnaam ? `<span class="text-muted ms-2">${dog.kennelnaam}</span>` : ''}
                     </div>
                     
@@ -2098,7 +2465,6 @@ class SearchManager extends BaseModule {
     }
     
     async showDogDetails(dog, isParentView = false, originalDogId = null) {
-        const t = this.t.bind(this);
         const container = document.getElementById('detailsContainer');
         
         if (!container) return;
@@ -2111,15 +2477,15 @@ class SearchManager extends BaseModule {
             this.addMobileBackButton();
         }
         
-        let fatherInfo = { id: null, naam: t('parentsUnknown'), stamboomnr: '', ras: '', kennelnaam: '' };
-        let motherInfo = { id: null, naam: t('parentsUnknown'), stamboomnr: '', ras: '', kennelnaam: '' };
+        let fatherInfo = { id: null, naam: this.t('parentsUnknown'), stamboomnr: '', ras: '', kennelnaam: '' };
+        let motherInfo = { id: null, naam: this.t('parentsUnknown'), stamboomnr: '', ras: '', kennelnaam: '' };
         
         if (dog.vaderId) {
             const father = this.allDogs.find(d => d.id === dog.vaderId);
             if (father) {
                 fatherInfo = { 
                     id: father.id,
-                    naam: father.naam || t('unknown'),
+                    naam: father.naam || this.t('unknown'),
                     stamboomnr: father.stamboomnr || '',
                     ras: father.ras || '',
                     kennelnaam: father.kennelnaam || ''
@@ -2132,7 +2498,7 @@ class SearchManager extends BaseModule {
             if (mother) {
                 motherInfo = { 
                     id: mother.id,
-                    naam: mother.naam || t('unknown'),
+                    naam: mother.naam || this.t('unknown'),
                     stamboomnr: mother.stamboomnr || '',
                     ras: mother.ras || '',
                     kennelnaam: mother.kennelnaam || ''
@@ -2149,7 +2515,7 @@ class SearchManager extends BaseModule {
         
         const getHealthBadge = (value, type) => {
             if (!value || value === '') {
-                return `<span class="badge bg-secondary">${t('unknown')}</span>`;
+                return `<span class="badge bg-secondary">${this.t('unknown')}</span>`;
             }
             
             let badgeClass = '';
@@ -2158,27 +2524,27 @@ class SearchManager extends BaseModule {
             switch(type) {
                 case 'hip':
                     badgeClass = 'badge-hd';
-                    badgeText = t('hipGrades', value) || value;
+                    badgeText = this.t('hipGrades', value) || value;
                     break;
                 case 'elbow':
                     badgeClass = 'badge-ed';
-                    badgeText = t('elbowGrades', value) || value;
+                    badgeText = this.t('elbowGrades', value) || value;
                     break;
                 case 'patella':
                     badgeClass = 'badge-pl';
-                    badgeText = t('patellaGrades', value) || value;
+                    badgeText = this.t('patellaGrades', value) || value;
                     break;
                 case 'eyes':
                     badgeClass = 'badge-eyes';
-                    badgeText = t('eyeStatus', value) || value;
+                    badgeText = this.t('eyeStatus', value) || value;
                     break;
                 case 'dandy':
                     badgeClass = 'badge-dandy';
-                    badgeText = t('dandyStatus', value) || value;
+                    badgeText = this.t('dandyStatus', value) || value;
                     break;
                 case 'thyroid':
                     badgeClass = 'badge-thyroid';
-                    badgeText = t('thyroidStatus', value) || value;
+                    badgeText = this.t('thyroidStatus', value) || value;
                     break;
                 default:
                     badgeClass = 'badge bg-secondary';
@@ -2188,11 +2554,11 @@ class SearchManager extends BaseModule {
         };
         
         const displayValue = (value) => {
-            return value && value !== '' ? value : t('unknown');
+            return value && value !== '' ? value : this.t('unknown');
         };
         
-        const genderText = dog.geslacht === 'reuen' ? t('male') : 
-                          dog.geslacht === 'teven' ? t('female') : t('unknown');
+        const genderText = dog.geslacht === 'reuen' ? this.t('male') : 
+                          dog.geslacht === 'teven' ? this.t('female') : this.t('unknown');
         
         // Check of deze hond foto's heeft
         const hasPhotos = await this.checkDogHasPhotos(dog.id);
@@ -2207,10 +2573,10 @@ class SearchManager extends BaseModule {
                     <div class="details-header">
                         <div class="d-flex justify-content-between align-items-center">
                             <button class="btn btn-sm btn-outline-secondary back-button" data-original-dog="${originalDogId}">
-                                <i class="bi bi-arrow-left me-1"></i> ${t('backToSearch')}
+                                <i class="bi bi-arrow-left me-1"></i> ${this.t('backToSearch')}
                             </button>
                             <div class="text-muted small">
-                                <i class="bi bi-info-circle me-1"></i> ${t('viewingParent')}
+                                <i class="bi bi-info-circle me-1"></i> ${this.t('viewingParent')}
                             </div>
                         </div>
                     </div>
@@ -2237,12 +2603,12 @@ class SearchManager extends BaseModule {
                                        data-dog-id="${dog.id}" 
                                        data-dog-name="${displayValue(dog.naam)}">
                                         <i class="bi bi-people-fill"></i>
-                                        ${offspringCount} ${t('offspringCount')}
+                                        ${offspringCount} ${this.t('offspringCount')}
                                     </a>
                                     ` : `
                                     <span class="offspring-badge" style="background: #6c757d; cursor: default;">
                                         <i class="bi bi-people"></i>
-                                        0 ${t('offspringCount')}
+                                        0 ${this.t('offspringCount')}
                                     </span>
                                     `}
                                 </div>
@@ -2276,9 +2642,9 @@ class SearchManager extends BaseModule {
                             <div class="photos-title">
                                 <div class="photos-title-text">
                                     <i class="bi bi-camera"></i>
-                                    <span>${t('photos')}</span>
+                                    <span>${this.t('photos')}</span>
                                 </div>
-                                <div class="click-hint-text">${t('clickToEnlarge')}</div>
+                                <div class="click-hint-text">${this.t('clickToEnlarge')}</div>
                             </div>
                             <div class="photos-grid-container" id="photosGrid${dog.id}">
                                 <!-- Foto's worden hier ingeladen -->
@@ -2289,18 +2655,18 @@ class SearchManager extends BaseModule {
                         <div class="info-group">
                             <div class="info-group-title d-flex justify-content-between align-items-center">
                                 <div>
-                                    <i class="bi bi-people me-1"></i> ${t('parents')}
+                                    <i class="bi bi-people me-1"></i> ${this.t('parents')}
                                 </div>
                                 <!-- ENIGE STAMBOOM KNOOP - alleen hier behouden -->
                                 <button class="btn btn-sm btn-outline-primary btn-pedigree" data-dog-id="${dog.id}">
-                                    <i class="bi bi-diagram-3 me-1"></i> ${t('pedigreeButton')}
+                                    <i class="bi bi-diagram-3 me-1"></i> ${this.t('pedigreeButton')}
                                 </button>
                             </div>
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <div class="father-card" ${fatherInfo.id ? `data-parent-id="${fatherInfo.id}" data-original-dog="${dog.id}"` : ''}>
                                         <div class="fw-bold mb-1 text-primary">
-                                            <i class="bi bi-gender-male me-1"></i> ${t('father')}
+                                            <i class="bi bi-gender-male me-1"></i> ${this.t('father')}
                                         </div>
                                         <div class="parent-name">${fatherInfo.naam} ${fatherInfo.kennelnaam}</div>
                                         ${fatherInfo.stamboomnr ? `<div class="parent-info">${fatherInfo.stamboomnr}</div>` : ''}
@@ -2308,7 +2674,7 @@ class SearchManager extends BaseModule {
                                         ${fatherInfo.id ? `
                                         <div class="click-hint">
                                             <i class="bi bi-arrow-right-circle"></i>
-                                            ${t('clickToView')}
+                                            ${this.t('clickToView')}
                                         </div>
                                         ` : ''}
                                     </div>
@@ -2316,7 +2682,7 @@ class SearchManager extends BaseModule {
                                 <div class="col-md-6 mb-3">
                                     <div class="mother-card" ${motherInfo.id ? `data-parent-id="${motherInfo.id}" data-original-dog="${dog.id}"` : ''}>
                                         <div class="fw-bold mb-1 text-danger">
-                                            <i class="bi bi-gender-female me-1"></i> ${t('mother')}
+                                            <i class="bi bi-gender-female me-1"></i> ${this.t('mother')}
                                         </div>
                                         <div class="parent-mother-name">${motherInfo.naam} ${motherInfo.kennelnaam}</div>
                                         ${motherInfo.stamboomnr ? `<div class="parent-info">${motherInfo.stamboomnr}</div>` : ''}
@@ -2324,7 +2690,7 @@ class SearchManager extends BaseModule {
                                         ${motherInfo.id ? `
                                         <div class="click-hint">
                                             <i class="bi bi-arrow-right-circle"></i>
-                                            ${t('clickToView')}
+                                            ${this.t('clickToView')}
                                         </div>
                                         ` : ''}
                                     </div>
@@ -2334,38 +2700,38 @@ class SearchManager extends BaseModule {
                         
                         <div class="info-group">
                             <div class="info-group-title">
-                                <i class="bi bi-heart-pulse me-1"></i> ${t('healthInfo')}
+                                <i class="bi bi-heart-pulse me-1"></i> ${this.t('healthInfo')}
                             </div>
                             
                             <div class="row">
                                 <div class="col-md-6 mb-3">
-                                    <div class="fw-bold mb-1">${t('hipDysplasia')}</div>
+                                    <div class="fw-bold mb-1">${this.t('hipDysplasia')}</div>
                                     <div>${getHealthBadge(dog.heupdysplasie, 'hip')}</div>
                                 </div>
                                 
                                 <div class="col-md-6 mb-3">
-                                    <div class="fw-bold mb-1">${t('elbowDysplasia')}</div>
+                                    <div class="fw-bold mb-1">${this.t('elbowDysplasia')}</div>
                                     <div>${getHealthBadge(dog.elleboogdysplasie, 'elbow')}</div>
                                 </div>
                                 
                                 <div class="col-md-6 mb-3">
-                                    <div class="fw-bold mb-1">${t('patellaLuxation')}</div>
+                                    <div class="fw-bold mb-1">${this.t('patellaLuxation')}</div>
                                     <div>${getHealthBadge(dog.patella, 'patella')}</div>
                                 </div>
                                 
                                 <div class="col-md-6 mb-3">
-                                    <div class="fw-bold mb-1">${t('eyes')}</div>
+                                    <div class="fw-bold mb-1">${this.t('eyes')}</div>
                                     <div>${getHealthBadge(dog.ogen, 'eyes')}</div>
                                     ${dog.ogenVerklaring ? `<div class="text-muted small mt-1">${dog.ogenVerklaring}</div>` : ''}
                                 </div>
                                 
                                 <div class="col-md-6 mb-3">
-                                    <div class="fw-bold mb-1">${t('dandyWalker')}</div>
+                                    <div class="fw-bold mb-1">${this.t('dandyWalker')}</div>
                                     <div>${getHealthBadge(dog.dandyWalker, 'dandy')}</div>
                                 </div>
                                 
                                 <div class="col-md-6 mb-3">
-                                    <div class="fw-bold mb-1">${t('thyroid')}</div>
+                                    <div class="fw-bold mb-1">${this.t('thyroid')}</div>
                                     <div>${getHealthBadge(dog.schildklier, 'thyroid')}</div>
                                     ${dog.schildklierVerklaring ? `<div class="text-muted small mt-1">${dog.schildklierVerklaring}</div>` : ''}
                                 </div>
@@ -2374,25 +2740,25 @@ class SearchManager extends BaseModule {
                         
                         <div class="info-group">
                             <div class="info-group-title">
-                                <i class="bi bi-info-circle me-1"></i> ${t('additionalInfo')}
+                                <i class="bi bi-info-circle me-1"></i> ${this.t('additionalInfo')}
                             </div>
                             
                             <div class="row mb-3">
                                 <div class="col-md-6">
-                                    <div class="fw-bold mb-1">${t('country')}</div>
+                                    <div class="fw-bold mb-1">${this.t('country')}</div>
                                     <div>${displayValue(dog.land)}</div>
                                 </div>
                                 
                                 <div class="col-md-6">
-                                    <div class="fw-bold mb-1">${t('zipCode')}</div>
+                                    <div class="fw-bold mb-1">${this.t('zipCode')}</div>
                                     <div>${displayValue(dog.postcode)}</div>
                                 </div>
                             </div>
                             
                             <div class="mt-3">
-                                <div class="fw-bold mb-2">${t('remarks')}</div>
+                                <div class="fw-bold mb-2">${this.t('remarks')}</div>
                                 <div class="remarks-box">
-                                    ${dog.opmerkingen ? dog.opmerkingen : t('noAdditionalInfo')}
+                                    ${dog.opmerkingen ? dog.opmerkingen : this.t('noAdditionalInfo')}
                                 </div>
                             </div>
                         </div>
