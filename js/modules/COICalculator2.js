@@ -5,7 +5,7 @@ class COICalculator2 {
         this.allDogs = allDogs;
         this._dogMap = new Map();
         
-        // Bouw lookup met ALLE data - nu met complete dataset door paginatie
+        // Bouw lookup met ALLE data
         allDogs.forEach(dog => {
             if (dog && dog.id) {
                 this._dogMap.set(Number(dog.id), dog);
@@ -13,13 +13,184 @@ class COICalculator2 {
         });
         
         console.log(`✅ COICalculator2 V9.5: ${this._dogMap.size} honden geladen (6 gen, 3 decimalen)`);
-        
-        // Controleer of we alle honden hebben
-        if (this._dogMap.size < 100) {
-            console.warn(`⚠️ WAARSCHUWING: Slechts ${this._dogMap.size} honden geladen. COI berekeningen mogelijk onvolledig!`);
-        } else if (this._dogMap.size < 500) {
-            console.warn(`⚠️ WAARSCHUWING: ${this._dogMap.size} honden geladen. Dit kan minder zijn dan de volledige database.`);
+    }
+
+    // ✅ NIEUWE METHODE: Laad alle honden via paginatie
+    static async loadAllDogsWithPagination(service) {
+        try {
+            console.log('📥 COICalculator2: Start paginatie om ALLE honden te laden...');
+            
+            let allDogs = [];
+            let currentPage = 1;
+            const pageSize = 1000; // Supabase maximum
+            let hasMorePages = true;
+            
+            while (hasMorePages) {
+                console.log(`📄 Laad pagina ${currentPage}...`);
+                
+                let result;
+                try {
+                    // Probeer verschillende method signatures
+                    if (typeof service.getHonden === 'function') {
+                        // Methode 1: Met paginatie parameters
+                        if (service.getHonden.length >= 2) {
+                            result = await service.getHonden(currentPage, pageSize);
+                        } 
+                        // Methode 2: Zonder parameters
+                        else {
+                            result = await service.getHonden();
+                        }
+                    } else {
+                        console.error('❌ service.getHonden is geen functie');
+                        break;
+                    }
+                } catch (error) {
+                    console.error(`❌ Fout bij laden pagina ${currentPage}:`, error);
+                    break;
+                }
+                
+                // Bepaal hoe we de data moeten extraheren
+                let dogsArray = [];
+                
+                if (Array.isArray(result)) {
+                    dogsArray = result;
+                    hasMorePages = dogsArray.length === pageSize;
+                } else if (result && Array.isArray(result.honden)) {
+                    dogsArray = result.honden;
+                    hasMorePages = result.heeftVolgende || dogsArray.length === pageSize;
+                } else if (result && Array.isArray(result.data)) {
+                    dogsArray = result.data;
+                    hasMorePages = result.data && result.data.length === pageSize;
+                } else {
+                    console.warn('⚠️ Onbekend resultaat formaat bij paginatie:', result);
+                    // Probeer zonder paginatie
+                    hasMorePages = false;
+                    if (result) dogsArray = [result];
+                }
+                
+                if (dogsArray.length > 0) {
+                    allDogs = allDogs.concat(dogsArray);
+                    console.log(`   ➡ Pagina ${currentPage}: ${dogsArray.length} honden (totaal: ${allDogs.length})`);
+                } else {
+                    console.log(`   ➡ Pagina ${currentPage}: Geen honden gevonden`);
+                    hasMorePages = false;
+                }
+                
+                // Controleer of er nog meer pagina's zijn
+                if (!hasMorePages || dogsArray.length < pageSize) {
+                    hasMorePages = false;
+                } else {
+                    currentPage++;
+                }
+                
+                // Veiligheidslimiet voor oneindige lus
+                if (currentPage > 100) {
+                    console.warn('⚠️ Veiligheidslimiet bereikt: te veel pagina\'s geladen');
+                    break;
+                }
+                
+                // Kleine pauze om de server niet te overbelasten
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+            
+            console.log(`✅ Paginatie voltooid: ${allDogs.length} honden geladen`);
+            
+            // Sorteer op naam voor consistentie
+            allDogs.sort((a, b) => {
+                const naamA = a.naam || '';
+                const naamB = b.naam || '';
+                return naamA.localeCompare(naamB);
+            });
+            
+            return allDogs;
+            
+        } catch (error) {
+            console.error('❌ FATALE FOUT bij paginatie:', error);
+            return [];
         }
+    }
+
+    // ✅ NIEUWE METHODE: Laad alle honden via Supabase direct
+    static async loadAllDogsFromSupabase(supabaseClient) {
+        try {
+            console.log('📥 COICalculator2: Laad honden direct vanuit Supabase...');
+            
+            let allDogs = [];
+            let start = 0;
+            const pageSize = 1000;
+            let hasMore = true;
+            
+            while (hasMore) {
+                console.log(`📄 Laad batch ${start} tot ${start + pageSize}...`);
+                
+                const { data, error } = await supabaseClient
+                    .from('honden')
+                    .select('*')
+                    .order('id', { ascending: true })
+                    .range(start, start + pageSize - 1);
+                
+                if (error) {
+                    console.error('❌ Supabase error:', error);
+                    break;
+                }
+                
+                if (data && data.length > 0) {
+                    allDogs = allDogs.concat(data);
+                    console.log(`   ➡ Batch: ${data.length} honden (totaal: ${allDogs.length})`);
+                    
+                    if (data.length < pageSize) {
+                        hasMore = false;
+                    } else {
+                        start += pageSize;
+                    }
+                } else {
+                    hasMore = false;
+                }
+                
+                // Veiligheidslimiet
+                if (start > 100000) {
+                    console.warn('⚠️ Veiligheidslimiet bereikt');
+                    break;
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+            
+            console.log(`✅ Supabase laden voltooid: ${allDogs.length} honden`);
+            return allDogs;
+            
+        } catch (error) {
+            console.error('❌ Fout bij Supabase direct laden:', error);
+            return [];
+        }
+    }
+
+    // ✅ NIEUWE METHODE: Factory methode om calculator te maken met paginatie
+    static async createWithPagination(service) {
+        console.log('🔄 COICalculator2.createWithPagination() gestart');
+        
+        let allDogs = [];
+        
+        // Probeer verschillende methodes
+        if (service && typeof service.getHonden === 'function') {
+            allDogs = await COICalculator2.loadAllDogsWithPagination(service);
+        } else if (window.supabase) {
+            allDogs = await COICalculator2.loadAllDogsFromSupabase(window.supabase);
+        } else if (window.hondenService && typeof window.hondenService.getHonden === 'function') {
+            console.log('🔄 Gebruik window.hondenService');
+            allDogs = await COICalculator2.loadAllDogsWithPagination(window.hondenService);
+        } else {
+            console.error('❌ Geen geldige service gevonden voor paginatie');
+            return null;
+        }
+        
+        if (allDogs.length === 0) {
+            console.error('❌ Geen honden geladen via paginatie!');
+            return null;
+        }
+        
+        console.log(`✅ COICalculator2 gemaakt met ${allDogs.length} honden via paginatie`);
+        return new COICalculator2(allDogs);
     }
 
     getDogById(id) {
@@ -29,17 +200,17 @@ class COICalculator2 {
     calculateCOI(dogId) {
         try {
             dogId = Number(dogId);
-            console.log(`\n🔍 START COI BEREKENING VOOR ID: ${dogId}`);
+            console.log(`\n🔍 START COI BEREKENING VOOR ID: ${dogId} (${this._dogMap.size} honden beschikbaar)`);
             
             const dog = this.getDogById(dogId);
             if (!dog) {
-                console.log(`❌ Hond ${dogId} niet gevonden in database (${this._dogMap.size} honden beschikbaar)`);
+                console.log(`❌ Hond ${dogId} niet gevonden in database`);
                 return '0.000';
             }
             
             console.log(`📋 ${dog.naam} (ID: ${dog.id}) - Vader: ${dog.vaderId}, Moeder: ${dog.moederId}`);
 
-            // Check directe ouder-kind combinatie (vader-dochter of moeder-zon)
+            // Check directe ouder-kind combinatie (vader-dochter of moeder-zoon)
             if (this._isParentChildCombination(dog)) {
                 console.log(`⚠️ Ouder-Kind combinatie -> 25.000%`);
                 return '25.000';
@@ -87,7 +258,66 @@ class COICalculator2 {
         }
     }
 
-    // ✅ Check ouder-kind combinatie (vader-dochter of moeder-zon)
+    // ✅ NIEUWE METHODE: Bereken combinatie COI tussen twee honden
+    calculateCombinationCOI(femaleId, maleId) {
+        try {
+            console.log(`\n🔬 COMBINATIE COI BEREKENING: ${femaleId} × ${maleId}`);
+            
+            const female = this.getDogById(Number(femaleId));
+            const male = this.getDogById(Number(maleId));
+            
+            if (!female || !male) {
+                console.log('❌ Teef of reu niet gevonden');
+                return '0.000';
+            }
+            
+            console.log(`📋 Teef: ${female.naam} (ID: ${female.id})`);
+            console.log(`📋 Reu: ${male.naam} (ID: ${male.id})`);
+            
+            // Maak virtuele pup met deze ouders
+            const virtualPuppyId = -Date.now(); // Uniek negatief ID
+            const virtualPuppy = {
+                id: virtualPuppyId,
+                naam: `VIRTUEEL-${female.id}x${male.id}`,
+                geslacht: 'onbekend',
+                vaderId: male.id,
+                moederId: female.id,
+                vader: male.naam,
+                moeder: female.naam,
+                kennelnaam: 'VIRTUELE-COMBINATIE',
+                stamboomnr: `VIRT-${female.id}-${male.id}`,
+                geboortedatum: new Date().toISOString().split('T')[0],
+                vachtkleur: `${male.vachtkleur || ''}/${female.vachtkleur || ''}`.trim(),
+                heupdysplasie: null,
+                elleboogdysplasie: null,
+                patella: null,
+                ogen: null,
+                ogenVerklaring: null,
+                dandyWalker: null,
+                schildklier: null,
+                schildklierVerklaring: null,
+                land: null,
+                postcode: null,
+                opmerkingen: null
+            };
+            
+            // Maak tijdelijke dataset met virtuele pup
+            const tempDogs = [...this.allDogs, virtualPuppy];
+            const tempCalculator = new COICalculator2(tempDogs);
+            
+            // Bereken COI voor de virtuele pup
+            const result = tempCalculator.calculateCOI(virtualPuppyId);
+            
+            console.log(`✅ Combinatie COI: ${female.naam} × ${male.naam} = ${result}%`);
+            return result;
+            
+        } catch (error) {
+            console.error('❌ Fout bij combinatie COI berekening:', error);
+            return '0.000';
+        }
+    }
+
+    // ✅ Check ouder-kind combinatie (vader-dochter of moeder-zoon)
     _isParentChildCombination(dog) {
         if (!dog.vaderId || !dog.moederId) return false;
         
@@ -109,9 +339,9 @@ class COICalculator2 {
             return true;
         }
         
-        // Moeder-zon: moeder = moeder van vader
+        // Moeder-zoon: moeder = moeder van vader
         if (moeder.id === vader.moederId) {
-            console.log(`   ✅ Moeder-zon combinatie gedetecteerd!`);
+            console.log(`   ✅ Moeder-zoon combinatie gedetecteerd!`);
             console.log(`      Hond: ${dog.naam} (ID: ${dog.id})`);
             console.log(`      Moeder: ${moeder.naam} (ID: ${moeder.id})`);
             console.log(`      Vader: ${vader.naam} (ID: ${vader.id}) is zoon van ${moeder.naam}`);
@@ -400,6 +630,10 @@ class COICalculator2 {
             return;
         }
         
+        if (this._dogMap.size < 100) {
+            console.warn(`   ⚠️ WAARSCHUWING: Slechts ${this._dogMap.size} honden geladen. Dit is waarschijnlijk niet de volledige database!`);
+        }
+        
         // Check enkele bekende honden
         const testIds = [637, 1, 100, 500, 1000]; // Test verschillende ID's
         
@@ -520,83 +754,52 @@ class COICalculator2 {
 // Maak globaal beschikbaar
 if (typeof window !== 'undefined') {
     window.COICalculator2 = COICalculator2;
-    console.log('✅ COICalculator2 V9.5 geladen (6 generaties, ouder-kind detectie, 3 decimalen)');
+    console.log('✅ COICalculator2 V9.5 geladen (met PAGINATIE ondersteuning)');
 }
 
-// ✅ NIEUWE FUNCTIE: Helper voor paginatie van honden data
-// Deze functie kan worden gebruikt door andere modules om alle honden te laden
+// ✅ NIEUWE FUNCTIE: Eenvoudige helper om calculator te maken met paginatie
 if (typeof window !== 'undefined') {
-    window.loadAllDogsForCOI = async function(service) {
-        console.log('📥 COICalculator2: Start laden alle honden met paginatie...');
+    window.createCOICalculatorWithAllDogs = async function() {
+        console.log('🔄 COICalculator2: Probeer calculator te maken met alle honden...');
         
-        try {
-            let allDogs = [];
-            let currentPage = 1;
-            const pageSize = 1000; // Supabase maximum
-            let hasMorePages = true;
-            
-            while (hasMorePages) {
-                console.log(`📄 Laad pagina ${currentPage} voor COI calculator...`);
-                
-                let result;
-                try {
-                    // Probeer getHonden met paginatie parameters
-                    if (typeof service.getHonden === 'function') {
-                        result = await service.getHonden(currentPage, pageSize);
-                    } else {
-                        console.error('❌ Service.getHonden is geen functie');
-                        break;
-                    }
-                } catch (error) {
-                    console.error(`❌ Fout bij laden pagina ${currentPage}:`, error);
-                    break;
+        let service = null;
+        
+        // Zoek beschikbare service
+        if (window.hondenService && typeof window.hondenService.getHonden === 'function') {
+            service = window.hondenService;
+            console.log('✅ Gebruik window.hondenService');
+        } else if (window.db && typeof window.db.getHonden === 'function') {
+            service = window.db;
+            console.log('✅ Gebruik window.db');
+        } else if (window.supabase) {
+            console.log('✅ Gebruik window.supabase');
+            // Voor Supabase maken we een dummy service
+            service = {
+                getHonden: async (page, pageSize) => {
+                    const start = (page - 1) * pageSize;
+                    const { data, error } = await window.supabase
+                        .from('honden')
+                        .select('*')
+                        .order('id', { ascending: true })
+                        .range(start, start + pageSize - 1);
+                    
+                    if (error) throw error;
+                    return { honden: data, heeftVolgende: data.length === pageSize };
                 }
-                
-                // Bepaal hoe we de data moeten extraheren
-                let dogsArray = [];
-                
-                if (Array.isArray(result)) {
-                    dogsArray = result;
-                    hasMorePages = result.length === pageSize;
-                } else if (result && Array.isArray(result.honden)) {
-                    dogsArray = result.honden;
-                    hasMorePages = result.heeftVolgende || (result.honden && result.honden.length === pageSize);
-                } else if (result && Array.isArray(result.data)) {
-                    dogsArray = result.data;
-                    hasMorePages = result.data.length === pageSize;
-                } else {
-                    console.warn('⚠️ Onbekend resultaat formaat bij paginatie');
-                    break;
-                }
-                
-                console.log(`   ➡ Pagina ${currentPage}: ${dogsArray.length} honden`);
-                
-                // Voeg honden toe aan array
-                allDogs = allDogs.concat(dogsArray);
-                
-                // Controleer of er nog meer pagina's zijn
-                if (dogsArray.length < pageSize) {
-                    hasMorePages = false;
-                } else {
-                    currentPage++;
-                }
-                
-                // Veiligheidslimiet voor oneindige lus
-                if (currentPage > 100) {
-                    console.warn('⚠️ Veiligheidslimiet bereikt: te veel pagina\'s geladen');
-                    break;
-                }
-                
-                // Kleine pauze om de server niet te overbelasten
-                await new Promise(resolve => setTimeout(resolve, 50));
-            }
-            
-            console.log(`✅ COI calculator: ${allDogs.length} honden geladen met paginatie`);
-            return allDogs;
-            
-        } catch (error) {
-            console.error('❌ Fout bij laden honden voor COI calculator:', error);
-            return [];
+            };
+        } else {
+            console.error('❌ Geen database service gevonden');
+            return null;
         }
+        
+        // Maak calculator met paginatie
+        const calculator = await COICalculator2.createWithPagination(service);
+        
+        if (calculator) {
+            console.log(`✅ COICalculator2 succesvol gemaakt met ${calculator._dogMap.size} honden`);
+            calculator.checkDatabase(); // Toon database status
+        }
+        
+        return calculator;
     };
 }
