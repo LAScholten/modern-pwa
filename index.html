@@ -7,62 +7,57 @@
     <h2>Hondendatabase Login</h2>
     
     <div>
-        <p>Email: leoneurasier@gmail.com</p>
-        <p>Wachtwoord: admin1903</p>
-        
-        <button onclick="doLogin()" style="padding: 15px; background: blue; color: white;">
+        <button onclick="loginUser()" style="padding: 15px; background: blue; color: white;">
             INLOGGEN
         </button>
         
-        <button onclick="directAccess()" style="padding: 15px; background: green; color: white; margin-left: 10px;">
+        <button onclick="goToApp()" style="padding: 15px; background: green; color: white; margin-left: 10px;">
             DIRECT NAAR APP
         </button>
     </div>
     
     <div id="result" style="margin-top: 20px;"></div>
 
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script>
-        // Supabase
-        const supabase = window.supabase.createClient(
-            'https://owjwkjrktftugjjrcwml.supabase.co',
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93andranJrdGZ0dWdqanJjd21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2MzA4OTAsImV4cCI6MjA4NDIwNjg5MH0.oW6HTAlMBkjUu_4e3kn4iozjn5wK-15h4wCKcaHrtp8'
-        );
-
-        // Login
-        async function doLogin() {
-            document.getElementById('result').innerHTML = 'Inloggen...';
+        // Geen Supabase in index.html - gebruik localStorage alleen
+        function loginUser() {
+            document.getElementById('result').innerHTML = 'Inloggen via Supabase...';
             
-            try {
-                const { data, error } = await supabase.auth.signInWithPassword({
+            // Load Supabase dynamically
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/@supabase/supabase-js@2';
+            script.onload = function() {
+                const supabaseClient = window.supabase.createClient(
+                    'https://owjwkjrktftugjjrcwml.supabase.co',
+                    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93andranJrdGZ0dWdqanJjd21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2MzA4OTAsImV4cCI6MjA4NDIwNjg5MH0.oW6HTAlMBkjUu_4e3kn4iozjn5wK-15h4wCKcaHrtp8'
+                );
+                
+                supabaseClient.auth.signInWithPassword({
                     email: 'leoneurasier@gmail.com',
                     password: 'admin1903'
+                }).then(({ data, error }) => {
+                    if (error) {
+                        document.getElementById('result').innerHTML = '❌ Fout: ' + error.message;
+                        return;
+                    }
+                    
+                    localStorage.setItem('userEmail', data.user.email);
+                    localStorage.setItem('userId', data.user.id);
+                    localStorage.setItem('isAdmin', 'true');
+                    
+                    document.getElementById('result').innerHTML = '✅ Ingelogd!';
+                    
+                    setTimeout(() => {
+                        window.location.href = 'app.html';
+                    }, 1000);
                 });
-                
-                if (error) {
-                    document.getElementById('result').innerHTML = '❌ Fout: ' + error.message;
-                    return;
-                }
-                
-                localStorage.setItem('userEmail', data.user.email);
-                localStorage.setItem('userId', data.user.id);
-                localStorage.setItem('isAdmin', 'true');
-                
-                document.getElementById('result').innerHTML = '✅ Ingelogd!';
-                
-                setTimeout(() => {
-                    window.location.href = 'app.html';
-                }, 1000);
-                
-            } catch (error) {
-                document.getElementById('result').innerHTML = '❌ Error: ' + error.message;
-            }
+            };
+            document.head.appendChild(script);
         }
 
-        // Direct access
-        function directAccess() {
+        function goToApp() {
             localStorage.setItem('userEmail', 'leoneurasier@gmail.com');
-            localStorage.setItem('userId', 'direct');
+            localStorage.setItem('userId', 'direct-access');
             localStorage.setItem('isAdmin', 'true');
             
             document.getElementById('result').innerHTML = '✅ Directe toegang!';
@@ -72,15 +67,13 @@
             }, 500);
         }
 
-        // Check session
-        supabase.auth.getSession().then(({ data }) => {
-            if (data.session) {
-                document.getElementById('result').innerHTML = 'Al ingelogd, ga naar app...';
-                setTimeout(() => {
-                    window.location.href = 'app.html';
-                }, 500);
-            }
-        });
+        // Check localStorage
+        if (localStorage.getItem('userEmail')) {
+            document.getElementById('result').innerHTML = 'Al ingelogd, ga naar app...';
+            setTimeout(() => {
+                window.location.href = 'app.html';
+            }, 500);
+        }
     </script>
 </body>
 </html>
