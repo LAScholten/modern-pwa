@@ -5,8 +5,25 @@
 
 class UIHandler {
     constructor() {
-        this.db = hondenService;
-        this.auth = auth;
+        // VERVANGD: Gebruik window object in plaats van imports
+        this.db = window.hondenService || {
+            // Fallback als hondenService niet bestaat
+            getHonden: async () => JSON.parse(localStorage.getItem('honden') || '[]'),
+            getStatistieken: async () => ({ 
+                totaalHonden: 0, 
+                totaalFotos: 0 
+            })
+        };
+        
+        this.auth = window.auth || {
+            // Fallback als auth niet bestaat
+            isAdmin: () => localStorage.getItem('isAdmin') === 'true',
+            getCurrentUser: () => ({ 
+                email: localStorage.getItem('userEmail'),
+                id: localStorage.getItem('userId')
+            })
+        };
+        
         this.currentModal = null;
         
         // Debug logging
