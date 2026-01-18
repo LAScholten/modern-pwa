@@ -3,6 +3,8 @@
  * Voor het maken van fokplannen met specifieke reu en teef
  */
 
+import { hondenService } from './supabase-honden.js';
+
 class ReuTeefCombinatie {
     constructor() {
         this.currentLang = localStorage.getItem('appLanguage') || 'nl';
@@ -1135,8 +1137,8 @@ class ReuTeefCombinatie {
     
     async loadAllHonden() {
         try {
-            if (this.db && typeof this.db.getHonden === 'function') {
-                this.allHonden = await this.db.getHonden();
+            if (hondenService && typeof hondenService.getHonden === 'function') {
+                this.allHonden = await hondenService.getHonden();
                 console.log(`✅ Geladen: ${this.allHonden.length} honden uit database voor ReuTeefCombinatie`);
                 
                 // Zorg dat alle gezondheidsvelden aanwezig zijn
@@ -1199,7 +1201,7 @@ class ReuTeefCombinatie {
         }
         
         try {
-            const hond = await this.db.getHondById(id);
+            const hond = await hondenService.getHondByStamboomnr(id);
             if (hond) {
                 const volledigeHond = {
                     ...hond,
@@ -1246,7 +1248,7 @@ class ReuTeefCombinatie {
         }
         
         try {
-            const result = await this.db.zoekHonden({ naam: name });
+            const result = await hondenService.zoekHonden({ naam: name });
             if (result && result.length > 0) {
                 result.forEach(hond => {
                     const volledigeHond = {
