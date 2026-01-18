@@ -1,16 +1,15 @@
-import { createClient } from '@supabase/supabase-js'
+// SUPABASE HONDEN SERVICE - Werkt via window object
+// Geen imports meer nodig
 
-// Laad vanuit .env bestand
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://owjwkjrktftugjjrcwml.supabase.co'
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93andranJrdGZ0dWdqanJjd21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2MzA4OTAsImV4cCI6MjA4NDIwNjg5MH0.oW6HTAlMBkjUu_4e3kn4iozjn5wK-15h4wCKcaHrtp8'
+// Supabase configuratie
+const supabaseUrl = 'https://owjwkjrktftugjjrcwml.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93andranJrdGZ0dWdqanJjd21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2MzA4OTAsImV4cCI6MjA4NDIwNjg5MH0.oW6HTAlMBkjUu_4e3kn4iozjn5wK-15h4wCKcaHrtp8';
 
-// Supabase client
-export const supabaseClient = createClient(supabaseUrl, supabaseAnonKey)
+// Supabase client - via CDN in app.html geladen
+const supabase = window.supabase;
 
-// ========== SUPABASE HONDEN SERVICE ==========
-// Vervangt je IndexedDB HondenDatabase class
-
-export const hondenService = {
+// ========== HONDEN SERVICE ==========
+const hondenService = {
   // **ZELFDE ALS JOUW OUDE FUNCTIES:**
   
   // 1. Alle honden ophalen
@@ -18,40 +17,40 @@ export const hondenService = {
     const { data, error } = await supabase
       .from('honden')
       .select('*')
-      .order('naam', { ascending: true })
+      .order('naam', { ascending: true });
     
-    if (error) throw error
-    return data || []
+    if (error) throw error;
+    return data || [];
   },
 
   // 2. Zoeken zoals in je oude code
   async zoekHonden(criteria) {
-    let query = supabase.from('honden').select('*')
+    let query = supabase.from('honden').select('*');
     
     // Bouw WHERE clause op basis van criteria
     if (criteria.naam) {
-      query = query.ilike('naam', `%${criteria.naam}%`)
+      query = query.ilike('naam', `%${criteria.naam}%`);
     }
     if (criteria.kennelnaam) {
-      query = query.ilike('kennelnaam', `%${criteria.kennelnaam}%`)
+      query = query.ilike('kennelnaam', `%${criteria.kennelnaam}%`);
     }
     if (criteria.stamboomnr) {
-      query = query.ilike('stamboomnr', `%${criteria.stamboomnr}%`)
+      query = query.ilike('stamboomnr', `%${criteria.stamboomnr}%`);
     }
     if (criteria.ras) {
-      query = query.ilike('ras', `%${criteria.ras}%`)
+      query = query.ilike('ras', `%${criteria.ras}%`);
     }
     if (criteria.geslacht) {
-      query = query.eq('geslacht', criteria.geslacht)
+      query = query.eq('geslacht', criteria.geslacht);
     }
     if (criteria.land) {
-      query = query.ilike('land', `%${criteria.land}%`)
+      query = query.ilike('land', `%${criteria.land}%`);
     }
     
-    const { data, error } = await query
+    const { data, error } = await query;
     
-    if (error) throw error
-    return data || []
+    if (error) throw error;
+    return data || [];
   },
 
   // 3. Hond op stamboomnummer (jouw getHondByStamboomnr)
@@ -64,13 +63,13 @@ export const hondenService = {
         moeder:honden!honden_moeder_id_fkey(id, naam, stamboomnr)
       `)
       .eq('stamboomnr', stamboomnr)
-      .single()
+      .single();
     
     if (error) {
-      if (error.code === 'PGRST116') return null // Not found
-      throw error
+      if (error.code === 'PGRST116') return null; // Not found
+      throw error;
     }
-    return data
+    return data;
   },
 
   // 4. Hond op ID (jouw getHondById)
@@ -79,18 +78,18 @@ export const hondenService = {
       .from('honden')
       .select('*')
       .eq('id', id)
-      .single()
+      .single();
     
     if (error) {
-      if (error.code === 'PGRST116') return null
-      throw error
+      if (error.code === 'PGRST116') return null;
+      throw error;
     }
-    return data
+    return data;
   },
 
   // 5. Hond toevoegen (jouw voegHondToe)
   async voegHondToe(hond) {
-    const user = await this._getCurrentUser()
+    const user = window.auth ? window.auth.getCurrentUser() : null;
     
     const supabaseHond = {
       // Basis informatie
@@ -131,25 +130,25 @@ export const hondenService = {
       opmerkingen: hond.opmerkingen || '',
       
       // Metadata
-      toegevoegd_door: user?.id,
+      toegevoegd_door: user?.id || 'unknown',
       aangemaakt_op: new Date().toISOString(),
       bijgewerkt_op: new Date().toISOString(),
       status: 'actief'
-    }
+    };
     
     const { data, error } = await supabase
       .from('honden')
       .insert(supabaseHond)
       .select()
-      .single()
+      .single();
     
-    if (error) throw error
-    return data
+    if (error) throw error;
+    return data;
   },
 
   // 6. Update hond (jouw updateHond)
   async updateHond(hondData) {
-    if (!hondData.id) throw new Error('Hond ID is vereist voor update')
+    if (!hondData.id) throw new Error('Hond ID is vereist voor update');
     
     const updateData = {
       naam: hondData.naam,
@@ -183,17 +182,17 @@ export const hondenService = {
       opmerkingen: hondData.opmerkingen || '',
       
       bijgewerkt_op: new Date().toISOString()
-    }
+    };
     
     const { data, error } = await supabase
       .from('honden')
       .update(updateData)
       .eq('id', hondData.id)
       .select()
-      .single()
+      .single();
     
-    if (error) throw error
-    return data
+    if (error) throw error;
+    return data;
   },
 
   // 7. Verwijder hond (jouw verwijderHond)
@@ -201,9 +200,9 @@ export const hondenService = {
     const { error } = await supabase
       .from('honden')
       .delete()
-      .eq('id', hondId)
+      .eq('id', hondId);
     
-    if (error) throw error
+    if (error) throw error;
   },
 
   // 8. Zoek op kennelnaam (jouw zoekOpKennelnaam)
@@ -211,10 +210,10 @@ export const hondenService = {
     const { data, error } = await supabase
       .from('honden')
       .select('*')
-      .ilike('kennelnaam', `%${kennelnaam}%`)
+      .ilike('kennelnaam', `%${kennelnaam}%`);
     
-    if (error) throw error
-    return data || []
+    if (error) throw error;
+    return data || [];
   },
 
   // 9. Zoek op vachtkleur (jouw zoekOpVachtkleur)
@@ -222,33 +221,33 @@ export const hondenService = {
     const { data, error } = await supabase
       .from('honden')
       .select('*')
-      .ilike('kleur', `%${vachtkleur}%`)
+      .ilike('kleur', `%${vachtkleur}%`);
     
-    if (error) throw error
-    return data || []
+    if (error) throw error;
+    return data || [];
   },
 
   // 10. Honden per kennel (jouw getHondenPerKennel)
   async getHondenPerKennel() {
     const { data, error } = await supabase
       .from('honden')
-      .select('kennelnaam, naam, stamboomnr, ras, kleur, geslacht')
+      .select('kennelnaam, naam, stamboomnr, ras, kleur, geslacht');
     
-    if (error) throw error
+    if (error) throw error;
     
-    const kennelOverzicht = {}
+    const kennelOverzicht = {};
     data.forEach(hond => {
-      const kennel = hond.kennelnaam || 'Geen kennel'
+      const kennel = hond.kennelnaam || 'Geen kennel';
       
       if (!kennelOverzicht[kennel]) {
         kennelOverzicht[kennel] = {
           naam: kennel,
           aantal: 0,
           honden: []
-        }
+        };
       }
       
-      kennelOverzicht[kennel].aantal++
+      kennelOverzicht[kennel].aantal++;
       kennelOverzicht[kennel].honden.push({
         id: hond.id,
         naam: hond.naam,
@@ -256,46 +255,46 @@ export const hondenService = {
         ras: hond.ras,
         vachtkleur: hond.kleur,
         geslacht: hond.geslacht
-      })
-    })
+      });
+    });
     
-    return Object.values(kennelOverzicht).sort((a, b) => b.aantal - a.aantal)
+    return Object.values(kennelOverzicht).sort((a, b) => b.aantal - a.aantal);
   },
 
   // 11. Statistieken (jouw getStatistieken)
   async getStatistieken() {
     const { count: totaalHonden, error: hondenError } = await supabase
       .from('honden')
-      .select('*', { count: 'exact', head: true })
+      .select('*', { count: 'exact', head: true });
     
-    if (hondenError) throw hondenError
+    if (hondenError) throw hondenError;
     
     // Kennel statistieken
     const { data: hondenData, error: dataError } = await supabase
       .from('honden')
-      .select('kennelnaam, kleur, bijgewerkt_op')
+      .select('kennelnaam, kleur, bijgewerkt_op');
     
-    if (dataError) throw dataError
+    if (dataError) throw dataError;
     
-    const kennelStats = {}
-    const vachtkleurStats = {}
-    let laatsteUpdate = new Date(0)
+    const kennelStats = {};
+    const vachtkleurStats = {};
+    let laatsteUpdate = new Date(0);
     
     hondenData.forEach(hond => {
       // Kennel
-      const kennel = hond.kennelnaam || 'Geen kennel'
-      kennelStats[kennel] = (kennelStats[kennel] || 0) + 1
+      const kennel = hond.kennelnaam || 'Geen kennel';
+      kennelStats[kennel] = (kennelStats[kennel] || 0) + 1;
       
       // Vachtkleur
-      const vachtkleur = hond.kleur || 'Geen vachtkleur opgegeven'
-      vachtkleurStats[vachtkleur] = (vachtkleurStats[vachtkleur] || 0) + 1
+      const vachtkleur = hond.kleur || 'Geen vachtkleur opgegeven';
+      vachtkleurStats[vachtkleur] = (vachtkleurStats[vachtkleur] || 0) + 1;
       
       // Laatste update
       if (hond.bijgewerkt_op) {
-        const datum = new Date(hond.bijgewerkt_op)
-        if (datum > laatsteUpdate) laatsteUpdate = datum
+        const datum = new Date(hond.bijgewerkt_op);
+        if (datum > laatsteUpdate) laatsteUpdate = datum;
       }
-    })
+    });
     
     return {
       totaalHonden: totaalHonden || 0,
@@ -308,27 +307,21 @@ export const hondenService = {
         hondenPerVachtkleur: vachtkleurStats
       },
       laatsteUpdate: laatsteUpdate > new Date(0) ? laatsteUpdate.toISOString() : null
-    }
-  },
-
-  // Helper: get current user
-  async _getCurrentUser() {
-    const { data: { user } } = await supabase.auth.getUser()
-    return user
+    };
   }
-}
+};
 
-// ========== SUPABASE FOTO SERVICE ==========
-export const fotoService = {
+// ========== FOTO SERVICE ==========
+const fotoService = {
   // Check of er foto's bestaan (jouw checkFotosExist)
   async checkFotosExist(stamboomnr) {
     const { count, error } = await supabase
       .from('fotos')
       .select('*', { count: 'exact', head: true })
-      .eq('stamboomnr', stamboomnr)
+      .eq('stamboomnr', stamboomnr);
     
-    if (error) throw error
-    return (count || 0) > 0
+    if (error) throw error;
+    return (count || 0) > 0;
   },
 
   // Haal thumbnails op (jouw getFotoThumbnails)
@@ -338,16 +331,16 @@ export const fotoService = {
       .select('id, thumbnail, filename, uploaded_at')
       .eq('stamboomnr', stamboomnr)
       .order('uploaded_at', { ascending: false })
-      .limit(limit)
+      .limit(limit);
     
-    if (error) throw error
+    if (error) throw error;
     
     return (data || []).map(foto => ({
       id: foto.id,
       thumbnail: foto.thumbnail || '',
       filename: foto.filename,
       uploadedAt: foto.uploaded_at
-    }))
+    }));
   },
 
   // Haal originele foto op (jouw getFotoById)
@@ -356,11 +349,11 @@ export const fotoService = {
       .from('fotos')
       .select('*')
       .eq('id', fotoId)
-      .single()
+      .single();
     
     if (error) {
-      if (error.code === 'PGRST116') return null
-      throw error
+      if (error.code === 'PGRST116') return null;
+      throw error;
     }
     
     return {
@@ -372,7 +365,7 @@ export const fotoService = {
       size: data.size,
       type: data.type,
       uploadedAt: data.uploaded_at
-    }
+    };
   },
 
   // Haal alle foto's op (jouw getFotosVoorStamboomnr)
@@ -381,15 +374,15 @@ export const fotoService = {
       .from('fotos')
       .select('*')
       .eq('stamboomnr', stamboomnr)
-      .order('uploaded_at', { ascending: false })
+      .order('uploaded_at', { ascending: false });
     
-    if (error) throw error
-    return data || []
+    if (error) throw error;
+    return data || [];
   },
 
   // Foto toevoegen (jouw voegFotoToe)
   async voegFotoToe(foto) {
-    const user = await supabase.auth.getUser()
+    const user = window.auth ? window.auth.getCurrentUser() : null;
     
     const fotoData = {
       stamboomnr: foto.stamboomnr || '',
@@ -399,17 +392,17 @@ export const fotoService = {
       size: foto.size || 0,
       type: foto.type || 'image/jpeg',
       uploaded_at: new Date().toISOString(),
-      geupload_door: user.data.user?.id
-    }
+      geupload_door: user?.id || 'unknown'
+    };
     
     const { data, error } = await supabase
       .from('fotos')
       .insert(fotoData)
       .select()
-      .single()
+      .single();
     
-    if (error) throw error
-    return data
+    if (error) throw error;
+    return data;
   },
 
   // Verwijder foto (jouw verwijderFoto)
@@ -417,39 +410,33 @@ export const fotoService = {
     const { error } = await supabase
       .from('fotos')
       .delete()
-      .eq('id', fotoId)
+      .eq('id', fotoId);
     
-    if (error) throw error
-  },
-
-  // Helper: maak thumbnail (jouw maakThumbnail)
-  async maakThumbnail(base64Data, maxSize = 200) {
-    // Implementeer indien nodig, anders return origineel
-    return base64Data
+    if (error) throw error;
   }
-}
+};
 
-// ========== SUPABASE PRIVE INFO SERVICE ==========
-export const priveInfoService = {
+// ========== PRIVE INFO SERVICE ==========
+const priveInfoService = {
   // Privé info opslaan (jouw bewaarPriveInfo)
   async bewaarPriveInfo(priveInfo) {
-    const user = await supabase.auth.getUser()
-    if (!user.data.user) throw new Error('Niet ingelogd')
+    const user = window.auth ? window.auth.getCurrentUser() : null;
+    if (!user) throw new Error('Niet ingelogd');
     
     const infoData = {
       stamboomnr: priveInfo.stamboomnr || '',
       privatenotes: priveInfo.privateNotes || '',
       vertrouwelijk: true,
       laatstgewijzigd: new Date().toISOString(),
-      toegevoegd_door: user.data.user.id
-    }
+      toegevoegd_door: user.id
+    };
     
     // Check of er al info bestaat
     const { data: existing } = await supabase
       .from('priveinfo')
       .select('id')
       .eq('stamboomnr', infoData.stamboomnr)
-      .maybeSingle()
+      .maybeSingle();
     
     if (existing?.id) {
       // Update
@@ -458,51 +445,45 @@ export const priveInfoService = {
         .update(infoData)
         .eq('id', existing.id)
         .select()
-        .single()
+        .single();
       
-      if (error) throw error
-      return data
+      if (error) throw error;
+      return data;
     } else {
       // Insert
       const { data, error } = await supabase
         .from('priveinfo')
         .insert(infoData)
         .select()
-        .single()
+        .single();
       
-      if (error) throw error
-      return data
+      if (error) throw error;
+      return data;
     }
   },
 
   // Privé info ophalen (jouw getPriveInfoVoorStamboomnr)
   async getPriveInfoVoorStamboomnr(stamboomnr) {
-    const user = await supabase.auth.getUser()
-    if (!user.data.user) throw new Error('Niet ingelogd')
+    const user = window.auth ? window.auth.getCurrentUser() : null;
+    if (!user) throw new Error('Niet ingelogd');
     
     const { data, error } = await supabase
       .from('priveinfo')
       .select('*')
       .eq('stamboomnr', stamboomnr)
-      .single()
+      .single();
     
     if (error) {
-      if (error.code === 'PGRST116') return null
-      throw error
+      if (error.code === 'PGRST116') return null;
+      throw error;
     }
     
-    // Check rechten: alleen eigenaar of beheerder
-    const { data: profile } = await supabase
-      .from('gebruikers_profielen')
-      .select('rol')
-      .eq('id', user.data.user.id)
-      .single()
+    // Simpele rechten check voor nu
+    const isEigenaar = data.toegevoegd_door === user.id;
+    const isAdmin = window.auth ? window.auth.isAdmin() : false;
     
-    const isBeheerder = profile?.rol === 'beheerder'
-    const isEigenaar = data.toegevoegd_door === user.data.user.id
-    
-    if (!isBeheerder && !isEigenaar) {
-      throw new Error('Geen toegang tot deze privé informatie')
+    if (!isAdmin && !isEigenaar) {
+      throw new Error('Geen toegang tot deze privé informatie');
     }
     
     return {
@@ -511,65 +492,65 @@ export const priveInfoService = {
       vertrouwelijk: data.vertrouwelijk,
       laatstGewijzigd: data.laatstgewijzigd,
       gewijzigdDoor: data.toegevoegd_door
-    }
+    };
   }
-}
+};
 
-// ========== EXPORT/IMPORT SERVICE ==========
-export const backupService = {
+// ========== BACKUP SERVICE ==========
+const backupService = {
   // Export data (jouw exportData)
   async exportData(type = 'all') {
-    const user = await supabase.auth.getUser()
-    if (!user.data.user) throw new Error('Niet ingelogd')
+    const user = window.auth ? window.auth.getCurrentUser() : null;
+    if (!user) throw new Error('Niet ingelogd');
     
     const exportData = {
       metadata: {
         exportType: type,
         exportDatum: new Date().toISOString(),
-        exportDoor: user.data.user.email,
+        exportDoor: user.email,
         database: 'Supabase'
       },
       honden: [],
       fotos: [],
       priveInfo: []
-    }
+    };
     
     if (type === 'all' || type === 'honden') {
       const { data: honden, error } = await supabase
         .from('honden')
-        .select('*')
+        .select('*');
       
-      if (error) throw error
-      exportData.honden = honden || []
+      if (error) throw error;
+      exportData.honden = honden || [];
     }
     
     if (type === 'all' || type === 'fotos') {
       const { data: fotos, error } = await supabase
         .from('fotos')
-        .select('*')
+        .select('*');
       
-      if (error) throw error
-      exportData.fotos = fotos || []
+      if (error) throw error;
+      exportData.fotos = fotos || [];
     }
     
     if (type === 'all' || type === 'prive') {
       const { data: priveInfo, error } = await supabase
         .from('priveinfo')
-        .select('*')
+        .select('*');
       
-      if (error) throw error
-      exportData.priveInfo = priveInfo || []
+      if (error) throw error;
+      exportData.priveInfo = priveInfo || [];
     }
     
-    return exportData
+    return exportData;
   },
 
   // Maak backup (jouw maakBackup)
   async maakBackup() {
-    const backupData = await this.exportData('all')
-    const backupString = JSON.stringify(backupData, null, 2)
-    const backupDatum = new Date().toISOString().replace(/[:.]/g, '-')
-    const backupNaam = `honden-backup-${backupDatum}.json`
+    const backupData = await this.exportData('all');
+    const backupString = JSON.stringify(backupData, null, 2);
+    const backupDatum = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupNaam = `honden-backup-${backupDatum}.json`;
     
     return {
       data: backupString,
@@ -580,15 +561,15 @@ export const backupService = {
         fotos: backupData.fotos.length,
         priveInfo: backupData.priveInfo.length
       }
-    }
+    };
   }
-}
+};
+
+// Maak globaal beschikbaar
+window.hondenService = hondenService;
+window.fotoService = fotoService;
+window.priveInfoService = priveInfoService;
+window.backupService = backupService;
 
 // Voor backward compatibility
-export default {
-  supabase,
-  hondenService,
-  fotoService,
-  priveInfoService,
-  backupService
-}
+console.log('Supabase services geladen en beschikbaar via window object');
