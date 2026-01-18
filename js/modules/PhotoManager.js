@@ -176,11 +176,11 @@ class PhotoManager extends BaseModule {
                 fileReadError: "Fehler beim Lesen der Datei",
                 loading: "Lade Fotos...",
                 loadFailed: "Laden fehlgeschlagen: ",
-                deleteConfirm: "Sind Sie sicher, dass Sie dieses Foto löschen möchten? Dies kann nicht rückgängig gemacht werden.",
-                deleting: "Foto wird gelöscht...",
+                deleteConfirm: "Sind Sie sicher dat u dit foto wilt verwijderen? Dit kan niet ongedaan worden gemaakt.",
+                deleting: "Foto wordt gelöscht...",
                 deleteSuccess: "Foto erfolgreich gelöscht!",
                 deleteFailed: "Löschen fehlgeschlagen: ",
-                photoNotFound: "Foto nicht gefonden",
+                photoNotFound: "Foto niet gevonden",
                 loadDetailsFailed: "Fehler beim Laden der Fotodetails: "
             }
         };
@@ -482,7 +482,7 @@ class PhotoManager extends BaseModule {
     
     async loadDogsData() {
         try {
-            this.allDogs = await this.db.getHonden();
+            this.allDogs = await hondenService.getHonden();
             this.allDogs.sort((a, b) => a.naam.localeCompare(b.naam));
         } catch (error) {
             console.error('Fout bij laden honden:', error);
