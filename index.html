@@ -6,86 +6,83 @@
     <title>Hondendatabase - Login</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="manifest" href="manifest.json">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+        }
+        .login-card {
+            background: white;
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        .btn-login {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 12px;
+            font-weight: 600;
+        }
+    </style>
 </head>
-<body style="background: #f5f5f5; min-height: 100vh; display: flex; align-items: center;">
+<body>
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-md-6 col-lg-5">
-                <div class="card" style="border-radius: 10px; border: none; box-shadow: 0 0 20px rgba(0,0,0,0.1);">
-                    <div class="card-header text-white text-center py-3" style="background: linear-gradient(135deg, #0d6efd 0%, #0dcaf0 100%); border-radius: 10px 10px 0 0;">
-                        <h4 class="mb-0">
-                            <i class="bi bi-shield-lock"></i> Beheerder Login
-                        </h4>
-                        <small>Hondendatabase Supabase</small>
+                <div class="card login-card">
+                    <div class="card-header text-white text-center py-4" style="background: #0d6efd; border-radius: 15px 15px 0 0;">
+                        <h3 class="mb-2">
+                            <i class="bi bi-database"></i> Hondendatabase
+                        </h3>
+                        <p class="mb-0">Beheerder Login</p>
                     </div>
                     <div class="card-body p-4">
                         <form id="loginForm">
                             <div class="mb-3">
-                                <label>Jouw Supabase Email</label>
-                                <input type="email" class="form-control form-control-lg" 
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" 
                                        id="email" required value="leoneurasier@gmail.com">
                             </div>
                             <div class="mb-4">
-                                <label>Wachtwoord</label>
-                                <input type="password" class="form-control form-control-lg" 
+                                <label class="form-label">Wachtwoord</label>
+                                <input type="password" class="form-control" 
                                        id="password" required value="admin1903">
                             </div>
                             
-                            <button type="submit" class="btn btn-primary btn-lg w-100">
+                            <button type="submit" class="btn btn-primary w-100 py-3">
                                 <i class="bi bi-box-arrow-in-right"></i> INLOGGEN
                             </button>
                         </form>
                         
                         <div class="mt-4 text-center">
                             <button onclick="directToApp()" class="btn btn-success">
-                                <i class="bi bi-lightning"></i> DIRECT NAAR APP (TEST)
+                                <i class="bi bi-lightning"></i> DIRECT NAAR APP
                             </button>
                         </div>
+                        
+                        <div id="loginResult" class="mt-3"></div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Supabase client -->
+    <!-- Supabase JS - ÉÉN KEER -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     
     <script>
-        // Supabase config - DIT IS DE ENIGE INITIALISATIE
+        // SUPABASE INIT - ÉÉN KEER
         const supabase = window.supabase.createClient(
             'https://owjwkjrktftugjjrcwml.supabase.co',
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93andranJrdGZ0dWdqanJjd21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2MzA4OTAsImV4cCI6MjA4NDIwNjg5MH0.oW6HTAlMBkjUu_4e3kn4iozjn5wK-15h4wCKcaHrtp8',
-            {
-                auth: { persistSession: true }
-            }
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93andranJrdGZ0dWdqanJjd21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2MzA4OTAsImV4cCI6MjA4NDIwNjg5MH0.oW6HTAlMBkjUu_4e3kn4iozjn5wK-15h4wCKcaHrtp8'
         );
-        
-        // Check direct of er een sessie is
-        async function init() {
-            try {
-                const { data } = await supabase.auth.getSession();
-                if (data.session) {
-                    console.log('Al ingelogd, ga naar app');
-                    saveUserData(data.session.user);
-                    setTimeout(() => window.location.href = 'app.html', 500);
-                }
-            } catch (error) {
-                console.log('Geen sessie gevonden');
-            }
-        }
 
-        // Login handler
-        document.getElementById('loginForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            
-            const btn = this.querySelector('button');
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-            btn.disabled = true;
+        // Login functie
+        async function login(email, password) {
+            const resultDiv = document.getElementById('loginResult');
+            resultDiv.innerHTML = '<div class="alert alert-info">Inloggen...</div>';
             
             try {
                 const { data, error } = await supabase.auth.signInWithPassword({
@@ -94,39 +91,78 @@
                 });
                 
                 if (error) {
-                    alert('Fout: ' + error.message);
-                    btn.innerHTML = '<i class="bi bi-box-arrow-in-right"></i> INLOGGEN';
-                    btn.disabled = false;
-                    return;
+                    resultDiv.innerHTML = `<div class="alert alert-danger">❌ ${error.message}</div>`;
+                    return false;
                 }
                 
-                saveUserData(data.user);
-                window.location.href = 'app.html';
+                // SUCCESS
+                localStorage.setItem('userEmail', data.user.email);
+                localStorage.setItem('userId', data.user.id);
+                localStorage.setItem('isAdmin', 'true');
+                
+                resultDiv.innerHTML = `<div class="alert alert-success">✅ Ingelogd! Doorsturen...</div>`;
+                
+                setTimeout(() => {
+                    window.location.href = 'app.html';
+                }, 1500);
+                
+                return true;
                 
             } catch (error) {
-                alert('Error: ' + error.message);
-                btn.innerHTML = '<i class="bi bi-box-arrow-in-right"></i> INLOGGEN';
-                btn.disabled = false;
+                resultDiv.innerHTML = `<div class="alert alert-danger">❌ ${error.message}</div>`;
+                return false;
             }
-        });
+        }
 
-        // Direct naar app (bypass login voor testen)
+        // Direct naar app (bypass)
         function directToApp() {
             localStorage.setItem('userEmail', 'leoneurasier@gmail.com');
-            localStorage.setItem('userId', 'direct-beheerder-' + Date.now());
+            localStorage.setItem('userId', 'direct-beheerder');
             localStorage.setItem('isAdmin', 'true');
-            window.location.href = 'app.html';
+            
+            document.getElementById('loginResult').innerHTML = 
+                '<div class="alert alert-success">✅ Directe toegang verleend! Doorsturen...</div>';
+            
+            setTimeout(() => {
+                window.location.href = 'app.html';
+            }, 1000);
         }
 
-        // Sla gebruiker data op
-        function saveUserData(user) {
-            localStorage.setItem('userEmail', user.email);
-            localStorage.setItem('userId', user.id);
-            localStorage.setItem('isAdmin', 'true');
-        }
+        // Form submit
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            const btn = this.querySelector('button');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+            btn.disabled = true;
+            
+            await login(email, password);
+            
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        });
 
-        // Start
-        document.addEventListener('DOMContentLoaded', init);
+        // Controleer bestaande sessie
+        document.addEventListener('DOMContentLoaded', function() {
+            supabase.auth.getSession().then(({ data }) => {
+                if (data.session) {
+                    document.getElementById('loginResult').innerHTML = 
+                        '<div class="alert alert-info">Je bent al ingelogd. Doorsturen...</div>';
+                    
+                    localStorage.setItem('userEmail', data.session.user.email);
+                    localStorage.setItem('userId', data.session.user.id);
+                    localStorage.setItem('isAdmin', 'true');
+                    
+                    setTimeout(() => {
+                        window.location.href = 'app.html';
+                    }, 1000);
+                }
+            });
+        });
     </script>
 </body>
 </html>
