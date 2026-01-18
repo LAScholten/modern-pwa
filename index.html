@@ -24,9 +24,19 @@
             cursor: pointer;
             color: #0d6efd;
         }
+        .alert-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            max-width: 400px;
+        }
     </style>
 </head>
 <body class="bg-light">
+    <!-- Floating alert container -->
+    <div id="alertContainer" class="alert-container"></div>
+    
     <div class="container">
         <div class="row justify-content-center min-vh-100 align-items-center">
             <div class="col-md-6 col-lg-4">
@@ -107,9 +117,6 @@
                             </div>
                         </form>
                         
-                        <!-- Bericht container -->
-                        <div id="messageContainer" class="mt-3" style="display: none;"></div>
-                        
                         <!-- Demo link -->
                         <div class="mt-4 text-center">
                             <small class="text-muted">
@@ -141,7 +148,8 @@
         window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
             auth: {
                 persistSession: true,
-                autoRefreshToken: true
+                autoRefreshToken: true,
+                detectSessionInUrl: false
             }
         });
     </script>
@@ -162,7 +170,9 @@
                 resetSuccess: "Reset link verstuurd! Check je e-mail.",
                 resetError: "Fout bij versturen reset link: ",
                 checkEmail: "Controleer je inbox (en spam folder)",
-                invalidEmail: "Voer een geldig e-mailadres in"
+                invalidEmail: "Voer een geldig e-mailadres in",
+                loginSuccess: "Succesvol ingelogd!",
+                sessionFound: "Je bent al ingelogd. Doorsturen..."
             },
             en: {
                 email: "Email address",
@@ -177,7 +187,9 @@
                 resetSuccess: "Reset link sent! Check your email.",
                 resetError: "Error sending reset link: ",
                 checkEmail: "Check your inbox (and spam folder)",
-                invalidEmail: "Please enter a valid email address"
+                invalidEmail: "Please enter a valid email address",
+                loginSuccess: "Successfully logged in!",
+                sessionFound: "You are already logged in. Redirecting..."
             },
             de: {
                 email: "E-Mail-Adresse",
@@ -192,7 +204,9 @@
                 resetSuccess: "Reset-Link gesendet! Überprüfen Sie Ihre E-Mail.",
                 resetError: "Fehler beim Senden des Reset-Links: ",
                 checkEmail: "Überprüfen Sie Ihren Posteingang (und Spam-Ordner)",
-                invalidEmail: "Bitte geben Sie eine gültige E-Mail-Adresse ein"
+                invalidEmail: "Bitte geben Sie eine gültige E-Mail-Adresse ein",
+                loginSuccess: "Erfolgreich angemeldet!",
+                sessionFound: "Sie sind bereits angemeldet. Weiterleitung..."
             }
         };
 
@@ -231,6 +245,34 @@
             document.title = titles[lang] || titles.nl;
         }
 
+        // Toon floating alert
+        function showAlert(message, type = 'info', duration = 5000) {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertId = 'alert-' + Date.now();
+            
+            const alert = document.createElement('div');
+            alert.id = alertId;
+            alert.className = `alert alert-${type} alert-dismissible fade show shadow`;
+            alert.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            alertContainer.appendChild(alert);
+            
+            // Auto remove na duration
+            if (duration > 0) {
+                setTimeout(() => {
+                    const alertEl = document.getElementById(alertId);
+                    if (alertEl) {
+                        alertEl.remove();
+                    }
+                }, duration);
+            }
+            
+            return alertId;
+        }
+
         // Event listeners voor vlaggetjes
         document.querySelectorAll('.language-btn').forEach(btn => {
             btn.addEventListener('click', function() {
@@ -241,48 +283,41 @@
             });
         });
 
-        // Toon bericht
-        function showMessage(message, type = 'info') {
-            const container = document.getElementById('messageContainer');
-            container.innerHTML = `
-                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
-                    ${message}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            `;
-            container.style.display = 'block';
-        }
-
-        // Verberg bericht
-        function hideMessage() {
-            document.getElementById('messageContainer').style.display = 'none';
-        }
-
         // Controleer bestaande sessie
         async function checkExistingSession() {
             try {
                 const { data, error } = await supabase.auth.getSession();
-                if (error) throw error;
+                if (error) {
+                    console.warn('Sessie check error:', error);
+                    return;
+                }
                 
                 if (data.session) {
                     console.log('Al ingelogd als:', data.session.user.email);
+                    showAlert(translations[currentLang].sessionFound, 'info', 2000);
+                    
                     localStorage.setItem('userEmail', data.session.user.email);
                     localStorage.setItem('userId', data.session.user.id);
                     
                     // Haal profiel op
-                    const { data: profile } = await supabase
-                        .from('profiles')
-                        .select('is_admin')
-                        .eq('user_id', data.session.user.id)
-                        .single();
-                    
-                    if (profile) {
-                        localStorage.setItem('isAdmin', profile.is_admin ? 'true' : 'false');
+                    try {
+                        const { data: profile, error: profileError } = await supabase
+                            .from('profiles')
+                            .select('is_admin')
+                            .eq('user_id', data.session.user.id)
+                            .single();
+                        
+                        if (!profileError && profile) {
+                            localStorage.setItem('isAdmin', profile.is_admin ? 'true' : 'false');
+                        }
+                    } catch (profileError) {
+                        console.warn('Profiel ophalen mislukt:', profileError);
                     }
                     
+                    // Wacht even en redirect
                     setTimeout(() => {
                         window.location.href = 'app.html';
-                    }, 500);
+                    }, 1500);
                 }
             } catch (error) {
                 console.log('Geen actieve sessie gevonden');
@@ -294,13 +329,13 @@
             e.preventDefault();
             document.getElementById('loginForm').style.display = 'none';
             document.getElementById('resetPasswordForm').style.display = 'block';
-            hideMessage();
+            document.getElementById('resetEmail').focus();
         });
 
         document.getElementById('backToLogin').addEventListener('click', function() {
             document.getElementById('resetPasswordForm').style.display = 'none';
             document.getElementById('loginForm').style.display = 'block';
-            hideMessage();
+            document.getElementById('email').focus();
         });
 
         // Initialiseer bij laden
@@ -308,8 +343,10 @@
             translatePage(currentLang);
             checkExistingSession();
             
-            // Focus op email veld
-            document.getElementById('email').focus();
+            // Auto-focus op email veld
+            setTimeout(() => {
+                document.getElementById('email').focus();
+            }, 100);
         });
 
         // Login functionaliteit
@@ -319,8 +356,13 @@
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
             
-            if (!email || !password) {
-                showMessage(translations[currentLang].invalidEmail, 'warning');
+            if (!email || !email.includes('@')) {
+                showAlert(translations[currentLang].invalidEmail, 'warning', 3000);
+                return;
+            }
+            
+            if (!password || password.length < 1) {
+                showAlert('Voer een wachtwoord in', 'warning', 3000);
                 return;
             }
             
@@ -330,6 +372,8 @@
             submitBtn.disabled = true;
             
             try {
+                console.log('Login poging voor:', email);
+                
                 const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
                     email: email,
                     password: password
@@ -340,29 +384,39 @@
                 }
                 
                 console.log('Login succesvol!');
+                showAlert(translations[currentLang].loginSuccess, 'success', 2000);
+                
+                // Sla gebruiker info op
                 localStorage.setItem('userEmail', authData.user.email);
                 localStorage.setItem('userId', authData.user.id);
+                localStorage.setItem('appLanguage', currentLang);
                 
                 // Admin status check
                 try {
-                    const { data: profile } = await supabase
+                    const { data: profile, error: profileError } = await supabase
                         .from('profiles')
                         .select('is_admin')
                         .eq('user_id', authData.user.id)
                         .single();
                     
-                    localStorage.setItem('isAdmin', profile?.is_admin ? 'true' : 'false');
+                    if (!profileError && profile) {
+                        localStorage.setItem('isAdmin', profile.is_admin ? 'true' : 'false');
+                        console.log('Admin status:', profile.is_admin);
+                    } else {
+                        localStorage.setItem('isAdmin', 'false');
+                    }
                 } catch (profileError) {
+                    console.warn('Profiel check mislukt:', profileError);
                     localStorage.setItem('isAdmin', 'false');
                 }
                 
-                localStorage.setItem('appLanguage', currentLang);
-                
+                // Update knop tekst
                 submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Ingelogd!';
                 
+                // Redirect naar app na korte delay
                 setTimeout(() => {
                     window.location.href = 'app.html';
-                }, 1000);
+                }, 1500);
                 
             } catch (error) {
                 console.error('Login error:', error);
@@ -370,24 +424,26 @@
                 let errorMessage = 'Login mislukt';
                 if (error.message.includes('Invalid login credentials')) {
                     errorMessage = 'Ongeldige inloggegevens. Controleer e-mail en wachtwoord.';
+                } else if (error.message.includes('Email not confirmed')) {
+                    errorMessage = 'E-mail nog niet bevestigd. Check je inbox voor bevestigingsmail.';
                 } else {
                     errorMessage = 'Fout: ' + error.message;
                 }
                 
-                showMessage(errorMessage, 'danger');
+                showAlert(errorMessage, 'danger', 5000);
                 submitBtn.innerHTML = originalText;
                 submitBtn.disabled = false;
             }
         });
 
-        // Wachtwoord reset functionaliteit
+        // Wachtwoord reset functionaliteit - SIMPELE VERSIE
         document.getElementById('resetPasswordForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const email = document.getElementById('resetEmail').value.trim();
             
             if (!email || !email.includes('@')) {
-                showMessage(translations[currentLang].invalidEmail, 'warning');
+                showAlert(translations[currentLang].invalidEmail, 'warning', 3000);
                 return;
             }
             
@@ -397,9 +453,12 @@
             submitBtn.disabled = true;
             
             try {
-                // Zorg dat de redirect URL correct is ingesteld
+                console.log('Reset aanvraag voor:', email);
+                
+                // SIMPELE VERSIE - zonder custom redirect
                 const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                    redirectTo: `${window.location.origin}/reset-password.html`
+                    // Laat Supabase zijn default pagina gebruiken
+                    redirectTo: 'https://owjwkjrktftugjjrcwml.supabase.co'
                 });
                 
                 if (error) {
@@ -407,24 +466,35 @@
                 }
                 
                 // Toon succes bericht
-                showMessage(`
+                showAlert(`
                     <strong>${translations[currentLang].resetSuccess}</strong><br>
                     ${translations[currentLang].checkEmail}
-                `, 'success');
+                `, 'success', 8000);
                 
-                // Reset formulier
+                console.log('Reset email verstuurd naar:', email);
+                
+                // Reset formulier en ga terug naar login
                 this.reset();
                 
-                // Optioneel: ga terug naar login na 5 seconden
                 setTimeout(() => {
                     document.getElementById('resetPasswordForm').style.display = 'none';
                     document.getElementById('loginForm').style.display = 'block';
-                    hideMessage();
-                }, 5000);
+                    document.getElementById('email').focus();
+                }, 3000);
                 
             } catch (error) {
                 console.error('Reset error:', error);
-                showMessage(translations[currentLang].resetError + error.message, 'danger');
+                
+                let errorMessage = translations[currentLang].resetError;
+                if (error.message.includes('rate limit')) {
+                    errorMessage = 'Te veel pogingen. Wacht even en probeer opnieuw.';
+                } else if (error.message.includes('user not found')) {
+                    errorMessage = 'Geen account gevonden met dit e-mailadres.';
+                } else {
+                    errorMessage += error.message;
+                }
+                
+                showAlert(errorMessage, 'danger', 5000);
             } finally {
                 submitBtn.innerHTML = originalText;
                 submitBtn.disabled = false;
@@ -442,6 +512,15 @@
             if (e.key === 'Enter') {
                 document.getElementById('resetPasswordForm').dispatchEvent(new Event('submit'));
             }
+        });
+        
+        // Focus management
+        document.getElementById('email').addEventListener('focus', function() {
+            this.select();
+        });
+        
+        document.getElementById('resetEmail').addEventListener('focus', function() {
+            this.select();
         });
     </script>
     
