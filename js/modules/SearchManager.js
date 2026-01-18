@@ -6,6 +6,8 @@
  * Beide kolommen zijn nu scrollbaar
  */
 
+import { hondenService } from './supabase-honden.js';
+
 class SearchManager extends BaseModule {
     constructor() {
         super();
@@ -301,7 +303,7 @@ class SearchManager extends BaseModule {
                 clickToView: "Klicken für Details",
                 parents: "Eltern",
                 noHealthInfo: "Keine Gesundheitsinformationen verfügbar",
-                noAdditionalInfo: "Keine zusätzlichen Informationen verfügbar",
+                noAdditionalInfo: "Keine aanvullende informatie beschikbaar",
                 selectDogToView: "Wählen Sie einen Hund, um Details zu sehen",
                 
                 // Hund Details
@@ -491,7 +493,7 @@ class SearchManager extends BaseModule {
         }
         
         try {
-            const photos = await this.db.getFotosVoorStamboomnr(dog.stamboomnr);
+            const photos = await hondenService.getFotosVoorStamboomnr(dog.stamboomnr);
             this.dogPhotosCache.set(cacheKey, photos || []);
             return photos || [];
         } catch (error) {
@@ -2183,13 +2185,7 @@ class SearchManager extends BaseModule {
         this.showProgress(this.t('loading'));
         
         try {
-            if (!this.db) {
-                console.error('Database niet beschikbaar in SearchManager');
-                this.hideProgress();
-                return;
-            }
-            
-            this.allDogs = await this.db.getHonden();
+            this.allDogs = await hondenService.getHonden();
             this.allDogs.sort((a, b) => a.naam.localeCompare(b.naam));
             this.hideProgress();
             
