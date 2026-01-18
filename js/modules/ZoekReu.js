@@ -437,7 +437,7 @@ class ZoekReu {
                 selectFemaleToStart: "Wählen Sie eine Hündin, um zu beginnen",
                 useSearchCriteria: "Verwenden Sie Suchkriterien, um Rüden zu finden",
                 searchingMales: "Suche nach geeigneten Rüden...",
-                pedigreeFunctionalityUnavailable: "Stamboomfunktionalität ist derzeit nicht verfügbar",
+                pedigreeFunctionalityUnavailable: "Stamboomfunktionaliteit ist derzeit nicht verfügbar",
                 maleNotFound: "Konnte Rüdendaten nicht finden",
                 errorShowingPedigree: "Beim Anzeigen des Stamboons is een Fehler aufgetreten",
                 combinedParents: "Kombinierte Eltern",
@@ -482,81 +482,50 @@ class ZoekReu {
         try {
             console.log('📥 ZoekReu.loadAllHonden() gestart');
             
-            let hondenResult = null;
+            let hondenArray = [];
             
-            // METHODE 1: Via this.db (als het bestaat)
+            // METHODE 1: Via this.db (als het bestaat) met paginatie
             if (this.db && typeof this.db.getHonden === 'function') {
-                console.log('🔄 Methode 1: Via this.db.getHonden()');
-                try {
-                    hondenResult = await this.db.getHonden();
-                    console.log('✅ this.db.getHonden() resultaat:', hondenResult);
-                } catch (error) {
-                    console.error('❌ Fout bij this.db.getHonden():', error);
-                }
+                console.log('🔄 Methode 1: Via this.db.getHonden() met paginatie');
+                hondenArray = await this.loadHondenWithPagination(this.db);
             }
             
             // METHODE 2: Via window.hondenService (als methode 1 faalt)
-            if (!hondenResult && window.hondenService && typeof window.hondenService.getHonden === 'function') {
-                console.log('🔄 Methode 2: Via window.hondenService.getHonden()');
-                try {
-                    hondenResult = await window.hondenService.getHonden();
-                    console.log('✅ window.hondenService.getHonden() resultaat:', hondenResult);
-                } catch (error) {
-                    console.error('❌ Fout bij window.hondenService.getHonden():', error);
-                }
+            if (hondenArray.length === 0 && window.hondenService && typeof window.hondenService.getHonden === 'function') {
+                console.log('🔄 Methode 2: Via window.hondenService.getHonden() met paginatie');
+                hondenArray = await this.loadHondenWithPagination(window.hondenService);
             }
             
             // METHODE 3: Via DogDataManager (als die bestaat)
-            if (!hondenResult && window.DogDataManager) {
+            if (hondenArray.length === 0 && window.DogDataManager) {
                 console.log('🔄 Methode 3: Via window.DogDataManager');
                 try {
                     const manager = new window.DogDataManager();
-                    hondenResult = await manager.getAllDogsForSearch();
-                    console.log('✅ DogDataManager.getAllDogsForSearch() resultaat:', hondenResult);
+                    const result = await manager.getAllDogsForSearch();
+                    if (result && Array.isArray(result)) {
+                        hondenArray = result;
+                        console.log('✅ DogDataManager.getAllDogsForSearch() resultaat:', hondenArray.length);
+                    }
                 } catch (error) {
                     console.error('❌ Fout bij DogDataManager:', error);
                 }
             }
             
             // METHODE 4: Rechtstreeks via Supabase (als laatste optie)
-            if (!hondenResult && window.supabase) {
-                console.log('🔄 Methode 4: Rechtstreeks via Supabase');
-                try {
-                    const { data, error } = await window.supabase
-                        .from('honden')
-                        .select('*')
-                        .order('naam', { ascending: true });
-                    
-                    if (!error && data) {
-                        hondenResult = data;
-                        console.log('✅ Supabase direct resultaat:', hondenResult);
-                    } else {
-                        console.error('❌ Supabase error:', error);
-                    }
-                } catch (error) {
-                    console.error('❌ Fout bij Supabase direct:', error);
-                }
+            if (hondenArray.length === 0 && window.supabase) {
+                console.log('🔄 Methode 4: Rechtstreeks via Supabase met paginatie');
+                hondenArray = await this.loadSupabaseWithPagination();
+            }
+            
+            // METHODE 5: Fallback zonder paginatie
+            if (hondenArray.length === 0) {
+                console.log('⚠️ Paginatie niet beschikbaar, probeer zonder paginatie');
+                hondenArray = await this.loadHondenWithoutPagination();
             }
             
             // Verwerk het resultaat
-            if (!hondenResult) {
+            if (hondenArray.length === 0) {
                 console.error('❌ Alle methodes gefaald - geen honden geladen');
-                this.allHonden = [];
-                this.allTeven = [];
-                return;
-            }
-            
-            // Bepaal hoe we de data moeten extraheren
-            let hondenArray = [];
-            
-            if (Array.isArray(hondenResult)) {
-                hondenArray = hondenResult;
-            } else if (hondenResult && Array.isArray(hondenResult.honden)) {
-                hondenArray = hondenResult.honden;
-            } else if (hondenResult && Array.isArray(hondenResult.data)) {
-                hondenArray = hondenResult.data;
-            } else {
-                console.error('❌ Onbekend resultaat formaat:', hondenResult);
                 this.allHonden = [];
                 this.allTeven = [];
                 return;
@@ -614,6 +583,198 @@ class ZoekReu {
             console.error('Error stack:', error.stack);
             this.allHonden = [];
             this.allTeven = [];
+        }
+    }
+    
+    async loadHondenWithPagination(service) {
+        try {
+            console.log('📄 Laden met paginatie...');
+            
+            let allHonden = [];
+            let currentPage = 1;
+            const pageSize = 1000; // Maximaal wat Supabase toestaat
+            let hasMorePages = true;
+            
+            while (hasMorePages) {
+                console.log(`📄 Laad pagina ${currentPage}...`);
+                
+                let result;
+                try {
+                    // Probeer getHonden met paginatie parameters
+                    if (typeof service.getHonden === 'function') {
+                        result = await service.getHonden(currentPage, pageSize);
+                    } else {
+                        break;
+                    }
+                } catch (error) {
+                    console.error(`❌ Fout bij laden pagina ${currentPage}:`, error);
+                    break;
+                }
+                
+                // Bepaal hoe we de data moeten extraheren
+                let hondenArray = [];
+                
+                if (Array.isArray(result)) {
+                    hondenArray = result;
+                    hasMorePages = result.length === pageSize;
+                } else if (result && Array.isArray(result.honden)) {
+                    hondenArray = result.honden;
+                    hasMorePages = result.heeftVolgende || (result.honden && result.honden.length === pageSize);
+                } else if (result && Array.isArray(result.data)) {
+                    hondenArray = result.data;
+                    hasMorePages = result.data.length === pageSize;
+                } else {
+                    console.warn('⚠️ Onbekend resultaat formaat bij paginatie');
+                    break;
+                }
+                
+                console.log(`   ➡ Pagina ${currentPage}: ${hondenArray.length} honden`);
+                
+                // Voeg honden toe aan array
+                allHonden = allHonden.concat(hondenArray);
+                
+                // Controleer of er nog meer pagina's zijn
+                if (hondenArray.length < pageSize) {
+                    hasMorePages = false;
+                } else {
+                    currentPage++;
+                }
+                
+                // Veiligheidslimiet voor oneindige lus
+                if (currentPage > 100) {
+                    console.warn('⚠️ Veiligheidslimiet bereikt: te veel pagina\'s geladen');
+                    break;
+                }
+                
+                // Kleine pauze om de server niet te overbelasten
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+            
+            console.log(`✅ Paginatie geladen: ${allHonden.length} honden`);
+            return allHonden;
+            
+        } catch (error) {
+            console.error('❌ Fout bij laden met paginatie:', error);
+            return [];
+        }
+    }
+    
+    async loadSupabaseWithPagination() {
+        try {
+            console.log('📄 Laden via Supabase met paginatie...');
+            
+            let allHonden = [];
+            let start = 0;
+            const pageSize = 1000;
+            let hasMore = true;
+            
+            while (hasMore) {
+                console.log(`📄 Laad batch ${start} tot ${start + pageSize}...`);
+                
+                const { data, error, count } = await window.supabase
+                    .from('honden')
+                    .select('*', { count: 'exact' })
+                    .order('naam', { ascending: true })
+                    .range(start, start + pageSize - 1);
+                
+                if (error) {
+                    console.error('❌ Supabase error:', error);
+                    break;
+                }
+                
+                if (data && data.length > 0) {
+                    allHonden = allHonden.concat(data);
+                    console.log(`   ➡ Batch: ${data.length} honden (totaal: ${allHonden.length})`);
+                    
+                    if (data.length < pageSize) {
+                        hasMore = false;
+                    } else {
+                        start += pageSize;
+                    }
+                } else {
+                    hasMore = false;
+                }
+                
+                // Veiligheidslimiet
+                if (start > 100000) {
+                    console.warn('⚠️ Veiligheidslimiet bereikt');
+                    break;
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+            
+            console.log(`✅ Supabase paginatie geladen: ${allHonden.length} honden`);
+            return allHonden;
+            
+        } catch (error) {
+            console.error('❌ Fout bij Supabase paginatie:', error);
+            return [];
+        }
+    }
+    
+    async loadHondenWithoutPagination() {
+        try {
+            console.log('⚠️ Laden zonder paginatie (kan onvolledig zijn)...');
+            
+            let hondenResult = null;
+            
+            if (this.db && typeof this.db.getHonden === 'function') {
+                try {
+                    hondenResult = await this.db.getHonden();
+                } catch (error) {
+                    console.error('❌ Fout bij this.db.getHonden():', error);
+                }
+            }
+            
+            if (!hondenResult && window.hondenService && typeof window.hondenService.getHonden === 'function') {
+                try {
+                    hondenResult = await window.hondenService.getHonden();
+                } catch (error) {
+                    console.error('❌ Fout bij window.hondenService.getHonden():', error);
+                }
+            }
+            
+            if (!hondenResult && window.supabase) {
+                try {
+                    const { data, error } = await window.supabase
+                        .from('honden')
+                        .select('*')
+                        .order('naam', { ascending: true })
+                        .limit(10000); // Probeer meer te krijgen
+                    
+                    if (!error && data) {
+                        hondenResult = data;
+                    } else {
+                        console.error('❌ Supabase error:', error);
+                    }
+                } catch (error) {
+                    console.error('❌ Fout bij Supabase direct:', error);
+                }
+            }
+            
+            // Bepaal hoe we de data moeten extraheren
+            let hondenArray = [];
+            
+            if (Array.isArray(hondenResult)) {
+                hondenArray = hondenResult;
+            } else if (hondenResult && Array.isArray(hondenResult.honden)) {
+                hondenArray = hondenResult.honden;
+            } else if (hondenResult && Array.isArray(hondenResult.data)) {
+                hondenArray = hondenResult.data;
+            } else {
+                console.error('❌ Onbekend resultaat formaat:', hondenResult);
+                return [];
+            }
+            
+            console.log(`⚠️ Geladen zonder paginatie: ${hondenArray.length} honden`);
+            console.warn('⚠️ LET OP: Mogelijk niet alle honden geladen!');
+            
+            return hondenArray;
+            
+        } catch (error) {
+            console.error('❌ Fout bij laden zonder paginatie:', error);
+            return [];
         }
     }
     
