@@ -115,7 +115,10 @@ class DogManager extends BaseModule {
                 deleteFailed: "Fout bij verwijderen hond: ",
                 confirmDelete: "Weet u zeker dat u deze hond wilt verwijderen?",
                 photoAdded: "Foto toegevoegd",
-                photoError: "Fout bij uploaden foto: "
+                photoError: "Fout bij uploaden foto: ",
+                
+                // Progress messages
+                loadingDogs: "Honden laden... ({count} geladen)"
             },
             en: {
                 // Modal titles
@@ -221,7 +224,10 @@ class DogManager extends BaseModule {
                 deleteFailed: "Error deleting dog: ",
                 confirmDelete: "Are you sure you want to delete this dog?",
                 photoAdded: "Photo added",
-                photoError: "Error uploading photo: "
+                photoError: "Error uploading photo: ",
+                
+                // Progress messages
+                loadingDogs: "Loading dogs... ({count} loaded)"
             },
             de: {
                 // Modal Titel
@@ -290,7 +296,7 @@ class DogManager extends BaseModule {
                 chooseFile: "Datei wählen",
                 noFileChosen: "Keine Datei gewählt",
                 remarks: "Bemerkungen",
-                requiredFields: "Felder met * zijn Pflichtfelder",
+                requiredFields: "Felder met * sind Pflichtfelder",
                 saveDog: "Hund speichern",
                 cancel: "Abbrechen",
                 delete: "Löschen",
@@ -302,7 +308,7 @@ class DogManager extends BaseModule {
                 
                 // Validierung
                 dateFormatError: "Datum moet in DD-MM-JJJJ formaat zijn",
-                deathBeforeBirthError: "Sterbedatum kan niet voor geboortedatum zijn",
+                deathBeforeBirthError: "Sterbedatum kan nicht voor geboortedatum sein",
                 
                 // Zugangskontrolle Popup Texte
                 insufficientPermissions: "Unzureichende Berechtigungen",
@@ -327,13 +333,21 @@ class DogManager extends BaseModule {
                 deleteFailed: "Fehler beim Löschen des Hundes: ",
                 confirmDelete: "Sind Sie sicher, dass Sie diesen Hund löschen möchten?",
                 photoAdded: "Foto hinzugefügt",
-                photoError: "Fehler beim Hochladen des Fotos: "
+                photoError: "Fehler beim Hochladen des Fotos: ",
+                
+                // Progress messages
+                loadingDogs: "Hunde laden... ({count} geladen)"
             }
         };
     }
     
-    t(key) {
-        return this.translations[this.currentLang][key] || key;
+    t(key, params = {}) {
+        let text = this.translations[this.currentLang][key] || key;
+        // Vervang placeholders
+        for (const [param, value] of Object.entries(params)) {
+            text = text.replace(`{${param}}`, value);
+        }
+        return text;
     }
     
     updateLanguage(lang) {
@@ -676,7 +690,7 @@ class DogManager extends BaseModule {
         console.log('DogManager getDogFormHTML - vaderId:', data.vaderId);
         console.log('DogManager getDogFormHTML - moederId:', data.moederId);
         
-        // Formatteer datums voor weergave (YYYY-MM-DD naar DD-MM-YYYY)
+        // Formatteer datums voor weergave (YYYY-MM-DD naar YYYY-MM-DD voor date input)
         const formatDateForDisplay = (dateString) => {
             if (!dateString) return '';
             try {
@@ -986,7 +1000,7 @@ class DogManager extends BaseModule {
         }
         
         // Alleen verder gaan als gebruiker admin is
-        // Laad honden voor autocomplete
+        // Laad honden voor autocomplete met paginatie
         this.loadAllDogs();
         
         // Event listeners voor formulier
@@ -1235,14 +1249,82 @@ class DogManager extends BaseModule {
         localStorage.setItem('lastBreeds', JSON.stringify(this.lastBreeds));
     }
     
+    /**
+     * Laad alle honden met paginatie voor autocomplete
+     * Pas aan om alle honden te laden (meer dan 100)
+     */
     async loadAllDogs() {
-        if (this.allDogs.length === 0) {
-            try {
-                this.allDogs = await hondenService.getHonden();
-                this.allDogs.sort((a, b) => a.naam.localeCompare(b.naam));
-            } catch (error) {
-                console.error('Fout bij laden honden voor autocomplete:', error);
+        if (this.allDogs.length > 0) {
+            console.log(`DogManager: ${this.allDogs.length} honden al geladen`);
+            return;
+        }
+        
+        try {
+            console.log('DogManager: Laden van alle honden met paginatie voor autocomplete...');
+            
+            // Reset array
+            this.allDogs = [];
+            
+            let currentPage = 1;
+            const pageSize = 1000; // Maximaal wat Supabase toestaat
+            let hasMorePages = true;
+            let totalLoaded = 0;
+            
+            // Toon progress in UI indien beschikbaar
+            this.showProgress?.(this.t('loadingDogs', { count: 0 }));
+            
+            // Loop door alle pagina's
+            while (hasMorePages) {
+                console.log(`DogManager: Laden pagina ${currentPage}...`);
+                
+                // Gebruik de getHonden() methode van hondenService
+                // Aanname: hondenService.getHonden ondersteunt paginatie
+                const result = await hondenService.getHonden(currentPage, pageSize);
+                
+                if (result && result.honden && result.honden.length > 0) {
+                    // Voeg honden toe aan array
+                    this.allDogs = this.allDogs.concat(result.honden);
+                    totalLoaded += result.honden.length;
+                    
+                    // Update progress
+                    this.showProgress?.(this.t('loadingDogs', { count: totalLoaded }));
+                    
+                    console.log(`DogManager: Pagina ${currentPage} geladen: ${result.honden.length} honden`);
+                    
+                    // Controleer of er nog meer pagina's zijn
+                    // Aanname: result bevat een 'hasMore' of 'heeftVolgende' eigenschap
+                    hasMorePages = result.heeftVolgende || result.hasMore || 
+                                  (result.honden && result.honden.length === pageSize);
+                    currentPage++;
+                    
+                    // Veiligheidslimiet voor oneindige lus
+                    if (currentPage > 100) {
+                        console.warn('DogManager: Veiligheidslimiet bereikt: te veel pagina\'s geladen');
+                        break;
+                    }
+                } else {
+                    hasMorePages = false;
+                }
+                
+                // Kleine pauze om de server niet te overbelasten
+                await new Promise(resolve => setTimeout(resolve, 100));
             }
+            
+            // Sorteer op naam voor betere autocomplete
+            this.allDogs.sort((a, b) => {
+                const naamA = a.naam || '';
+                const naamB = b.naam || '';
+                return naamA.localeCompare(naamB);
+            });
+            
+            // Verberg progress
+            this.hideProgress?.();
+            console.log(`DogManager: TOTAAL ${this.allDogs.length} honden geladen voor autocomplete`);
+            
+        } catch (error) {
+            console.error('DogManager: Fout bij laden honden voor autocomplete:', error);
+            this.hideProgress?.();
+            this.allDogs = []; // Reset op error
         }
     }
     
