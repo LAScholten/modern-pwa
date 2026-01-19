@@ -323,7 +323,7 @@ class DogDataManager extends BaseModule {
                 
                 // Zugangskontrolle Popup Texte
                 insufficientPermissions: "Unzureichende Berechtigingen",
-                insufficientPermissionsText: "Sie haben keine Berechtigung, Hunde zu bearbeiten. Nur Administratoren können diese Funktion nutzen.",
+                insufficientPermissionsText: "Sie hebben keine Berechtigung, Hunde zu bearbeiten. Nur Administratoren können diese Funktion nutzen.",
                 loggedInAs: "Sie sind eingeloggt als:",
                 user: "Benutzer",
                 availableFeatures: "Verfügbare functies voor Benutzer",
@@ -359,10 +359,10 @@ class DogDataManager extends BaseModule {
                 photoError: "Fehler beim Hochladen des Fotos: ",
                 fieldsRequired: "Name, Stammbaum-Nummer en Rasse sind Pflichtfelder",
                 dogNotFound: "Hund niet gefonden",
-                adminOnly: "Nur Administratoren können Hunde bearbeiten",
+                adminOnly: "Nur Administratoren kunnen Hunde bearbeiten",
                 invalidId: "Ungültige Hunde-ID",
                 dateFormatError: "Datum muss im Format TT-MM-JJJJ sein",
-                deathBeforeBirthError: "Sterbedatum kann nicht vor dem Geburtsdatum liegen"
+                deathBeforeBirthError: "Sterbedatum kan niet vor dem Geburtsdatum liegen"
             }
         };
     }
@@ -1740,6 +1740,7 @@ class DogDataManager extends BaseModule {
     
     /**
      * Opslaan wijzigingen - MET CORRECTE NEDERLANDSE OUDER ID OPSLAG EN CONSOLE LOGGING
+     * OPGELOST: parseInt probleem met lege strings
      */
     async saveDogChanges() {
         if (!auth.isAdmin()) {
@@ -1789,8 +1790,14 @@ class DogDataManager extends BaseModule {
         const vaderIdValue = document.getElementById('vaderId').value;
         const moederIdValue = document.getElementById('moederId').value;
         
-        const vaderId = vaderIdValue ? parseInt(vaderIdValue) : null;
-        const moederId = moederIdValue ? parseInt(moederIdValue) : null;
+        // OPGELOST: Gebruik de correcte oplossing voor parseInt probleem
+        const vaderId = vaderIdValue && vaderIdValue.trim() !== '' && !isNaN(parseInt(vaderIdValue)) 
+            ? parseInt(vaderIdValue) 
+            : null;
+        
+        const moederId = moederIdValue && moederIdValue.trim() !== '' && !isNaN(parseInt(moederIdValue)) 
+            ? parseInt(moederIdValue) 
+            : null;
         
         // CONSOLE LOGGING VOOR DEBUGGING
         console.log('=== OUDER ID LOGGING ===');
