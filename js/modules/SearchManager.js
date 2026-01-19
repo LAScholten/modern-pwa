@@ -1,3 +1,5 @@
+// js/modules/SearchManager.js
+
 /**
  * Search Manager Module
  * Beheert het zoeken naar honden met real-time filtering op naam en kennelnaam
@@ -5,6 +7,7 @@
  * Inclusief nakomelingen functionaliteit
  * Beide kolommen zijn nu scrollbaar
  * SUPABASE VERSIE MET PAGINATIE - FIXED VERSION
+ * NU MET DEZELFDE PAGINATIE LOGICA ALS DogDataManager
  */
 
 class SearchManager extends BaseModule {
@@ -306,7 +309,7 @@ class SearchManager extends BaseModule {
                 clickToView: "Klicken für Details",
                 parents: "Eltern",
                 noHealthInfo: "Keine Gesundheitsinformationen verfügbar",
-                noAdditionalInfo: "Keine aanvullende informatie beschikbaar",
+                noAdditionalInfo: "Keine aanvullende informatie beschikbar",
                 selectDogToView: "Wählen Sie einen Hund, um Details zu sehen",
                 
                 // Hund Details
@@ -329,7 +332,7 @@ class SearchManager extends BaseModule {
                 // Stamboom buttons
                 pedigreeButton: "Ahnentafel",
                 pedigreeTitle: "Ahnentafel von {name}",
-                generatingPedigree: "Ahnentafel wird generiert...",
+                generatingPedigree: "Ahnentafel wordt generiert...",
                 openPedigree: "Ahnentafel öffnen",
                 pedigree4Gen: "4-Generationen Ahnentafel",
                 
@@ -2003,7 +2006,7 @@ class SearchManager extends BaseModule {
             this.isLoading = true;
             this.showProgress(this.t('loadingAllDogs').replace('{loaded}', '0'));
             
-            // Gebruik paginatie om alle honden te laden
+            // Gebruik paginatie om alle honden te laden - ZELFDE LOGICA ALS DogDataManager
             this.allDogs = await this.loadAllDogsWithPagination();
             this.allDogs.sort((a, b) => a.naam.localeCompare(b.naam));
             
@@ -2021,95 +2024,61 @@ class SearchManager extends BaseModule {
         }
     }
     
-    // Laad alle honden met paginatie - SUPABASE VERSIE MET FIXES
+    // Laad alle honden met paginatie - DEZELFDE LOGICA ALS DogDataManager
     async loadAllDogsWithPagination() {
         try {
+            console.log('SearchManager: Laden van alle honden met paginatie (zelfde logica als DogDataManager)...');
+            
+            // Reset array
             let allDogs = [];
+            
             let currentPage = 1;
-            const pageSize = 1000;
+            const pageSize = 1000; // Maximaal wat Supabase toestaat
             let hasMorePages = true;
             let totalLoaded = 0;
             
-            console.log('SearchManager: Laden van alle honden met paginatie...');
+            // Toon progress in UI
+            this.showProgress(`Honden laden... (0 geladen)`);
             
-            // FIX: Controleer of db functie bestaat
-            if (!this.db || typeof this.db.getHonden !== 'function') {
-                console.error('SearchManager: db.getHonden functie niet beschikbaar!');
-                throw new Error('Database service niet beschikbaar');
-            }
-            
-            // Loop door alle pagina's
+            // Loop door alle pagina's - ZELFDE LOGICA ALS DogDataManager
             while (hasMorePages) {
                 console.log(`SearchManager: Laden pagina ${currentPage}...`);
                 
-                try {
-                    const result = await this.db.getHonden(currentPage, pageSize);
+                // Gebruik de getHonden() methode
+                if (!this.db || typeof this.db.getHonden !== 'function') {
+                    throw new Error('Database service getHonden functie niet beschikbaar');
+                }
+                
+                const result = await this.db.getHonden(currentPage, pageSize);
+                
+                if (result.honden && result.honden.length > 0) {
+                    // Voeg honden toe aan array
+                    allDogs = allDogs.concat(result.honden);
+                    totalLoaded += result.honden.length;
                     
-                    // FIX: Controleer op verschillende mogelijke response formaten
-                    let hondenData = [];
+                    // Update progress
+                    this.showProgress(`Honden laden... (${totalLoaded} geladen)`);
                     
-                    if (result && Array.isArray(result)) {
-                        // Als result een array is, gebruik het direct
-                        hondenData = result;
-                    } else if (result && result.honden && Array.isArray(result.honden)) {
-                        // Als result een object is met honden property
-                        hondenData = result.honden;
-                    } else if (result && result.data && Array.isArray(result.data)) {
-                        // Als result een object is met data property
-                        hondenData = result.data;
+                    console.log(`SearchManager: Pagina ${currentPage} geladen: ${result.honden.length} honden`);
+                    
+                    // ZELFDE LOGICA ALS DogDataManager: Controleer of er nog meer pagina's zijn
+                    hasMorePages = result.heeftVolgende;
+                    
+                    if (hasMorePages) {
+                        currentPage++;
                     }
                     
-                    if (hondenData.length > 0) {
-                        // Voeg honden toe aan array
-                        allDogs = allDogs.concat(hondenData);
-                        totalLoaded += hondenData.length;
-                        
-                        // Update progress
-                        const progressMessage = this.t('loadingAllDogs').replace('{loaded}', totalLoaded);
-                        this.showProgress(progressMessage);
-                        
-                        console.log(`SearchManager: Pagina ${currentPage} geladen: ${hondenData.length} honden`);
-                        
-                        // FIX: Verbeterde logica om te bepalen of er nog meer pagina's zijn
-                        // Als we minder honden krijgen dan de pageSize, zijn we klaar
-                        if (hondenData.length < pageSize) {
-                            console.log(`SearchManager: Minder dan ${pageSize} honden ontvangen (${hondenData.length}), alle honden geladen.`);
-                            hasMorePages = false;
-                        } else {
-                            // Check ook op andere indicatoren
-                            if (result && result.heeftVolgende === false) {
-                                console.log('SearchManager: heeftVolgende is false, alle honden geladen.');
-                                hasMorePages = false;
-                            } else if (result && result.hasNext === false) {
-                                console.log('SearchManager: hasNext is false, alle honden geladen.');
-                                hasMorePages = false;
-                            } else if (result && result.metadata && result.metadata.totalPages && currentPage >= result.metadata.totalPages) {
-                                console.log('SearchManager: Laatste pagina bereikt, alle honden geladen.');
-                                hasMorePages = false;
-                            } else {
-                                // Ga naar volgende pagina
-                                currentPage++;
-                            }
-                        }
-                    } else {
-                        // FIX: Geen honden meer, stop de lus
-                        console.log('SearchManager: Geen honden meer gevonden op pagina', currentPage);
-                        hasMorePages = false;
+                    // Veiligheidslimiet voor oneindige lus (zelfde als DogDataManager)
+                    if (currentPage > 100) {
+                        console.warn('SearchManager: Veiligheidslimiet bereikt: te veel pagina\'s geladen');
+                        break;
                     }
-                    
-                    // Veiligheidslimiet voor oneindige lus (50.000 records max)
-                    if (currentPage > 50) {
-                        console.warn('SearchManager: Veiligheidslimiet bereikt bij paginatie');
-                        hasMorePages = false;
-                    }
-                    
-                    // Kleine pauze om de server niet te overbelasten
-                    await new Promise(resolve => setTimeout(resolve, 50));
-                    
-                } catch (pageError) {
-                    console.error(`SearchManager: Fout bij laden pagina ${currentPage}:`, pageError);
+                } else {
                     hasMorePages = false;
                 }
+                
+                // Kleine pauze om de server niet te overbelasten (zelfde als DogDataManager)
+                await new Promise(resolve => setTimeout(resolve, 100));
             }
             
             // Sorteer op naam
@@ -2120,6 +2089,7 @@ class SearchManager extends BaseModule {
             });
             
             console.log(`SearchManager: TOTAAL ${allDogs.length} honden geladen`);
+            
             return allDogs;
             
         } catch (error) {
