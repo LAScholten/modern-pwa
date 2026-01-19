@@ -323,7 +323,7 @@ class DogDataManager extends BaseModule {
                 
                 // Zugangskontrolle Popup Texte
                 insufficientPermissions: "Unzureichende Berechtigingen",
-                insufficientPermissionsText: "Sie hebben keine Berechtigung, Hunde zu bearbeiten. Nur Administratoren können diese Funktion nutzen.",
+                insufficientPermissionsText: "Sie haben keine Berechtigung, Hunde zu bearbeiten. Nur Administratoren können diese Funktion nutzen.",
                 loggedInAs: "Sie sind eingeloggt als:",
                 user: "Benutzer",
                 availableFeatures: "Verfügbare functies voor Benutzer",
@@ -359,7 +359,7 @@ class DogDataManager extends BaseModule {
                 photoError: "Fehler beim Hochladen des Fotos: ",
                 fieldsRequired: "Name, Stammbaum-Nummer en Rasse sind Pflichtfelder",
                 dogNotFound: "Hund niet gefonden",
-                adminOnly: "Nur Administratoren kunnen Hunde bearbeiten",
+                adminOnly: "Nur Administratoren können Hunde bearbeiten",
                 invalidId: "Ungültige Hunde-ID",
                 dateFormatError: "Datum muss im Format TT-MM-JJJJ sein",
                 deathBeforeBirthError: "Sterbedatum kan niet vor dem Geburtsdatum liegen"
@@ -1739,8 +1739,7 @@ class DogDataManager extends BaseModule {
     }
     
     /**
-     * Opslaan wijzigingen - MET CORRECTE NEDERLANDSE OUDER ID OPSLAG EN CONSOLE LOGGING
-     * OPGELOST: parseInt probleem met lege strings
+     * Opslaan wijzigingen - MET VERBETERDE DEBUGGING EN ERROR HANDLING
      */
     async saveDogChanges() {
         if (!auth.isAdmin()) {
@@ -1772,17 +1771,17 @@ class DogDataManager extends BaseModule {
         
         // Formatteer datums voor opslag (YYYY-MM-DD formaat)
         const formatDateForStorage = (dateString) => {
-            if (!dateString) return '';
+            if (!dateString) return null;
             try {
                 const date = new Date(dateString);
-                if (isNaN(date.getTime())) return '';
+                if (isNaN(date.getTime())) return null;
                 
                 const year = date.getFullYear();
                 const month = String(date.getMonth() + 1).padStart(2, '0');
                 const day = String(date.getDate()).padStart(2, '0');
-                return `${year}-${month}-${day}`; // YYYY-MM-DD formaat
+                return `${year}-${month}-${day}`;
             } catch (e) {
-                return '';
+                return null;
             }
         };
         
@@ -1803,8 +1802,6 @@ class DogDataManager extends BaseModule {
         console.log('=== OUDER ID LOGGING ===');
         console.log('Vader ID uit hidden veld (vaderId):', vaderIdValue, '(geparsed:', vaderId, ')');
         console.log('Moeder ID uit hidden veld (moederId):', moederIdValue, '(geparsed:', moederId, ')');
-        console.log('Vader input veld waarde:', document.getElementById('father').value);
-        console.log('Moeder input veld waarde:', document.getElementById('mother').value);
         console.log('=== EINDE LOGGING ===');
         
         // Zoek ouder namen op basis van IDs
@@ -1817,7 +1814,7 @@ class DogDataManager extends BaseModule {
             console.log(`Vader gevonden: ID=${vaderId}, Naam=${vader}`);
         } else {
             console.log('Geen vader ID opgegeven, gebruik tekst uit input veld');
-            vader = document.getElementById('father').value.split(' ')[0] || ''; // Neem eerste woord als naam
+            vader = document.getElementById('father').value.split(' ')[0] || '';
         }
         
         if (moederId) {
@@ -1826,9 +1823,10 @@ class DogDataManager extends BaseModule {
             console.log(`Moeder gevonden: ID=${moederId}, Naam=${moeder}`);
         } else {
             console.log('Geen moeder ID opgegeven, gebruik tekst uit input veld');
-            moeder = document.getElementById('mother').value.split(' ')[0] || ''; // Neem eerste woord als naam
+            moeder = document.getElementById('mother').value.split(' ')[0] || '';
         }
         
+        // Verzamel alle data voor update
         const dogData = {
             id: parsedId,
             naam: document.getElementById('dogName').value.trim(),
@@ -1837,32 +1835,34 @@ class DogDataManager extends BaseModule {
             ras: document.getElementById('breed').value.trim(),
             vachtkleur: document.getElementById('coatColor').value.trim(),
             geslacht: document.getElementById('gender').value,
-            vader: vader, // Alleen naam
-            vaderId: vaderId, // ID in het Nederlands
-            moeder: moeder, // Alleen naam
-            moederId: moederId, // ID in het Nederlands
+            vader: vader,
+            vaderId: vaderId,
+            moeder: moeder,
+            moederId: moederId,
             geboortedatum: formatDateForStorage(birthDateValue),
             overlijdensdatum: formatDateForStorage(deathDateValue),
-            heupdysplasie: document.getElementById('hipDysplasia').value,
-            elleboogdysplasie: document.getElementById('elbowDysplasia').value,
-            patella: document.getElementById('patellaLuxation').value,
-            ogen: document.getElementById('eyes').value,
-            ogenVerklaring: document.getElementById('eyesExplanation')?.value.trim() || '',
-            dandyWalker: document.getElementById('dandyWalker').value,
-            schildklier: document.getElementById('thyroid').value,
-            schildklierVerklaring: document.getElementById('thyroidExplanation')?.value.trim() || '',
-            land: document.getElementById('country').value.trim(),
-            postcode: document.getElementById('zipCode').value.trim(),
-            opmerkingen: document.getElementById('remarks').value.trim(),
+            heupdysplasie: document.getElementById('hipDysplasia').value || null,
+            elleboogdysplasie: document.getElementById('elbowDysplasia').value || null,
+            patella: document.getElementById('patellaLuxation').value || null,
+            ogen: document.getElementById('eyes').value || null,
+            ogenVerklaring: document.getElementById('eyesExplanation')?.value.trim() || null,
+            dandyWalker: document.getElementById('dandyWalker').value || null,
+            schildklier: document.getElementById('thyroid').value || null,
+            schildklierVerklaring: document.getElementById('thyroidExplanation')?.value.trim() || null,
+            land: document.getElementById('country').value.trim() || null,
+            postcode: document.getElementById('zipCode').value.trim() || null,
+            opmerkingen: document.getElementById('remarks').value.trim() || null,
             updatedAt: new Date().toISOString()
         };
         
-        // CONSOLE LOG DE DATA DIE NAAR DE DATABASE GAAT
-        console.log('=== DATA NAAR DATABASE ===');
-        console.log('Volledige dogData:', dogData);
-        console.log('vaderId waarde:', dogData.vaderId, '(type:', typeof dogData.vaderId, ')');
-        console.log('moederId waarde:', dogData.moederId, '(type:', typeof dogData.moederId, ')');
-        console.log('=== EINDE DATA LOG ===');
+        // DEBUG: Toon de data die wordt verzonden
+        console.log('=== DATA VOOR UPDATE ===');
+        console.log('Dog ID:', dogData.id);
+        console.log('Naam:', dogData.naam);
+        console.log('Vader ID:', dogData.vaderId, 'Type:', typeof dogData.vaderId);
+        console.log('Moeder ID:', dogData.moederId, 'Type:', typeof dogData.moederId);
+        console.log('Volledige data:', JSON.stringify(dogData, null, 2));
+        console.log('=== EINDE DATA ===');
         
         // Valideer verplichte velden
         if (!dogData.naam || !dogData.stamboomnr || !dogData.ras) {
@@ -1873,18 +1873,29 @@ class DogDataManager extends BaseModule {
         // Voeg ras toe aan recente rassen
         this.addToLastBreeds(dogData.ras);
         
-        console.log('Saving dog data (with correct Dutch parent IDs):', dogData);
         this.showProgress(this.t('savingChanges'));
         
         try {
-            // Gebruik de updateHond methode van de hondenService
-            if (hondenService && typeof hondenService.updateHond === 'function') {
-                console.log('Calling updateHond with ID:', dogData.id);
-                const result = await hondenService.updateHond(dogData);
-                console.log('Update result:', result);
-            } 
-            else {
-                throw new Error('Geen geschikte update methode gevonden in hondenService');
+            // DEBUG: Controleer of hondenService beschikbaar is
+            console.log('hondenService beschikbaar:', !!hondenService);
+            console.log('updateHond methode beschikbaar:', typeof hondenService?.updateHond);
+            
+            if (!hondenService || typeof hondenService.updateHond !== 'function') {
+                throw new Error('hondenService.updateHond is niet beschikbaar');
+            }
+            
+            // Roep de update methode aan
+            console.log('Aanroepen updateHond voor ID:', dogData.id);
+            const result = await hondenService.updateHond(dogData);
+            
+            console.log('Update resultaat:', result);
+            
+            if (!result) {
+                throw new Error('Geen resultaat van update operatie');
+            }
+            
+            if (result.error) {
+                throw new Error(result.error.message || 'Update mislukt');
             }
             
             this.hideProgress();
@@ -1893,7 +1904,11 @@ class DogDataManager extends BaseModule {
             // Foto uploaden als er een is geselecteerd
             const photoInput = document.getElementById('dogPhoto');
             if (photoInput && photoInput.files.length > 0) {
-                await this.uploadPhoto(dogData.stamboomnr, photoInput.files[0]);
+                try {
+                    await this.uploadPhoto(dogData.stamboomnr, photoInput.files[0]);
+                } catch (photoError) {
+                    console.warn('Foto upload mislukt:', photoError);
+                }
             }
             
             // Update lokale cache
@@ -1902,7 +1917,7 @@ class DogDataManager extends BaseModule {
                 this.allDogs[index] = { ...this.allDogs[index], ...dogData };
             } else {
                 this.allDogs.push(dogData);
-                this.allDogs.sort((a, b) => a.naam.localeCompare(b.naam));
+                this.allDogs.sort((a, b) => (a.naam || '').localeCompare(b.naam || ''));
             }
             
             // Refresh zoekresultaten als nodig
@@ -1918,8 +1933,22 @@ class DogDataManager extends BaseModule {
             
         } catch (error) {
             this.hideProgress();
-            console.error('Error updating dog:', error);
-            this.showError(`${this.t('updateFailed')}${error.message}`);
+            console.error('Fout bij opslaan wijzigingen:', error);
+            
+            // Bepaal het type fout voor een betere foutmelding
+            let errorMessage = this.t('updateFailed');
+            
+            if (error.message.includes('permission') || error.message.includes('auth') || error.message.includes('recht')) {
+                errorMessage += ' Toegang geweigerd. Controleer uw administrator rechten.';
+            } else if (error.message.includes('network') || error.message.includes('fetch') || error.message.includes('internet')) {
+                errorMessage += ' Netwerkfout. Controleer uw internetverbinding.';
+            } else if (error.message.includes('unique') || error.message.includes('duplicate')) {
+                errorMessage += ' Stamboomnummer bestaat al.';
+            } else {
+                errorMessage += ' ' + error.message;
+            }
+            
+            this.showError(errorMessage);
         }
     }
     
