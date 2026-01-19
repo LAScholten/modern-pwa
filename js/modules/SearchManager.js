@@ -460,7 +460,7 @@ class SearchManager extends BaseModule {
             }
             
             // Sluit nakomelingen modal
-            if (e.target.classList.contains('offspring-modal-close') || 
+            if (e.target.classList.contains('.offspring-modal-close') || 
                 e.target.closest('.offspring-modal-close') ||
                 e.target.id === 'offspringModalOverlay') {
                 const overlay = document.getElementById('offspringModalOverlay');
@@ -2028,6 +2028,7 @@ class SearchManager extends BaseModule {
             let currentPage = 1;
             const pageSize = 1000;
             let hasMorePages = true;
+            let totalLoaded = 0;
             
             console.log('SearchManager: Laden van alle honden met paginatie...');
             
@@ -2044,29 +2045,62 @@ class SearchManager extends BaseModule {
                 try {
                     const result = await this.db.getHonden(currentPage, pageSize);
                     
-                    if (result && result.honden && result.honden.length > 0) {
+                    // FIX: Controleer op verschillende mogelijke response formaten
+                    let hondenData = [];
+                    
+                    if (result && Array.isArray(result)) {
+                        // Als result een array is, gebruik het direct
+                        hondenData = result;
+                    } else if (result && result.honden && Array.isArray(result.honden)) {
+                        // Als result een object is met honden property
+                        hondenData = result.honden;
+                    } else if (result && result.data && Array.isArray(result.data)) {
+                        // Als result een object is met data property
+                        hondenData = result.data;
+                    }
+                    
+                    if (hondenData.length > 0) {
                         // Voeg honden toe aan array
-                        allDogs = allDogs.concat(result.honden);
+                        allDogs = allDogs.concat(hondenData);
+                        totalLoaded += hondenData.length;
                         
                         // Update progress
-                        const progressMessage = this.t('loadingAllDogs').replace('{loaded}', allDogs.length);
+                        const progressMessage = this.t('loadingAllDogs').replace('{loaded}', totalLoaded);
                         this.showProgress(progressMessage);
                         
-                        console.log(`SearchManager: Pagina ${currentPage} geladen: ${result.honden.length} honden`);
+                        console.log(`SearchManager: Pagina ${currentPage} geladen: ${hondenData.length} honden`);
                         
-                        // FIX: Controleer of er nog meer pagina's zijn
-                        hasMorePages = result.heeftVolgende || false;
-                        currentPage++;
-                        
-                        // Veiligheidslimiet voor oneindige lus (50.000 records max)
-                        if (currentPage > 50) {
-                            console.warn('SearchManager: Veiligheidslimiet bereikt bij paginatie');
-                            break;
+                        // FIX: Verbeterde logica om te bepalen of er nog meer pagina's zijn
+                        // Als we minder honden krijgen dan de pageSize, zijn we klaar
+                        if (hondenData.length < pageSize) {
+                            console.log(`SearchManager: Minder dan ${pageSize} honden ontvangen (${hondenData.length}), alle honden geladen.`);
+                            hasMorePages = false;
+                        } else {
+                            // Check ook op andere indicatoren
+                            if (result && result.heeftVolgende === false) {
+                                console.log('SearchManager: heeftVolgende is false, alle honden geladen.');
+                                hasMorePages = false;
+                            } else if (result && result.hasNext === false) {
+                                console.log('SearchManager: hasNext is false, alle honden geladen.');
+                                hasMorePages = false;
+                            } else if (result && result.metadata && result.metadata.totalPages && currentPage >= result.metadata.totalPages) {
+                                console.log('SearchManager: Laatste pagina bereikt, alle honden geladen.');
+                                hasMorePages = false;
+                            } else {
+                                // Ga naar volgende pagina
+                                currentPage++;
+                            }
                         }
                     } else {
                         // FIX: Geen honden meer, stop de lus
-                        hasMorePages = false;
                         console.log('SearchManager: Geen honden meer gevonden op pagina', currentPage);
+                        hasMorePages = false;
+                    }
+                    
+                    // Veiligheidslimiet voor oneindige lus (50.000 records max)
+                    if (currentPage > 50) {
+                        console.warn('SearchManager: Veiligheidslimiet bereikt bij paginatie');
+                        hasMorePages = false;
                     }
                     
                     // Kleine pauze om de server niet te overbelasten
