@@ -66,7 +66,7 @@ class DogDataManager extends BaseModule {
                 eyesDistichiasis: "Distichiasis",
                 eyesOther: "Overig",
                 eyesExplanation: "Verklaring overig",
-                dandywalker: "Dandy Walker Malformation",
+                dandyWalker: "Dandy Walker Malformation",
                 dandyOptions: "Selecteer status...",
                 dandyFreeDNA: "Vrij op DNA",
                 dandyFreeParents: "Vrij op ouders",
@@ -182,7 +182,7 @@ class DogDataManager extends BaseModule {
                 eyesDistichiasis: "Distichiasis",
                 eyesOther: "Other",
                 eyesExplanation: "Other explanation",
-                dandywalker: "Dandy Walker Malformation",
+                dandyWalker: "Dandy Walker Malformation",
                 dandyOptions: "Select status...",
                 dandyFreeDNA: "Free on DNA",
                 dandyFreeParents: "Free on parents",
@@ -298,7 +298,7 @@ class DogDataManager extends BaseModule {
                 eyesDistichiasis: "Distichiasis",
                 eyesOther: "Andere",
                 eyesExplanation: "Erklärung andere",
-                dandywalker: "Dandy Walker Malformation",
+                dandyWalker: "Dandy Walker Malformation",
                 dandyOptions: "Status wählen...",
                 dandyFreeDNA: "Frij op DNA",
                 dandyFreeParents: "Frij op ouders",
@@ -334,7 +334,7 @@ class DogDataManager extends BaseModule {
                 
                 // Suchfeld
                 loadingDogs: "Hunde laden...",
-                noResults: "Keine Hunde gefonden",
+                noResults: "Keine Hunde gefunden",
                 selectDogToEdit: "Wählen Sie einen Hund zum Bearbeiten",
                 typeToSearch: "Beginnen Sie mit der Eingabe, um zu suchen",
                 
@@ -1647,7 +1647,7 @@ class DogDataManager extends BaseModule {
         document.getElementById('patellaLuxation').value = dog.patella || '';
         document.getElementById('eyes').value = dog.ogen || '';
         document.getElementById('eyesExplanation').value = dog.ogenVerklaring || '';
-        document.getElementById('dandywalker').value = dog.dandyWalker || '';
+        document.getElementById('dandyWalker').value = dog.dandyWalker || '';
         document.getElementById('thyroid').value = dog.schildklier || '';
         document.getElementById('thyroidExplanation').value = dog.schildklierVerklaring || '';
         
@@ -1739,7 +1739,7 @@ class DogDataManager extends BaseModule {
     }
     
     /**
-     * Opslaan wijzigingen - MET DIRECTE SUPABASE UPDATE
+     * Opslaan wijzigingen - MET VERBETERDE DEBUGGING EN ERROR HANDLING
      */
     async saveDogChanges() {
         if (!auth.isAdmin()) {
@@ -1827,7 +1827,8 @@ class DogDataManager extends BaseModule {
         }
         
         // Verzamel alle data voor update
-        const updateData = {
+        const dogData = {
+            id: parsedId,
             naam: document.getElementById('dogName').value.trim(),
             kennelnaam: document.getElementById('kennelName').value.trim(),
             stamboomnr: document.getElementById('pedigreeNumber').value.trim(),
@@ -1845,7 +1846,7 @@ class DogDataManager extends BaseModule {
             patella: document.getElementById('patellaLuxation').value || null,
             ogen: document.getElementById('eyes').value || null,
             ogenVerklaring: document.getElementById('eyesExplanation')?.value.trim() || null,
-            dandywalker: document.getElementById('dandyWalker').value || null,
+            dandyWalker: document.getElementById('dandyWalker').value || null,
             schildklier: document.getElementById('thyroid').value || null,
             schildklierVerklaring: document.getElementById('thyroidExplanation')?.value.trim() || null,
             land: document.getElementById('country').value.trim() || null,
@@ -1856,75 +1857,79 @@ class DogDataManager extends BaseModule {
         
         // DEBUG: Toon de data die wordt verzonden
         console.log('=== DATA VOOR UPDATE ===');
-        console.log('Dog ID:', parsedId);
-        console.log('Naam:', updateData.naam);
-        console.log('Vader ID:', updateData.vaderId, 'Type:', typeof updateData.vaderId);
-        console.log('Moeder ID:', updateData.moederId, 'Type:', typeof updateData.moederId);
-        console.log('Volledige data:', JSON.stringify(updateData, null, 2));
+        console.log('Dog ID:', dogData.id);
+        console.log('Naam:', dogData.naam);
+        console.log('Vader ID:', dogData.vaderId, 'Type:', typeof dogData.vaderId);
+        console.log('Moeder ID:', dogData.moederId, 'Type:', typeof dogData.moederId);
+        console.log('Volledige data:', JSON.stringify(dogData, null, 2));
         console.log('=== EINDE DATA ===');
         
         // Valideer verplichte velden
-        if (!updateData.naam || !updateData.stamboomnr || !updateData.ras) {
+        if (!dogData.naam || !dogData.stamboomnr || !dogData.ras) {
             this.showError(this.t('fieldsRequired'));
             return;
         }
         
         // Voeg ras toe aan recente rassen
-        this.addToLastBreeds(updateData.ras);
+        this.addToLastBreeds(dogData.ras);
         
         this.showProgress(this.t('savingChanges'));
         
         try {
-            // METHODE 1: Probeer eerst via hondenService
-            if (hondenService && typeof hondenService.updateHond === 'function') {
-                console.log('Probeer update via hondenService...');
-                
-                // Maak complete dogData object voor hondenService
-                const dogData = {
-                    id: parsedId,
-                    ...updateData
-                };
-                
-                const result = await hondenService.updateHond(dogData);
-                console.log('Resultaat van hondenService.updateHond:', result);
-                
-                if (result && !result.error) {
-                    // Succes via hondenService
-                    this.handleSaveSuccess(parsedId, updateData);
-                    return;
+            // DEBUG: Controleer of hondenService beschikbaar is
+            console.log('hondenService beschikbaar:', !!hondenService);
+            console.log('updateHond methode beschikbaar:', typeof hondenService?.updateHond);
+            
+            if (!hondenService || typeof hondenService.updateHond !== 'function') {
+                throw new Error('hondenService.updateHond is niet beschikbaar');
+            }
+            
+            // Roep de update methode aan
+            console.log('Aanroepen updateHond voor ID:', dogData.id);
+            const result = await hondenService.updateHond(dogData);
+            
+            console.log('Update resultaat:', result);
+            
+            if (!result) {
+                throw new Error('Geen resultaat van update operatie');
+            }
+            
+            if (result.error) {
+                throw new Error(result.error.message || 'Update mislukt');
+            }
+            
+            this.hideProgress();
+            this.showSuccess(this.t('dogUpdated'));
+            
+            // Foto uploaden als er een is geselecteerd
+            const photoInput = document.getElementById('dogPhoto');
+            if (photoInput && photoInput.files.length > 0) {
+                try {
+                    await this.uploadPhoto(dogData.stamboomnr, photoInput.files[0]);
+                } catch (photoError) {
+                    console.warn('Foto upload mislukt:', photoError);
                 }
-                
-                console.warn('hondenService.updateHond gaf een fout of undefined terug, probeer directe Supabase...');
             }
             
-            // METHODE 2: Directe Supabase update
-            console.log('Probeer directe Supabase update...');
-            
-            // Controleer of Supabase beschikbaar is
-            if (!window.supabase) {
-                throw new Error('Supabase client niet beschikbaar');
+            // Update lokale cache
+            const index = this.allDogs.findIndex(d => d.id === dogData.id);
+            if (index !== -1) {
+                this.allDogs[index] = { ...this.allDogs[index], ...dogData };
+            } else {
+                this.allDogs.push(dogData);
+                this.allDogs.sort((a, b) => (a.naam || '').localeCompare(b.naam || ''));
             }
             
-            // Directe Supabase update
-            const { data, error } = await window.supabase
-                .from('honden')
-                .update(updateData)
-                .eq('id', parsedId)
-                .select();
-            
-            if (error) {
-                console.error('Supabase update fout:', error);
-                throw new Error(`Database fout: ${error.message}`);
+            // Refresh zoekresultaten als nodig
+            const searchInput = document.getElementById('dogSearch');
+            if (searchInput && searchInput.value) {
+                this.filterDogsForSearchField(searchInput.value);
             }
             
-            if (!data || data.length === 0) {
-                throw new Error('Geen data teruggekregen na update');
-            }
-            
-            console.log('Directe Supabase update succesvol:', data);
-            
-            // Succes afhandeling
-            this.handleSaveSuccess(parsedId, updateData);
+            // Terug naar zoeken na succes
+            setTimeout(() => {
+                this.showSearchSection();
+            }, 1500);
             
         } catch (error) {
             this.hideProgress();
@@ -1939,57 +1944,12 @@ class DogDataManager extends BaseModule {
                 errorMessage += ' Netwerkfout. Controleer uw internetverbinding.';
             } else if (error.message.includes('unique') || error.message.includes('duplicate')) {
                 errorMessage += ' Stamboomnummer bestaat al.';
-            } else if (error.message.includes('Database fout')) {
-                errorMessage += ' ' + error.message.replace('Database fout: ', '');
             } else {
                 errorMessage += ' ' + error.message;
             }
             
             this.showError(errorMessage);
         }
-    }
-    
-    /**
-     * Afhandeling na succesvol opslaan
-     */
-    handleSaveSuccess(dogId, updateData) {
-        this.hideProgress();
-        this.showSuccess(this.t('dogUpdated'));
-        
-        // Foto uploaden als er een is geselecteerd
-        const photoInput = document.getElementById('dogPhoto');
-        if (photoInput && photoInput.files.length > 0) {
-            try {
-                this.uploadPhoto(updateData.stamboomnr, photoInput.files[0]).catch(photoError => {
-                    console.warn('Foto upload mislukt:', photoError);
-                });
-            } catch (photoError) {
-                console.warn('Foto upload mislukt:', photoError);
-            }
-        }
-        
-        // Update lokale cache
-        const index = this.allDogs.findIndex(d => d.id === dogId);
-        if (index !== -1) {
-            // Combineer oude data met nieuwe updates
-            this.allDogs[index] = { 
-                ...this.allDogs[index], 
-                ...updateData,
-                id: dogId 
-            };
-            console.log('Lokale cache bijgewerkt voor hond ID:', dogId);
-        }
-        
-        // Refresh zoekresultaten als nodig
-        const searchInput = document.getElementById('dogSearch');
-        if (searchInput && searchInput.value) {
-            this.filterDogsForSearchField(searchInput.value);
-        }
-        
-        // Terug naar zoeken na succes
-        setTimeout(() => {
-            this.showSearchSection();
-        }, 1500);
     }
     
     /**
@@ -2022,23 +1982,12 @@ class DogDataManager extends BaseModule {
         this.showProgress(this.t('deleting'));
         
         try {
-            // METHODE 1: Probeer via hondenService
+            // Gebruik de verwijderHond methode van de hondenService
             if (hondenService && typeof hondenService.verwijderHond === 'function') {
                 console.log('Calling verwijderHond with ID:', parsedId);
                 await hondenService.verwijderHond(parsedId);
-            } 
-            // METHODE 2: Directe Supabase delete
-            else if (window.supabase) {
-                console.log('Directe Supabase delete voor ID:', parsedId);
-                const { error } = await window.supabase
-                    .from('honden')
-                    .delete()
-                    .eq('id', parsedId);
-                
-                if (error) throw error;
-            }
-            else {
-                throw new Error('Geen geschikte delete methode gevonden');
+            } else {
+                throw new Error('Geen geschikte delete methode gevonden in hondenService');
             }
             
             this.hideProgress();
