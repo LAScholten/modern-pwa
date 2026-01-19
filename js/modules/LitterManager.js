@@ -1825,13 +1825,57 @@ class LitterManager {
         }
         
         try {
-            console.log('LitterManager: Laad honden van database...');
-            // GEBRUIK this.db IPV hondenService DIRECT
-            this.allDogs = await this.db.getHonden();
-            console.log('LitterManager: Aantal honden geladen:', this.allDogs.length);
-            this.allDogs.sort((a, b) => a.naam.localeCompare(b.naam));
+            console.log('LitterManager: Laden van alle honden met paginatie...');
+            
+            // Reset array
+            this.allDogs = [];
+            
+            let currentPage = 1;
+            const pageSize = 1000; // Maximaal wat Supabase toestaat
+            let hasMorePages = true;
+            
+            // Loop door alle pagina's
+            while (hasMorePages) {
+                console.log(`LitterManager: Laden pagina ${currentPage}...`);
+                
+                // Gebruik de getHonden() methode van de database service met paginatie
+                const result = await this.db.getHonden(currentPage, pageSize);
+                
+                if (result.honden && result.honden.length > 0) {
+                    // Voeg honden toe aan array
+                    this.allDogs = this.allDogs.concat(result.honden);
+                    
+                    console.log(`LitterManager: Pagina ${currentPage} geladen: ${result.honden.length} honden`);
+                    
+                    // Controleer of er nog meer pagina's zijn
+                    hasMorePages = result.heeftVolgende;
+                    currentPage++;
+                    
+                    // Veiligheidslimiet voor oneindige lus
+                    if (currentPage > 100) {
+                        console.warn('Veiligheidslimiet bereikt: te veel pagina\'s geladen');
+                        break;
+                    }
+                } else {
+                    hasMorePages = false;
+                }
+                
+                // Kleine pauze om de server niet te overbelasten
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+            // Sorteer op naam
+            this.allDogs.sort((a, b) => {
+                const naamA = a.naam || '';
+                const naamB = b.naam || '';
+                return naamA.localeCompare(naamB);
+            });
+            
+            console.log(`LitterManager: TOTAAL ${this.allDogs.length} honden geladen voor autocomplete`);
+            
         } catch (error) {
             console.error('LitterManager: Fout bij laden honden voor autocomplete:', error);
+            this.allDogs = []; // Reset op error
         }
     }
     
