@@ -1462,25 +1462,27 @@ class DogManager extends BaseModule {
             moeder = document.getElementById('mother').value.split(' ')[0] || '';
         }
         
-        // Haal user ID op voor RLS compliance
-        const currentUser = auth.getCurrentUser();
-        const userId = currentUser ? currentUser.id : null;
-        
-        // Maak dogData object - EXACT ZELFDE STRUCTUUR ALS DogDataManager
+        // VERWIJDER het status veld - gebruik alleen bestaande databasevelden
         const dogData = {
-            // Basis informatie
+            // BASISINFORMATIE
             naam: document.getElementById('dogName').value.trim(),
-            kennelnaam: document.getElementById('kennelName').value.trim(),
+            kennelnaam: document.getElementById('kennelName').value.trim() || null,
             stamboomnr: document.getElementById('pedigreeNumber').value.trim(),
             ras: document.getElementById('breed').value.trim(),
-            vachtkleur: document.getElementById('coatColor').value.trim(),
-            geslacht: document.getElementById('gender').value,
-            vader: vader,
+            vachtkleur: document.getElementById('coatColor').value.trim() || null,
+            geslacht: document.getElementById('gender').value || null,
+            
+            // OUDERS
+            vader: vader || null,
             vader_id: vader_id,
-            moeder: moeder,
+            moeder: moeder || null,
             moeder_id: moeder_id,
+            
+            // DATUMS
             geboortedatum: formatDateForStorage(birthDateValue),
-            overlijdensdatum: formatDateForStorage(deathDateValue),
+            overlijdensdatum: formatDateForStorage(deathDateValue) || null,
+            
+            // GEZONDHEIDSINFORMATIE - EXACT ZELFDE ALS DogDataManager
             heupdysplasie: document.getElementById('hipDysplasia').value || null,
             elleboogdysplasie: document.getElementById('elbowDysplasia').value || null,
             patella: document.getElementById('patellaLuxation').value || null,
@@ -1489,44 +1491,39 @@ class DogManager extends BaseModule {
             dandyWalker: document.getElementById('dandyWalker').value || null,
             schildklier: document.getElementById('thyroid').value || null,
             schildklierverklaring: document.getElementById('thyroidExplanation')?.value.trim() || null,
+            
+            // LOCATIE
             land: document.getElementById('country').value.trim() || null,
             postcode: document.getElementById('zipCode').value.trim() || null,
+            
+            // OPMERKINGEN
             opmerkingen: document.getElementById('remarks').value.trim() || null,
             
-            // Metadata - BELANGRIJK VOOR RLS
+            // SYSTEEMVELDEN
             createdat: new Date().toISOString(),
-            updatedat: new Date().toISOString(),
-            aangemaakt_op: new Date().toISOString(),
-            bijgewerkt_op: new Date().toISOString(),
-            toegevoegd_door: userId,
-            user_id: userId,
-            status: 'actief'
+            updatedat: new Date().toISOString()
             
-            // GEEN gezondheidsinfo JSON VELD!
+            // GEEN status, gezondheidsinfo, of andere extra velden!
         };
         
         console.log('[DogManager] === DOG DATA VOOR OPSLAG ===');
+        console.log('Aantal velden:', Object.keys(dogData).length);
+        console.log('Heupdysplasie:', dogData.heupdysplasie);
+        console.log('Elleboogdysplasie:', dogData.elleboogdysplasie);
+        console.log('Patella:', dogData.patella);
+        console.log('Ogen:', dogData.ogen);
+        console.log('Dandy Walker:', dogData.dandyWalker);
+        console.log('Schildklier:', dogData.schildklier);
+        console.log('Vader ID:', dogData.vader_id);
+        console.log('Moeder ID:', dogData.moeder_id);
+        console.log('Geen gezondheidsinfo JSON veld!');
+        console.log('Geen status veld!');
         console.log(JSON.stringify(dogData, null, 2));
-        console.log('[DogManager] Heupdysplasie:', dogData.heupdysplasie);
-        console.log('[DogManager] Elleboogdysplasie:', dogData.elleboogdysplasie);
-        console.log('[DogManager] Patella:', dogData.patella);
-        console.log('[DogManager] Ogen:', dogData.ogen);
-        console.log('[DogManager] Dandy Walker:', dogData.dandyWalker);
-        console.log('[DogManager] Schildklier:', dogData.schildklier);
-        console.log('[DogManager] Vader ID:', dogData.vader_id);
-        console.log('[DogManager] Moeder ID:', dogData.moeder_id);
         console.log('[DogManager] === EINDE DOG DATA ===');
         
         // Valideer verplichte velden
         if (!dogData.naam || !dogData.stamboomnr || !dogData.ras) {
             this.showError(this.t('fieldsRequired'));
-            return;
-        }
-        
-        // Controleer of toegevoegd_door bestaat (vereist voor RLS)
-        if (!dogData.toegevoegd_door) {
-            console.error('DogManager: toegevoegd_door is niet beschikbaar!');
-            this.showError('Fout: Gebruiker niet ingelogd of toegevoegd_door ontbreekt');
             return;
         }
         
@@ -1538,20 +1535,14 @@ class DogManager extends BaseModule {
         try {
             console.log('[DogManager] Aanroepen voegHondToe...');
             
-            // BELANGRIJK: Gebruik dezelfde service methode als DogDataManager
-            // Als hondenService.voegHondToe niet werkt, probeer dan de updateHond methode
+            // GEBRUIK EXACT DEZELFDE LOGICA ALS DogDataManager
             let result;
             
             if (hondenService && hondenService.voegHondToe) {
                 console.log('[DogManager] Gebruik voegHondToe methode');
                 result = await hondenService.voegHondToe(dogData);
-            } else if (hondenService && hondenService.updateHond) {
-                console.log('[DogManager] Gebruik updateHond methode (fallback)');
-                // Voor nieuwe hond moet ID null zijn
-                dogData.id = null;
-                result = await hondenService.updateHond(dogData);
             } else {
-                throw new Error('Geen geschikte service methode gevonden');
+                throw new Error('voegHondToe methode niet beschikbaar');
             }
             
             console.log('[DogManager] Resultaat:', result);
@@ -1583,7 +1574,6 @@ class DogManager extends BaseModule {
                     modal.hide();
                 }
                 
-                // Optioneel: pagina vernieuwen om nieuwe hond te zien
                 console.log('[DogManager] === EINDE saveDog (succes) ===');
             }, 1500);
             
