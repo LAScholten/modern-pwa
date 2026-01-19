@@ -494,18 +494,28 @@ class SearchManager extends BaseModule {
         }
         
         try {
-            // CORRECTIE: Gebruik de juiste functienaam
+            // CORRECTIE: Gebruik de juiste functienaam - VERBETERDE VERSIE
             let photos = [];
             
             // Controleer welke functie beschikbaar is
-            if (this.db && typeof this.db.getFotoByStamboomnummer === 'function') {
-                photos = await this.db.getFotoByStamboomnummer(dog.stamboomnr);
+            if (typeof window.getFotosVoorStamboomnummer === 'function') {
+                console.log('SearchManager: Gebruik window.getFotosVoorStamboomnummer');
+                photos = await window.getFotosVoorStamboomnummer(dog.stamboomnr);
+            } else if (typeof window.getFotoByStamboomnummer === 'function') {
+                console.log('SearchManager: Gebruik window.getFotoByStamboomnummer');
+                photos = await window.getFotoByStamboomnummer(dog.stamboomnr);
             } else if (this.db && typeof this.db.getFotosVoorStamboomnummer === 'function') {
+                console.log('SearchManager: Gebruik this.db.getFotosVoorStamboomnummer');
                 photos = await this.db.getFotosVoorStamboomnummer(dog.stamboomnr);
+            } else if (this.db && typeof this.db.getFotoByStamboomnummer === 'function') {
+                console.log('SearchManager: Gebruik this.db.getFotoByStamboomnummer');
+                photos = await this.db.getFotoByStamboomnummer(dog.stamboomnr);
             } else if (this.db && typeof this.db.getFotosVoorStamboomnr === 'function') {
+                console.log('SearchManager: Gebruik this.db.getFotosVoorStamboomnr');
                 photos = await this.db.getFotosVoorStamboomnr(dog.stamboomnr);
             } else {
-                console.warn('Geen geschikte foto functie gevonden in db service');
+                console.warn('SearchManager: Geen geschikte foto functie gevonden');
+                console.log('Beschikbare functies in window:', Object.keys(window).filter(k => k.includes('Foto') || k.includes('foto')));
                 return [];
             }
             
@@ -1874,203 +1884,9 @@ class SearchManager extends BaseModule {
         
         this.setupNameSearch();
         this.setupKennelSearch();
-        
-        // NIEUW: Event listener voor het sluiten van de modal
-        this.setupModalCloseEvents();
     }
     
-    // NIEUWE METHODE: Setup event listeners voor modal sluiten
-    setupModalCloseEvents() {
-        // Event listener voor wanneer de modal gesloten wordt
-        const searchModal = document.getElementById('searchModal');
-        if (searchModal) {
-            // Dit is de belangrijkste wijziging - VOEG DIT TOE:
-            searchModal.addEventListener('show.bs.modal', () => {
-                console.log('SearchModal wordt geopend - RESET STATE');
-                this.resetSearchState(); // Reset direct bij openen
-            });
-            
-            searchModal.addEventListener('hidden.bs.modal', () => {
-                console.log('SearchModal wordt gesloten - FULL REFRESH');
-                // Gebruik setTimeout om te wachten tot de modal volledig gesloten is
-                setTimeout(() => {
-                    try {
-                        this.fullRefresh();
-                    } catch (error) {
-                        console.warn('SearchManager: Refresh mislukt omdat modal gesloten is:', error.message);
-                        // Reset alleen interne state als DOM niet meer beschikbaar is
-                        this.resetInternalState();
-                    }
-                }, 100);
-            });
-        }
-        
-        // Event listeners voor sluitknoppen
-        const closeBtn = document.getElementById('searchModalCloseBtn');
-        const closeBtnFooter = document.getElementById('searchModalCloseBtnFooter');
-        
-        if (closeBtn) {
-            closeBtn.addEventListener('click', () => {
-                // Gebruik setTimeout om te wachten tot de modal volledig gesloten is
-                setTimeout(() => {
-                    try {
-                        this.fullRefresh();
-                    } catch (error) {
-                        console.warn('SearchManager: Refresh mislukt omdat modal gesloten is:', error.message);
-                        // Reset alleen interne state als DOM niet meer beschikbaar is
-                        this.resetInternalState();
-                    }
-                }, 100);
-            });
-        }
-        
-        if (closeBtnFooter) {
-            closeBtnFooter.addEventListener('click', () => {
-                // Gebruik setTimeout om te wachten tot de modal volledig gesloten is
-                setTimeout(() => {
-                    try {
-                        this.fullRefresh();
-                    } catch (error) {
-                        console.warn('SearchManager: Refresh mislukt omdat modal gesloten is:', error.message);
-                        // Reset alleen interne state als DOM niet meer beschikbaar is
-                        this.resetInternalState();
-                    }
-                }, 100);
-            });
-        }
-    }
-    
-    // NIEUWE HELPER METHODE: Reset alleen interne state zonder DOM-manipulatie
-    resetInternalState() {
-        console.log('SearchManager: Reset interne state');
-        
-        // Reset alleen de interne variabelen
-        this.allDogs = [];
-        this.filteredDogs = [];
-        this.searchType = 'name';
-        this.isMobileCollapsed = false;
-        this.dogPhotosCache.clear();
-        this.dogOffspringCache.clear();
-        
-        // Reset stamboomManager zodat het opnieuw geïnitialiseerd wordt
-        this.stamboomManager = null;
-    }
-    
-    // NIEUWE METHODE: Volledige refresh (zoals F5 drukken)
-    fullRefresh() {
-        console.log('SearchManager: FULL REFRESH - net zoals F5/pagina refresh');
-        
-        // Controleer of de modal nog bestaat voor we DOM-operaties doen
-        const searchModal = document.getElementById('searchModal');
-        if (!searchModal) {
-            console.log('SearchManager: Modal bestaat niet meer, alleen interne state reset');
-            this.resetInternalState();
-            return;
-        }
-        
-        // Controleer of de modal nog open is
-        if (searchModal.classList.contains('show')) {
-            console.log('SearchManager: Modal is nog open, doe volledige refresh');
-        } else {
-            console.log('SearchManager: Modal is gesloten, doe alleen interne refresh');
-            this.resetInternalState();
-            return;
-        }
-        
-        // 1. CLEAR ALLE CACHES (precies zoals refresh)
-        this.dogPhotosCache.clear();
-        this.dogOffspringCache.clear();
-        
-        // 2. RESET ALLE DATA (precies zoals refresh)
-        this.allDogs = [];
-        this.filteredDogs = [];
-        
-        // 3. RESET ALLE STATES (precies zoals refresh)
-        this.searchType = 'name';
-        this.isMobileCollapsed = false;
-        this.stamboomManager = null;
-        
-        // 4. RESET UI (precies zoals refresh) - MET CONTROLE OP DOM-ELEMENTEN
-        const searchColumn = document.getElementById('searchColumn');
-        const detailsColumn = document.getElementById('detailsColumn');
-        
-        if (searchColumn && detailsColumn) {
-            searchColumn.classList.remove('d-none');
-            detailsColumn.classList.remove('col-12');
-            detailsColumn.classList.add('col-md-7');
-            
-            // Verwijder mobiele terugknop
-            const backButtonDiv = document.querySelector('.mobile-back-button');
-            if (backButtonDiv) {
-                backButtonDiv.remove();
-            }
-        }
-        
-        // 5. CLEAR ALLE INPUT VELDEN (precies zoals refresh) - MET CONTROLE
-        const nameInput = document.getElementById('searchNameInput');
-        const kennelInput = document.getElementById('searchKennelInput');
-        
-        if (nameInput) nameInput.value = '';
-        if (kennelInput) kennelInput.value = '';
-        
-        // 6. TOON INITIELE SCREENS (precies zoals refresh) - MET CONTROLE
-        const resultsContainer = document.getElementById('searchResultsContainer');
-        const detailsContainer = document.getElementById('detailsContainer');
-        
-        if (resultsContainer && detailsContainer) {
-            this.showInitialView();
-            this.clearDetails();
-        }
-        
-        // 7. FORCEER DAT DE VOLGENDE KEER ALLES OPNIEUW GELADEN WORDT
-        // (Deze wordt later opnieuw geïnjecteerd door de UIHandler)
-        
-        console.log('SearchManager: FULL REFRESH COMPLEET - klaar voor nieuwe sessie');
-    }
-    
-    // NIEUWE METHODE: Reset de zoekstatus wanneer modal gesloten wordt
-    resetSearchState() {
-        console.log('SearchManager: Reset state bij openen modal');
-        
-        // Reset mobiele collapsed state
-        this.isMobileCollapsed = false;
-        
-        // Herstel de oorspronkelijke layout - MET CONTROLE OP DOM-ELEMENTEN
-        const searchColumn = document.getElementById('searchColumn');
-        const detailsColumn = document.getElementById('detailsColumn');
-        
-        if (searchColumn && detailsColumn) {
-            searchColumn.classList.remove('d-none');
-            detailsColumn.classList.remove('col-12');
-            detailsColumn.classList.add('col-md-7');
-            
-            // Verwijder mobiele terugknop als die er is
-            const backButtonDiv = document.querySelector('.mobile-back-button');
-            if (backButtonDiv) {
-                backButtonDiv.remove();
-            }
-        }
-        
-        // Clear zoekvelden en toon initieel scherm - MET CONTROLE
-        const nameInput = document.getElementById('searchNameInput');
-        const kennelInput = document.getElementById('searchKennelInput');
-        
-        if (nameInput) nameInput.value = '';
-        if (kennelInput) kennelInput.value = '';
-        
-        const resultsContainer = document.getElementById('searchResultsContainer');
-        const detailsContainer = document.getElementById('detailsContainer');
-        
-        if (resultsContainer && detailsContainer) {
-            this.showInitialView();
-            this.clearDetails();
-        }
-        
-        // Reset filteredDogs
-        this.filteredDogs = [];
-        
-        console.log('Search state reset bij openen modal');
-    }
+    // VERWIJDERD: setupModalCloseEvents() - deze veroorzaakt de reset loop
     
     switchSearchType(type) {
         this.searchType = type;

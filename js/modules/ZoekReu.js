@@ -20,6 +20,11 @@ class ZoekReu {
         this.excludeKennels = [];
         this.excludeHondInputTimer = null;
         this.excludeKennelInputTimer = null;
+        this.loadStartTime = null;
+        this.batchCount = 0;
+        this.totalLoaded = 0;
+        this.maxRetries = 3;
+        this.retryDelay = 2000;
         
         this.translations = {
             nl: {
@@ -395,7 +400,7 @@ class ZoekReu {
                         "Niet getest": "Niet getest"
                     },
                     elleboogdysplasie: {
-                        "0": "0 (Frei)",
+                        "0": "0 (Frij)",
                         "1": "1 (Leicht)",
                         "2": "2 (Mäßig)",
                         "3": "3 (Schwer)",
@@ -453,14 +458,9 @@ class ZoekReu {
     
     async injectDependencies(db, auth, stamboomManager = null) {
         console.log('🔧 ZoekReu: injectDependencies aangeroepen');
-        console.log('   db:', db);
-        console.log('   auth:', auth);
-        console.log('   stamboomManager:', stamboomManager);
-        
         this.db = db;
         this.auth = auth;
         this.stamboomManager = stamboomManager;
-        
         console.log('📥 ZoekReu: Gaat honden laden...');
         await this.loadAllHonden();
         await this.initCOICalculator();
@@ -469,68 +469,41 @@ class ZoekReu {
     async loadAllHonden() {
         try {
             console.log('📥 ZoekReu.loadAllHonden() gestart');
+            this.loadStartTime = Date.now();
+            this.batchCount = 0;
+            this.totalLoaded = 0;
             
             let allDogs = [];
             
-            // METHODE 1: Probeer eerst paginatie via COICalculator2
-            if (typeof window.COICalculator2 !== 'undefined' && 
-                typeof window.COICalculator2.loadAllDogsWithPagination === 'function') {
-                
-                console.log('🔄 Methode 1: Via COICalculator2 paginatie');
-                
-                let service = null;
-                if (this.db && typeof this.db.getHonden === 'function') {
-                    service = this.db;
-                } else if (window.hondenService && typeof window.hondenService.getHonden === 'function') {
-                    service = window.hondenService;
-                } else if (window.db && typeof window.db.getHonden === 'function') {
-                    service = window.db;
-                }
-                
-                if (service) {
-                    allDogs = await window.COICalculator2.loadAllDogsWithPagination(service);
-                    console.log(`✅ COICalculator2 paginatie: ${allDogs.length} honden`);
-                }
-            }
-            
-            // METHODE 2: Via Supabase direct
-            if (allDogs.length === 0 && window.supabase) {
-                console.log('🔄 Methode 2: Via Supabase direct met paginatie');
-                allDogs = await this.loadSupabaseWithPagination();
-            }
-            
-            // METHODE 3: Via DogDataManager (als die bestaat)
-            if (allDogs.length === 0 && window.DogDataManager) {
-                console.log('🔄 Methode 3: Via DogDataManager');
+            if (this.db && typeof this.db.getAllHonden === 'function') {
+                console.log('🔄 Methode 1: Via db.getAllHonden()');
                 try {
-                    const manager = new window.DogDataManager();
-                    const result = await manager.getAllDogsForSearch();
-                    if (result && Array.isArray(result)) {
-                        allDogs = result;
-                        console.log('✅ DogDataManager resultaat:', allDogs.length);
-                    }
+                    allDogs = await this.db.getAllHonden();
+                    console.log(`✅ db.getAllHonden(): ${allDogs.length} honden`);
                 } catch (error) {
-                    console.error('❌ Fout bij DogDataManager:', error);
+                    console.error('❌ Fout bij db.getAllHonden():', error);
                 }
             }
             
-            // METHODE 4: Fallback zonder paginatie
-            if (allDogs.length === 0) {
-                console.log('⚠️ Paginatie niet beschikbaar, probeer zonder paginatie');
-                allDogs = await this.loadHondenWithoutPagination();
+            if (allDogs.length === 0 && window.supabase) {
+                console.log('🔄 Methode 2: Via verbeterde Supabase paginatie');
+                allDogs = await this.loadSupabaseWithImprovedPagination();
             }
             
-            // Controleer resultaat
             if (allDogs.length === 0) {
-                console.error('❌ Alle methodes gefaald - geen honden geladen');
+                console.log('🔄 Methode 3: Fallback via hondenService');
+                allDogs = await this.loadViaHondenService();
+            }
+            
+            if (allDogs.length === 0) {
+                console.error('❌ Geen honden geladen!');
                 this.allHonden = [];
                 this.allTeven = [];
                 return;
             }
             
-            console.log(`✅ TOTAAL ${allDogs.length} honden geladen via paginatie`);
+            console.log(`✅ TOTAAL ${allDogs.length} honden geladen in ${Date.now() - this.loadStartTime}ms`);
             
-            // Verwerk de honden
             this.allHonden = allDogs.map(hond => ({
                 ...hond,
                 id: Number(hond.id),
@@ -557,19 +530,23 @@ class ZoekReu {
                 ik: hond.ik || null
             }));
             
-            // Filter teven
             this.allTeven = this.allHonden.filter(h => 
                 h.geslacht && h.geslacht.toLowerCase() === 'teven'
             );
             
-            console.log(`✅ Totaal: ${this.allHonden.length} honden geladen`);
-            console.log(`✅ Teven: ${this.allTeven.length} teven gevonden`);
+            const reuen = this.allHonden.filter(h => 
+                h.geslacht && h.geslacht.toLowerCase() === 'reuen'
+            );
             
-            // Debug: toon enkele teven
-            if (this.allTeven.length > 0) {
-                console.log('🔍 Eerste 5 teven:');
-                this.allTeven.slice(0, 5).forEach((teef, i) => {
-                    console.log(`   ${i+1}. ${teef.naam || 'Geen naam'} (${teef.id}) - ${teef.kennelnaam || ''}`);
+            console.log(`✅ Database samenvatting:`);
+            console.log(`   - Totaal: ${this.allHonden.length} honden`);
+            console.log(`   - Teven: ${this.allTeven.length} teven`);
+            console.log(`   - Reuen: ${reuen.length} reuen`);
+            
+            if (this.allHonden.length > 0) {
+                console.log('🔍 Eerste 5 honden:');
+                this.allHonden.slice(0, 5).forEach((hond, i) => {
+                    console.log(`   ${i+1}. ${hond.naam || 'Geen naam'} (${hond.id}) - ${hond.geslacht || '?'} - ${hond.kennelnaam || ''}`);
                 });
             }
             
@@ -581,17 +558,33 @@ class ZoekReu {
         }
     }
     
-    async loadSupabaseWithPagination() {
+    async loadSupabaseWithImprovedPagination() {
         try {
-            console.log('📄 Laden via Supabase met paginatie...');
+            console.log('📄 Verbeterde Supabase paginatie gestart...');
             
             let allDogs = [];
-            let start = 0;
+            let page = 0;
             const pageSize = 1000;
             let hasMore = true;
+            let totalEstimated = 0;
             
-            while (hasMore) {
-                console.log(`📄 Laad batch ${start} tot ${start + pageSize}...`);
+            try {
+                const { count, error } = await window.supabase
+                    .from('honden')
+                    .select('*', { count: 'exact', head: true });
+                
+                if (!error && count !== null) {
+                    totalEstimated = count;
+                    console.log(`📊 Geschat totaal aantal honden: ${totalEstimated}`);
+                }
+            } catch (countError) {
+                console.log('ℹ️ Kon totaal niet schatten, ga door met paginatie');
+            }
+            
+            const loadBatch = async (batchPage) => {
+                const start = batchPage * pageSize;
+                
+                console.log(`📄 Laad batch ${batchPage + 1} (${start} - ${start + pageSize - 1})...`);
                 
                 const { data, error } = await window.supabase
                     .from('honden')
@@ -600,82 +593,112 @@ class ZoekReu {
                     .range(start, start + pageSize - 1);
                 
                 if (error) {
-                    console.error('❌ Supabase error:', error);
-                    break;
+                    console.error(`❌ Supabase error bij batch ${batchPage}:`, error);
+                    throw error;
                 }
                 
-                if (data && data.length > 0) {
-                    allDogs = allDogs.concat(data);
-                    console.log(`   ➡ Batch: ${data.length} honden (totaal: ${allDogs.length})`);
+                return data || [];
+            };
+            
+            while (hasMore) {
+                try {
+                    const batchData = await loadBatch(page);
                     
-                    if (data.length < pageSize) {
-                        hasMore = false;
+                    if (batchData.length > 0) {
+                        allDogs = allDogs.concat(batchData);
+                        this.totalLoaded = allDogs.length;
+                        this.batchCount = page + 1;
+                        
+                        console.log(`   ✅ Batch ${page + 1}: ${batchData.length} honden (totaal: ${allDogs.length})`);
+                        
+                        if (document.getElementById('breedingContent')) {
+                            this.updateLoadingStatus();
+                        }
+                        
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        
+                        if (batchData.length < pageSize) {
+                            hasMore = false;
+                            console.log(`🏁 Laatste batch geladen. Totaal: ${allDogs.length} honden`);
+                        } else {
+                            page++;
+                        }
                     } else {
-                        start += pageSize;
+                        hasMore = false;
+                        console.log(`🏁 Geen data meer. Totaal: ${allDogs.length} honden`);
                     }
-                } else {
-                    hasMore = false;
+                    
+                    if (page > 100) {
+                        console.warn('⚠️ Veiligheidslimiet bereikt (100+ pages)');
+                        hasMore = false;
+                    }
+                    
+                } catch (batchError) {
+                    console.error(`❌ Fout bij laden batch ${page}:`, batchError);
+                    
+                    let retryCount = 0;
+                    let retrySuccess = false;
+                    
+                    while (retryCount < this.maxRetries && !retrySuccess) {
+                        retryCount++;
+                        console.log(`🔄 Poging ${retryCount}/${this.maxRetries} opnieuw laden batch ${page}...`);
+                        
+                        await new Promise(resolve => setTimeout(resolve, this.retryDelay * retryCount));
+                        
+                        try {
+                            const retryData = await loadBatch(page);
+                            if (retryData.length > 0) {
+                                allDogs = allDogs.concat(retryData);
+                                this.totalLoaded = allDogs.length;
+                                console.log(`   ✅ Batch ${page} herladen: ${retryData.length} honden`);
+                                retrySuccess = true;
+                            }
+                        } catch (retryError) {
+                            console.error(`❌ Poging ${retryCount} mislukt:`, retryError);
+                        }
+                    }
+                    
+                    if (!retrySuccess) {
+                        console.error(`❌ Batch ${page} kon niet geladen worden na ${this.maxRetries} pogingen`);
+                        hasMore = false;
+                    }
                 }
-                
-                // Veiligheidslimiet
-                if (start > 100000) {
-                    console.warn('⚠️ Veiligheidslimiet bereikt');
-                    break;
-                }
-                
-                await new Promise(resolve => setTimeout(resolve, 50));
             }
             
-            console.log(`✅ Supabase paginatie geladen: ${allDogs.length} honden`);
+            console.log(`✅ Supabase paginatie voltooid: ${allDogs.length} honden geladen in ${this.batchCount} batches`);
+            
             return allDogs;
             
         } catch (error) {
-            console.error('❌ Fout bij Supabase paginatie:', error);
+            console.error('❌ Fout bij verbeterde Supabase paginatie:', error);
             return [];
         }
     }
     
-    async loadHondenWithoutPagination() {
+    async loadViaHondenService() {
         try {
-            console.log('⚠️ Laden zonder paginatie (kan onvolledig zijn)...');
+            console.log('🔄 Probeer via hondenService...');
             
             let hondenResult = null;
             
-            if (this.db && typeof this.db.getHonden === 'function') {
-                try {
-                    hondenResult = await this.db.getHonden();
-                } catch (error) {
-                    console.error('❌ Fout bij this.db.getHonden():', error);
-                }
+            if (window.hondenService && typeof window.hondenService.getHonden === 'function') {
+                console.log('   ➡ Via window.hondenService.getHonden()');
+                hondenResult = await window.hondenService.getHonden();
+            } 
+            else if (this.db && typeof this.db.getHonden === 'function') {
+                console.log('   ➡ Via this.db.getHonden()');
+                hondenResult = await this.db.getHonden();
+            }
+            else if (window.db && typeof window.db.getHonden === 'function') {
+                console.log('   ➡ Via window.db.getHonden()');
+                hondenResult = await window.db.getHonden();
             }
             
-            if (!hondenResult && window.hondenService && typeof window.hondenService.getHonden === 'function') {
-                try {
-                    hondenResult = await window.hondenService.getHonden();
-                } catch (error) {
-                    console.error('❌ Fout bij window.hondenService.getHonden():', error);
-                }
+            if (!hondenResult) {
+                console.log('   ❌ Geen honden service gevonden');
+                return [];
             }
             
-            if (!hondenResult && window.supabase) {
-                try {
-                    const { data, error } = await window.supabase
-                        .from('honden')
-                        .select('*')
-                        .order('naam', { ascending: true })
-                        .limit(10000); // Probeer meer te krijgen
-                    
-                    if (!error && data) {
-                        hondenResult = data;
-                    } else {
-                        console.error('❌ Supabase error:', error);
-                    }
-                } catch (error) {
-                    console.error('❌ Fout bij Supabase direct:', error);
-                }
-            }
-            
-            // Bepaal hoe we de data moeten extraheren
             let hondenArray = [];
             
             if (Array.isArray(hondenResult)) {
@@ -689,14 +712,46 @@ class ZoekReu {
                 return [];
             }
             
-            console.log(`⚠️ Geladen zonder paginatie: ${hondenArray.length} honden`);
-            console.warn('⚠️ LET OP: Mogelijk niet alle honden geladen!');
-            
+            console.log(`✅ Via service geladen: ${hondenArray.length} honden`);
             return hondenArray;
             
         } catch (error) {
-            console.error('❌ Fout bij laden zonder paginatie:', error);
+            console.error('❌ Fout bij laden via service:', error);
             return [];
+        }
+    }
+    
+    updateLoadingStatus() {
+        const content = document.getElementById('breedingContent');
+        if (!content || !content.innerHTML.includes('Laden van alle honden')) {
+            return;
+        }
+        
+        const elapsed = Date.now() - this.loadStartTime;
+        const seconds = Math.floor(elapsed / 1000);
+        
+        const statusHtml = `
+            <div class="text-center py-5">
+                <div class="spinner-border text-purple" role="status">
+                    <span class="visually-hidden">Laden...</span>
+                </div>
+                <p class="mt-3">Laden van zoekfunctie...</p>
+                <p class="small text-muted">
+                    Laden van alle honden (kan even duren)...<br>
+                    <strong>${this.totalLoaded}</strong> honden geladen in <strong>${this.batchCount}</strong> batches<br>
+                    ${seconds > 0 ? `Tijd verstreken: ${seconds} seconden` : ''}
+                </p>
+                ${seconds > 10 ? `
+                    <div class="alert alert-warning mt-3 small">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        Dit duurt langer dan verwacht. Controleer de database verbinding.
+                    </div>
+                ` : ''}
+            </div>
+        `;
+        
+        if (content.innerHTML.includes('spinner-border')) {
+            content.innerHTML = statusHtml;
         }
     }
     
@@ -721,17 +776,16 @@ class ZoekReu {
                 console.warn(`⚠️ WAARSCHUWING: Slechts ${this.allHonden.length} honden geladen. COI berekeningen mogelijk onvolledig!`);
             }
             
-            // Maak COI calculator met alle geladen honden
             this.coiCalculator2 = new COICalculator2(this.allHonden);
             this.coiCalculatorReady = true;
             
             console.log('✅ COICalculator2 succesvol geïnitialiseerd');
             console.log(`   ${this.coiCalculator2._dogMap.size} honden beschikbaar voor COI berekeningen`);
             
-            // Test een paar honden om te controleren of het werkt
             if (this.allHonden.length > 0) {
                 const testDog = this.allHonden[0];
-                console.log(`   Test COI voor ${testDog.naam} (ID: ${testDog.id}): ${this.coiCalculator2.calculateCOI(testDog.id)}%`);
+                const coi = this.coiCalculator2.calculateCOI(testDog.id);
+                console.log(`   Test COI voor ${testDog.naam} (ID: ${testDog.id}): ${coi}%`);
             }
             
             return true;
@@ -760,11 +814,8 @@ class ZoekReu {
                 return '0.000';
             }
             
-            // Gebruik de COI calculator om combinatie COI te berekenen
-            // We maken een virtuele pup en berekenen daar de COI voor
-            
             const futurePuppy = {
-                id: -Date.now(), // Uniek negatief ID
+                id: -Date.now(),
                 naam: this.t('virtualPuppy'),
                 geslacht: 'onbekend',
                 vaderId: reu.id,
@@ -788,7 +839,6 @@ class ZoekReu {
                 opmerkingen: null
             };
             
-            // Voeg virtuele pup toe aan bestaande dataset
             const tempHonden = [...this.allHonden, futurePuppy];
             const tempCOICalculator = new COICalculator2(tempHonden);
             
@@ -820,7 +870,6 @@ class ZoekReu {
         
         console.log('📋 ZoekReu.loadContent() gestart');
         
-        // Toon loading state
         content.innerHTML = `
             <div class="text-center py-5">
                 <div class="spinner-border text-purple" role="status">
@@ -828,11 +877,15 @@ class ZoekReu {
                 </div>
                 <p class="mt-3">Laden van zoekfunctie...</p>
                 <p class="small text-muted">Laden van alle honden (kan even duren)...</p>
+                <div class="progress mt-3" style="height: 10px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-purple" 
+                         role="progressbar" style="width: 25%">
+                    </div>
+                </div>
             </div>
         `;
         
         try {
-            // Laad honden als ze nog niet geladen zijn
             if (this.allHonden.length === 0) {
                 console.log('📥 Honden nog niet geladen, ga ze nu laden...');
                 await this.loadAllHonden();
@@ -840,12 +893,10 @@ class ZoekReu {
                 console.log(`📊 Honden al geladen: ${this.allHonden.length} honden, ${this.allTeven.length} teven`);
             }
             
-            // Initialiseer COI calculator
             if (!this.coiCalculatorReady) {
                 await this.initCOICalculator();
             }
             
-            // Toon de content
             this.renderContent(t);
             
         } catch (error) {
@@ -887,10 +938,13 @@ class ZoekReu {
             <div class="alert alert-info mb-4">
                 <i class="bi bi-info-circle"></i>
                 <strong>Status:</strong> 
-                ${this.allHonden.length} honden geladen via paginatie, 
+                ${this.allHonden.length} honden geladen, 
                 ${this.allTeven.length} teven, 
                 ${reuen.length} reuen beschikbaar
-                ${this.coiCalculatorReady ? '<br><i class="bi bi-check-circle text-success"></i> COI calculator actief' : '<br><i class="bi bi-exclamation-triangle text-warning"></i> COI calculator niet beschikbaar'}
+                ${this.coiCalculatorReady ? 
+                    '<br><i class="bi bi-check-circle text-success"></i> COI calculator actief' : 
+                    '<br><i class="bi bi-exclamation-triangle text-warning"></i> COI calculator niet beschikbaar'}
+                <br><small class="text-muted">Laadtijd: ${Date.now() - (this.loadStartTime || Date.now())}ms</small>
             </div>
             
             <div class="row g-4">
@@ -1078,7 +1132,9 @@ class ZoekReu {
                             <i class="bi bi-search" style="font-size: 2rem;"></i>
                             <p class="mt-2">${t('useSearchCriteria')}</p>
                             <small class="text-muted">${reuen.length} reuen beschikbaar voor zoeken</small>
-                            ${this.coiCalculatorReady ? '<br><small><i class="bi bi-check-circle text-success"></i> COI berekeningen actief</small>' : '<br><small><i class="bi bi-exclamation-triangle text-warning"></i> COI berekeningen niet beschikbaar</small>'}
+                            ${this.coiCalculatorReady ? 
+                                '<br><small><i class="bi bi-check-circle text-success"></i> COI berekeningen actief</small>' : 
+                                '<br><small><i class="bi bi-exclamation-triangle text-warning"></i> COI berekeningen niet beschikbaar</small>'}
                         </div>
                     </div>
                 </div>
@@ -1091,8 +1147,6 @@ class ZoekReu {
         this.initializeFormValidation();
         this.initializeSearchButton();
     }
-    
-    // ... (alle andere functies blijven hetzelfde vanaf hier) ...
     
     initializeTeefSearch() {
         const teefSearch = document.getElementById('teefSearch');
@@ -1142,7 +1196,6 @@ class ZoekReu {
             }
         });
         
-        // Close dropdown when clicking outside
         document.addEventListener('click', (e) => {
             if (!teefDropdown.contains(e.target) && e.target.id !== 'teefSearch') {
                 teefDropdown.style.display = 'none';
@@ -3108,7 +3161,7 @@ style.textContent = `
         border: 1px solid #dee2e6;
         border-radius: 0.375rem;
         box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-        z-index: 1050; /* Verhoogd voor overlay effect */
+        z-index: 1050;
     }
     
     .autocomplete-header {
@@ -3327,12 +3380,10 @@ style.textContent = `
         color: #6c757d;
     }
     
-    /* Fix voor dropdown zichtbaarheid */
     .position-relative {
         position: relative;
     }
     
-    /* Voorkom clipping door parent containers */
     .card-body {
         overflow: visible !important;
     }
