@@ -1647,7 +1647,7 @@ class DogDataManager extends BaseModule {
         document.getElementById('patellaLuxation').value = dog.patella || '';
         document.getElementById('eyes').value = dog.ogen || '';
         document.getElementById('eyesExplanation').value = dog.ogenVerklaring || '';
-        document.getElementById('dandywalker').value = dog.dandywalker || '';
+        document.getElementById('dandywalker').value = dog.dandyWalker || '';
         document.getElementById('thyroid').value = dog.schildklier || '';
         document.getElementById('thyroidExplanation').value = dog.schildklierVerklaring || '';
         
