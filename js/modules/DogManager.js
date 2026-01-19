@@ -324,7 +324,7 @@ class DogManager extends BaseModule {
                 // Meldungen
                 adminOnly: "Nur Administratoren kunnen Hunde hinzufügen/bearbeiten",
                 fieldsRequired: "Name, Stammbaum-Nummer en Rasse sind Pflichtfelder",
-                savingDog: "Hund wird gespeichert...",
+                savingDog: "Hund wordt gespeichert...",
                 dogAdded: "Hund erfolgreich hinzugefügt!",
                 dogUpdated: "Hund erfolgreich aktualiseerd!",
                 dogDeleted: "Hund erfolgreich gelöscht!",
@@ -1616,6 +1616,27 @@ class DogManager extends BaseModule {
             console.log('Gezondheidsinfo waarde:', gezondheidsinfoValue);
         }
         
+        // EXTRA DEBUG: Controleer alle gezondheidsvelden
+        console.log('=== DEBUG: ALLE GEZONDHEIDSVELDEN ===');
+        const heupdysplasie = document.getElementById('hipDysplasia').value;
+        const elleboogdysplasie = document.getElementById('elbowDysplasia').value;
+        const patella = document.getElementById('patellaLuxation').value;
+        const ogen = document.getElementById('eyes').value;
+        const ogenverklaring = document.getElementById('eyesExplanation')?.value.trim() || '';
+        const dandyWalker = document.getElementById('dandyWalker').value;
+        const schildklier = document.getElementById('thyroid').value;
+        const schildklierverklaring = document.getElementById('thyroidExplanation')?.value.trim() || '';
+        
+        console.log('Heupdysplasie:', heupdysplasie);
+        console.log('Elleboogdysplasie:', elleboogdysplasie);
+        console.log('Patella:', patella);
+        console.log('Ogen:', ogen);
+        console.log('Ogenverklaring:', ogenverklaring);
+        console.log('Dandy Walker:', dandyWalker);
+        console.log('Schildklier:', schildklier);
+        console.log('Schildklierverklaring:', schildklierverklaring);
+        console.log('=== EINDE GEZONDHEIDSVELDEN DEBUG ===');
+        
         // Maak het volledige dogData object met ALLE 34 velden
         const dogData = {
             // Basis informatie (15 velden)
@@ -1634,14 +1655,14 @@ class DogManager extends BaseModule {
             opmerkingen: document.getElementById('remarks').value.trim(),
             
             // Gezondheidsinformatie (7 velden)
-            heupdysplasie: document.getElementById('hipDysplasia').value,
-            elleboogdysplasie: document.getElementById('elbowDysplasia').value,
-            patella: document.getElementById('patellaLuxation').value,
-            ogen: document.getElementById('eyes').value,
-            ogenverklaring: document.getElementById('eyesExplanation')?.value.trim() || '',
-            dandyWalker: document.getElementById('dandyWalker').value,
-            schildklier: document.getElementById('thyroid').value,
-            schildklierverklaring: document.getElementById('thyroidExplanation')?.value.trim() || '',
+            heupdysplasie: heupdysplasie,
+            elleboogdysplasie: elleboogdysplasie,
+            patella: patella,
+            ogen: ogen,
+            ogenverklaring: ogenverklaring,
+            dandyWalker: dandyWalker,
+            schildklier: schildklier,
+            schildklierverklaring: schildklierverklaring,
             
             // Ouder relaties (6 velden)
             vader_id: vaderId,
@@ -1661,12 +1682,21 @@ class DogManager extends BaseModule {
         };
         
         // AANPASSING 2: DEBUG LOG TOEVOEGEN
-        console.log('=== DEBUG: ALLE VELDEN ===');
+        console.log('=== DEBUG: ALLE VELDEN VOOR OPSLAG ===');
         console.log('Gezondheidsinfo:', dogData.gezondheidsinfo || 'LEEG');
         console.log('Geboortedatum:', dogData.geboortedatum);
         console.log('Overlijdensdatum:', dogData.overlijdensdatum);
         console.log('Land:', dogData.land);
         console.log('Postcode:', dogData.postcode);
+        console.log('Heupdysplasie:', dogData.heupdysplasie);
+        console.log('Elleboogdysplasie:', dogData.elleboogdysplasie);
+        console.log('Patella:', dogData.patella);
+        console.log('Ogen:', dogData.ogen);
+        console.log('Ogenverklaring:', dogData.ogenverklaring);
+        console.log('Dandy Walker:', dogData.dandyWalker);
+        console.log('Schildklier:', dogData.schildklier);
+        console.log('Schildklierverklaring:', dogData.schildklierverklaring);
+        console.log('Totaal aantal velden:', Object.keys(dogData).length);
         console.log('=== EINDE DEBUG LOG ===');
         
         // Verplichte velden validatie
@@ -1718,6 +1748,8 @@ class DogManager extends BaseModule {
             
         } catch (error) {
             console.error('DogManager: Fout bij opslaan hond:', error);
+            console.error('Fout details:', error.message);
+            console.error('Fout stack:', error.stack);
             this.hideProgress();
             this.showError(`${this.t('addFailed')}${error.message}`);
         }
