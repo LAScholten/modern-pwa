@@ -2014,10 +2014,10 @@ class SearchManager extends BaseModule {
         
         try {
             this.isLoading = true;
-            this.showProgress(this.t('loadingAllDogs').replace('{loaded}', '0'));
+            this.showProgress("Honden laden... (0 geladen)");
             
-            // GEBRUIK DEZELFDE LOADING LOGICA ALS DogDataManager
-            this.allDogs = await this.loadAllDogsWithPagination();
+            // GEBRUIK EXACT DEZELFDE METHODE ALS DogDataManager
+            this.allDogs = await this.loadAllDogsWithPaginationDogDataManagerStyle();
             
             // Sorteer op naam
             this.allDogs.sort((a, b) => {
@@ -2032,20 +2032,25 @@ class SearchManager extends BaseModule {
             this.showInitialView();
             
         } catch (error) {
+            console.error('SearchManager: Fout bij laden honden:', error);
             this.showError(`Laden mislukt: ${error.message}`);
+            
+            // Toon lege array bij error
+            this.allDogs = [];
         } finally {
             // Zorg dat isLoading altijd wordt gereset
             this.isLoading = false;
+            // Zorg ervoor dat progress altijd wordt verborgen
             this.hideProgress();
         }
     }
     
     /**
-     * Laad alle honden met paginatie - ZELFDE LOGICA ALS DogDataManager
+     * EXACT DEZELFDE LOADING LOGICA ALS DogDataManager
      */
-    async loadAllDogsWithPagination() {
+    async loadAllDogsWithPaginationDogDataManagerStyle() {
         try {
-            console.log('SearchManager: Laden van alle honden met paginatie...');
+            console.log('SearchManager: Laden van alle honden met paginatie (DogDataManager stijl)...');
             
             // Reset array
             let allDogs = [];
@@ -2054,9 +2059,6 @@ class SearchManager extends BaseModule {
             const pageSize = 1000; // Maximaal wat Supabase toestaat
             let hasMorePages = true;
             let totalLoaded = 0;
-            
-            // Toon progress in UI
-            this.showProgress(`Honden laden... (0 geladen)`);
             
             // Loop door alle pagina's - ZELFDE LOGICA ALS DogDataManager
             while (hasMorePages) {
@@ -2070,14 +2072,17 @@ class SearchManager extends BaseModule {
                     allDogs = allDogs.concat(result.honden);
                     totalLoaded += result.honden.length;
                     
-                    // Update progress
+                    // Update progress - ZELFDE ALS DogDataManager
                     this.showProgress(`Honden laden... (${totalLoaded} geladen)`);
                     
                     console.log(`SearchManager: Pagina ${currentPage} geladen: ${result.honden.length} honden`);
                     
                     // Controleer of er nog meer pagina's zijn (zelfde als DogDataManager)
                     hasMorePages = result.heeftVolgende;
-                    currentPage++;
+                    
+                    if (hasMorePages) {
+                        currentPage++;
+                    }
                     
                     // Veiligheidslimiet voor oneindige lus (zelfde als DogDataManager)
                     if (currentPage > 100) {
@@ -2098,8 +2103,6 @@ class SearchManager extends BaseModule {
                 console.log('Voorbeeld hond velden:', Object.keys(sampleDog));
                 console.log('vader_id in sample:', sampleDog.vader_id);
                 console.log('moeder_id in sample:', sampleDog.moeder_id);
-                console.log('ogenverklaring in sample:', sampleDog.ogenverklaring);
-                console.log('schildklierverklaring in sample:', sampleDog.schildklierverklaring);
             }
             
             console.log(`SearchManager: TOTAAL ${allDogs.length} honden geladen`);
@@ -2803,24 +2806,26 @@ class SearchManager extends BaseModule {
     
     // Helper methodes van BaseModule
     showProgress(message) {
-        if (typeof super.showProgress === 'function') {
-            super.showProgress(message);
+        // Gebruik dezelfde progress methode als DogDataManager
+        if (window.uiHandler && window.uiHandler.showProgress) {
+            window.uiHandler.showProgress(message);
         } else {
             console.log('SearchManager Progress:', message);
         }
     }
     
     hideProgress() {
-        if (typeof super.hideProgress === 'function') {
-            super.hideProgress();
+        // Gebruik dezelfde hideProgress methode als DogDataManager
+        if (window.uiHandler && window.uiHandler.hideProgress) {
+            window.uiHandler.hideProgress();
         } else {
             console.log('SearchManager: Progress hidden');
         }
     }
     
     showError(message) {
-        if (typeof super.showError === 'function') {
-            super.showError(message);
+        if (window.uiHandler && window.uiHandler.showError) {
+            window.uiHandler.showError(message);
         } else {
             console.error('SearchManager Error:', message);
             alert(message);
@@ -2828,8 +2833,8 @@ class SearchManager extends BaseModule {
     }
     
     showSuccess(message) {
-        if (typeof super.showSuccess === 'function') {
-            super.showSuccess(message);
+        if (window.uiHandler && window.uiHandler.showSuccess) {
+            window.uiHandler.showSuccess(message);
         } else {
             console.log('SearchManager Success:', message);
         }

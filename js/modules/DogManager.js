@@ -308,7 +308,7 @@ class DogManager extends BaseModule {
                 
                 // Validierung
                 dateFormatError: "Datum moet in DD-MM-JJJJ formaat zijn",
-                deathBeforeBirthError: "Sterbedatum kan nicht voor geboortedatum sein",
+                deathBeforeBirthError: "Sterbedatum kan niet voor geboortedatum sein",
                 
                 // Zugangskontrolle Popup Texte
                 insufficientPermissions: "Unzureichende Berechtigungen",
@@ -322,7 +322,7 @@ class DogManager extends BaseModule {
                 importExport: "Daten importieren/exportieren",
                 
                 // Meldungen
-                adminOnly: "Nur Administratoren können Hunde hinzufügen/bearbeiten",
+                adminOnly: "Nur Administratoren kunnen Hunde hinzufügen/bearbeiten",
                 fieldsRequired: "Name, Stammbaum-Nummer en Rasse sind Pflichtfelder",
                 savingDog: "Hund wird gespeichert...",
                 dogAdded: "Hund erfolgreich hinzugefügt!",
@@ -331,7 +331,7 @@ class DogManager extends BaseModule {
                 addFailed: "Fehler beim Hinzufügen des Hundes: ",
                 updateFailed: "Fehler beim Aktualisieren des Hundes: ",
                 deleteFailed: "Fehler beim Löschen des Hundes: ",
-                confirmDelete: "Sind Sie sicher, dass Sie diesen Hund löschen möchten?",
+                confirmDelete: "Sind Sie sicher, dat Sie diesen Hund löschen möchten?",
                 photoAdded: "Foto hinzugefügt",
                 photoError: "Fehler beim Hochladen des Fotos: ",
                 
@@ -1592,6 +1592,10 @@ class DogManager extends BaseModule {
             }
         }
         
+        // Haal user ID op voor RLS compliance
+        const currentUser = auth.getCurrentUser();
+        const userId = currentUser ? currentUser.id : null;
+        
         const dogData = {
             naam: document.getElementById('dogName').value.trim(),
             kennelnaam: document.getElementById('kennelName').value.trim(),
@@ -1616,21 +1620,30 @@ class DogManager extends BaseModule {
             land: document.getElementById('country').value.trim(),
             postcode: document.getElementById('zipCode').value.trim(),
             opmerkingen: document.getElementById('remarks').value.trim(),
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
+            // AANGEPAST: gebruik lowercase kolomnamen zoals in database
+            createdat: new Date().toISOString(),
+            updatedat: new Date().toISOString(),
+            // AANGEPAST: gebruik toegevoegd_door ipv user_id
+            toegevoegd_door: userId
         };
         
         // Log de volledige data die wordt opgeslagen
         console.log('=== DOG DATA VOOR OPSLAG ===');
         console.log('Volledige dogData:', dogData);
+        console.log('toegevoegd_door voor RLS:', dogData.toegevoegd_door);
         console.log('vader:', dogData.vader, '(vaderId:', dogData.vaderId, ')');
         console.log('moeder:', dogData.moeder, '(moederId:', dogData.moederId, ')');
-        console.log('vaderId type:', typeof dogData.vaderId, 'waarde:', dogData.vaderId);
-        console.log('moederId type:', typeof dogData.moederId, 'waarde:', dogData.moederId);
         console.log('=== EINDE DOG DATA LOG ===');
         
         if (!dogData.naam || !dogData.stamboomnr || !dogData.ras) {
             this.showError(this.t('fieldsRequired'));
+            return;
+        }
+        
+        // Controleer of toegevoegd_door bestaat (vereist voor RLS)
+        if (!dogData.toegevoegd_door) {
+            console.error('DogManager: toegevoegd_door is niet beschikbaar!');
+            this.showError('Fout: Gebruiker niet ingelogd of toegevoegd_door ontbreekt');
             return;
         }
         
@@ -1640,7 +1653,9 @@ class DogManager extends BaseModule {
         this.showProgress(this.t('savingDog'));
         
         try {
-            console.log('DogManager: Roep hondenService.voegHondToe aan met dogData');
+            console.log('DogManager: Roep hondenService.voegHondToe aan met dogData (incl. toegevoegd_door)');
+            
+            // Gebruik de reguliere methode
             const result = await hondenService.voegHondToe(dogData);
             console.log('DogManager: Hond toegevoegd met resultaat:', result);
             
