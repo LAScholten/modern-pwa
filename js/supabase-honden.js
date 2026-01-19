@@ -176,69 +176,65 @@ const hondenService = {
     }
   },
 
-  // 6. Update hond
-  async updateHond(hondData) {
-    try {
-      if (!hondData.id) throw new Error('Hond ID is vereist voor update');
-      
-      console.log('[HONDENSERVICE] updateHond aangeroepen met:', hondData);
-      console.log('[HONDENSERVICE] vader_id ontvangen:', hondData.vader_id);
-      console.log('[HONDENSERVICE] moeder_id ontvangen:', hondData.moeder_id);
-      console.log('[HONDENSERVICE] ogenverklaring ontvangen:', hondData.ogenverklaring);
-      console.log('[HONDENSERVICE] schildklierverklaring ontvangen:', hondData.schildklierverklaring);
-      
-      const updateData = {
-        naam: hondData.naam,
-        kennelnaam: hondData.kennelnaam,
-        stamboomnr: hondData.stamboomnr,
-        ras: hondData.ras,
-        vachtkleur: hondData.vachtkleur,
-        geslacht: hondData.geslacht,
-        vader_id: hondData.vader_id || null,
-        moeder_id: hondData.moeder_id || null,
-        vader: hondData.vader || '',
-        moeder: hondData.moeder || '',
-        geboortedatum: hondData.geboortedatum || null,
-        overlijdensdatum: hondData.overlijdensdatum || null,
-        gezondheidsinfo: JSON.stringify({
-          heupdysplasie: hondData.heupdysplasie || '',
-          elleboogdysplasie: hondData.elleboogdysplasie || '',
-          patella: hondData.patella || '',
-          ogen: hondData.ogen || '',
-          ogenVerklaring: hondData.ogenverklaring || '',
-          dandyWalker: hondData.dandyWalker || '',
-          schildklier: hondData.schildklier || '',
-          schildklierVerklaring: hondData.schildklierverklaring || ''
-        }),
-        land: hondData.land || '',
-        postcode: hondData.postcode || '',
-        opmerkingen: hondData.opmerkingen || '',
-        bijgewerkt_op: new Date().toISOString()
-      };
-      
-      console.log('[HONDENSERVICE] Update data naar Supabase:', updateData);
-      
-      const { data, error } = await window.supabase
-        .from('honden')
-        .update(updateData)
-        .eq('id', hondData.id)
-        .select();
-      
-      if (error) {
-        console.error('[HONDENSERVICE] Supabase update error:', error);
-        throw error;
-      }
-      
-      // Data is een array, geef het eerste element terug
-      const result = data ? data[0] : null;
-      console.log('[HONDENSERVICE] Update succesvol, resultaat:', result);
-      return result;
-      
-    } catch (error) {
-      console.error('Fout bij updaten hond:', error);
+ // 6. Update hond
+async updateHond(hondData) {
+  try {
+    if (!hondData.id) throw new Error('Hond ID is vereist voor update');
+    
+    console.log('[HONDENSERVICE] updateHond aangeroepen met:', hondData);
+    
+    const updateData = {
+      naam: hondData.naam,
+      kennelnaam: hondData.kennelnaam,
+      stamboomnr: hondData.stamboomnr,
+      ras: hondData.ras,
+      vachtkleur: hondData.vachtkleur,
+      geslacht: hondData.geslacht,
+      vader_id: hondData.vader_id || null,
+      moeder_id: hondData.moeder_id || null,
+      vader: hondData.vader || '',
+      moeder: hondData.moeder || '',
+      geboortedatum: hondData.geboortedatum || null,
+      overlijdensdatum: hondData.overlijdensdatum || null,
+      gezondheidsinfo: JSON.stringify({
+        heupdysplasie: hondData.heupdysplasie || '',
+        elleboogdysplasie: hondData.elleboogdysplasie || '',
+        patella: hondData.patella || '',
+        ogen: hondData.ogen || '',
+        ogenVerklaring: hondData.ogenverklaring || '',
+        dandyWalker: hondData.dandyWalker || '',
+        schildklier: hondData.schildklier || '',
+        schildklierVerklaring: hondData.schildklierverklaring || ''
+      }),
+      land: hondData.land || '',
+      postcode: hondData.postcode || '',
+      opmerkingen: hondData.opmerkingen || '',
+      bijgewerkt_op: new Date().toISOString()
+    };
+    
+    console.log('[HONDENSERVICE] Update data naar Supabase:', updateData);
+    
+    // Gebruik .select().single() om 1 resultaat terug te krijgen
+    const { data, error } = await window.supabase
+      .from('honden')
+      .update(updateData)
+      .eq('id', hondData.id)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('[HONDENSERVICE] Supabase update error:', error);
       throw error;
     }
-  },
+    
+    console.log('[HONDENSERVICE] Update succesvol, resultaat:', data);
+    return data;
+    
+  } catch (error) {
+    console.error('Fout bij updaten hond:', error);
+    throw error;
+  }
+},
 
   // 7. Verwijder hond
   async verwijderHond(hondId) {

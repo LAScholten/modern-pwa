@@ -269,7 +269,7 @@ class DogDataManager extends BaseModule {
                 mother: "Mutter",
                 birthDate: "Geburtsdatum",
                 deathDate: "Sterbedatum",
-                gender: "Geschlecht",
+                gender: "Geslacht",
                 chooseGender: "Geschlecht wählen...",
                 male: "Rüde",
                 female: "Hündin",
@@ -1576,7 +1576,7 @@ class DogDataManager extends BaseModule {
         // Vachtkleur
         document.getElementById('coatColor').value = dog.vachtkleur || '';
         
-        // Ouders - CORRECT ID'S OPSLAAN IN HET NEDERLANDS (vader_id en moeder_id)
+        // Ouders - CORRECT ID'S OPSLAAN IN HET NEDERLANDSE HIDDEN INPUT VELD
         const vaderId = dog.vader_id || null;
         let vaderDisplayNaam = '';
         
@@ -1738,7 +1738,7 @@ class DogDataManager extends BaseModule {
     }
     
     /**
-     * Opslaan wijzigingen - MET UITGEBREIDE DEBUGGING EN DIRECTE SUPPABASE UPDATE
+     * Opslaan wijzigingen - VEREENVOUDIGDE VERSIE (alleen hondenService aanroep)
      */
     async saveDogChanges() {
         console.log('[DEBUG] === START saveDogChanges ===');
@@ -1880,22 +1880,11 @@ class DogDataManager extends BaseModule {
             console.log('[DEBUG] hondenService beschikbaar:', !!hondenService);
             console.log('[DEBUG] updateHond methode beschikbaar:', typeof hondenService?.updateHond);
             
-            // Probeer eerst de hondenService.updateHond methode
-            let result = null;
-            if (hondenService && typeof hondenService.updateHond === 'function') {
-                console.log(`[DEBUG] Aanroepen updateHond voor ID: ${dogData.id}`);
-                result = await hondenService.updateHond(dogData);
-                console.log('[DEBUG] updateHond resultaat:', result);
-            } else {
-                console.log('[DEBUG] hondenService.updateHond niet beschikbaar, gebruik directe update');
-            }
+            // Gebruik alleen de hondenService.updateHond methode
+            console.log(`[DEBUG] Aanroepen updateHond voor ID: ${dogData.id}`);
+            const result = await hondenService.updateHond(dogData);
             
-            // Als updateHond undefined/null retourneert of een error heeft, probeer dan directe update
-            if (result === undefined || result === null || (result && result.error)) {
-                console.log('[DEBUG] updateHond mislukt of retourneert undefined, probeer directe update...');
-                result = await this.updateDogDirect(dogData);
-                console.log('[DEBUG] Directe update resultaat:', result);
-            }
+            console.log('[DEBUG] updateHond resultaat:', result);
             
             // Controleer resultaat
             if (result && result.error) {
@@ -1966,71 +1955,6 @@ class DogDataManager extends BaseModule {
     }
     
     /**
-     * Directe update via Supabase REST API (fallback methode)
-     */
-    async updateDogDirect(dogData) {
-        try {
-            console.log('[DEBUG] === START updateDogDirect ===');
-            console.log('[DEBUG] DogData voor directe update:', dogData);
-            
-            // Haal Supabase configuratie op
-            const supabaseUrl = 'https://smvwpyjzksbbscnjufwj.supabase.co';
-            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNtdndweWp6a3NiYnNjbmh1ZndqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzI0OTYzODQsImV4cCI6MjA0ODA3MjM4NH0.z8lSygaxhzILFmhG6G2Qa4glXhchjE3U6P1pOTz0bWI';
-            
-            if (!supabaseUrl || !supabaseKey) {
-                throw new Error('Supabase URL of key niet gevonden');
-            }
-            
-            // Maak een kopie van dogData zonder het id veld
-            const updateData = { ...dogData };
-            const id = updateData.id;
-            delete updateData.id; // Verwijder id omdat we het niet willen updaten
-            
-            // Filter null waarden (Supabase wil deze niet in een update)
-            Object.keys(updateData).forEach(key => {
-                if (updateData[key] === null || updateData[key] === undefined) {
-                    updateData[key] = null; // Zet null voor Supabase
-                }
-            });
-            
-            console.log('[DEBUG] Data voor Supabase update:', updateData);
-            console.log(`[DEBUG] Updating record met ID: ${id}`);
-            
-            // Voer de update uit via REST API
-            const response = await fetch(`${supabaseUrl}/rest/v1/honden?id=eq.${id}`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'apikey': supabaseKey,
-                    'Authorization': `Bearer ${supabaseKey}`,
-                    'Prefer': 'return=representation'
-                },
-                body: JSON.stringify(updateData)
-            });
-            
-            console.log('[DEBUG] Response status:', response.status);
-            console.log('[DEBUG] Response headers:', response.headers);
-            
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('[DEBUG] Response error text:', errorText);
-                throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-            }
-            
-            const data = await response.json();
-            console.log('[DEBUG] Supabase update succesvol:', data);
-            console.log('[DEBUG] === EINDE updateDogDirect (succes) ===');
-            
-            return { success: true, data };
-            
-        } catch (error) {
-            console.error('[DEBUG] Fout in updateDogDirect:', error);
-            console.log('[DEBUG] === EINDE updateDogDirect (error) ===');
-            return { error };
-        }
-    }
-    
-    /**
      * Verwijder hond
      */
     async deleteDog() {
@@ -2060,14 +1984,12 @@ class DogDataManager extends BaseModule {
         this.showProgress(this.t('deleting'));
         
         try {
-            // Probeer eerst hondenService.verwijderHond
+            // Gebruik hondenService.verwijderHond
             if (hondenService && typeof hondenService.verwijderHond === 'function') {
                 console.log('[DEBUG] Calling verwijderHond with ID:', parsedId);
                 await hondenService.verwijderHond(parsedId);
             } else {
-                // Fallback naar directe delete
-                console.log('[DEBUG] hondenService.verwijderHond niet beschikbaar, gebruik directe delete');
-                await this.deleteDogDirect(parsedId);
+                throw new Error('verwijderHond methode niet beschikbaar');
             }
             
             this.hideProgress();
@@ -2085,53 +2007,6 @@ class DogDataManager extends BaseModule {
             this.hideProgress();
             console.error('[DEBUG] Error deleting dog:', error);
             this.showError(`${this.t('deleteFailed')}${error.message}`);
-        }
-    }
-    
-    /**
-     * Directe delete via Supabase REST API
-     */
-    async deleteDogDirect(dogId) {
-        try {
-            console.log('[DEBUG] === START deleteDogDirect ===');
-            
-            // Haal Supabase configuratie op
-            const supabaseUrl = 'https://smvwpyjzksbbscnjufwj.supabase.co';
-            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNtdndweWp6a3NiYnNjbmh1ZndqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzI0OTYzODQsImV4cCI6MjA0ODA3MjM4NH0.z8lSygaxhzILFmhG6G2Qa4glXhchjE3U6P1pOTz0bWI';
-            
-            if (!supabaseUrl || !supabaseKey) {
-                throw new Error('Supabase URL of key niet gevonden');
-            }
-            
-            console.log(`[DEBUG] Deleting record met ID: ${dogId}`);
-            
-            // Voer de delete uit via REST API
-            const response = await fetch(`${supabaseUrl}/rest/v1/honden?id=eq.${dogId}`, {
-                method: 'DELETE',
-                headers: {
-                    'apikey': supabaseKey,
-                    'Authorization': `Bearer ${supabaseKey}`,
-                    'Prefer': 'return=representation'
-                }
-            });
-            
-            console.log('[DEBUG] Response status:', response.status);
-            
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('[DEBUG] Response error text:', errorText);
-                throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-            }
-            
-            console.log('[DEBUG] Supabase delete succesvol');
-            console.log('[DEBUG] === EINDE deleteDogDirect (succes) ===');
-            
-            return { success: true };
-            
-        } catch (error) {
-            console.error('[DEBUG] Fout in deleteDogDirect:', error);
-            console.log('[DEBUG] === EINDE deleteDogDirect (error) ===');
-            throw error;
         }
     }
     
