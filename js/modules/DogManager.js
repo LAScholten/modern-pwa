@@ -319,7 +319,7 @@ class DogManager extends BaseModule {
                 searchDogs: "Hunde suchen und anzeigen",
                 viewGallery: "Fotogalerie anzeigen",
                 managePrivateInfo: "Private Informationen verwalten",
-                importExport: "Daten importieren/exportieren",
+                importExport: "Data importeren/exportieren",
                 
                 // Meldungen
                 adminOnly: "Nur Administratoren kunnen Hunde hinzufügen/bearbeiten",
@@ -1608,17 +1608,12 @@ class DogManager extends BaseModule {
         const currentUser = auth.getCurrentUser();
         const userId = currentUser ? currentUser.id : null;
         
-        // Valideer JSON voor gezondheidsinfo
+        // AANPASSING 1: VERVANG JSON validatie
         let gezondheidsinfoValue = '';
         const healthInfoInput = document.getElementById('healthInfo');
         if (healthInfoInput && healthInfoInput.value.trim()) {
-            try {
-                JSON.parse(healthInfoInput.value.trim());
-                gezondheidsinfoValue = healthInfoInput.value.trim();
-            } catch (e) {
-                this.showError('Ongeldig JSON formaat in gezondheidsinformatie');
-                return;
-            }
+            gezondheidsinfoValue = healthInfoInput.value.trim();
+            console.log('Gezondheidsinfo waarde:', gezondheidsinfoValue);
         }
         
         // Maak het volledige dogData object met ALLE 34 velden
@@ -1665,13 +1660,14 @@ class DogManager extends BaseModule {
             status: document.getElementById('status').value || 'actief'
         };
         
-        console.log('=== DOG DATA VOOR OPSLAG (alle 34 velden) ===');
-        console.log('Volledige dogData:', dogData);
-        console.log('Aantal velden:', Object.keys(dogData).length);
-        console.log('toegevoegd_door:', dogData.toegevoegd_door);
-        console.log('gezondheidsinfo:', dogData.gezondheidsinfo ? 'Ja (JSON)' : 'Nee');
-        console.log('status:', dogData.status);
-        console.log('=== EINDE DOG DATA LOG ===');
+        // AANPASSING 2: DEBUG LOG TOEVOEGEN
+        console.log('=== DEBUG: ALLE VELDEN ===');
+        console.log('Gezondheidsinfo:', dogData.gezondheidsinfo || 'LEEG');
+        console.log('Geboortedatum:', dogData.geboortedatum);
+        console.log('Overlijdensdatum:', dogData.overlijdensdatum);
+        console.log('Land:', dogData.land);
+        console.log('Postcode:', dogData.postcode);
+        console.log('=== EINDE DEBUG LOG ===');
         
         // Verplichte velden validatie
         if (!dogData.naam || !dogData.stamboomnr || !dogData.ras) {
