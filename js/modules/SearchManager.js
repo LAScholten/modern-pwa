@@ -494,28 +494,18 @@ class SearchManager extends BaseModule {
         }
         
         try {
-            // CORRECTIE: Gebruik de juiste functienaam - VERBETERDE VERSIE
+            // CORRECTIE: Gebruik de juiste functienaam
             let photos = [];
             
             // Controleer welke functie beschikbaar is
-            if (typeof window.getFotosVoorStamboomnummer === 'function') {
-                console.log('SearchManager: Gebruik window.getFotosVoorStamboomnummer');
-                photos = await window.getFotosVoorStamboomnummer(dog.stamboomnr);
-            } else if (typeof window.getFotoByStamboomnummer === 'function') {
-                console.log('SearchManager: Gebruik window.getFotoByStamboomnummer');
-                photos = await window.getFotoByStamboomnummer(dog.stamboomnr);
-            } else if (this.db && typeof this.db.getFotosVoorStamboomnummer === 'function') {
-                console.log('SearchManager: Gebruik this.db.getFotosVoorStamboomnummer');
-                photos = await this.db.getFotosVoorStamboomnummer(dog.stamboomnr);
-            } else if (this.db && typeof this.db.getFotoByStamboomnummer === 'function') {
-                console.log('SearchManager: Gebruik this.db.getFotoByStamboomnummer');
+            if (this.db && typeof this.db.getFotoByStamboomnummer === 'function') {
                 photos = await this.db.getFotoByStamboomnummer(dog.stamboomnr);
+            } else if (this.db && typeof this.db.getFotosVoorStamboomnummer === 'function') {
+                photos = await this.db.getFotosVoorStamboomnummer(dog.stamboomnr);
             } else if (this.db && typeof this.db.getFotosVoorStamboomnr === 'function') {
-                console.log('SearchManager: Gebruik this.db.getFotosVoorStamboomnr');
                 photos = await this.db.getFotosVoorStamboomnr(dog.stamboomnr);
             } else {
-                console.warn('SearchManager: Geen geschikte foto functie gevonden');
-                console.log('Beschikbare functies in window:', Object.keys(window).filter(k => k.includes('Foto') || k.includes('foto')));
+                console.warn('Geen geschikte foto functie gevonden in db service');
                 return [];
             }
             
@@ -1886,8 +1876,6 @@ class SearchManager extends BaseModule {
         this.setupKennelSearch();
     }
     
-    // VERWIJDERD: setupModalCloseEvents() - deze veroorzaakt de reset loop
-    
     switchSearchType(type) {
         this.searchType = type;
         
@@ -2019,13 +2007,17 @@ class SearchManager extends BaseModule {
             // VERVANGT: Gebruik nu paginatie om alle honden te laden
             this.allDogs = await this.loadAllDogsWithPagination();
             this.allDogs.sort((a, b) => a.naam.localeCompare(b.naam));
-            this.hideProgress();
             
             console.log(`${this.allDogs.length} honden geladen voor zoeken`);
             
+            // BELANGRIJK: Toon standaard view na laden - DIT FIXT HET PROBLEEM
+            this.showInitialView();
+            
         } catch (error) {
-            this.hideProgress();
             this.showError(`Laden mislukt: ${error.message}`);
+        } finally {
+            // BELANGRIJK: Zorg dat de progress spinner altijd verborgen wordt
+            this.hideProgress();
         }
     }
     
@@ -2087,8 +2079,7 @@ class SearchManager extends BaseModule {
             
         } catch (error) {
             console.error('Fout bij laden honden voor zoeken:', error);
-            this.showError(this.t('loadFailed') + error.message);
-            return [];
+            throw error; // Gooi de error door zodat loadSearchData hem kan afhandelen
         }
     }
     
@@ -2102,15 +2093,6 @@ class SearchManager extends BaseModule {
             
             // Controleer of de gecombineerde string begint met de zoekterm
             return combined.startsWith(searchTerm);
-        });
-        
-        this.displaySearchResults();
-    }
-    
-    filterDogsByName(searchTerm = '') {
-        this.filteredDogs = this.allDogs.filter(dog => {
-            const naam = dog.naam ? dog.naam.toLowerCase() : '';
-            return naam.startsWith(searchTerm);
         });
         
         this.displaySearchResults();
@@ -2792,6 +2774,8 @@ class SearchManager extends BaseModule {
     hideProgress() {
         if (typeof super.hideProgress === 'function') {
             super.hideProgress();
+        } else {
+            console.log('Progress hidden');
         }
     }
     
