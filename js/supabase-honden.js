@@ -137,8 +137,8 @@ const hondenService = {
         ras: hond.ras || '',
         vachtkleur: hond.vachtkleur || '',
         geslacht: hond.geslacht || '',
-        vader_id: hond.vader_Id || null,
-        moeder_id: hond.moeder_Id || null,
+        vader_id: hond.vader_id || null,
+        moeder_id: hond.moeder_id || null,
         vader: hond.vader || '',
         moeder: hond.moeder || '',
         geboortedatum: hond.geboortedatum || null,
@@ -181,6 +181,12 @@ const hondenService = {
     try {
       if (!hondData.id) throw new Error('Hond ID is vereist voor update');
       
+      console.log('[HONDENSERVICE] updateHond aangeroepen met:', hondData);
+      console.log('[HONDENSERVICE] vader_id ontvangen:', hondData.vader_id);
+      console.log('[HONDENSERVICE] moeder_id ontvangen:', hondData.moeder_id);
+      console.log('[HONDENSERVICE] ogenverklaring ontvangen:', hondData.ogenverklaring);
+      console.log('[HONDENSERVICE] schildklierverklaring ontvangen:', hondData.schildklierverklaring);
+      
       const updateData = {
         naam: hondData.naam,
         kennelnaam: hondData.kennelnaam,
@@ -188,8 +194,8 @@ const hondenService = {
         ras: hondData.ras,
         vachtkleur: hondData.vachtkleur,
         geslacht: hondData.geslacht,
-        vader_id: hondData.vader__Id || null,
-        moeder_id: hondData.moeder_Id || null,
+        vader_id: hondData.vader_id || null,
+        moeder_id: hondData.moeder_id || null,
         vader: hondData.vader || '',
         moeder: hondData.moeder || '',
         geboortedatum: hondData.geboortedatum || null,
@@ -210,16 +216,24 @@ const hondenService = {
         bijgewerkt_op: new Date().toISOString()
       };
       
+      console.log('[HONDENSERVICE] Update data naar Supabase:', updateData);
+      
       const { data, error } = await window.supabase
         .from('honden')
         .update(updateData)
         .eq('id', hondData.id)
         .select();
       
-      if (error) throw error;
+      if (error) {
+        console.error('[HONDENSERVICE] Supabase update error:', error);
+        throw error;
+      }
       
       // Data is een array, geef het eerste element terug
-      return data ? data[0] : null;
+      const result = data ? data[0] : null;
+      console.log('[HONDENSERVICE] Update succesvol, resultaat:', result);
+      return result;
+      
     } catch (error) {
       console.error('Fout bij updaten hond:', error);
       throw error;
