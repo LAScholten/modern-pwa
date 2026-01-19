@@ -20,11 +20,6 @@ class ZoekReu {
         this.excludeKennels = [];
         this.excludeHondInputTimer = null;
         this.excludeKennelInputTimer = null;
-        this.loadStartTime = null;
-        this.batchCount = 0;
-        this.totalLoaded = 0;
-        this.maxRetries = 3;
-        this.retryDelay = 2000;
         
         this.translations = {
             nl: {
@@ -400,7 +395,7 @@ class ZoekReu {
                         "Niet getest": "Niet getest"
                     },
                     elleboogdysplasie: {
-                        "0": "0 (Frij)",
+                        "0": "0 (Frei)",
                         "1": "1 (Leicht)",
                         "2": "2 (Mäßig)",
                         "3": "3 (Schwer)",
@@ -442,7 +437,7 @@ class ZoekReu {
                 selectFemaleToStart: "Wählen Sie eine Hündin, um zu beginnen",
                 useSearchCriteria: "Verwenden Sie Suchkriterien, um Rüden zu vinden",
                 searchingMales: "Suche nach geeigneten Rüden...",
-                pedigreeFunctionalityUnavailable: "Stamboomfunktionaliteit ist derzeit niet verfügbar",
+                pedigreeFunctionalityUnavailable: "Stamboomfunktionaliteit ist derzeit nicht verfügbar",
                 maleNotFound: "Konnte Rüdendaten nicht finden",
                 errorShowingPedigree: "Beim Anzeigen des Stamboons is een Fehler aufgetreten",
                 combinedParents: "Kombinierte Eltern",
@@ -458,9 +453,14 @@ class ZoekReu {
     
     async injectDependencies(db, auth, stamboomManager = null) {
         console.log('🔧 ZoekReu: injectDependencies aangeroepen');
+        console.log('   db:', db);
+        console.log('   auth:', auth);
+        console.log('   stamboomManager:', stamboomManager);
+        
         this.db = db;
         this.auth = auth;
         this.stamboomManager = stamboomManager;
+        
         console.log('📥 ZoekReu: Gaat honden laden...');
         await this.loadAllHonden();
         await this.initCOICalculator();
@@ -469,96 +469,119 @@ class ZoekReu {
     async loadAllHonden() {
         try {
             console.log('📥 ZoekReu.loadAllHonden() gestart');
-            this.loadStartTime = Date.now();
-            this.batchCount = 0;
-            this.totalLoaded = 0;
             
             let allDogs = [];
             
-            // 1. Probeer via COICalculator2 paginatie
-            if (typeof window.createCOICalculatorWithAllDogs === 'function') {
-                console.log('🔄 Methode 1: Via COICalculator2.createWithPagination()');
-                try {
-                    const calculator = await window.createCOICalculatorWithAllDogs();
-                    if (calculator && calculator.allDogs) {
-                        allDogs = calculator.allDogs;
-                        console.log(`✅ Via COICalculator2 paginatie: ${allDogs.length} honden`);
-                    }
-                } catch (error) {
-                    console.error('❌ Fout bij COICalculator2 paginatie:', error);
+            // METHODE 1: Probeer eerst paginatie via COICalculator2
+            if (typeof window.COICalculator2 !== 'undefined' && 
+                typeof window.COICalculator2.loadAllDogsWithPagination === 'function') {
+                
+                console.log('🔄 Methode 1: Via COICalculator2 paginatie');
+                
+                let service = null;
+                if (this.db && typeof this.db.getHonden === 'function') {
+                    service = this.db;
+                } else if (window.hondenService && typeof window.hondenService.getHonden === 'function') {
+                    service = window.hondenService;
+                } else if (window.db && typeof window.db.getHonden === 'function') {
+                    service = window.db;
+                }
+                
+                if (service) {
+                    allDogs = await window.COICalculator2.loadAllDogsWithPagination(service);
+                    console.log(`✅ COICalculator2 paginatie: ${allDogs.length} honden`);
                 }
             }
             
-            // 2. Fallback: verbeterde Supabase paginatie
+            // METHODE 2: Via Supabase direct
             if (allDogs.length === 0 && window.supabase) {
-                console.log('🔄 Methode 2: Via verbeterde Supabase paginatie');
-                allDogs = await this.loadSupabaseWithImprovedPagination();
+                console.log('🔄 Methode 2: Via Supabase direct met paginatie');
+                allDogs = await this.loadSupabaseWithPagination();
             }
             
-            // 3. Fallback: via hondenService
-            if (allDogs.length === 0) {
-                console.log('🔄 Methode 3: Fallback via hondenService');
-                allDogs = await this.loadViaHondenService();
+            // METHODE 3: Via DogDataManager (als die bestaat)
+            if (allDogs.length === 0 && window.DogDataManager) {
+                console.log('🔄 Methode 3: Via DogDataManager');
+                try {
+                    const manager = new window.DogDataManager();
+                    const result = await manager.getAllDogsForSearch();
+                    if (result && Array.isArray(result)) {
+                        allDogs = result;
+                        console.log('✅ DogDataManager resultaat:', allDogs.length);
+                    }
+                } catch (error) {
+                    console.error('❌ Fout bij DogDataManager:', error);
+                }
             }
             
+            // METHODE 4: Fallback zonder paginatie
             if (allDogs.length === 0) {
-                console.error('❌ Geen honden geladen!');
+                console.log('⚠️ Paginatie niet beschikbaar, probeer zonder paginatie');
+                allDogs = await this.loadHondenWithoutPagination();
+            }
+            
+            // Controleer resultaat
+            if (allDogs.length === 0) {
+                console.error('❌ Alle methodes gefaald - geen honden geladen');
                 this.allHonden = [];
                 this.allTeven = [];
                 return;
             }
             
-            console.log(`✅ TOTAAL ${allDogs.length} honden geladen in ${Date.now() - this.loadStartTime}ms`);
+            console.log(`✅ TOTAAL ${allDogs.length} honden geladen via paginatie`);
             
-            // ✅ BELANGRIJKE AANPASSING: Behoud originele data structuur voor COICalculator2
+            // BELANGRIJK: Verwerk de honden ZONDER vaderId/moederId naar null te converteren
+            // Laat undefined waarden undefined zoals ze uit Supabase komen
             this.allHonden = allDogs.map(hond => {
-                // Basis mapping met minimale aanpassingen
-                const mappedHond = {
+                const processedHond = {
                     ...hond,
-                    // Zorg voor consistente geslachtswaarden
-                    geslacht: this.normalizeGeslacht(hond.geslacht),
-                    // Zorg dat ID numeriek is voor COICalculator2
-                    id: Number(hond.id) || hond.id
+                    // BEHOUD ORIGINELE DATA STRUCTUUR voor COICalculator2
+                    // Alleen ID's converteren als ze numerieke waarden hebben
+                    id: Number(hond.id),
+                    
+                    // BLIJF VADERID/MOEDERID ZOALS ZE ZIJN (undefined mag blijven undefined)
+                    // COICalculator2 verwacht undefined, niet null!
+                    vaderId: hond.vaderId && !isNaN(hond.vaderId) ? Number(hond.vaderId) : hond.vaderId,
+                    moederId: hond.moederId && !isNaN(hond.moederId) ? Number(hond.moederId) : hond.moederId,
+                    
+                    // Andere velden met defaults
+                    heupdysplasie: hond.heupdysplasie || '',
+                    elleboogdysplasie: hond.elleboogdysplasie || '',
+                    patella: hond.patella || '',
+                    ogen: hond.ogen || '',
+                    ogenVerklaring: hond.ogenVerklaring || '',
+                    dandyWalker: hond.dandyWalker || '',
+                    schildklier: hond.schildklier || '',
+                    schildklierVerklaring: hond.schildklierVerklaring || '',
+                    vachtkleur: hond.vachtkleur || '',
+                    ras: hond.ras || '',
+                    geboortedatum: hond.geboortedatum || '',
+                    stamboomnr: hond.stamboomnr || '',
+                    kennelnaam: hond.kennelnaam || '',
+                    geslacht: hond.geslacht || '',
+                    land: hond.land || '',
+                    postcode: hond.postcode || '',
+                    vader: hond.vader || '',
+                    moeder: hond.moeder || '',
+                    ik: hond.ik || null
                 };
                 
-                // ✅ CRUCIAL: Laat vaderId en moederId ONVERANDERD zoals ze uit de database komen
-                // COICalculator2 verwacht undefined/null voor ontbrekende ouders, niet geforceerde null
-                if (hond.vaderId !== undefined && hond.vaderId !== null) {
-                    mappedHond.vaderId = Number(hond.vaderId);
-                } else {
-                    // Laat undefined als het undefined was
-                    mappedHond.vaderId = hond.vaderId;
-                }
-                
-                if (hond.moederId !== undefined && hond.moederId !== null) {
-                    mappedHond.moederId = Number(hond.moederId);
-                } else {
-                    // Laat undefined als het undefined was
-                    mappedHond.moederId = hond.moederId;
-                }
-                
-                return mappedHond;
+                return processedHond;
             });
             
-            // Filter teven en reuen
+            // Filter teven
             this.allTeven = this.allHonden.filter(h => 
                 h.geslacht && h.geslacht.toLowerCase() === 'teven'
             );
             
-            const reuen = this.allHonden.filter(h => 
-                h.geslacht && h.geslacht.toLowerCase() === 'reuen'
-            );
+            console.log(`✅ Totaal: ${this.allHonden.length} honden geladen`);
+            console.log(`✅ Teven: ${this.allTeven.length} teven gevonden`);
             
-            console.log(`✅ Database samenvatting:`);
-            console.log(`   - Totaal: ${this.allHonden.length} honden`);
-            console.log(`   - Teven: ${this.allTeven.length} teven`);
-            console.log(`   - Reuen: ${reuen.length} reuen`);
-            
-            // Debug: toon relaties van enkele honden
+            // Debug: toon enkele honden met hun parent ID's
             if (this.allHonden.length > 0) {
-                console.log('🔍 Voorbeeld honden met parent relaties:');
+                console.log('🔍 Eerste 5 honden met parent ID\'s:');
                 this.allHonden.slice(0, 5).forEach((hond, i) => {
-                    console.log(`   ${i+1}. ${hond.naam || 'Geen naam'} (ID:${hond.id})`);
+                    console.log(`   ${i+1}. ${hond.naam || 'Geen naam'} (ID: ${hond.id})`);
                     console.log(`      VaderId: ${hond.vaderId} (type: ${typeof hond.vaderId})`);
                     console.log(`      MoederId: ${hond.moederId} (type: ${typeof hond.moederId})`);
                 });
@@ -572,27 +595,17 @@ class ZoekReu {
         }
     }
     
-    normalizeGeslacht(geslacht) {
-        if (!geslacht) return '';
-        const g = geslacht.toLowerCase().trim();
-        if (g.includes('reu') || g.includes('male')) return 'reuen';
-        if (g.includes('tef') || g.includes('teef') || g.includes('female')) return 'teven';
-        return geslacht;
-    }
-    
-    async loadSupabaseWithImprovedPagination() {
+    async loadSupabaseWithPagination() {
         try {
-            console.log('📄 Verbeterde Supabase paginatie gestart...');
+            console.log('📄 Laden via Supabase met paginatie...');
             
             let allDogs = [];
-            let page = 0;
+            let start = 0;
             const pageSize = 1000;
             let hasMore = true;
             
-            const loadBatch = async (batchPage) => {
-                const start = batchPage * pageSize;
-                
-                console.log(`📄 Laad batch ${batchPage + 1} (${start} - ${start + pageSize - 1})...`);
+            while (hasMore) {
+                console.log(`📄 Laad batch ${start} tot ${start + pageSize}...`);
                 
                 const { data, error } = await window.supabase
                     .from('honden')
@@ -601,164 +614,103 @@ class ZoekReu {
                     .range(start, start + pageSize - 1);
                 
                 if (error) {
-                    console.error(`❌ Supabase error bij batch ${batchPage}:`, error);
-                    throw error;
+                    console.error('❌ Supabase error:', error);
+                    break;
                 }
                 
-                return data || [];
-            };
-            
-            while (hasMore) {
-                try {
-                    const batchData = await loadBatch(page);
+                if (data && data.length > 0) {
+                    allDogs = allDogs.concat(data);
+                    console.log(`   ➡ Batch: ${data.length} honden (totaal: ${allDogs.length})`);
                     
-                    if (batchData.length > 0) {
-                        allDogs = allDogs.concat(batchData);
-                        this.totalLoaded = allDogs.length;
-                        this.batchCount = page + 1;
-                        
-                        console.log(`   ✅ Batch ${page + 1}: ${batchData.length} honden (totaal: ${allDogs.length})`);
-                        
-                        if (document.getElementById('breedingContent')) {
-                            this.updateLoadingStatus();
-                        }
-                        
-                        await new Promise(resolve => setTimeout(resolve, 100));
-                        
-                        if (batchData.length < pageSize) {
-                            hasMore = false;
-                            console.log(`🏁 Laatste batch geladen. Totaal: ${allDogs.length} honden`);
-                        } else {
-                            page++;
-                        }
+                    if (data.length < pageSize) {
+                        hasMore = false;
                     } else {
-                        hasMore = false;
-                        console.log(`🏁 Geen data meer. Totaal: ${allDogs.length} honden`);
+                        start += pageSize;
                     }
-                    
-                    if (page > 100) {
-                        console.warn('⚠️ Veiligheidslimiet bereikt (100+ pages)');
-                        hasMore = false;
-                    }
-                    
-                } catch (batchError) {
-                    console.error(`❌ Fout bij laden batch ${page}:`, batchError);
-                    
-                    let retryCount = 0;
-                    let retrySuccess = false;
-                    
-                    while (retryCount < this.maxRetries && !retrySuccess) {
-                        retryCount++;
-                        console.log(`🔄 Poging ${retryCount}/${this.maxRetries} opnieuw laden batch ${page}...`);
-                        
-                        await new Promise(resolve => setTimeout(resolve, this.retryDelay * retryCount));
-                        
-                        try {
-                            const retryData = await loadBatch(page);
-                            if (retryData.length > 0) {
-                                allDogs = allDogs.concat(retryData);
-                                this.totalLoaded = allDogs.length;
-                                console.log(`   ✅ Batch ${page} herladen: ${retryData.length} honden`);
-                                retrySuccess = true;
-                            }
-                        } catch (retryError) {
-                            console.error(`❌ Poging ${retryCount} mislukt:`, retryError);
-                        }
-                    }
-                    
-                    if (!retrySuccess) {
-                        console.error(`❌ Batch ${page} kon niet geladen worden na ${this.maxRetries} pogingen`);
-                        hasMore = false;
-                    }
+                } else {
+                    hasMore = false;
                 }
+                
+                // Veiligheidslimiet
+                if (start > 100000) {
+                    console.warn('⚠️ Veiligheidslimiet bereikt');
+                    break;
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 50));
             }
             
-            console.log(`✅ Supabase paginatie voltooid: ${allDogs.length} honden geladen in ${this.batchCount} batches`);
+            console.log(`✅ Supabase paginatie geladen: ${allDogs.length} honden`);
             return allDogs;
             
         } catch (error) {
-            console.error('❌ Fout bij verbeterde Supabase paginatie:', error);
+            console.error('❌ Fout bij Supabase paginatie:', error);
             return [];
         }
     }
     
-    async loadViaHondenService() {
+    async loadHondenWithoutPagination() {
         try {
-            console.log('🔄 Probeer via hondenService...');
+            console.log('⚠️ Laden zonder paginatie (kan onvolledig zijn)...');
             
             let hondenResult = null;
             
-            if (window.hondenService && typeof window.hondenService.getHonden === 'function') {
-                console.log('   ➡ Via window.hondenService.getHonden()');
-                hondenResult = await window.hondenService.getHonden();
-            } 
-            else if (this.db && typeof this.db.getHonden === 'function') {
-                console.log('   ➡ Via this.db.getHonden()');
-                hondenResult = await this.db.getHonden();
-            }
-            else if (window.db && typeof window.db.getHonden === 'function') {
-                console.log('   ➡ Via window.db.getHonden()');
-                hondenResult = await window.db.getHonden();
+            if (this.db && typeof this.db.getHonden === 'function') {
+                try {
+                    hondenResult = await this.db.getHonden();
+                } catch (error) {
+                    console.error('❌ Fout bij this.db.getHonden():', error);
+                }
             }
             
-            if (!hondenResult) {
-                console.log('   ❌ Geen honden service gevonden');
-                return [];
+            if (!hondenResult && window.hondenService && typeof window.hondenService.getHonden === 'function') {
+                try {
+                    hondenResult = await window.hondenService.getHonden();
+                } catch (error) {
+                    console.error('❌ Fout bij window.hondenService.getHonden():', error);
+                }
             }
             
+            if (!hondenResult && window.supabase) {
+                try {
+                    const { data, error } = await window.supabase
+                        .from('honden')
+                        .select('*')
+                        .order('naam', { ascending: true })
+                        .limit(10000); // Probeer meer te krijgen
+                    
+                    if (!error && data) {
+                        hondenResult = data;
+                    } else {
+                        console.error('❌ Supabase error:', error);
+                    }
+                } catch (error) {
+                    console.error('❌ Fout bij Supabase direct:', error);
+                }
+            }
+            
+            // Bepaal hoe we de data moeten extraheren
             let hondenArray = [];
             
             if (Array.isArray(hondenResult)) {
                 hondenArray = hondenResult;
             } else if (hondenResult && Array.isArray(hondenResult.honden)) {
                 hondenArray = hondenResult.honden;
-            } else if (hondenResult && Array.isArray(hondenResult.data)) {
+            } else if (hondenResult && Array.isArray(result.data)) {
                 hondenArray = hondenResult.data;
             } else {
                 console.error('❌ Onbekend resultaat formaat:', hondenResult);
                 return [];
             }
             
-            console.log(`✅ Via service geladen: ${hondenArray.length} honden`);
+            console.log(`⚠️ Geladen zonder paginatie: ${hondenArray.length} honden`);
+            console.warn('⚠️ LET OP: Mogelijk niet alle honden geladen!');
+            
             return hondenArray;
             
         } catch (error) {
-            console.error('❌ Fout bij laden via service:', error);
+            console.error('❌ Fout bij laden zonder paginatie:', error);
             return [];
-        }
-    }
-    
-    updateLoadingStatus() {
-        const content = document.getElementById('breedingContent');
-        if (!content || !content.innerHTML.includes('Laden van alle honden')) {
-            return;
-        }
-        
-        const elapsed = Date.now() - this.loadStartTime;
-        const seconds = Math.floor(elapsed / 1000);
-        
-        const statusHtml = `
-            <div class="text-center py-5">
-                <div class="spinner-border text-purple" role="status">
-                    <span class="visually-hidden">Laden...</span>
-                </div>
-                <p class="mt-3">Laden van zoekfunctie...</p>
-                <p class="small text-muted">
-                    Laden van alle honden (kan even duren)...<br>
-                    <strong>${this.totalLoaded}</strong> honden geladen in <strong>${this.batchCount}</strong> batches<br>
-                    ${seconds > 0 ? `Tijd verstreken: ${seconds} seconden` : ''}
-                </p>
-                ${seconds > 10 ? `
-                    <div class="alert alert-warning mt-3 small">
-                        <i class="bi bi-exclamation-triangle"></i>
-                        Dit duurt langer dan verwacht. Controleer de database verbinding.
-                    </div>
-                ` : ''}
-            </div>
-        `;
-        
-        if (content.innerHTML.includes('spinner-border')) {
-            content.innerHTML = statusHtml;
         }
     }
     
@@ -779,40 +731,41 @@ class ZoekReu {
                 return false;
             }
             
-            // Debug: toon enkele honden met parent relaties
-            console.log('🔍 Sample honden voor COICalculator2:');
-            const sampleHonden = this.allHonden.slice(0, 3);
-            sampleHonden.forEach((hond, i) => {
-                console.log(`   ${i+1}. ${hond.naam} (ID:${hond.id})`);
-                console.log(`      VaderId: ${hond.vaderId} (type: ${typeof hond.vaderId})`);
-                console.log(`      MoederId: ${hond.moederId} (type: ${typeof hond.moederId})`);
-            });
+            if (this.allHonden.length < 100) {
+                console.warn(`⚠️ WAARSCHUWING: Slechts ${this.allHonden.length} honden geladen. COI berekeningen mogelijk onvolledig!`);
+            }
             
+            // Debug: check data structuur voor COICalculator2
+            console.log('🔍 Controleer data structuur voor COICalculator2:');
+            if (this.allHonden.length > 0) {
+                const sampleHond = this.allHonden[0];
+                console.log('   Voorbeeld hond:', {
+                    id: sampleHond.id,
+                    vaderId: sampleHond.vaderId,
+                    moederId: sampleHond.moederId,
+                    vaderIdType: typeof sampleHond.vaderId,
+                    moederIdType: typeof sampleHond.moederId
+                });
+            }
+            
+            // Maak COI calculator met alle geladen honden
             this.coiCalculator2 = new COICalculator2(this.allHonden);
             this.coiCalculatorReady = true;
             
             console.log('✅ COICalculator2 succesvol geïnitialiseerd');
             console.log(`   ${this.coiCalculator2._dogMap.size} honden beschikbaar voor COI berekeningen`);
             
-            // Test COI berekening
+            // Test een paar honden om te controleren of het werkt
             if (this.allHonden.length > 0) {
-                const testDog = this.allHonden.find(h => h.vaderId && h.moederId);
-                if (testDog) {
-                    const coi = this.coiCalculator2.calculateCOI(testDog.id);
-                    console.log(`   Test COI voor ${testDog.naam} (ID: ${testDog.id}): ${coi}%`);
-                } else {
-                    console.log('⚠️ Geen honden met beide ouders gevonden voor test');
-                }
+                const testDog = this.allHonden[0];
+                const coiResult = this.coiCalculator2.calculateCOI(testDog.id);
+                console.log(`   Test COI voor ${testDog.naam} (ID: ${testDog.id}): ${coiResult}%`);
             }
-            
-            // Check database compleetheid
-            this.coiCalculator2.checkDatabase();
             
             return true;
             
         } catch (error) {
             console.error('❌ Fout bij initialiseren COICalculator2:', error);
-            console.error('Error details:', error.message);
             this.coiCalculatorReady = false;
             return false;
         }
@@ -835,12 +788,43 @@ class ZoekReu {
                 return '0.000';
             }
             
-            // Gebruik de ingebouwde combinatie COI methode van COICalculator2
-            const comboCOI = this.coiCalculator2.calculateCombinationCOI(teefId, reuId);
+            // Gebruik de COI calculator om combinatie COI te berekenen
+            // We maken een virtuele pup en berekenen daar de COI voor
             
-            console.log(`✅ Combinatie COI (6g) voor ${teef.naam} × ${reu.naam}: ${comboCOI}%`);
+            const futurePuppy = {
+                id: -Date.now(), // Uniek negatief ID
+                naam: this.t('virtualPuppy'),
+                geslacht: 'onbekend',
+                vaderId: reu.id,
+                moederId: teef.id,
+                vader: reu.naam,
+                moeder: teef.naam,
+                kennelnaam: this.t('combinedParents'),
+                stamboomnr: 'VOORSPELD-' + Date.now(),
+                geboortedatum: new Date().toISOString().split('T')[0],
+                vachtkleur: `${reu.vachtkleur || ''}/${teef.vachtkleur || ''}`.trim(),
+                heupdysplasie: null,
+                elleboogdysplasie: null,
+                patella: null,
+                ogen: null,
+                ogenVerklaring: null,
+                dandyWalker: null,
+                schildklier: null,
+                schildklierVerklaring: null,
+                land: null,
+                postcode: null,
+                opmerkingen: null
+            };
             
-            return comboCOI;
+            // Voeg virtuele pup toe aan bestaande dataset
+            const tempHonden = [...this.allHonden, futurePuppy];
+            const tempCOICalculator = new COICalculator2(tempHonden);
+            
+            const coiResult = tempCOICalculator.calculateCOI(futurePuppy.id);
+            
+            console.log(`✅ Combinatie COI (6g) voor ${teef.naam} × ${reu.naam}: ${coiResult}%`);
+            
+            return coiResult;
             
         } catch (error) {
             console.error('❌ Fout bij combinatie COI berekening:', error);
@@ -864,6 +848,7 @@ class ZoekReu {
         
         console.log('📋 ZoekReu.loadContent() gestart');
         
+        // Toon loading state
         content.innerHTML = `
             <div class="text-center py-5">
                 <div class="spinner-border text-purple" role="status">
@@ -871,15 +856,11 @@ class ZoekReu {
                 </div>
                 <p class="mt-3">Laden van zoekfunctie...</p>
                 <p class="small text-muted">Laden van alle honden (kan even duren)...</p>
-                <div class="progress mt-3" style="height: 10px;">
-                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-purple" 
-                         role="progressbar" style="width: 25%">
-                    </div>
-                </div>
             </div>
         `;
         
         try {
+            // Laad honden als ze nog niet geladen zijn
             if (this.allHonden.length === 0) {
                 console.log('📥 Honden nog niet geladen, ga ze nu laden...');
                 await this.loadAllHonden();
@@ -887,10 +868,12 @@ class ZoekReu {
                 console.log(`📊 Honden al geladen: ${this.allHonden.length} honden, ${this.allTeven.length} teven`);
             }
             
+            // Initialiseer COI calculator
             if (!this.coiCalculatorReady) {
                 await this.initCOICalculator();
             }
             
+            // Toon de content
             this.renderContent(t);
             
         } catch (error) {
@@ -932,13 +915,10 @@ class ZoekReu {
             <div class="alert alert-info mb-4">
                 <i class="bi bi-info-circle"></i>
                 <strong>Status:</strong> 
-                ${this.allHonden.length} honden geladen, 
+                ${this.allHonden.length} honden geladen via paginatie, 
                 ${this.allTeven.length} teven, 
                 ${reuen.length} reuen beschikbaar
-                ${this.coiCalculatorReady ? 
-                    '<br><i class="bi bi-check-circle text-success"></i> COI calculator actief' : 
-                    '<br><i class="bi bi-exclamation-triangle text-warning"></i> COI calculator niet beschikbaar'}
-                <br><small class="text-muted">Laadtijd: ${Date.now() - (this.loadStartTime || Date.now())}ms</small>
+                ${this.coiCalculatorReady ? '<br><i class="bi bi-check-circle text-success"></i> COI calculator actief' : '<br><i class="bi bi-exclamation-triangle text-warning"></i> COI calculator niet beschikbaar'}
             </div>
             
             <div class="row g-4">
@@ -1071,9 +1051,9 @@ class ZoekReu {
                                             <div class="position-relative">
                                                 <input type="text" 
                                                        class="form-control" 
-                                                   id="excludeKennelSearch" 
-                                                   placeholder="${t('excludeKennelsPlaceholder')}"
-                                                   autocomplete="off">
+                                                       id="excludeKennelSearch" 
+                                                       placeholder="${t('excludeKennelsPlaceholder')}"
+                                                       autocomplete="off">
                                                 <div class="autocomplete-dropdown" id="excludeKennelDropdown" style="display: none;">
                                                     <div class="autocomplete-header">
                                                         <small class="text-muted">${t('kennelsFound')}: <span id="excludeKennelCount">0</span></small>
@@ -1126,9 +1106,7 @@ class ZoekReu {
                             <i class="bi bi-search" style="font-size: 2rem;"></i>
                             <p class="mt-2">${t('useSearchCriteria')}</p>
                             <small class="text-muted">${reuen.length} reuen beschikbaar voor zoeken</small>
-                            ${this.coiCalculatorReady ? 
-                                '<br><small><i class="bi bi-check-circle text-success"></i> COI berekeningen actief</small>' : 
-                                '<br><small><i class="bi bi-exclamation-triangle text-warning"></i> COI berekeningen niet beschikbaar</small>'}
+                            ${this.coiCalculatorReady ? '<br><small><i class="bi bi-check-circle text-success"></i> COI berekeningen actief</small>' : '<br><small><i class="bi bi-exclamation-triangle text-warning"></i> COI berekeningen niet beschikbaar</small>'}
                         </div>
                     </div>
                 </div>
@@ -1190,6 +1168,7 @@ class ZoekReu {
             }
         });
         
+        // Close dropdown when clicking outside
         document.addEventListener('click', (e) => {
             if (!teefDropdown.contains(e.target) && e.target.id !== 'teefSearch') {
                 teefDropdown.style.display = 'none';
@@ -3155,7 +3134,7 @@ style.textContent = `
         border: 1px solid #dee2e6;
         border-radius: 0.375rem;
         box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-        z-index: 1050;
+        z-index: 1050; /* Verhoogd voor overlay effect */
     }
     
     .autocomplete-header {
@@ -3374,10 +3353,12 @@ style.textContent = `
         color: #6c757d;
     }
     
+    /* Fix voor dropdown zichtbaarheid */
     .position-relative {
         position: relative;
     }
     
+    /* Voorkom clipping door parent containers */
     .card-body {
         overflow: visible !important;
     }
