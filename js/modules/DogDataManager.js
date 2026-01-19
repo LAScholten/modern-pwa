@@ -1801,25 +1801,25 @@ class DogDataManager extends BaseModule {
         console.log('=== EINDE LOGGING ===');
         
         // Zoek ouder namen op basis van IDs
-        let vaderNaam = '';
-        let moederNaam = '';
+        let vader = '';
+        let moeder = '';
         
         if (vaderId) {
             const vaderHond = this.allDogs.find(d => d.id === vaderId);
-            vaderNaam = vaderHond ? vaderHond.naam || '' : '';
-            console.log(`Vader gevonden: ID=${vaderId}, Naam=${vaderNaam}`);
+            vader = vaderHond ? vaderHond.naam || '' : '';
+            console.log(`Vader gevonden: ID=${vaderId}, Naam=${vader}`);
         } else {
             console.log('Geen vader ID opgegeven, gebruik tekst uit input veld');
-            vaderNaam = document.getElementById('father').value.split(' ')[0] || ''; // Neem eerste woord als naam
+            vader = document.getElementById('father').value.split(' ')[0] || ''; // Neem eerste woord als naam
         }
         
         if (moederId) {
             const moederHond = this.allDogs.find(d => d.id === moederId);
-            moederNaam = moederHond ? moederHond.naam || '' : '';
-            console.log(`Moeder gevonden: ID=${moederId}, Naam=${moederNaam}`);
+            moeder = moederHond ? moederHond.naam || '' : '';
+            console.log(`Moeder gevonden: ID=${moederId}, Naam=${moeder}`);
         } else {
             console.log('Geen moeder ID opgegeven, gebruik tekst uit input veld');
-            moederNaam = document.getElementById('mother').value.split(' ')[0] || ''; // Neem eerste woord als naam
+            moeder = document.getElementById('mother').value.split(' ')[0] || ''; // Neem eerste woord als naam
         }
         
         const dogData = {
@@ -1830,9 +1830,9 @@ class DogDataManager extends BaseModule {
             ras: document.getElementById('breed').value.trim(),
             vachtkleur: document.getElementById('coatColor').value.trim(),
             geslacht: document.getElementById('gender').value,
-            vader: vaderNaam, // Alleen naam
+            vader: vader, // Alleen naam
             vaderId: vaderId, // ID in het Nederlands
-            moeder: moederNaam, // Alleen naam
+            moeder: moeder, // Alleen naam
             moederId: moederId, // ID in het Nederlands
             geboortedatum: formatDateForStorage(birthDateValue),
             overlijdensdatum: formatDateForStorage(deathDateValue),
