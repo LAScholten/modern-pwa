@@ -139,8 +139,8 @@ const hondenService = {
         geslacht: hond.geslacht || '',
         vader_id: hond.vaderId || null,
         moeder_id: hond.moederId || null,
-        vader_naam: hond.vader || '',
-        moeder_naam: hond.moeder || '',
+        vader: hond.vader || '',
+        moeder: hond.moeder || '',
         geboortedatum: hond.geboortedatum || null,
         overlijdensdatum: hond.overlijdensdatum || null,
         gezondheidsinfo: JSON.stringify({
@@ -190,8 +190,8 @@ const hondenService = {
         geslacht: hondData.geslacht,
         vader_id: hondData.vaderId || null,
         moeder_id: hondData.moederId || null,
-        vader_naam: hondData.vader || '',
-        moeder_naam: hondData.moeder || '',
+        vader: hondData.vader || '',
+        moeder: hondData.moeder || '',
         geboortedatum: hondData.geboortedatum || null,
         overlijdensdatum: hondData.overlijdensdatum || null,
         gezondheidsinfo: JSON.stringify({
