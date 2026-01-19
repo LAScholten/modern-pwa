@@ -326,7 +326,7 @@ class DogManager extends BaseModule {
                 fieldsRequired: "Name, Stammbaum-Nummer en Rasse sind Pflichtfelder",
                 savingDog: "Hund wird gespeichert...",
                 dogAdded: "Hund erfolgreich hinzugefügt!",
-                dogUpdated: "Hund erfolgreich aktualisiert!",
+                dogUpdated: "Hund erfolgreich aktualiseerd!",
                 dogDeleted: "Hund erfolgreich gelöscht!",
                 addFailed: "Fehler beim Hinzufügen des Hundes: ",
                 updateFailed: "Fehler beim Aktualisieren des Hundes: ",
@@ -724,6 +724,8 @@ class DogManager extends BaseModule {
             <form id="addDogForm">
                 <input type="hidden" id="fatherId" value="${data.vaderId || ''}">
                 <input type="hidden" id="motherId" value="${data.moederId || ''}">
+                <input type="hidden" id="tempFatherPedigree" value="${data.temp_vader_stamboomnr || ''}">
+                <input type="hidden" id="tempMotherPedigree" value="${data.temp_moeder_stamboomnr || ''}">
                 
                 <!-- Rij 1: Naam en Kennelnaam -->
                 <div class="row">
@@ -894,7 +896,7 @@ class DogManager extends BaseModule {
                         </div>
                         <div class="mb-3" id="eyesExplanationContainer" style="${data.ogen === 'Overig' ? '' : 'display: none;'}">
                             <label for="eyesExplanation" class="form-label">${t('eyesExplanation')}</label>
-                            <input type="text" class="form-control" id="eyesExplanation" value="${data.ogenVerklaring || ''}">
+                            <input type="text" class="form-control" id="eyesExplanation" value="${data.ogenverklaring || ''}">
                         </div>
                     </div>
                     <div class="col-md-6">
@@ -924,7 +926,7 @@ class DogManager extends BaseModule {
                         </div>
                         <div class="mb-3" id="thyroidExplanationContainer" style="${data.schildklier === 'Positief' ? '' : 'display: none;'}">
                             <label for="thyroidExplanation" class="form-label">${t('thyroidExplanation')}</label>
-                            <input type="text" class="form-control" id="thyroidExplanation" value="${data.schildklierVerklaring || ''}">
+                            <input type="text" class="form-control" id="thyroidExplanation" value="${data.schildklierverklaring || ''}">
                         </div>
                     </div>
                     <div class="col-md-6">
@@ -943,6 +945,26 @@ class DogManager extends BaseModule {
                             </div>
                         </div>
                     </div>
+                </div>
+                
+                <!-- Gezondheidsinfo (nieuw veld) -->
+                <div class="mb-3">
+                    <label for="healthInfo" class="form-label">Gezondheidsinformatie (JSON)</label>
+                    <textarea class="form-control" id="healthInfo" rows="4" placeholder='{"vaccinaties": [...], "operaties": [...], "allergieen": [...]}'>${data.gezondheidsinfo || ''}</textarea>
+                    <small class="form-text text-muted">Voer gezondheidsinformatie in als JSON formaat</small>
+                </div>
+                
+                <!-- Status (nieuw veld) -->
+                <div class="mb-3">
+                    <label for="status" class="form-label">Status</label>
+                    <select class="form-select" id="status">
+                        <option value="">Selecteer status...</option>
+                        <option value="actief" ${data.status === 'actief' ? 'selected' : ''}>Actief</option>
+                        <option value="inactief" ${data.status === 'inactief' ? 'selected' : ''}>Inactief</option>
+                        <option value="overleden" ${data.status === 'overleden' ? 'selected' : ''}>Overleden</option>
+                        <option value="verkocht" ${data.status === 'verkocht' ? 'selected' : ''}>Verkocht</option>
+                        <option value="gereserveerd" ${data.status === 'gereserveerd' ? 'selected' : ''}>Gereserveerd</option>
+                    </select>
                 </div>
                 
                 <!-- Foto uploaden -->
@@ -1556,20 +1578,12 @@ class DogManager extends BaseModule {
         // Haal ouder ID's op
         const fatherIdInput = document.getElementById('fatherId');
         const motherIdInput = document.getElementById('motherId');
-        
-        // Log de ouder ID's voor debugging
-        console.log('=== OUDER ID DEBUGGING ===');
-        console.log('Vader ID input element:', fatherIdInput);
-        console.log('Vader ID waarde:', fatherIdInput ? fatherIdInput.value : 'Niet gevonden');
-        console.log('Moeder ID input element:', motherIdInput);
-        console.log('Moeder ID waarde:', motherIdInput ? motherIdInput.value : 'Niet gevonden');
+        const tempFatherPedigreeInput = document.getElementById('tempFatherPedigree');
+        const tempMotherPedigreeInput = document.getElementById('tempMotherPedigree');
         
         // Parse ouder ID's
         const vaderId = fatherIdInput && fatherIdInput.value ? parseInt(fatherIdInput.value) : null;
         const moederId = motherIdInput && motherIdInput.value ? parseInt(motherIdInput.value) : null;
-        
-        console.log('Vader ID geparsed:', vaderId, '(type:', typeof vaderId, ')');
-        console.log('Moeder ID geparsed:', moederId, '(type:', typeof moederId, ')');
         
         // Haal ouder namen op
         let vaderNaam = document.getElementById('father').value.trim();
@@ -1580,7 +1594,6 @@ class DogManager extends BaseModule {
             const vaderHond = this.allDogs.find(dog => dog.id === vaderId);
             if (vaderHond) {
                 vaderNaam = vaderHond.naam || '';
-                console.log(`Vader naam gevonden via ID ${vaderId}: ${vaderNaam}`);
             }
         }
         
@@ -1588,7 +1601,6 @@ class DogManager extends BaseModule {
             const moederHond = this.allDogs.find(dog => dog.id === moederId);
             if (moederHond) {
                 moederNaam = moederHond.naam || '';
-                console.log(`Moeder naam gevonden via ID ${moederId}: ${moederNaam}`);
             }
         }
         
@@ -1596,45 +1608,72 @@ class DogManager extends BaseModule {
         const currentUser = auth.getCurrentUser();
         const userId = currentUser ? currentUser.id : null;
         
+        // Valideer JSON voor gezondheidsinfo
+        let gezondheidsinfoValue = '';
+        const healthInfoInput = document.getElementById('healthInfo');
+        if (healthInfoInput && healthInfoInput.value.trim()) {
+            try {
+                JSON.parse(healthInfoInput.value.trim());
+                gezondheidsinfoValue = healthInfoInput.value.trim();
+            } catch (e) {
+                this.showError('Ongeldig JSON formaat in gezondheidsinformatie');
+                return;
+            }
+        }
+        
+        // Maak het volledige dogData object met ALLE 34 velden
         const dogData = {
+            // Basis informatie (15 velden)
             naam: document.getElementById('dogName').value.trim(),
             kennelnaam: document.getElementById('kennelName').value.trim(),
             stamboomnr: document.getElementById('pedigreeNumber').value.trim(),
             ras: document.getElementById('breed').value.trim(),
-            vachtkleur: document.getElementById('coatColor').value.trim(), // Nieuw veld
+            vachtkleur: document.getElementById('coatColor').value.trim(),
             geslacht: document.getElementById('gender').value,
             vader: vaderNaam,
-            vaderId: vaderId,
             moeder: moederNaam,
-            moederId: moederId,
             geboortedatum: formatDateForStorage(birthDateValue),
             overlijdensdatum: formatDateForStorage(deathDateValue),
+            land: document.getElementById('country').value.trim(),
+            postcode: document.getElementById('zipCode').value.trim(),
+            opmerkingen: document.getElementById('remarks').value.trim(),
+            
+            // Gezondheidsinformatie (7 velden)
             heupdysplasie: document.getElementById('hipDysplasia').value,
             elleboogdysplasie: document.getElementById('elbowDysplasia').value,
             patella: document.getElementById('patellaLuxation').value,
             ogen: document.getElementById('eyes').value,
-            ogenVerklaring: document.getElementById('eyesExplanation')?.value.trim() || '',
+            ogenverklaring: document.getElementById('eyesExplanation')?.value.trim() || '',
             dandyWalker: document.getElementById('dandyWalker').value,
             schildklier: document.getElementById('thyroid').value,
-            schildklierVerklaring: document.getElementById('thyroidExplanation')?.value.trim() || '',
-            land: document.getElementById('country').value.trim(),
-            postcode: document.getElementById('zipCode').value.trim(),
-            opmerkingen: document.getElementById('remarks').value.trim(),
-            // AANGEPAST: gebruik lowercase kolomnamen zoals in database
+            schildklierverklaring: document.getElementById('thyroidExplanation')?.value.trim() || '',
+            
+            // Ouder relaties (6 velden)
+            vader_id: vaderId,
+            moeder_id: moederId,
+            temp_vader_stamboomnr: tempFatherPedigreeInput ? tempFatherPedigreeInput.value.trim() : '',
+            temp_moeder_stamboomnr: tempMotherPedigreeInput ? tempMotherPedigreeInput.value.trim() : '',
+            
+            // Metadata en systeemvelden (10 velden)
             createdat: new Date().toISOString(),
             updatedat: new Date().toISOString(),
-            // AANGEPAST: gebruik toegevoegd_door ipv user_id
-            toegevoegd_door: userId
+            aangemaakt_op: new Date().toISOString(),
+            bijgewerkt_op: new Date().toISOString(),
+            toegevoegd_door: userId,
+            user_id: userId, // Backup veld
+            gezondheidsinfo: gezondheidsinfoValue,
+            status: document.getElementById('status').value || 'actief'
         };
         
-        // Log de volledige data die wordt opgeslagen
-        console.log('=== DOG DATA VOOR OPSLAG ===');
+        console.log('=== DOG DATA VOOR OPSLAG (alle 34 velden) ===');
         console.log('Volledige dogData:', dogData);
-        console.log('toegevoegd_door voor RLS:', dogData.toegevoegd_door);
-        console.log('vader:', dogData.vader, '(vaderId:', dogData.vaderId, ')');
-        console.log('moeder:', dogData.moeder, '(moederId:', dogData.moederId, ')');
+        console.log('Aantal velden:', Object.keys(dogData).length);
+        console.log('toegevoegd_door:', dogData.toegevoegd_door);
+        console.log('gezondheidsinfo:', dogData.gezondheidsinfo ? 'Ja (JSON)' : 'Nee');
+        console.log('status:', dogData.status);
         console.log('=== EINDE DOG DATA LOG ===');
         
+        // Verplichte velden validatie
         if (!dogData.naam || !dogData.stamboomnr || !dogData.ras) {
             this.showError(this.t('fieldsRequired'));
             return;
@@ -1653,7 +1692,7 @@ class DogManager extends BaseModule {
         this.showProgress(this.t('savingDog'));
         
         try {
-            console.log('DogManager: Roep hondenService.voegHondToe aan met dogData (incl. toegevoegd_door)');
+            console.log('DogManager: Roep hondenService.voegHondToe aan met ALLE velden');
             
             // Gebruik de reguliere methode
             const result = await hondenService.voegHondToe(dogData);
