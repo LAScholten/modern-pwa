@@ -4,7 +4,7 @@
  * Inclusief foto functionaliteit met thumbnail viewer en fullscreen viewer
  * Inclusief nakomelingen functionaliteit
  * Beide kolommen zijn nu scrollbaar
- * SUPABASE VERSIE MET PAGINATIE
+ * SUPABASE VERSIE MET PAGINATIE - FIXED VERSION
  */
 
 class SearchManager extends BaseModule {
@@ -328,7 +328,7 @@ class SearchManager extends BaseModule {
                 // Stamboom buttons
                 pedigreeButton: "Ahnentafel",
                 pedigreeTitle: "Ahnentafel von {name}",
-                generatingPedigree: "Ahnentafel wird generiert...",
+                generatingPedigree: "Ahnentafel wordt generiert...",
                 openPedigree: "Ahnentafel öffnen",
                 pedigree4Gen: "4-Generationen Ahnentafel",
                 
@@ -1912,7 +1912,7 @@ class SearchManager extends BaseModule {
             const searchTerm = e.target.value.toLowerCase().trim();
             
             if (searchTerm.length >= 1) {
-                // Gebruik dezelfde logica als de kennelnaam zoekfunctie
+                // Gebruik dezelfde logica als de DogDataManager
                 this.filterDogsForNameField(searchTerm);
             } else {
                 this.showInitialView();
@@ -1995,7 +1995,7 @@ class SearchManager extends BaseModule {
         this.showProgress(this.t('loadingAllDogs').replace('{loaded}', '0'));
         
         try {
-            // Gebruik paginatie om alle honden te laden
+            // Gebruik paginatie om alle honden te laden - NET ALS DogDataManager
             this.allDogs = await this.loadAllDogsWithPagination();
             this.allDogs.sort((a, b) => a.naam.localeCompare(b.naam));
             
@@ -2012,7 +2012,7 @@ class SearchManager extends BaseModule {
         }
     }
     
-    // Laad alle honden met paginatie - SUPABASE VERSIE
+    // Laad alle honden met paginatie - GELIJK AAN DogDataManager
     async loadAllDogsWithPagination() {
         try {
             let allDogs = [];
@@ -2023,11 +2023,14 @@ class SearchManager extends BaseModule {
             
             console.log('SearchManager: Laden van alle honden met paginatie...');
             
+            // Toon progress in UI
+            this.showProgress(`Honden laden... (0 geladen)`);
+            
             // Loop door alle pagina's
             while (hasMorePages) {
                 console.log(`Laden pagina ${currentPage}...`);
                 
-                // Gebruik de getHonden() methode van hondenService
+                // Gebruik de getHonden() methode van hondenService - NET ALS DogDataManager
                 const result = await this.db.getHonden(currentPage, pageSize);
                 
                 if (result.honden && result.honden.length > 0) {
@@ -2065,34 +2068,63 @@ class SearchManager extends BaseModule {
                 return naamA.localeCompare(naamB);
             });
             
+            this.hideProgress();
             console.log(`SearchManager: TOTAAL ${allDogs.length} honden geladen`);
+            
+            // DEBUG logging
+            if (allDogs.length > 0) {
+                console.log('Eerste hond:', allDogs[0].naam);
+                console.log('Laatste hond:', allDogs[allDogs.length - 1].naam);
+                console.log('Sample parent IDs:', {
+                    'vaderId in first dog': allDogs[0].vaderId,
+                    'moederId in first dog': allDogs[0].moederId
+                });
+            }
+            
             return allDogs;
             
         } catch (error) {
+            this.hideProgress();
             console.error('Fout bij laden honden voor zoeken:', error);
             throw error;
         }
     }
     
+    // GEWIJZIGD: Zelfde zoeklogica als DogDataManager
     filterDogsForNameField(searchTerm = '') {
+        // DEBUG: Controleer of we honden hebben
+        console.log(`Zoeken naar '${searchTerm}' in ${this.allDogs.length} geladen honden`);
+        
+        if (this.allDogs.length === 0) {
+            console.error('Geen honden geladen!');
+            this.filteredDogs = [];
+            this.displaySearchResults();
+            return;
+        }
+        
+        // Filter honden zoals bij DogDataManager: zoek in naam + kennelnaam
         this.filteredDogs = this.allDogs.filter(dog => {
             const naam = dog.naam ? dog.naam.toLowerCase() : '';
             const kennelnaam = dog.kennelnaam ? dog.kennelnaam.toLowerCase() : '';
             
-            // Creëer een gecombineerde string: "naam kennelnaam"
-            const combined = `${naam} ${kennelnaam}`;
+            // Combineer naam en kennelnaam voor zoeken (zoals bij DogDataManager)
+            const fullName = `${naam} ${kennelnaam}`.trim().toLowerCase();
             
-            // Controleer of de gecombineerde string begint met de zoekterm
-            return combined.startsWith(searchTerm);
+            // Zoek zowel op hele naam als op deel - gebruik includes ipv startsWith voor betere zoekervaring
+            return fullName.includes(searchTerm) || naam.includes(searchTerm);
         });
         
+        console.log(`Zoeken naar '${searchTerm}': ${this.filteredDogs.length} resultaten gevonden`);
         this.displaySearchResults();
     }
     
     filterDogsByKennel(searchTerm = '') {
+        // DEBUG: Controleer of we honden hebben
+        console.log(`Zoeken kennel '${searchTerm}' in ${this.allDogs.length} geladen honden`);
+        
         this.filteredDogs = this.allDogs.filter(dog => {
             const kennelnaam = dog.kennelnaam ? dog.kennelnaam.toLowerCase() : '';
-            return kennelnaam.startsWith(searchTerm);
+            return kennelnaam.includes(searchTerm); // Gebruik includes ipv startsWith
         });
         
         this.filteredDogs.sort((a, b) => {
@@ -2101,6 +2133,7 @@ class SearchManager extends BaseModule {
             return naamA.localeCompare(naamB);
         });
         
+        console.log(`Kennel zoekopdracht '${searchTerm}': ${this.filteredDogs.length} resultaten gevonden`);
         this.displaySearchResults();
     }
     
@@ -2126,6 +2159,7 @@ class SearchManager extends BaseModule {
                 <div class="search-stats">
                     <i class="bi bi-info-circle me-1"></i>
                     ${this.filteredDogs.length} ${t('found')}
+                    <span class="ms-3 text-muted">(uit ${this.allDogs.length} geladen honden)</span>
                 </div>
         `;
         
@@ -2276,6 +2310,9 @@ class SearchManager extends BaseModule {
         const dog = this.allDogs.find(h => h.id === hondId);
         if (dog) {
             this.selectDog(dog);
+        } else {
+            console.error(`Hond met ID ${hondId} niet gevonden in ${this.allDogs.length} geladen honden`);
+            this.showError(`Hond niet gevonden (ID: ${hondId})`);
         }
     }
     
@@ -2293,11 +2330,11 @@ class SearchManager extends BaseModule {
             this.addMobileBackButton();
         }
         
-        // BELANGRIJK: Gebruik de juiste veldnamen uit het tweede bestand: vaderId en moederId
+        // Gebruik dezelfde logica als DogDataManager voor ouders
         let fatherInfo = { id: null, naam: t('parentsUnknown'), stamboomnr: '', ras: '', kennelnaam: '' };
         let motherInfo = { id: null, naam: t('parentsUnknown'), stamboomnr: '', ras: '', kennelnaam: '' };
         
-        // VERBETERD: Gebruik vaderId en moederId zoals in tweede bestand
+        // BELANGRIJK: Gebruik vaderId en moederId zoals in DogDataManager
         if (dog.vaderId) {
             const father = this.allDogs.find(d => d.id === dog.vaderId);
             if (father) {
@@ -2308,10 +2345,12 @@ class SearchManager extends BaseModule {
                     ras: father.ras || '',
                     kennelnaam: father.kennelnaam || ''
                 };
+                console.log(`Vader gevonden voor ${dog.naam}: ID=${father.id}, Naam=${father.naam}`);
+            } else {
+                console.warn(`Vader ID ${dog.vaderId} niet gevonden in geladen honden voor hond ${dog.naam}`);
             }
         }
         
-        // VERBETERD: Gebruik moederId zoals in tweede bestand
         if (dog.moederId) {
             const mother = this.allDogs.find(d => d.id === dog.moederId);
             if (mother) {
@@ -2322,6 +2361,9 @@ class SearchManager extends BaseModule {
                     ras: mother.ras || '',
                     kennelnaam: mother.kennelnaam || ''
                 };
+                console.log(`Moeder gevonden voor ${dog.naam}: ID=${mother.id}, Naam=${mother.naam}`);
+            } else {
+                console.warn(`Moeder ID ${dog.moederId} niet gevonden in geladen honden voor hond ${dog.naam}`);
             }
         }
         
@@ -2727,6 +2769,9 @@ class SearchManager extends BaseModule {
                     item.classList.add('selected');
                 }
             });
+        } else {
+            console.error(`Parent met ID ${parentId} niet gevonden in ${this.allDogs.length} geladen honden`);
+            this.showError(`Ouder niet gevonden (ID: ${parentId})`);
         }
     }
     
