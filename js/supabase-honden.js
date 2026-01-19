@@ -183,6 +183,8 @@ async updateHond(hondData) {
     
     console.log('[HONDENSERVICE] updateHond aangeroepen met:', hondData);
     
+    // BELANGRIJK: Verwijder de gezondheidsinfo van updateData
+    // Dit veld bestaat misschien niet in je database
     const updateData = {
       naam: hondData.naam,
       kennelnaam: hondData.kennelnaam,
@@ -196,40 +198,49 @@ async updateHond(hondData) {
       moeder: hondData.moeder || '',
       geboortedatum: hondData.geboortedatum || null,
       overlijdensdatum: hondData.overlijdensdatum || null,
-      gezondheidsinfo: JSON.stringify({
-        heupdysplasie: hondData.heupdysplasie || '',
-        elleboogdysplasie: hondData.elleboogdysplasie || '',
-        patella: hondData.patella || '',
-        ogen: hondData.ogen || '',
-        ogenVerklaring: hondData.ogenverklaring || '',
-        dandyWalker: hondData.dandyWalker || '',
-        schildklier: hondData.schildklier || '',
-        schildklierVerklaring: hondData.schildklierverklaring || ''
-      }),
-      land: hondData.land || '',
-      postcode: hondData.postcode || '',
-      opmerkingen: hondData.opmerkingen || '',
+      // VERWIJDER DIT: gezondheidsinfo: JSON.stringify({...}),
+      // IN PLAATS DAARVAN, gebruik de individuele velden:
+      heupdysplasie: hondData.heupdysplasie || null,
+      elleboogdysplasie: hondData.elleboogdysplasie || null,
+      patella: hondData.patella || null,
+      ogen: hondData.ogen || null,
+      ogenverklaring: hondData.ogenverklaring || null,
+      dandyWalker: hondData.dandyWalker || null,
+      schildklier: hondData.schildklier || null,
+      schildklierverklaring: hondData.schildklierverklaring || null,
+      land: hondData.land || null,
+      postcode: hondData.postcode || null,
+      opmerkingen: hondData.opmerkingen || null,
       bijgewerkt_op: new Date().toISOString()
     };
     
     console.log('[HONDENSERVICE] Update data naar Supabase:', updateData);
     
-    // Gebruik .maybeSingle() om null te accepteren als er geen resultaat is
-    const { data, error } = await window.supabase
+    // Probeer WITHOUT .select() eerst
+    const { error: updateError } = await window.supabase
       .from('honden')
       .update(updateData)
-      .eq('id', hondData.id)
-      .select()
-      .maybeSingle();
+      .eq('id', hondData.id);
     
-    if (error) {
-      console.error('[HONDENSERVICE] Supabase update error:', error);
-      throw error;
+    if (updateError) {
+      console.error('[HONDENSERVICE] Supabase update error:', updateError);
+      throw updateError;
     }
     
-    // data kan null zijn, dat is OK bij maybeSingle()
-    console.log('[HONDENSERVICE] Update voltooid, resultaat:', data);
-    return data || { success: true, message: 'Update uitgevoerd' };
+    // Controleer of de update echt werkte
+    const { data: checkData, error: checkError } = await window.supabase
+      .from('honden')
+      .select('naam, land, postcode')
+      .eq('id', hondData.id)
+      .single();
+    
+    if (checkError) {
+      console.error('[HONDENSERVICE] Check na update error:', checkError);
+      throw checkError;
+    }
+    
+    console.log('[HONDENSERVICE] Update succesvol, gecontroleerd:', checkData);
+    return checkData;
     
   } catch (error) {
     console.error('Fout bij updaten hond:', error);
