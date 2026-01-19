@@ -214,11 +214,12 @@ const hondenService = {
         .from('honden')
         .update(updateData)
         .eq('id', hondData.id)
-        .select()
-        .single();
+        .select();
       
       if (error) throw error;
-      return data;
+      
+      // Data is een array, geef het eerste element terug
+      return data ? data[0] : null;
     } catch (error) {
       console.error('Fout bij updaten hond:', error);
       throw error;
