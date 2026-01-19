@@ -66,7 +66,7 @@ class DogDataManager extends BaseModule {
                 eyesDistichiasis: "Distichiasis",
                 eyesOther: "Overig",
                 eyesExplanation: "Verklaring overig",
-                dandyWalker: "Dandy Walker Malformation",
+                dandywalker: "Dandy Walker Malformation",
                 dandyOptions: "Selecteer status...",
                 dandyFreeDNA: "Vrij op DNA",
                 dandyFreeParents: "Vrij op ouders",
@@ -182,7 +182,7 @@ class DogDataManager extends BaseModule {
                 eyesDistichiasis: "Distichiasis",
                 eyesOther: "Other",
                 eyesExplanation: "Other explanation",
-                dandyWalker: "Dandy Walker Malformation",
+                dandywalker: "Dandy Walker Malformation",
                 dandyOptions: "Select status...",
                 dandyFreeDNA: "Free on DNA",
                 dandyFreeParents: "Free on parents",
@@ -298,7 +298,7 @@ class DogDataManager extends BaseModule {
                 eyesDistichiasis: "Distichiasis",
                 eyesOther: "Andere",
                 eyesExplanation: "Erklärung andere",
-                dandyWalker: "Dandy Walker Malformation",
+                dandywalker: "Dandy Walker Malformation",
                 dandyOptions: "Status wählen...",
                 dandyFreeDNA: "Frij op DNA",
                 dandyFreeParents: "Frij op ouders",
@@ -1647,7 +1647,7 @@ class DogDataManager extends BaseModule {
         document.getElementById('patellaLuxation').value = dog.patella || '';
         document.getElementById('eyes').value = dog.ogen || '';
         document.getElementById('eyesExplanation').value = dog.ogenVerklaring || '';
-        document.getElementById('dandyWalker').value = dog.dandyWalker || '';
+        document.getElementById('dandywalker').value = dog.dandywalker || '';
         document.getElementById('thyroid').value = dog.schildklier || '';
         document.getElementById('thyroidExplanation').value = dog.schildklierVerklaring || '';
         
@@ -1845,7 +1845,7 @@ class DogDataManager extends BaseModule {
             patella: document.getElementById('patellaLuxation').value || null,
             ogen: document.getElementById('eyes').value || null,
             ogenVerklaring: document.getElementById('eyesExplanation')?.value.trim() || null,
-            dandyWalker: document.getElementById('dandyWalker').value || null,
+            dandywalker: document.getElementById('dandyWalker').value || null,
             schildklier: document.getElementById('thyroid').value || null,
             schildklierVerklaring: document.getElementById('thyroidExplanation')?.value.trim() || null,
             land: document.getElementById('country').value.trim() || null,
