@@ -7,7 +7,7 @@
  * Inclusief nakomelingen functionaliteit
  * Beide kolommen zijn nu scrollbaar
  * SUPABASE VERSIE MET PAGINATIE - FIXED VERSION
- * NU MET DEZELFDE PAGINATIE LOGICA ALS DogDataManager
+ * MET JUISTE DATABASE KOLOM NAMEN
  */
 
 class SearchManager extends BaseModule {
@@ -511,7 +511,7 @@ class SearchManager extends BaseModule {
         }
     }
     
-    // Nakomelingen ophalen voor een hond - VERBETERD: gebruik juiste ID namen uit tweede bestand
+    // Nakomelingen ophalen voor een hond - GECORRIGEERD: gebruik vader_id en moeder_id ipv vaderId/moederId
     async getDogOffspring(dogId) {
         if (!dogId || dogId === 0) return [];
         
@@ -524,21 +524,31 @@ class SearchManager extends BaseModule {
             const dog = this.allDogs.find(d => d.id === dogId);
             if (!dog) return [];
             
+            // DEBUG: Log voor nakomelingen zoeken
+            console.log(`Zoeken naar nakomelingen van hond ID: ${dogId} (${dog.naam})`);
+            
             // Zoek nakomelingen waar deze hond vader of moeder is
-            // GEBRUIK JUISTE ID NAMEN: vaderId en moederId zoals in tweede bestand
+            // GEBRUIK JUISTE ID NAMEN: vader_id en moeder_id zoals in database
             const allDogs = this.allDogs;
-            const offspring = allDogs.filter(d => 
-                (d.vaderId === dogId) || (d.moederId === dogId)
-            );
+            const offspring = allDogs.filter(d => {
+                // Debug logging voor elke hond
+                if (d.vader_id === dogId || d.moeder_id === dogId) {
+                    console.log(`Nakomeling gevonden: ${d.naam} (ID: ${d.id}), vader_id: ${d.vader_id}, moeder_id: ${d.moeder_id}`);
+                    return true;
+                }
+                return false;
+            });
+            
+            console.log(`Totaal ${offspring.length} nakomelingen gevonden voor hond ID ${dogId}`);
             
             // Voeg ouder informatie toe aan elk nakomeling
             const offspringWithParents = offspring.map(puppy => {
                 let fatherInfo = { naam: this.t('parentsUnknown'), stamboomnr: '' };
                 let motherInfo = { naam: this.t('parentsUnknown'), stamboomnr: '' };
                 
-                // Haal vader info op - gebruik vaderId zoals in tweede bestand
-                if (puppy.vaderId) {
-                    const father = allDogs.find(d => d.id === puppy.vaderId);
+                // Haal vader info op - gebruik vader_id zoals in database
+                if (puppy.vader_id) {
+                    const father = allDogs.find(d => d.id === puppy.vader_id);
                     if (father) {
                         fatherInfo = {
                             naam: father.naam || this.t('unknown'),
@@ -548,9 +558,9 @@ class SearchManager extends BaseModule {
                     }
                 }
                 
-                // Haal moeder info op - gebruik moederId zoals in tweede bestand
-                if (puppy.moederId) {
-                    const mother = allDogs.find(d => d.id === puppy.moederId);
+                // Haal moeder info op - gebruik moeder_id zoals in database
+                if (puppy.moeder_id) {
+                    const mother = allDogs.find(d => d.id === puppy.moeder_id);
                     if (mother) {
                         motherInfo = {
                             naam: mother.naam || this.t('unknown'),
@@ -2027,7 +2037,7 @@ class SearchManager extends BaseModule {
     // Laad alle honden met paginatie - DEZELFDE LOGICA ALS DogDataManager
     async loadAllDogsWithPagination() {
         try {
-            console.log('SearchManager: Laden van alle honden met paginatie (zelfde logica als DogDataManager)...');
+            console.log('SearchManager: Laden van alle honden met paginatie...');
             
             // Reset array
             let allDogs = [];
@@ -2079,6 +2089,16 @@ class SearchManager extends BaseModule {
                 
                 // Kleine pauze om de server niet te overbelasten (zelfde als DogDataManager)
                 await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+            // DEBUG: Controleer of de juiste velden worden geladen
+            if (allDogs.length > 0) {
+                const sampleDog = allDogs[0];
+                console.log('Voorbeeld hond velden:', Object.keys(sampleDog));
+                console.log('vader_id in sample:', sampleDog.vader_id);
+                console.log('moeder_id in sample:', sampleDog.moeder_id);
+                console.log('ogenverklaring in sample:', sampleDog.ogenverklaring);
+                console.log('schildklierverklaring in sample:', sampleDog.schildklierverklaring);
             }
             
             // Sorteer op naam
@@ -2317,13 +2337,13 @@ class SearchManager extends BaseModule {
             this.addMobileBackButton();
         }
         
-        // BELANGRIJK: Gebruik de juiste veldnamen uit het tweede bestand: vaderId en moederId
+        // GEBRUIK JUISTE VELDNAMEN: vader_id en moeder_id zoals in database
         let fatherInfo = { id: null, naam: t('parentsUnknown'), stamboomnr: '', ras: '', kennelnaam: '' };
         let motherInfo = { id: null, naam: t('parentsUnknown'), stamboomnr: '', ras: '', kennelnaam: '' };
         
-        // VERBETERD: Gebruik vaderId en moederId zoals in tweede bestand
-        if (dog.vaderId) {
-            const father = this.allDogs.find(d => d.id === dog.vaderId);
+        // CORRECT: Gebruik vader_id zoals in database
+        if (dog.vader_id) {
+            const father = this.allDogs.find(d => d.id === dog.vader_id);
             if (father) {
                 fatherInfo = { 
                     id: father.id,
@@ -2335,9 +2355,9 @@ class SearchManager extends BaseModule {
             }
         }
         
-        // VERBETERD: Gebruik moederId zoals in tweede bestand
-        if (dog.moederId) {
-            const mother = this.allDogs.find(d => d.id === dog.moederId);
+        // CORRECT: Gebruik moeder_id zoals in database
+        if (dog.moeder_id) {
+            const mother = this.allDogs.find(d => d.id === dog.moeder_id);
             if (mother) {
                 motherInfo = { 
                     id: mother.id,
@@ -2408,6 +2428,13 @@ class SearchManager extends BaseModule {
         
         // Haal aantal nakomelingen op
         const offspringCount = await this.getOffspringCount(dog.id);
+        
+        // DEBUG: Log de gebruikte velden
+        console.log(`Toon details voor hond ${dog.id} (${dog.naam}):`);
+        console.log('- vader_id:', dog.vader_id);
+        console.log('- moeder_id:', dog.moeder_id);
+        console.log('- ogenverklaring:', dog.ogenverklaring);
+        console.log('- schildklierverklaring:', dog.schildklierverklaring);
         
         const html = `
             <div class="p-3">
@@ -2565,7 +2592,7 @@ class SearchManager extends BaseModule {
                                 <div class="col-md-6 mb-3">
                                     <div class="fw-bold mb-1">${t('eyes')}</div>
                                     <div>${getHealthBadge(dog.ogen, 'eyes')}</div>
-                                    ${dog.ogenVerklaring ? `<div class="text-muted small mt-1">${dog.ogenVerklaring}</div>` : ''}
+                                    ${dog.ogenverklaring ? `<div class="text-muted small mt-1">${dog.ogenverklaring}</div>` : ''}
                                 </div>
                                 
                                 <div class="col-md-6 mb-3">
@@ -2576,7 +2603,7 @@ class SearchManager extends BaseModule {
                                 <div class="col-md-6 mb-3">
                                     <div class="fw-bold mb-1">${t('thyroid')}</div>
                                     <div>${getHealthBadge(dog.schildklier, 'thyroid')}</div>
-                                    ${dog.schildklierVerklaring ? `<div class="text-muted small mt-1">${dog.schildklierVerklaring}</div>` : ''}
+                                    ${dog.schildklierverklaring ? `<div class="text-muted small mt-1">${dog.schildklierverklaring}</div>` : ''}
                                 </div>
                             </div>
                         </div>
@@ -2606,22 +2633,22 @@ class SearchManager extends BaseModule {
                             </div>
                         </div>
                         
-                        ${dog.createdAt || dog.updatedAt ? `
+                        ${dog.createdat || dog.updatedat ? `
                         <div class="info-group">
                             <div class="info-group-title">
                                 <i class="bi bi-clock-history me-1"></i> Systeem informatie
                             </div>
                             <div class="row">
-                                ${dog.createdAt ? `
+                                ${dog.createdat ? `
                                 <div class="col-md-6">
                                     <div class="text-muted small">Aangemaakt</div>
-                                    <div class="small">${formatDate(dog.createdAt)}</div>
+                                    <div class="small">${formatDate(dog.createdat)}</div>
                                 </div>
                                 ` : ''}
-                                ${dog.updatedAt ? `
+                                ${dog.updatedat ? `
                                 <div class="col-md-6">
                                     <div class="text-muted small">Laatst bijgewerkt</div>
-                                    <div class="small">${formatDate(dog.updatedAt)}</div>
+                                    <div class="small">${formatDate(dog.updatedat)}</div>
                                 </div>
                                 ` : ''}
                             </div>
