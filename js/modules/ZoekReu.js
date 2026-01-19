@@ -435,7 +435,7 @@ class ZoekReu {
                 manuallyEnteredFemale: "Manuell eingegebene Hündin",
                 coiNotAvailable: "COI-Berechnung ist für manuele Eingaben niet verfügbar",
                 selectFemaleToStart: "Wählen Sie eine Hündin, um zu beginnen",
-                useSearchCriteria: "Verwenden Sie Suchkriterien, um Rüden zu finden",
+                useSearchCriteria: "Verwenden Sie Suchkriterien, um Rüden zu vinden",
                 searchingMales: "Suche nach geeigneten Rüden...",
                 pedigreeFunctionalityUnavailable: "Stamboomfunktionaliteit ist derzeit nicht verfügbar",
                 maleNotFound: "Konnte Rüdendaten nicht finden",
@@ -530,32 +530,44 @@ class ZoekReu {
             
             console.log(`✅ TOTAAL ${allDogs.length} honden geladen via paginatie`);
             
-            // Verwerk de honden
-            this.allHonden = allDogs.map(hond => ({
-                ...hond,
-                id: Number(hond.id),
-                heupdysplasie: hond.heupdysplasie || '',
-                elleboogdysplasie: hond.elleboogdysplasie || '',
-                patella: hond.patella || '',
-                ogen: hond.ogen || '',
-                ogenVerklaring: hond.ogenVerklaring || '',
-                dandyWalker: hond.dandyWalker || '',
-                schildklier: hond.schildklier || '',
-                schildklierVerklaring: hond.schildklierVerklaring || '',
-                vachtkleur: hond.vachtkleur || '',
-                ras: hond.ras || '',
-                geboortedatum: hond.geboortedatum || '',
-                stamboomnr: hond.stamboomnr || '',
-                kennelnaam: hond.kennelnaam || '',
-                geslacht: hond.geslacht || '',
-                land: hond.land || '',
-                postcode: hond.postcode || '',
-                vaderId: hond.vaderId ? Number(hond.vaderId) : null,
-                moederId: hond.moederId ? Number(hond.moederId) : null,
-                vader: hond.vader || '',
-                moeder: hond.moeder || '',
-                ik: hond.ik || null
-            }));
+            // BELANGRIJK: Verwerk de honden ZONDER vaderId/moederId naar null te converteren
+            // Laat undefined waarden undefined zoals ze uit Supabase komen
+            this.allHonden = allDogs.map(hond => {
+                const processedHond = {
+                    ...hond,
+                    // BEHOUD ORIGINELE DATA STRUCTUUR voor COICalculator2
+                    // Alleen ID's converteren als ze numerieke waarden hebben
+                    id: Number(hond.id),
+                    
+                    // BLIJF VADERID/MOEDERID ZOALS ZE ZIJN (undefined mag blijven undefined)
+                    // COICalculator2 verwacht undefined, niet null!
+                    vaderId: hond.vaderId && !isNaN(hond.vaderId) ? Number(hond.vaderId) : hond.vaderId,
+                    moederId: hond.moederId && !isNaN(hond.moederId) ? Number(hond.moederId) : hond.moederId,
+                    
+                    // Andere velden met defaults
+                    heupdysplasie: hond.heupdysplasie || '',
+                    elleboogdysplasie: hond.elleboogdysplasie || '',
+                    patella: hond.patella || '',
+                    ogen: hond.ogen || '',
+                    ogenVerklaring: hond.ogenVerklaring || '',
+                    dandyWalker: hond.dandyWalker || '',
+                    schildklier: hond.schildklier || '',
+                    schildklierVerklaring: hond.schildklierVerklaring || '',
+                    vachtkleur: hond.vachtkleur || '',
+                    ras: hond.ras || '',
+                    geboortedatum: hond.geboortedatum || '',
+                    stamboomnr: hond.stamboomnr || '',
+                    kennelnaam: hond.kennelnaam || '',
+                    geslacht: hond.geslacht || '',
+                    land: hond.land || '',
+                    postcode: hond.postcode || '',
+                    vader: hond.vader || '',
+                    moeder: hond.moeder || '',
+                    ik: hond.ik || null
+                };
+                
+                return processedHond;
+            });
             
             // Filter teven
             this.allTeven = this.allHonden.filter(h => 
@@ -565,11 +577,13 @@ class ZoekReu {
             console.log(`✅ Totaal: ${this.allHonden.length} honden geladen`);
             console.log(`✅ Teven: ${this.allTeven.length} teven gevonden`);
             
-            // Debug: toon enkele teven
-            if (this.allTeven.length > 0) {
-                console.log('🔍 Eerste 5 teven:');
-                this.allTeven.slice(0, 5).forEach((teef, i) => {
-                    console.log(`   ${i+1}. ${teef.naam || 'Geen naam'} (${teef.id}) - ${teef.kennelnaam || ''}`);
+            // Debug: toon enkele honden met hun parent ID's
+            if (this.allHonden.length > 0) {
+                console.log('🔍 Eerste 5 honden met parent ID\'s:');
+                this.allHonden.slice(0, 5).forEach((hond, i) => {
+                    console.log(`   ${i+1}. ${hond.naam || 'Geen naam'} (ID: ${hond.id})`);
+                    console.log(`      VaderId: ${hond.vaderId} (type: ${typeof hond.vaderId})`);
+                    console.log(`      MoederId: ${hond.moederId} (type: ${typeof hond.moederId})`);
                 });
             }
             
@@ -682,7 +696,7 @@ class ZoekReu {
                 hondenArray = hondenResult;
             } else if (hondenResult && Array.isArray(hondenResult.honden)) {
                 hondenArray = hondenResult.honden;
-            } else if (hondenResult && Array.isArray(hondenResult.data)) {
+            } else if (hondenResult && Array.isArray(result.data)) {
                 hondenArray = hondenResult.data;
             } else {
                 console.error('❌ Onbekend resultaat formaat:', hondenResult);
@@ -721,6 +735,19 @@ class ZoekReu {
                 console.warn(`⚠️ WAARSCHUWING: Slechts ${this.allHonden.length} honden geladen. COI berekeningen mogelijk onvolledig!`);
             }
             
+            // Debug: check data structuur voor COICalculator2
+            console.log('🔍 Controleer data structuur voor COICalculator2:');
+            if (this.allHonden.length > 0) {
+                const sampleHond = this.allHonden[0];
+                console.log('   Voorbeeld hond:', {
+                    id: sampleHond.id,
+                    vaderId: sampleHond.vaderId,
+                    moederId: sampleHond.moederId,
+                    vaderIdType: typeof sampleHond.vaderId,
+                    moederIdType: typeof sampleHond.moederId
+                });
+            }
+            
             // Maak COI calculator met alle geladen honden
             this.coiCalculator2 = new COICalculator2(this.allHonden);
             this.coiCalculatorReady = true;
@@ -731,7 +758,8 @@ class ZoekReu {
             // Test een paar honden om te controleren of het werkt
             if (this.allHonden.length > 0) {
                 const testDog = this.allHonden[0];
-                console.log(`   Test COI voor ${testDog.naam} (ID: ${testDog.id}): ${this.coiCalculator2.calculateCOI(testDog.id)}%`);
+                const coiResult = this.coiCalculator2.calculateCOI(testDog.id);
+                console.log(`   Test COI voor ${testDog.naam} (ID: ${testDog.id}): ${coiResult}%`);
             }
             
             return true;
@@ -1091,8 +1119,6 @@ class ZoekReu {
         this.initializeFormValidation();
         this.initializeSearchButton();
     }
-    
-    // ... (alle andere functies blijven hetzelfde vanaf hier) ...
     
     initializeTeefSearch() {
         const teefSearch = document.getElementById('teefSearch');
