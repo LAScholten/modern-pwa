@@ -362,7 +362,7 @@ class DogDataManager extends BaseModule {
                 adminOnly: "Nur Administratoren können Hunde bearbeiten",
                 invalidId: "Ungültige Hunde-ID",
                 dateFormatError: "Datum muss im Format TT-MM-JJJJ sein",
-                deathBeforeBirthError: "Sterbedatum kan niet vor dem Geburtsdatum liegen"
+                deathBeforeBirthError: "Sterbedatum kan nicht vor dem Geburtsdatum liegen"
             }
         };
     }
@@ -486,8 +486,8 @@ class DogDataManager extends BaseModule {
                                 <form id="editDogForm">
                                     <input type="hidden" id="dogId">
                                     <!-- BELANGRIJK: Gebruik Nederlandse veldnamen zoals in database -->
-                                    <input type="hidden" id="vaderId" value="">
-                                    <input type="hidden" id="moederId" value="">
+                                    <input type="hidden" id="vader_id" value="">
+                                    <input type="hidden" id="moeder_id" value="">
                                     
                                     <div class="alert alert-info mb-3">
                                         <i class="bi bi-pencil"></i> 
@@ -1277,7 +1277,7 @@ class DogDataManager extends BaseModule {
     }
     
     /**
-     * Laad alle honden voor autocomplete - AANGEPAST: ALLEEN DEZE METHODE GEWIJZIGD
+     * Laad alle honden voor autocomplete
      */
     async loadAllDogs() {
         if (this.allDogs.length === 0) {
@@ -1353,7 +1353,7 @@ class DogDataManager extends BaseModule {
     }
     
     /**
-     * Zoekfunctionaliteit voor hoofdzoekveld - GEWIJZIGD: Zoekt op naam + kennelnaam (zoals bij ouders) EN stamboomnummer
+     * Zoekfunctionaliteit voor hoofdzoekveld
      */
     filterDogsForSearchField(searchTerm = '') {
         // DEBUG: Controleer of we honden hebben
@@ -1563,8 +1563,8 @@ class DogDataManager extends BaseModule {
      */
     fillFormWithDogData(dog) {
         console.log('Filling form with dog data:', dog);
-        console.log('VaderId in data:', dog.vaderId);
-        console.log('MoederId in data:', dog.moederId);
+        console.log('vader_id in data:', dog.vader_id);
+        console.log('moeder_id in data:', dog.moeder_id);
         
         // Basis velden
         document.getElementById('dogId').value = dog.id || '';
@@ -1577,8 +1577,8 @@ class DogDataManager extends BaseModule {
         // Vachtkleur
         document.getElementById('coatColor').value = dog.vachtkleur || '';
         
-        // Ouders - CORRECT ID'S OPSLAAN IN HET NEDERLANDS
-        const vaderId = dog.vaderId || null;
+        // Ouders - CORRECT ID'S OPSLAAN IN HET NEDERLANDS (vader_id en moeder_id)
+        const vaderId = dog.vader_id || null;
         let vaderDisplayNaam = '';
         
         if (vaderId) {
@@ -1589,15 +1589,15 @@ class DogDataManager extends BaseModule {
                 vaderDisplayNaam = dog.vader || '';
             }
             // Sla ID op in het verborgen veld
-            document.getElementById('vaderId').value = vaderId;
+            document.getElementById('vader_id').value = vaderId;
             console.log(`Vader ID gevuld: ${vaderId} (display: ${vaderDisplayNaam})`);
         } else {
             vaderDisplayNaam = dog.vader || '';
-            document.getElementById('vaderId').value = '';
+            document.getElementById('vader_id').value = '';
             console.log('Geen vader ID gevonden in database, gebruik tekst:', vaderDisplayNaam);
         }
         
-        const moederId = dog.moederId || null;
+        const moederId = dog.moeder_id || null;
         let moederDisplayNaam = '';
         
         if (moederId) {
@@ -1608,11 +1608,11 @@ class DogDataManager extends BaseModule {
                 moederDisplayNaam = dog.moeder || '';
             }
             // Sla ID op in het verborgen veld
-            document.getElementById('moederId').value = moederId;
+            document.getElementById('moeder_id').value = moederId;
             console.log(`Moeder ID gevuld: ${moederId} (display: ${moederDisplayNaam})`);
         } else {
             moederDisplayNaam = dog.moeder || '';
-            document.getElementById('moederId').value = '';
+            document.getElementById('moeder_id').value = '';
             console.log('Geen moeder ID gevonden in database, gebruik tekst:', moederDisplayNaam);
         }
         
@@ -1646,10 +1646,10 @@ class DogDataManager extends BaseModule {
         document.getElementById('elbowDysplasia').value = dog.elleboogdysplasie || '';
         document.getElementById('patellaLuxation').value = dog.patella || '';
         document.getElementById('eyes').value = dog.ogen || '';
-        document.getElementById('eyesExplanation').value = dog.ogenVerklaring || '';
+        document.getElementById('eyesExplanation').value = dog.ogenverklaring || '';
         document.getElementById('dandyWalker').value = dog.dandyWalker || '';
         document.getElementById('thyroid').value = dog.schildklier || '';
-        document.getElementById('thyroidExplanation').value = dog.schildklierVerklaring || '';
+        document.getElementById('thyroidExplanation').value = dog.schildklierverklaring || '';
         
         // Locatie
         document.getElementById('country').value = dog.land || '';
@@ -1713,8 +1713,8 @@ class DogDataManager extends BaseModule {
         
         // Wis hidden inputs
         document.getElementById('dogId').value = '';
-        document.getElementById('vaderId').value = '';
-        document.getElementById('moederId').value = '';
+        document.getElementById('vader_id').value = '';
+        document.getElementById('moeder_id').value = '';
         
         // Reset datum velden naar date type
         const birthDateInput = document.getElementById('birthDate');
@@ -1786,41 +1786,41 @@ class DogDataManager extends BaseModule {
         };
         
         // Haal ouder IDs op - CORRECT VAN HET NEDERLANDSE HIDDEN INPUT VELD
-        const vaderIdValue = document.getElementById('vaderId').value;
-        const moederIdValue = document.getElementById('moederId').value;
+        const vaderIdValue = document.getElementById('vader_id').value;
+        const moederIdValue = document.getElementById('moeder_id').value;
         
         // OPGELOST: Gebruik de correcte oplossing voor parseInt probleem
-        const vaderId = vaderIdValue && vaderIdValue.trim() !== '' && !isNaN(parseInt(vaderIdValue)) 
+        const vader_id = vaderIdValue && vaderIdValue.trim() !== '' && !isNaN(parseInt(vaderIdValue)) 
             ? parseInt(vaderIdValue) 
             : null;
         
-        const moederId = moederIdValue && moederIdValue.trim() !== '' && !isNaN(parseInt(moederIdValue)) 
+        const moeder_id = moederIdValue && moederIdValue.trim() !== '' && !isNaN(parseInt(moederIdValue)) 
             ? parseInt(moederIdValue) 
             : null;
         
         // CONSOLE LOGGING VOOR DEBUGGING
         console.log('=== OUDER ID LOGGING ===');
-        console.log('Vader ID uit hidden veld (vaderId):', vaderIdValue, '(geparsed:', vaderId, ')');
-        console.log('Moeder ID uit hidden veld (moederId):', moederIdValue, '(geparsed:', moederId, ')');
+        console.log('Vader ID uit hidden veld (vader_id):', vaderIdValue, '(geparsed:', vader_id, ')');
+        console.log('Moeder ID uit hidden veld (moeder_id):', moederIdValue, '(geparsed:', moeder_id, ')');
         console.log('=== EINDE LOGGING ===');
         
         // Zoek ouder namen op basis van IDs
         let vader = '';
         let moeder = '';
         
-        if (vaderId) {
-            const vaderHond = this.allDogs.find(d => d.id === vaderId);
+        if (vader_id) {
+            const vaderHond = this.allDogs.find(d => d.id === vader_id);
             vader = vaderHond ? vaderHond.naam || '' : '';
-            console.log(`Vader gevonden: ID=${vaderId}, Naam=${vader}`);
+            console.log(`Vader gevonden: ID=${vader_id}, Naam=${vader}`);
         } else {
             console.log('Geen vader ID opgegeven, gebruik tekst uit input veld');
             vader = document.getElementById('father').value.split(' ')[0] || '';
         }
         
-        if (moederId) {
-            const moederHond = this.allDogs.find(d => d.id === moederId);
+        if (moeder_id) {
+            const moederHond = this.allDogs.find(d => d.id === moeder_id);
             moeder = moederHond ? moederHond.naam || '' : '';
-            console.log(`Moeder gevonden: ID=${moederId}, Naam=${moeder}`);
+            console.log(`Moeder gevonden: ID=${moeder_id}, Naam=${moeder}`);
         } else {
             console.log('Geen moeder ID opgegeven, gebruik tekst uit input veld');
             moeder = document.getElementById('mother').value.split(' ')[0] || '';
@@ -1836,31 +1836,31 @@ class DogDataManager extends BaseModule {
             vachtkleur: document.getElementById('coatColor').value.trim(),
             geslacht: document.getElementById('gender').value,
             vader: vader,
-            vaderId: vaderId,
+            vader_id: vader_id,
             moeder: moeder,
-            moederId: moederId,
+            moeder_id: moeder_id,
             geboortedatum: formatDateForStorage(birthDateValue),
             overlijdensdatum: formatDateForStorage(deathDateValue),
             heupdysplasie: document.getElementById('hipDysplasia').value || null,
             elleboogdysplasie: document.getElementById('elbowDysplasia').value || null,
             patella: document.getElementById('patellaLuxation').value || null,
             ogen: document.getElementById('eyes').value || null,
-            ogenVerklaring: document.getElementById('eyesExplanation')?.value.trim() || null,
+            ogenverklaring: document.getElementById('eyesExplanation')?.value.trim() || null,
             dandyWalker: document.getElementById('dandyWalker').value || null,
             schildklier: document.getElementById('thyroid').value || null,
-            schildklierVerklaring: document.getElementById('thyroidExplanation')?.value.trim() || null,
+            schildklierverklaring: document.getElementById('thyroidExplanation')?.value.trim() || null,
             land: document.getElementById('country').value.trim() || null,
             postcode: document.getElementById('zipCode').value.trim() || null,
             opmerkingen: document.getElementById('remarks').value.trim() || null,
-            updatedAt: new Date().toISOString()
+            updatedat: new Date().toISOString()
         };
         
         // DEBUG: Toon de data die wordt verzonden
         console.log('=== DATA VOOR UPDATE ===');
         console.log('Dog ID:', dogData.id);
         console.log('Naam:', dogData.naam);
-        console.log('Vader ID:', dogData.vaderId, 'Type:', typeof dogData.vaderId);
-        console.log('Moeder ID:', dogData.moederId, 'Type:', typeof dogData.moederId);
+        console.log('Vader ID:', dogData.vader_id, 'Type:', typeof dogData.vader_id);
+        console.log('Moeder ID:', dogData.moeder_id, 'Type:', typeof dogData.moeder_id);
         console.log('Volledige data:', JSON.stringify(dogData, null, 2));
         console.log('=== EINDE DATA ===');
         
@@ -2060,11 +2060,11 @@ class DogDataManager extends BaseModule {
         const motherInput = document.getElementById('mother');
         
         if (fatherInput) {
-            this.setupSingleParentAutocomplete(fatherInput, 'father', 'vaderId');
+            this.setupSingleParentAutocomplete(fatherInput, 'father', 'vader_id');
         }
         
         if (motherInput) {
-            this.setupSingleParentAutocomplete(motherInput, 'mother', 'moederId');
+            this.setupSingleParentAutocomplete(motherInput, 'mother', 'moeder_id');
         }
     }
     
@@ -2114,7 +2114,7 @@ class DogDataManager extends BaseModule {
      */
     showParentAutocomplete(searchTerm, parentField) {
         const input = document.getElementById(parentField);
-        const hiddenIdField = parentField === 'father' ? 'vaderId' : 'moederId';
+        const hiddenIdField = parentField === 'father' ? 'vader_id' : 'moeder_id';
         
         if (!input) return;
         
