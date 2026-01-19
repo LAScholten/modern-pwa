@@ -324,7 +324,7 @@ class DogManager extends BaseModule {
                 // Meldungen
                 adminOnly: "Nur Administratoren kunnen Hunde hinzufügen/bearbeiten",
                 fieldsRequired: "Name, Stammbaum-Nummer en Rasse sind Pflichtfelder",
-                savingDog: "Hund wordt gespeichert...",
+                savingDog: "Hund wird gespeichert...",
                 dogAdded: "Hund erfolgreich hinzugefügt!",
                 dogUpdated: "Hund erfolgreich aktualiseerd!",
                 dogDeleted: "Hund erfolgreich gelöscht!",
@@ -1654,7 +1654,7 @@ class DogManager extends BaseModule {
             postcode: document.getElementById('zipCode').value.trim(),
             opmerkingen: document.getElementById('remarks').value.trim(),
             
-            // Gezondheidsinformatie (7 velden)
+            // Gezondheidsinformatie (7 velden) - EXACTE VELDNAMEN zoals in database
             heupdysplasie: heupdysplasie,
             elleboogdysplasie: elleboogdysplasie,
             patella: patella,
@@ -1683,6 +1683,7 @@ class DogManager extends BaseModule {
         
         // AANPASSING 2: DEBUG LOG TOEVOEGEN
         console.log('=== DEBUG: ALLE VELDEN VOOR OPSLAG ===');
+        console.log('DogData object:', dogData);
         console.log('Gezondheidsinfo:', dogData.gezondheidsinfo || 'LEEG');
         console.log('Geboortedatum:', dogData.geboortedatum);
         console.log('Overlijdensdatum:', dogData.overlijdensdatum);
@@ -1719,6 +1720,14 @@ class DogManager extends BaseModule {
         
         try {
             console.log('DogManager: Roep hondenService.voegHondToe aan met ALLE velden');
+            console.log('Data die wordt verstuurd naar voegHondToe:', dogData);
+            
+            // BELANGRIJK: Controleer of de hondenService.voegHondToe methode bestaat
+            if (!hondenService.voegHondToe) {
+                console.error('DogManager: hondenService.voegHondToe is niet gedefinieerd!');
+                this.showError('Fout: Kan hond niet opslaan - service methode niet gevonden');
+                return;
+            }
             
             // Gebruik de reguliere methode
             const result = await hondenService.voegHondToe(dogData);
