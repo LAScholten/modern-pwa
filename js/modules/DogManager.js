@@ -1,3 +1,5 @@
+// js/modules/DogManager.js
+
 /**
  * Hond Management Module
  * Beheert toevoegen en bewerken van honden
@@ -314,7 +316,7 @@ class DogManager extends BaseModule {
                 dateFormatError: "Datum moet in DD-MM-JJJJ formaat zijn",
                 deathBeforeBirthError: "Sterbedatum kan niet voor geboortedatum sein",
                 
-                insufficientPermissions: "Unzureichende Berechtigungen",
+                insufficientPermissions: "Unzureichende Berechtigingen",
                 insufficientPermissionsText: "Sie haben keine Berechtigung, Hunde hinzuzufügen. Nur Administratoren können diese Funktion nutzen.",
                 loggedInAs: "Sie sind eingeloggt als:",
                 user: "Benutzer",
@@ -1462,7 +1464,7 @@ class DogManager extends BaseModule {
             moeder = document.getElementById('mother').value.split(' ')[0] || '';
         }
         
-        // VERWIJDER het status veld - gebruik alleen bestaande databasevelden
+        // EXACT DEZELFDE DATABASESTRUCTUUR ALS DogDataManager
         const dogData = {
             // BASISINFORMATIE
             naam: document.getElementById('dogName').value.trim(),
@@ -1482,7 +1484,7 @@ class DogManager extends BaseModule {
             geboortedatum: formatDateForStorage(birthDateValue),
             overlijdensdatum: formatDateForStorage(deathDateValue) || null,
             
-            // GEZONDHEIDSINFORMATIE - EXACT ZELFDE ALS DogDataManager
+            // GEZONDHEIDSINFORMATIE - LOSSE KOLOMMEN zoals in DogDataManager
             heupdysplasie: document.getElementById('hipDysplasia').value || null,
             elleboogdysplasie: document.getElementById('elbowDysplasia').value || null,
             patella: document.getElementById('patellaLuxation').value || null,
@@ -1503,7 +1505,8 @@ class DogManager extends BaseModule {
             createdat: new Date().toISOString(),
             updatedat: new Date().toISOString()
             
-            // GEEN status, gezondheidsinfo, of andere extra velden!
+            // GEEN 'gezondheidsinfo' JSON veld!
+            // GEEN 'status' veld!
         };
         
         console.log('[DogManager] === DOG DATA VOOR OPSLAG ===');
@@ -1516,9 +1519,7 @@ class DogManager extends BaseModule {
         console.log('Schildklier:', dogData.schildklier);
         console.log('Vader ID:', dogData.vader_id);
         console.log('Moeder ID:', dogData.moeder_id);
-        console.log('Geen gezondheidsinfo JSON veld!');
-        console.log('Geen status veld!');
-        console.log(JSON.stringify(dogData, null, 2));
+        console.log('Volledige data:', JSON.stringify(dogData, null, 2));
         console.log('[DogManager] === EINDE DOG DATA ===');
         
         // Valideer verplichte velden
