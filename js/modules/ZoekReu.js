@@ -440,9 +440,9 @@ class ZoekReu {
                 manuallyEnteredFemale: "Manuell eingegebene Hündin",
                 coiNotAvailable: "COI-Berechnung ist für manuele Eingaben niet verfügbar",
                 selectFemaleToStart: "Wählen Sie eine Hündin, um zu beginnen",
-                useSearchCriteria: "Verwenden Sie Suchkriterien, um Rüden zu vinden",
+                useSearchCriteria: "Verwenden Sie Suchkriterien, um Rüden zu finden",
                 searchingMales: "Suche nach geeigneten Rüden...",
-                pedigreeFunctionalityUnavailable: "Stamboomfunktionaliteit ist derzeit niet verfügbar",
+                pedigreeFunctionalityUnavailable: "Stamboomfunktionaliteit ist derzeit nicht verfügbar",
                 maleNotFound: "Konnte Rüdendaten nicht finden",
                 errorShowingPedigree: "Beim Anzeigen des Stamboons is een Fehler aufgetreten",
                 combinedParents: "Kombinierte Eltern",
@@ -475,27 +475,21 @@ class ZoekReu {
             
             let allDogs = [];
             
-            // 1. Probeer via COICalculator2 paginatie
-            if (typeof window.createCOICalculatorWithAllDogs === 'function') {
-                console.log('🔄 Methode 1: Via COICalculator2.createWithPagination()');
+            if (this.db && typeof this.db.getAllHonden === 'function') {
+                console.log('🔄 Methode 1: Via db.getAllHonden()');
                 try {
-                    const calculator = await window.createCOICalculatorWithAllDogs();
-                    if (calculator && calculator.allDogs) {
-                        allDogs = calculator.allDogs;
-                        console.log(`✅ Via COICalculator2 paginatie: ${allDogs.length} honden`);
-                    }
+                    allDogs = await this.db.getAllHonden();
+                    console.log(`✅ db.getAllHonden(): ${allDogs.length} honden`);
                 } catch (error) {
-                    console.error('❌ Fout bij COICalculator2 paginatie:', error);
+                    console.error('❌ Fout bij db.getAllHonden():', error);
                 }
             }
             
-            // 2. Fallback: verbeterde Supabase paginatie
             if (allDogs.length === 0 && window.supabase) {
                 console.log('🔄 Methode 2: Via verbeterde Supabase paginatie');
                 allDogs = await this.loadSupabaseWithImprovedPagination();
             }
             
-            // 3. Fallback: via hondenService
             if (allDogs.length === 0) {
                 console.log('🔄 Methode 3: Fallback via hondenService');
                 allDogs = await this.loadViaHondenService();
@@ -510,37 +504,32 @@ class ZoekReu {
             
             console.log(`✅ TOTAAL ${allDogs.length} honden geladen in ${Date.now() - this.loadStartTime}ms`);
             
-            // ✅ BELANGRIJKE AANPASSING: Behoud originele data structuur voor COICalculator2
-            this.allHonden = allDogs.map(hond => {
-                // Basis mapping met minimale aanpassingen
-                const mappedHond = {
-                    ...hond,
-                    // Zorg voor consistente geslachtswaarden
-                    geslacht: this.normalizeGeslacht(hond.geslacht),
-                    // Zorg dat ID numeriek is voor COICalculator2
-                    id: Number(hond.id) || hond.id
-                };
-                
-                // ✅ CRUCIAL: Laat vaderId en moederId ONVERANDERD zoals ze uit de database komen
-                // COICalculator2 verwacht undefined/null voor ontbrekende ouders, niet geforceerde null
-                if (hond.vaderId !== undefined && hond.vaderId !== null) {
-                    mappedHond.vaderId = Number(hond.vaderId);
-                } else {
-                    // Laat undefined als het undefined was
-                    mappedHond.vaderId = hond.vaderId;
-                }
-                
-                if (hond.moederId !== undefined && hond.moederId !== null) {
-                    mappedHond.moederId = Number(hond.moederId);
-                } else {
-                    // Laat undefined als het undefined was
-                    mappedHond.moederId = hond.moederId;
-                }
-                
-                return mappedHond;
-            });
+            this.allHonden = allDogs.map(hond => ({
+                ...hond,
+                id: Number(hond.id),
+                heupdysplasie: hond.heupdysplasie || '',
+                elleboogdysplasie: hond.elleboogdysplasie || '',
+                patella: hond.patella || '',
+                ogen: hond.ogen || '',
+                ogenVerklaring: hond.ogenVerklaring || '',
+                dandyWalker: hond.dandyWalker || '',
+                schildklier: hond.schildklier || '',
+                schildklierVerklaring: hond.schildklierVerklaring || '',
+                vachtkleur: hond.vachtkleur || '',
+                ras: hond.ras || '',
+                geboortedatum: hond.geboortedatum || '',
+                stamboomnr: hond.stamboomnr || '',
+                kennelnaam: hond.kennelnaam || '',
+                geslacht: hond.geslacht || '',
+                land: hond.land || '',
+                postcode: hond.postcode || '',
+                vaderId: hond.vaderId ? Number(hond.vaderId) : null,
+                moederId: hond.moederId ? Number(hond.moederId) : null,
+                vader: hond.vader || '',
+                moeder: hond.moeder || '',
+                ik: hond.ik || null
+            }));
             
-            // Filter teven en reuen
             this.allTeven = this.allHonden.filter(h => 
                 h.geslacht && h.geslacht.toLowerCase() === 'teven'
             );
@@ -554,13 +543,10 @@ class ZoekReu {
             console.log(`   - Teven: ${this.allTeven.length} teven`);
             console.log(`   - Reuen: ${reuen.length} reuen`);
             
-            // Debug: toon relaties van enkele honden
             if (this.allHonden.length > 0) {
-                console.log('🔍 Voorbeeld honden met parent relaties:');
+                console.log('🔍 Eerste 5 honden:');
                 this.allHonden.slice(0, 5).forEach((hond, i) => {
-                    console.log(`   ${i+1}. ${hond.naam || 'Geen naam'} (ID:${hond.id})`);
-                    console.log(`      VaderId: ${hond.vaderId} (type: ${typeof hond.vaderId})`);
-                    console.log(`      MoederId: ${hond.moederId} (type: ${typeof hond.moederId})`);
+                    console.log(`   ${i+1}. ${hond.naam || 'Geen naam'} (${hond.id}) - ${hond.geslacht || '?'} - ${hond.kennelnaam || ''}`);
                 });
             }
             
@@ -572,14 +558,6 @@ class ZoekReu {
         }
     }
     
-    normalizeGeslacht(geslacht) {
-        if (!geslacht) return '';
-        const g = geslacht.toLowerCase().trim();
-        if (g.includes('reu') || g.includes('male')) return 'reuen';
-        if (g.includes('tef') || g.includes('teef') || g.includes('female')) return 'teven';
-        return geslacht;
-    }
-    
     async loadSupabaseWithImprovedPagination() {
         try {
             console.log('📄 Verbeterde Supabase paginatie gestart...');
@@ -588,6 +566,20 @@ class ZoekReu {
             let page = 0;
             const pageSize = 1000;
             let hasMore = true;
+            let totalEstimated = 0;
+            
+            try {
+                const { count, error } = await window.supabase
+                    .from('honden')
+                    .select('*', { count: 'exact', head: true });
+                
+                if (!error && count !== null) {
+                    totalEstimated = count;
+                    console.log(`📊 Geschat totaal aantal honden: ${totalEstimated}`);
+                }
+            } catch (countError) {
+                console.log('ℹ️ Kon totaal niet schatten, ga door met paginatie');
+            }
             
             const loadBatch = async (batchPage) => {
                 const start = batchPage * pageSize;
@@ -674,6 +666,7 @@ class ZoekReu {
             }
             
             console.log(`✅ Supabase paginatie voltooid: ${allDogs.length} honden geladen in ${this.batchCount} batches`);
+            
             return allDogs;
             
         } catch (error) {
@@ -779,14 +772,9 @@ class ZoekReu {
                 return false;
             }
             
-            // Debug: toon enkele honden met parent relaties
-            console.log('🔍 Sample honden voor COICalculator2:');
-            const sampleHonden = this.allHonden.slice(0, 3);
-            sampleHonden.forEach((hond, i) => {
-                console.log(`   ${i+1}. ${hond.naam} (ID:${hond.id})`);
-                console.log(`      VaderId: ${hond.vaderId} (type: ${typeof hond.vaderId})`);
-                console.log(`      MoederId: ${hond.moederId} (type: ${typeof hond.moederId})`);
-            });
+            if (this.allHonden.length < 100) {
+                console.warn(`⚠️ WAARSCHUWING: Slechts ${this.allHonden.length} honden geladen. COI berekeningen mogelijk onvolledig!`);
+            }
             
             this.coiCalculator2 = new COICalculator2(this.allHonden);
             this.coiCalculatorReady = true;
@@ -794,25 +782,16 @@ class ZoekReu {
             console.log('✅ COICalculator2 succesvol geïnitialiseerd');
             console.log(`   ${this.coiCalculator2._dogMap.size} honden beschikbaar voor COI berekeningen`);
             
-            // Test COI berekening
             if (this.allHonden.length > 0) {
-                const testDog = this.allHonden.find(h => h.vaderId && h.moederId);
-                if (testDog) {
-                    const coi = this.coiCalculator2.calculateCOI(testDog.id);
-                    console.log(`   Test COI voor ${testDog.naam} (ID: ${testDog.id}): ${coi}%`);
-                } else {
-                    console.log('⚠️ Geen honden met beide ouders gevonden voor test');
-                }
+                const testDog = this.allHonden[0];
+                const coi = this.coiCalculator2.calculateCOI(testDog.id);
+                console.log(`   Test COI voor ${testDog.naam} (ID: ${testDog.id}): ${coi}%`);
             }
-            
-            // Check database compleetheid
-            this.coiCalculator2.checkDatabase();
             
             return true;
             
         } catch (error) {
             console.error('❌ Fout bij initialiseren COICalculator2:', error);
-            console.error('Error details:', error.message);
             this.coiCalculatorReady = false;
             return false;
         }
@@ -835,12 +814,39 @@ class ZoekReu {
                 return '0.000';
             }
             
-            // Gebruik de ingebouwde combinatie COI methode van COICalculator2
-            const comboCOI = this.coiCalculator2.calculateCombinationCOI(teefId, reuId);
+            const futurePuppy = {
+                id: -Date.now(),
+                naam: this.t('virtualPuppy'),
+                geslacht: 'onbekend',
+                vaderId: reu.id,
+                moederId: teef.id,
+                vader: reu.naam,
+                moeder: teef.naam,
+                kennelnaam: this.t('combinedParents'),
+                stamboomnr: 'VOORSPELD-' + Date.now(),
+                geboortedatum: new Date().toISOString().split('T')[0],
+                vachtkleur: `${reu.vachtkleur || ''}/${teef.vachtkleur || ''}`.trim(),
+                heupdysplasie: null,
+                elleboogdysplasie: null,
+                patella: null,
+                ogen: null,
+                ogenVerklaring: null,
+                dandyWalker: null,
+                schildklier: null,
+                schildklierVerklaring: null,
+                land: null,
+                postcode: null,
+                opmerkingen: null
+            };
             
-            console.log(`✅ Combinatie COI (6g) voor ${teef.naam} × ${reu.naam}: ${comboCOI}%`);
+            const tempHonden = [...this.allHonden, futurePuppy];
+            const tempCOICalculator = new COICalculator2(tempHonden);
             
-            return comboCOI;
+            const coiResult = tempCOICalculator.calculateCOI(futurePuppy.id);
+            
+            console.log(`✅ Combinatie COI (6g) voor ${teef.naam} × ${reu.naam}: ${coiResult}%`);
+            
+            return coiResult;
             
         } catch (error) {
             console.error('❌ Fout bij combinatie COI berekening:', error);
@@ -1071,9 +1077,9 @@ class ZoekReu {
                                             <div class="position-relative">
                                                 <input type="text" 
                                                        class="form-control" 
-                                                   id="excludeKennelSearch" 
-                                                   placeholder="${t('excludeKennelsPlaceholder')}"
-                                                   autocomplete="off">
+                                                       id="excludeKennelSearch" 
+                                                       placeholder="${t('excludeKennelsPlaceholder')}"
+                                                       autocomplete="off">
                                                 <div class="autocomplete-dropdown" id="excludeKennelDropdown" style="display: none;">
                                                     <div class="autocomplete-header">
                                                         <small class="text-muted">${t('kennelsFound')}: <span id="excludeKennelCount">0</span></small>
