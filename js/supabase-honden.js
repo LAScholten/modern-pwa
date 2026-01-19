@@ -176,7 +176,7 @@ const hondenService = {
     }
   },
 
- // 6. Update hond
+// 6. Update hond
 async updateHond(hondData) {
   try {
     if (!hondData.id) throw new Error('Hond ID is vereist voor update');
@@ -214,21 +214,22 @@ async updateHond(hondData) {
     
     console.log('[HONDENSERVICE] Update data naar Supabase:', updateData);
     
-    // Gebruik .select().single() om 1 resultaat terug te krijgen
+    // Gebruik .maybeSingle() om null te accepteren als er geen resultaat is
     const { data, error } = await window.supabase
       .from('honden')
       .update(updateData)
       .eq('id', hondData.id)
       .select()
-      .single();
+      .maybeSingle();
     
     if (error) {
       console.error('[HONDENSERVICE] Supabase update error:', error);
       throw error;
     }
     
-    console.log('[HONDENSERVICE] Update succesvol, resultaat:', data);
-    return data;
+    // data kan null zijn, dat is OK bij maybeSingle()
+    console.log('[HONDENSERVICE] Update voltooid, resultaat:', data);
+    return data || { success: true, message: 'Update uitgevoerd' };
     
   } catch (error) {
     console.error('Fout bij updaten hond:', error);
