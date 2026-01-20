@@ -440,9 +440,9 @@ class ZoekReu {
                 manuallyEnteredFemale: "Manuell eingegebene Hündin",
                 coiNotAvailable: "COI-Berechnung ist für manuele Eingaben niet verfügbar",
                 selectFemaleToStart: "Wählen Sie eine Hündin, um zu beginnen",
-                useSearchCriteria: "Verwenden Sie Suchkriterien, um Rüden zu finden",
+                useSearchCriteria: "Verwenden Sie Suchkriterien, um Rüden zu vinden",
                 searchingMales: "Suche nach geeigneten Rüden...",
-                pedigreeFunctionalityUnavailable: "Stamboomfunktionaliteit ist derzeit nicht verfügbaar",
+                pedigreeFunctionalityUnavailable: "Stamboomfunktionaliteit ist derzeit niet verfügbar",
                 maleNotFound: "Konnte Rüdendaten niet finden",
                 errorShowingPedigree: "Beim Anzeigen des Stamboons is een Fehler aufgetreten",
                 combinedParents: "Kombinierte Eltern",
@@ -1076,10 +1076,10 @@ class ZoekReu {
                                         <div class="col-md-8">
                                             <div class="position-relative">
                                                 <input type="text" 
-                                                   class="form-control" 
-                                                   id="excludeKennelSearch" 
-                                                   placeholder="${t('excludeKennelsPlaceholder')}"
-                                                   autocomplete="off">
+                                                       class="form-control" 
+                                                       id="excludeKennelSearch" 
+                                                       placeholder="${t('excludeKennelsPlaceholder')}"
+                                                       autocomplete="off">
                                                 <div class="autocomplete-dropdown" id="excludeKennelDropdown" style="display: none;">
                                                     <div class="autocomplete-header">
                                                         <small class="text-muted">${t('kennelsFound')}: <span id="excludeKennelCount">0</span></small>
@@ -2636,7 +2636,60 @@ class ZoekReu {
     async showReuPedigree(reuId, reuName) {
         console.log(`🔄 Toon stamboom voor reu: ${reuId} - ${reuName}`);
         
-        // **EXACT DEZELFDE METHODE ALS IN DOGMANAGER**
+        // Eerst controleren of StamboomManager al bestaat
+        if (!this.stamboomManager) {
+            if (typeof StamboomManager === 'undefined') {
+                console.error('❌ StamboomManager klasse niet gevonden!');
+                this.showAlert(this.t('pedigreeFunctionalityUnavailable'), 'warning');
+                return;
+            }
+            
+            try {
+                console.log('🔄 Initialiseer StamboomManager vanuit ZoekReu...');
+                
+                // Maak een simpele BaseModule mock als deze niet bestaat
+                if (typeof BaseModule === 'undefined') {
+                    console.log('⚠️ BaseModule niet gevonden, maak een simpele versie');
+                    window.BaseModule = class BaseModule {
+                        showProgress(message) {
+                            console.log('Progress:', message);
+                        }
+                        hideProgress() {
+                            console.log('Progress hidden');
+                        }
+                        showError(message) {
+                            console.error('Error:', message);
+                            alert(message);
+                        }
+                        showSuccess(message) {
+                            console.log('Success:', message);
+                        }
+                    };
+                }
+                
+                // Initialiseer StamboomManager met de reeds geladen honden
+                this.stamboomManager = new StamboomManager({
+                    getHonden: () => Promise.resolve({ honden: this.allHonden }),
+                    checkFotosExist: () => Promise.resolve(false),
+                    getFotoThumbnails: () => Promise.resolve([]),
+                    getFotoById: () => Promise.resolve(null)
+                }, this.currentLang);
+                
+                // Gebruik onze reeds geladen honden
+                this.stamboomManager.allDogs = this.allHonden;
+                
+                // Markeer als geïnitialiseerd
+                this.stamboomManager._isActive = true;
+                
+                console.log('✅ StamboomManager geïnitialiseerd met bestaande honden:', this.allHonden.length);
+                
+            } catch (error) {
+                console.error('❌ Fout bij initialiseren StamboomManager:', error);
+                this.showAlert(this.t('pedigreeFunctionalityUnavailable'), 'warning');
+                return;
+            }
+        }
+        
         const reu = this.allHonden.find(h => h.id == reuId);
         
         if (!reu) {
@@ -2645,19 +2698,9 @@ class ZoekReu {
         }
         
         try {
-            // **EXACT DEZELFDE INITIALISATIE ALS IN DOGMANAGER**
-            const stamboomManager = new StamboomManager(this.db, this.currentLang);
-            
-            // **EXACT DEZELFDE CONFIGURATIE ALS IN DOGMANAGER**
-            stamboomManager.allHonden = this.allHonden;
-            stamboomManager.coiCalculator = this.coiCalculator2;
-            stamboomManager.initialized = true;
-            
-            console.log('✅ StamboomManager geïnitialiseerd zoals in DogManager');
-            
-            // **EXACT DEZELFDE AANROEP ALS IN DOGMANAGER**
-            stamboomManager.showPedigree(reu);
-            
+            // Gebruik directe methode om stamboom te tonen
+            await this.stamboomManager.showPedigree(reu);
+            console.log('✅ Stamboom getoond voor:', reu.naam);
         } catch (error) {
             console.error('❌ Fout bij tonen stamboom:', error);
             this.showAlert(this.t('errorShowingPedigree'), 'danger');
