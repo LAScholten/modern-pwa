@@ -20,6 +20,11 @@ class ZoekReu {
         this.excludeKennels = [];
         this.excludeHondInputTimer = null;
         this.excludeKennelInputTimer = null;
+        this.loadStartTime = null;
+        this.batchCount = 0;
+        this.totalLoaded = 0;
+        this.maxRetries = 3;
+        this.retryDelay = 2000;
         
         this.translations = {
             nl: {
@@ -32,7 +37,7 @@ class ZoekReu {
                 anyBreed: "Elk ras",
                 bornAfter: "Geboren na",
                 bornAfterPlaceholder: "dd-mm-jjjj",
-                inteeltCoefficient: "Max COI 6 Generaties",
+                inteeltCoefficient: "Max COI 6 Generations",
                 inteeltPlaceholder: "Max %",
                 inteeltHelp: "Maximum COI in % voor combinatie met geselecteerde teef (6 generaties)",
                 excludeHondenFilter: "Zonder de volgende honden in de eerste X generaties",
@@ -246,7 +251,7 @@ class ZoekReu {
                         "Free on DNA": "Free on DNA",
                         "Free on parents": "Free on parents",
                         "Carrier": "Carrier",
-                        "Niet getest": "Not tested"
+                        "Not tested": "Not tested"
                     },
                     schildklier: {
                         "Tgaa Negative": "Tgaa Negative",
@@ -257,7 +262,7 @@ class ZoekReu {
                         "1": "1 (Mild)",
                         "2": "2 (Moderate)",
                         "3": "3 (Severe)",
-                        "Niet getest": "Not tested"
+                        "Not tested": "Not tested"
                     }
                 },
                 resultColumns: {
@@ -340,7 +345,7 @@ class ZoekReu {
                 radiusOptions: ["Niederlande", "België", "Deutschland", "Europa", "Weltweit"],
                 searchButton: "Rüden suchen",
                 results: "Suchergebnisse",
-                inDevelopment: "Diese Suchfunktion ist derzeit in ontwikkeling",
+                inDevelopment: "Diese Suchfunktion ist derzeit in Entwicklung",
                 devMessage: "Die vollständige Suchfunktionalität für Rüden wird demnächst verfügbar sein.",
                 features: [
                     "Erweiterde Suchfilter",
@@ -395,7 +400,7 @@ class ZoekReu {
                         "Niet getest": "Niet getest"
                     },
                     elleboogdysplasie: {
-                        "0": "0 (Frei)",
+                        "0": "0 (Frij)",
                         "1": "1 (Leicht)",
                         "2": "2 (Mäßig)",
                         "3": "3 (Schwer)",
@@ -433,100 +438,320 @@ class ZoekReu {
                 pedigree: "Stamboom",
                 breed: "Rasse",
                 manuallyEnteredFemale: "Manuell eingegebene Hündin",
-                coiNotAvailable: "COI-Berechnung ist für manuele Eingaben nicht verfügbar",
+                coiNotAvailable: "COI-Berechnung ist für manuele Eingaben niet verfügbar",
                 selectFemaleToStart: "Wählen Sie eine Hündin, um zu beginnen",
                 useSearchCriteria: "Verwenden Sie Suchkriterien, um Rüden zu finden",
                 searchingMales: "Suche nach geeigneten Rüden...",
-                pedigreeFunctionalityUnavailable: "Stamboomfunktionaliteit ist derzeit niet verfügbar",
+                pedigreeFunctionalityUnavailable: "Stamboomfunktionaliteit ist derzeit nicht verfügbar",
                 maleNotFound: "Konnte Rüdendaten nicht finden",
-                errorShowingPedigree: "Beim Anzeigen des Stamboons ist een Fehler aufgetreten",
+                errorShowingPedigree: "Beim Anzeigen des Stamboons is een Fehler aufgetreten",
                 combinedParents: "Kombinierte Eltern",
                 noHondenFound: "Keine Hunde gefunden",
                 hondenFound: "Hunde gefunden",
                 manuallyEnteredHond: "Manuell eingegebener Hund",
                 noKennelsFound: "Keine Zwinger gefunden",
-                kennelsFound: "Zwinger gefunden",
+                kennelsFound: "Zwinger gefonden",
                 manuallyEnteredKennel: "Manuell eingegebener Zwinger"
             }
         };
     }
     
     async injectDependencies(db, auth, stamboomManager = null) {
+        console.log('🔧 ZoekReu: injectDependencies aangeroepen');
         this.db = db;
         this.auth = auth;
         this.stamboomManager = stamboomManager;
-        
-        if (db && typeof db.getHonden === 'function') {
-            await this.loadAllHonden();
-            await this.initCOICalculator();
-        }
+        console.log('📥 ZoekReu: Gaat honden laden...');
+        await this.loadAllHonden();
+        await this.initCOICalculator();
     }
     
     async loadAllHonden() {
         try {
-            if (this.db && typeof this.db.getHonden === 'function') {
-                this.allHonden = await this.db.getHonden();
-                console.log(`✅ Geladen: ${this.allHonden.length} honden voor COI berekening`);
-                
-                // Debug: log de eerste paar honden om structuur te zien
-                console.log('Debug eerste 3 honden structuur:', 
-                    this.allHonden.slice(0, 3).map(h => ({
-                        id: h.id,
-                        naam: h.naam,
-                        vader_id: h.vader_id,
-                        moeder_id: h.moeder_id,
-                        geslacht: h.geslacht
-                    }))
-                );
-                
-                // Map database velden naar COICalculator2 verwachte velden
-                this.allHonden = this.allHonden.map(hond => {
-                    // Maak een kopie van de hond
-                    const mappedHond = { ...hond };
-                    
-                    // Map vader_id naar vaderId voor COICalculator2
-                    if (hond.vader_id !== undefined) {
-                        mappedHond.vaderId = hond.vader_id;
-                    }
-                    
-                    // Map moeder_id naar moederId voor COICalculator2
-                    if (hond.moeder_id !== undefined) {
-                        mappedHond.moederId = hond.moeder_id;
-                    }
-                    
-                    // Zorg voor standaardwaarden voor gezondheidsvelden
-                    mappedHond.heupdysplasie = hond.heupdysplasie || '';
-                    mappedHond.elleboogdysplasie = hond.elleboogdysplasie || '';
-                    mappedHond.patella = hond.patella || '';
-                    mappedHond.ogen = hond.ogen || '';
-                    mappedHond.ogenVerklaring = hond.ogenVerklaring || '';
-                    mappedHond.dandyWalker = hond.dandyWalker || '';
-                    mappedHond.schildklier = hond.schildklier || '';
-                    mappedHond.schildklierVerklaring = hond.schildklierVerklaring || '';
-                    mappedHond.vachtkleur = hond.vachtkleur || '';
-                    mappedHond.ras = hond.ras || '';
-                    
-                    return mappedHond;
-                });
-                
-                this.allTeven = this.allHonden.filter(h => h.geslacht === 'teven');
-                
-                // Debug: controleer of mapping gelukt is
-                console.log('Debug na mapping eerste 3 honden:', 
-                    this.allHonden.slice(0, 3).map(h => ({
-                        id: h.id,
-                        naam: h.naam,
-                        vader_id: h.vader_id,
-                        vaderId: h.vaderId,
-                        moeder_id: h.moeder_id,
-                        moederId: h.moederId
-                    }))
-                );
+            console.log('📥 ZoekReu.loadAllHonden() gestart');
+            this.loadStartTime = Date.now();
+            this.batchCount = 0;
+            this.totalLoaded = 0;
+            
+            let allDogs = [];
+            
+            if (this.db && typeof this.db.getAllHonden === 'function') {
+                console.log('🔄 Methode 1: Via db.getAllHonden()');
+                try {
+                    allDogs = await this.db.getAllHonden();
+                    console.log(`✅ db.getAllHonden(): ${allDogs.length} honden`);
+                } catch (error) {
+                    console.error('❌ Fout bij db.getAllHonden():', error);
+                }
             }
+            
+            if (allDogs.length === 0 && window.supabase) {
+                console.log('🔄 Methode 2: Via verbeterde Supabase paginatie');
+                allDogs = await this.loadSupabaseWithImprovedPagination();
+            }
+            
+            if (allDogs.length === 0) {
+                console.log('🔄 Methode 3: Fallback via hondenService');
+                allDogs = await this.loadViaHondenService();
+            }
+            
+            if (allDogs.length === 0) {
+                console.error('❌ Geen honden geladen!');
+                this.allHonden = [];
+                this.allTeven = [];
+                return;
+            }
+            
+            console.log(`✅ TOTAAL ${allDogs.length} honden geladen in ${Date.now() - this.loadStartTime}ms`);
+            
+            this.allHonden = allDogs.map(hond => ({
+                ...hond,
+                id: Number(hond.id),
+                heupdysplasie: hond.heupdysplasie || '',
+                elleboogdysplasie: hond.elleboogdysplasie || '',
+                patella: hond.patella || '',
+                ogen: hond.ogen || '',
+                ogenverklaring: hond.ogenVerklaring || '',
+                dandyWalker: hond.dandyWalker || '',
+                schildklier: hond.schildklier || '',
+                schildklierverklaring: hond.schildklierVerklaring || '',
+                vachtkleur: hond.vachtkleur || '',
+                ras: hond.ras || '',
+                geboortedatum: hond.geboortedatum || '',
+                stamboomnr: hond.stamboomnr || '',
+                kennelnaam: hond.kennelnaam || '',
+                geslacht: hond.geslacht || '',
+                land: hond.land || '',
+                postcode: hond.postcode || '',
+                vader_id: hond.vaderId ? Number(hond.vaderId) : null,
+                moeder_id: hond.moederId ? Number(hond.moederId) : null,
+                vader: hond.vader || '',
+                moeder: hond.moeder || '',
+                ik: hond.ik || null
+            }));
+            
+            this.allTeven = this.allHonden.filter(h => 
+                h.geslacht && h.geslacht.toLowerCase() === 'teven'
+            );
+            
+            const reuen = this.allHonden.filter(h => 
+                h.geslacht && h.geslacht.toLowerCase() === 'reuen'
+            );
+            
+            console.log(`✅ Database samenvatting:`);
+            console.log(`   - Totaal: ${this.allHonden.length} honden`);
+            console.log(`   - Teven: ${this.allTeven.length} teven`);
+            console.log(`   - Reuen: ${reuen.length} reuen`);
+            
+            if (this.allHonden.length > 0) {
+                console.log('🔍 Eerste 5 honden:');
+                this.allHonden.slice(0, 5).forEach((hond, i) => {
+                    console.log(`   ${i+1}. ${hond.naam || 'Geen naam'} (${hond.id}) - ${hond.geslacht || '?'} - ${hond.kennelnaam || ''}`);
+                });
+            }
+            
         } catch (error) {
-            console.error('❌ Fout bij laden honden:', error);
+            console.error('❌ FATALE FOUT in loadAllHonden():', error);
+            console.error('Error stack:', error.stack);
             this.allHonden = [];
             this.allTeven = [];
+        }
+    }
+    
+    async loadSupabaseWithImprovedPagination() {
+        try {
+            console.log('📄 Verbeterde Supabase paginatie gestart...');
+            
+            let allDogs = [];
+            let page = 0;
+            const pageSize = 1000;
+            let hasMore = true;
+            let totalEstimated = 0;
+            
+            try {
+                const { count, error } = await window.supabase
+                    .from('honden')
+                    .select('*', { count: 'exact', head: true });
+                
+                if (!error && count !== null) {
+                    totalEstimated = count;
+                    console.log(`📊 Geschat totaal aantal honden: ${totalEstimated}`);
+                }
+            } catch (countError) {
+                console.log('ℹ️ Kon totaal niet schatten, ga door met paginatie');
+            }
+            
+            const loadBatch = async (batchPage) => {
+                const start = batchPage * pageSize;
+                
+                console.log(`📄 Laad batch ${batchPage + 1} (${start} - ${start + pageSize - 1})...`);
+                
+                const { data, error } = await window.supabase
+                    .from('honden')
+                    .select('*')
+                    .order('id', { ascending: true })
+                    .range(start, start + pageSize - 1);
+                
+                if (error) {
+                    console.error(`❌ Supabase error bij batch ${batchPage}:`, error);
+                    throw error;
+                }
+                
+                return data || [];
+            };
+            
+            while (hasMore) {
+                try {
+                    const batchData = await loadBatch(page);
+                    
+                    if (batchData.length > 0) {
+                        allDogs = allDogs.concat(batchData);
+                        this.totalLoaded = allDogs.length;
+                        this.batchCount = page + 1;
+                        
+                        console.log(`   ✅ Batch ${page + 1}: ${batchData.length} honden (totaal: ${allDogs.length})`);
+                        
+                        if (document.getElementById('breedingContent')) {
+                            this.updateLoadingStatus();
+                        }
+                        
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        
+                        if (batchData.length < pageSize) {
+                            hasMore = false;
+                            console.log(`🏁 Laatste batch geladen. Totaal: ${allDogs.length} honden`);
+                        } else {
+                            page++;
+                        }
+                    } else {
+                        hasMore = false;
+                        console.log(`🏁 Geen data meer. Totaal: ${allDogs.length} honden`);
+                    }
+                    
+                    if (page > 100) {
+                        console.warn('⚠️ Veiligheidslimiet bereikt (100+ pages)');
+                        hasMore = false;
+                    }
+                    
+                } catch (batchError) {
+                    console.error(`❌ Fout bij laden batch ${page}:`, batchError);
+                    
+                    let retryCount = 0;
+                    let retrySuccess = false;
+                    
+                    while (retryCount < this.maxRetries && !retrySuccess) {
+                        retryCount++;
+                        console.log(`🔄 Poging ${retryCount}/${this.maxRetries} opnieuw laden batch ${page}...`);
+                        
+                        await new Promise(resolve => setTimeout(resolve, this.retryDelay * retryCount));
+                        
+                        try {
+                            const retryData = await loadBatch(page);
+                            if (retryData.length > 0) {
+                                allDogs = allDogs.concat(retryData);
+                                this.totalLoaded = allDogs.length;
+                                console.log(`   ✅ Batch ${page} herladen: ${retryData.length} honden`);
+                                retrySuccess = true;
+                            }
+                        } catch (retryError) {
+                            console.error(`❌ Poging ${retryCount} mislukt:`, retryError);
+                        }
+                    }
+                    
+                    if (!retrySuccess) {
+                        console.error(`❌ Batch ${page} kon niet geladen worden na ${this.maxRetries} pogingen`);
+                        hasMore = false;
+                    }
+                }
+            }
+            
+            console.log(`✅ Supabase paginatie voltooid: ${allDogs.length} honden geladen in ${this.batchCount} batches`);
+            
+            return allDogs;
+            
+        } catch (error) {
+            console.error('❌ Fout bij verbeterde Supabase paginatie:', error);
+            return [];
+        }
+    }
+    
+    async loadViaHondenService() {
+        try {
+            console.log('🔄 Probeer via hondenService...');
+            
+            let hondenResult = null;
+            
+            if (window.hondenService && typeof window.hondenService.getHonden === 'function') {
+                console.log('   ➡ Via window.hondenService.getHonden()');
+                hondenResult = await window.hondenService.getHonden();
+            } 
+            else if (this.db && typeof this.db.getHonden === 'function') {
+                console.log('   ➡ Via this.db.getHonden()');
+                hondenResult = await this.db.getHonden();
+            }
+            else if (window.db && typeof window.db.getHonden === 'function') {
+                console.log('   ➡ Via window.db.getHonden()');
+                hondenResult = await window.db.getHonden();
+            }
+            
+            if (!hondenResult) {
+                console.log('   ❌ Geen honden service gevonden');
+                return [];
+            }
+            
+            let hondenArray = [];
+            
+            if (Array.isArray(hondenResult)) {
+                hondenArray = hondenResult;
+            } else if (hondenResult && Array.isArray(hondenResult.honden)) {
+                hondenArray = hondenResult.honden;
+            } else if (hondenResult && Array.isArray(hondenResult.data)) {
+                hondenArray = hondenResult.data;
+            } else {
+                console.error('❌ Onbekend resultaat formaat:', hondenResult);
+                return [];
+            }
+            
+            console.log(`✅ Via service geladen: ${hondenArray.length} honden`);
+            return hondenArray;
+            
+        } catch (error) {
+            console.error('❌ Fout bij laden via service:', error);
+            return [];
+        }
+    }
+    
+    updateLoadingStatus() {
+        const content = document.getElementById('breedingContent');
+        if (!content || !content.innerHTML.includes('Laden van alle honden')) {
+            return;
+        }
+        
+        const elapsed = Date.now() - this.loadStartTime;
+        const seconds = Math.floor(elapsed / 1000);
+        
+        const statusHtml = `
+            <div class="text-center py-5">
+                <div class="spinner-border text-purple" role="status">
+                    <span class="visually-hidden">Laden...</span>
+                </div>
+                <p class="mt-3">Laden van zoekfunctie...</p>
+                <p class="small text-muted">
+                    Laden van alle honden (kan even duren)...<br>
+                    <strong>${this.totalLoaded}</strong> honden geladen in <strong>${this.batchCount}</strong> batches<br>
+                    ${seconds > 0 ? `Tijd verstreken: ${seconds} seconden` : ''}
+                </p>
+                ${seconds > 10 ? `
+                    <div class="alert alert-warning mt-3 small">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        Dit duurt langer dan verwacht. Controleer de database verbinding.
+                    </div>
+                ` : ''}
+            </div>
+        `;
+        
+        if (content.innerHTML.includes('spinner-border')) {
+            content.innerHTML = statusHtml;
         }
     }
     
@@ -539,32 +764,93 @@ class ZoekReu {
             }
             
             console.log('🔄 Initialiseer COICalculator2 voor ZoekReu...');
-            console.log('Debug: aantal honden voor COI calculator:', this.allHonden.length);
+            console.log(`   Aantal honden voor COI: ${this.allHonden.length}`);
             
-            // Debug: check of vaderId/moederId velden bestaan
-            const hondenMetOuders = this.allHonden.filter(h => 
-                (h.vaderId !== undefined && h.vaderId !== null) || 
-                (h.moederId !== undefined && h.moederId !== null)
-            );
-            console.log('Debug: honden met ouders gedefinieerd:', hondenMetOuders.length);
-            console.log('Debug: voorbeeld honden met ouders:', 
-                hondenMetOuders.slice(0, 3).map(h => ({
-                    id: h.id,
-                    naam: h.naam,
-                    vaderId: h.vaderId,
-                    moederId: h.moederId
-                }))
-            );
+            if (this.allHonden.length === 0) {
+                console.error('❌ Geen honden beschikbaar voor COI berekening!');
+                this.coiCalculatorReady = false;
+                return false;
+            }
+            
+            if (this.allHonden.length < 100) {
+                console.warn(`⚠️ WAARSCHUWING: Slechts ${this.allHonden.length} honden geladen. COI berekeningen mogelijk onvolledig!`);
+            }
             
             this.coiCalculator2 = new COICalculator2(this.allHonden);
             this.coiCalculatorReady = true;
+            
             console.log('✅ COICalculator2 succesvol geïnitialiseerd');
+            console.log(`   ${this.coiCalculator2._dogMap.size} honden beschikbaar voor COI berekeningen`);
+            
+            if (this.allHonden.length > 0) {
+                const testDog = this.allHonden[0];
+                const coi = this.coiCalculator2.calculateCOI(testDog.id);
+                console.log(`   Test COI voor ${testDog.naam} (ID: ${testDog.id}): ${coi}%`);
+            }
+            
             return true;
             
         } catch (error) {
             console.error('❌ Fout bij initialiseren COICalculator2:', error);
             this.coiCalculatorReady = false;
             return false;
+        }
+    }
+    
+    async calculateComboCOI(teefId, reuId) {
+        if (!this.coiCalculator2 || !teefId || !reuId || teefId === 'manual') {
+            console.log(`⚠️ COI calculator niet beschikbaar of ongeldige IDs: ${teefId} x ${reuId}`);
+            return '0.000';
+        }
+        
+        try {
+            console.log(`🔬 Bereken combinatie COI voor teef ${teefId} × reu ${reuId}`);
+            
+            const teef = this.allHonden.find(h => h.id == teefId);
+            const reu = this.allHonden.find(h => h.id == reuId);
+            
+            if (!teef || !reu) {
+                console.error('❌ Teef of reu niet gevonden in database');
+                return '0.000';
+            }
+            
+            const futurePuppy = {
+                id: -Date.now(),
+                naam: this.t('virtualPuppy'),
+                geslacht: 'onbekend',
+                vader_id: reu.id,
+                moeder_id: teef.id,
+                vader: reu.naam,
+                moeder: teef.naam,
+                kennelnaam: this.t('combinedParents'),
+                stamboomnr: 'VOORSPELD-' + Date.now(),
+                geboortedatum: new Date().toISOString().split('T')[0],
+                vachtkleur: `${reu.vachtkleur || ''}/${teef.vachtkleur || ''}`.trim(),
+                heupdysplasie: null,
+                elleboogdysplasie: null,
+                patella: null,
+                ogen: null,
+                ogenVerklaring: null,
+                dandyWalker: null,
+                schildklier: null,
+                schildklierVerklaring: null,
+                land: null,
+                postcode: null,
+                opmerkingen: null
+            };
+            
+            const tempHonden = [...this.allHonden, futurePuppy];
+            const tempCOICalculator = new COICalculator2(tempHonden);
+            
+            const coiResult = tempCOICalculator.calculateCOI(futurePuppy.id);
+            
+            console.log(`✅ Combinatie COI (6g) voor ${teef.naam} × ${reu.naam}: ${coiResult}%`);
+            
+            return coiResult;
+            
+        } catch (error) {
+            console.error('❌ Fout bij combinatie COI berekening:', error);
+            return '0.000';
         }
     }
     
@@ -577,17 +863,70 @@ class ZoekReu {
         const content = document.getElementById('breedingContent');
         const buttons = document.getElementById('breedingButtons');
         
-        if (!content) return;
-        
-        if (this.allHonden.length === 0) {
-            await this.loadAllHonden();
+        if (!content) {
+            console.error('❌ content element niet gevonden!');
+            return;
         }
         
-        if (!this.coiCalculatorReady) {
-            await this.initCOICalculator();
+        console.log('📋 ZoekReu.loadContent() gestart');
+        
+        content.innerHTML = `
+            <div class="text-center py-5">
+                <div class="spinner-border text-purple" role="status">
+                    <span class="visually-hidden">Laden...</span>
+                </div>
+                <p class="mt-3">Laden van zoekfunctie...</p>
+                <p class="small text-muted">Laden van alle honden (kan even duren)...</p>
+                <div class="progress mt-3" style="height: 10px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-purple" 
+                         role="progressbar" style="width: 25%">
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        try {
+            if (this.allHonden.length === 0) {
+                console.log('📥 Honden nog niet geladen, ga ze nu laden...');
+                await this.loadAllHonden();
+            } else {
+                console.log(`📊 Honden al geladen: ${this.allHonden.length} honden, ${this.allTeven.length} teven`);
+            }
+            
+            if (!this.coiCalculatorReady) {
+                await this.initCOICalculator();
+            }
+            
+            this.renderContent(t);
+            
+        } catch (error) {
+            console.error('❌ Fout in loadContent():', error);
+            content.innerHTML = `
+                <div class="alert alert-danger">
+                    <h5><i class="bi bi-exclamation-triangle"></i> Fout bij laden</h5>
+                    <p>Er is een fout opgetreden bij het laden van de zoekfunctie.</p>
+                    <p class="small">${error.message}</p>
+                    <button class="btn btn-outline-danger btn-sm mt-2" onclick="location.reload()">
+                        <i class="bi bi-arrow-clockwise"></i> Herladen
+                    </button>
+                </div>
+            `;
         }
         
-        const reuen = this.allHonden.filter(h => h.geslacht === 'reuen');
+        buttons.innerHTML = `
+            <button type="button" class="btn btn-secondary" id="backBtn">
+                <i class="bi bi-arrow-left"></i> ${t('back')}
+            </button>
+        `;
+        
+        document.getElementById('backBtn').addEventListener('click', () => {
+            this.goBack();
+        });
+    }
+    
+    renderContent(t) {
+        const content = document.getElementById('breedingContent');
+        const reuen = this.allHonden.filter(h => h.geslacht && h.geslacht.toLowerCase() === 'reuen');
         const rassen = [...new Set(reuen.map(r => r.ras).filter(Boolean))].sort();
         
         content.innerHTML = `
@@ -595,6 +934,18 @@ class ZoekReu {
                 <i class="bi bi-search text-purple"></i> ${t('title')}
             </h5>
             <p class="text-muted mb-4">${t('description')}</p>
+            
+            <div class="alert alert-info mb-4">
+                <i class="bi bi-info-circle"></i>
+                <strong>Status:</strong> 
+                ${this.allHonden.length} honden geladen, 
+                ${this.allTeven.length} teven, 
+                ${reuen.length} reuen beschikbaar
+                ${this.coiCalculatorReady ? 
+                    '<br><i class="bi bi-check-circle text-success"></i> COI calculator actief' : 
+                    '<br><i class="bi bi-exclamation-triangle text-warning"></i> COI calculator niet beschikbaar'}
+                <br><small class="text-muted">Laadtijd: ${Date.now() - (this.loadStartTime || Date.now())}ms</small>
+            </div>
             
             <div class="row g-4">
                 <div class="col-md-4">
@@ -623,6 +974,7 @@ class ZoekReu {
                                 <div class="text-muted text-center">
                                     <i class="bi bi-gender-female"></i>
                                     <p class="mb-0 mt-2">${t('selectFemaleToStart')}</p>
+                                    <small class="text-muted">${this.allTeven.length} teven beschikbaar</small>
                                 </div>
                             </div>
                         </div>
@@ -679,6 +1031,7 @@ class ZoekReu {
                                                        style="width: 80px;">
                                                 <span class="input-group-text">%</span>
                                             </div>
+                                            <small class="text-muted">${t('inteeltHelp')}</small>
                                         </div>
                                     </div>
                                 </div>
@@ -778,21 +1131,15 @@ class ZoekReu {
                         <div class="text-muted">
                             <i class="bi bi-search" style="font-size: 2rem;"></i>
                             <p class="mt-2">${t('useSearchCriteria')}</p>
+                            <small class="text-muted">${reuen.length} reuen beschikbaar voor zoeken</small>
+                            ${this.coiCalculatorReady ? 
+                                '<br><small><i class="bi bi-check-circle text-success"></i> COI berekeningen actief</small>' : 
+                                '<br><small><i class="bi bi-exclamation-triangle text-warning"></i> COI berekeningen niet beschikbaar</small>'}
                         </div>
                     </div>
                 </div>
             </div>
         `;
-        
-        buttons.innerHTML = `
-            <button type="button" class="btn btn-secondary" id="backBtn">
-                <i class="bi bi-arrow-left"></i> ${t('back')}
-            </button>
-        `;
-        
-        document.getElementById('backBtn').addEventListener('click', () => {
-            this.goBack();
-        });
         
         this.initializeTeefSearch();
         this.initializeExcludeHondSearch();
@@ -804,6 +1151,11 @@ class ZoekReu {
     initializeTeefSearch() {
         const teefSearch = document.getElementById('teefSearch');
         const teefDropdown = document.getElementById('teefDropdown');
+        
+        if (!teefSearch) {
+            console.error('❌ teefSearch input niet gevonden!');
+            return;
+        }
         
         teefSearch.addEventListener('input', (e) => {
             clearTimeout(this.teefInputTimer);
@@ -843,11 +1195,19 @@ class ZoekReu {
                 }
             }
         });
+        
+        document.addEventListener('click', (e) => {
+            if (!teefDropdown.contains(e.target) && e.target.id !== 'teefSearch') {
+                teefDropdown.style.display = 'none';
+            }
+        });
     }
     
     initializeExcludeHondSearch() {
         const excludeHondSearch = document.getElementById('excludeHondSearch');
         const excludeHondDropdown = document.getElementById('excludeHondDropdown');
+        
+        if (!excludeHondSearch) return;
         
         excludeHondSearch.addEventListener('input', (e) => {
             clearTimeout(this.excludeHondInputTimer);
@@ -899,6 +1259,8 @@ class ZoekReu {
         const excludeKennelSearch = document.getElementById('excludeKennelSearch');
         const excludeKennelDropdown = document.getElementById('excludeKennelDropdown');
         
+        if (!excludeKennelSearch) return;
+        
         excludeKennelSearch.addEventListener('input', (e) => {
             clearTimeout(this.excludeKennelInputTimer);
             const searchTerm = e.target.value.trim();
@@ -947,30 +1309,37 @@ class ZoekReu {
     
     initializeFormValidation() {
         const bornAfterInput = document.getElementById('bornAfterFilter');
-        bornAfterInput.addEventListener('blur', (e) => {
-            this.validateDateInput(e.target);
-        });
-        
-        bornAfterInput.addEventListener('input', (e) => {
-            let value = e.target.value.replace(/[^\d]/g, '');
-            if (value.length > 2 && value.length <= 4) {
-                value = value.substring(0, 2) + '-' + value.substring(2);
-            } else if (value.length > 4) {
-                value = value.substring(0, 2) + '-' + value.substring(2, 4) + '-' + value.substring(4, 8);
-            }
-            e.target.value = value;
-        });
+        if (bornAfterInput) {
+            bornAfterInput.addEventListener('blur', (e) => {
+                this.validateDateInput(e.target);
+            });
+            
+            bornAfterInput.addEventListener('input', (e) => {
+                let value = e.target.value.replace(/[^\d]/g, '');
+                if (value.length > 2 && value.length <= 4) {
+                    value = value.substring(0, 2) + '-' + value.substring(2);
+                } else if (value.length > 4) {
+                    value = value.substring(0, 2) + '-' + value.substring(2, 4) + '-' + value.substring(4, 8);
+                }
+                e.target.value = value;
+            });
+        }
         
         const coiInput = document.getElementById('coiFilter');
-        coiInput.addEventListener('blur', (e) => {
-            this.validateCOIInput(e.target);
-        });
+        if (coiInput) {
+            coiInput.addEventListener('blur', (e) => {
+                this.validateCOIInput(e.target);
+            });
+        }
     }
     
     initializeSearchButton() {
-        document.getElementById('searchButton').addEventListener('click', () => {
-            this.performSearch();
-        });
+        const searchButton = document.getElementById('searchButton');
+        if (searchButton) {
+            searchButton.addEventListener('click', () => {
+                this.performSearch();
+            });
+        }
     }
     
     searchExcludeHonden(searchTerm) {
@@ -1021,6 +1390,8 @@ class ZoekReu {
         const dropdown = document.getElementById('excludeHondDropdown');
         const resultsDiv = document.getElementById('excludeHondResults');
         const countSpan = document.getElementById('excludeHondCount');
+        
+        if (!dropdown || !resultsDiv || !countSpan) return;
         
         if (honden.length === 0) {
             resultsDiv.innerHTML = `
@@ -1161,6 +1532,8 @@ class ZoekReu {
         const dropdown = document.getElementById('excludeKennelDropdown');
         const resultsDiv = document.getElementById('excludeKennelResults');
         const countSpan = document.getElementById('excludeKennelCount');
+        
+        if (!dropdown || !resultsDiv || !countSpan) return;
         
         if (kennels.length === 0) {
             resultsDiv.innerHTML = `
@@ -1456,7 +1829,16 @@ class ZoekReu {
         const t = this.t.bind(this);
         
         if (!searchTerm || searchTerm.length === 0) {
-            document.getElementById('teefDropdown').style.display = 'none';
+            const dropdown = document.getElementById('teefDropdown');
+            if (dropdown) dropdown.style.display = 'none';
+            return;
+        }
+        
+        console.log(`🔍 Zoek teven voor: "${searchTerm}" (${this.allTeven.length} teven beschikbaar)`);
+        
+        if (this.allTeven.length === 0) {
+            console.warn('⚠️ Geen teven beschikbaar!');
+            this.showTeefDropdown([], searchTerm);
             return;
         }
         
@@ -1473,6 +1855,8 @@ class ZoekReu {
                 searchableText.includes(term)
             );
         });
+        
+        console.log(`   ➡ ${filteredTeven.length} teven gevonden`);
         
         filteredTeven.sort((a, b) => {
             const aName = (a.naam || '').toLowerCase();
@@ -1500,6 +1884,8 @@ class ZoekReu {
         const dropdown = document.getElementById('teefDropdown');
         const resultsDiv = document.getElementById('teefResults');
         const countSpan = document.getElementById('teefCount');
+        
+        if (!dropdown || !resultsDiv || !countSpan) return;
         
         if (teven.length === 0) {
             resultsDiv.innerHTML = `
@@ -1544,7 +1930,10 @@ class ZoekReu {
                 
                 return `
                     <div class="autocomplete-item" data-id="${teef.id}" tabindex="0">
-                        <div class="fw-bold">${displayName}</div>
+                        <div class="fw-bold">
+                            <i class="bi bi-gender-female text-danger me-1"></i>
+                            ${displayName}
+                        </div>
                         <div class="small text-muted">
                             ${teef.stamboomnr ? t('pedigree') + ': ' + teef.stamboomnr : ''}
                             ${teef.ras ? ' • ' + t('breed') + ': ' + teef.ras : ''}
@@ -1576,7 +1965,8 @@ class ZoekReu {
                 }
                 
                 dropdown.style.display = 'none';
-                document.getElementById('teefSearch').value = '';
+                const teefSearch = document.getElementById('teefSearch');
+                if (teefSearch) teefSearch.value = '';
             });
             
             item.addEventListener('keydown', (e) => {
@@ -1599,7 +1989,8 @@ class ZoekReu {
                     if (prev && prev.classList.contains('autocomplete-item')) {
                         prev.focus();
                     } else {
-                        document.getElementById('teefSearch').focus();
+                        const teefSearch = document.getElementById('teefSearch');
+                        if (teefSearch) teefSearch.focus();
                     }
                 }
             });
@@ -1693,9 +2084,14 @@ class ZoekReu {
     }
     
     async selectTeef(teefId) {
+        console.log(`✅ Teef geselecteerd: ${teefId}`);
+        
         const teef = this.allHonden.find(h => h.id == teefId);
         
-        if (!teef) return;
+        if (!teef) {
+            console.error(`❌ Teef niet gevonden met ID: ${teefId}`);
+            return;
+        }
         
         this.selectedTeef = teef;
         this.updateTeefInfoDisplay(teef);
@@ -1707,6 +2103,8 @@ class ZoekReu {
     }
     
     handleManualTeefEntry(entry) {
+        console.log(`✅ Handmatige teef ingevoerd: "${entry}"`);
+        
         this.selectedTeef = {
             id: 'manual',
             naam: entry,
@@ -1781,6 +2179,8 @@ class ZoekReu {
     updateTeefInfoDisplay(teef) {
         const t = this.t.bind(this);
         const infoDiv = document.getElementById('selectedTeefInfo');
+        
+        if (!infoDiv) return;
         
         if (teef.manualEntry) {
             infoDiv.innerHTML = `
@@ -1884,99 +2284,23 @@ class ZoekReu {
             `;
         }
         
-        document.getElementById('clearTeefBtn').addEventListener('click', () => {
-            this.selectedTeef = null;
-            infoDiv.innerHTML = `
-                <div class="text-muted text-center">
-                    <i class="bi bi-gender-female"></i>
-                    <p class="mb-0 mt-2">${t('selectFemaleToStart')}</p>
-                </div>
-            `;
-            
-            const coiInput = document.getElementById('coiFilter');
-            if (coiInput && coiInput.value) {
-                this.validateCOIInput(coiInput);
-            }
-        });
-    }
-    
-    async calculateComboCOI(teefId, reuId) {
-        if (!this.coiCalculator2 || !teefId || !reuId || teefId === 'manual') {
-            return '0.000';
-        }
-        
-        try {
-            console.log(`🔬 Bereken combinatie COI voor teef ${teefId} × reu ${reuId}`);
-            
-            const teef = this.allHonden.find(h => h.id == teefId);
-            const reu = this.allHonden.find(h => h.id == reuId);
-            
-            if (!teef || !reu) {
-                console.error('❌ Teef of reu niet gevonden in database');
-                return '0.000';
-            }
-            
-            console.log('Debug teef info:', {
-                id: teef.id,
-                naam: teef.naam,
-                vaderId: teef.vaderId,
-                moederId: teef.moederId,
-                vader_id: teef.vader_id,
-                moeder_id: teef.moeder_id
+        const clearBtn = document.getElementById('clearTeefBtn');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                this.selectedTeef = null;
+                infoDiv.innerHTML = `
+                    <div class="text-muted text-center">
+                        <i class="bi bi-gender-female"></i>
+                        <p class="mb-0 mt-2">${t('selectFemaleToStart')}</p>
+                        <small class="text-muted">${this.allTeven.length} teven beschikbaar</small>
+                    </div>
+                `;
+                
+                const coiInput = document.getElementById('coiFilter');
+                if (coiInput && coiInput.value) {
+                    this.validateCOIInput(coiInput);
+                }
             });
-            
-            console.log('Debug reu info:', {
-                id: reu.id,
-                naam: reu.naam,
-                vaderId: reu.vaderId,
-                moederId: reu.moederId,
-                vader_id: reu.vader_id,
-                moeder_id: reu.moeder_id
-            });
-            
-            const futurePuppy = {
-                id: -Date.now(),
-                naam: this.t('virtualPuppy'),
-                geslacht: 'onbekend',
-                vaderId: reu.id,
-                moederId: teef.id,
-                vader: reu.naam,
-                moeder: teef.naam,
-                kennelnaam: this.t('combinedParents'),
-                stamboomnr: 'VOORSPELD-' + Date.now(),
-                geboortedatum: new Date().toISOString().split('T')[0],
-                vachtkleur: `${reu.vachtkleur || ''}/${teef.vachtkleur || ''}`.trim(),
-                heupdysplasie: null,
-                elleboogdysplasie: null,
-                patella: null,
-                ogen: null,
-                ogenVerklaring: null,
-                dandyWalker: null,
-                schildklier: null,
-                schildklierVerklaring: null,
-                land: null,
-                postcode: null,
-                opmerkingen: null
-            };
-            
-            console.log('Debug future puppy:', {
-                id: futurePuppy.id,
-                vaderId: futurePuppy.vaderId,
-                moederId: futurePuppy.moederId
-            });
-            
-            const tempHonden = [...this.allHonden, futurePuppy];
-            const tempCOICalculator = new COICalculator2(tempHonden);
-            
-            const coiResult = tempCOICalculator.calculateCOI(futurePuppy.id);
-            
-            console.log(`✅ Combinatie COI (6g) voor ${teef.naam} × ${reu.naam}: ${coiResult}%`);
-            
-            return coiResult;
-            
-        } catch (error) {
-            console.error('❌ Fout bij combinatie COI berekening:', error);
-            return '0.000';
         }
     }
     
@@ -2066,8 +2390,10 @@ class ZoekReu {
         const t = this.t.bind(this);
         const resultsDiv = document.getElementById('searchResults');
         
+        if (!resultsDiv) return;
+        
         const bornAfterInput = document.getElementById('bornAfterFilter');
-        if (!this.validateDateInput(bornAfterInput)) {
+        if (bornAfterInput && !this.validateDateInput(bornAfterInput)) {
             this.showAlert(t('invalidDate'), 'danger');
             return;
         }
@@ -2083,12 +2409,13 @@ class ZoekReu {
                     <span class="visually-hidden">${t('searchingMales')}</span>
                 </div>
                 <p class="mt-3">${t('searchingMales')}</p>
+                <p class="small text-muted">${this.allHonden.length} honden beschikbaar voor zoeken</p>
             </div>
         `;
         
         const criteria = this.getSearchCriteria();
         
-        let reuen = this.allHonden.filter(h => h.geslacht === 'reuen');
+        let reuen = this.allHonden.filter(h => h.geslacht && h.geslacht.toLowerCase() === 'reuen');
         console.log(`🔍 Start zoeken met ${reuen.length} reuen, COI filter: ${criteria.maxCOI}%`);
         
         if (criteria.ras) {
@@ -2345,9 +2672,9 @@ class ZoekReu {
         const excludeKennelGenerations = parseInt(document.getElementById('excludeKennelGenerations').value) || 3;
         
         const criteria = {
-            ras: document.getElementById('rasFilter').value,
-            radius: document.getElementById('radiusFilter').value,
-            bornAfter: document.getElementById('bornAfterFilter').value.trim(),
+            ras: document.getElementById('rasFilter')?.value || '',
+            radius: document.getElementById('radiusFilter')?.value || '0',
+            bornAfter: document.getElementById('bornAfterFilter')?.value.trim() || '',
             maxCOI: coiValue,
             excludeHonden: this.excludeHonden,
             excludeGenerations: excludeGenerations,
@@ -2735,7 +3062,6 @@ class ZoekReu {
             if (showCOIColumn) {
                 if (!reu._coiData || !reu._coiData.combo) {
                     comboCOI = '0.000';
-                    console.log(`⚠️ Geen COI data voor ${reu.naam}, standaardwaarde gebruikt`);
                 } else {
                     comboCOI = reu._coiData.combo || '0.000';
                 }
@@ -2819,3 +3145,256 @@ class ZoekReu {
         }, 5000);
     }
 }
+
+// Styling
+const style = document.createElement('style');
+style.textContent = `
+    .autocomplete-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        max-height: 800px;
+        height: auto;
+        overflow-y: auto;
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        z-index: 1050;
+    }
+    
+    .autocomplete-header {
+        padding: 0.5rem 1rem;
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+        font-size: 0.875rem;
+    }
+    
+    .autocomplete-results {
+        max-height: 350px;
+        overflow-y: auto;
+    }
+    
+    .autocomplete-item {
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        border-bottom: 1px solid #f8f9fa;
+        transition: background-color 0.2s;
+    }
+    
+    .autocomplete-item:hover,
+    .autocomplete-item:focus {
+        background-color: #f8f9fa;
+        outline: none;
+    }
+    
+    .autocomplete-item:last-child {
+        border-bottom: none;
+    }
+    
+    .autocomplete-item mark {
+        background-color: #fff3cd;
+        padding: 0;
+        font-weight: bold;
+    }
+    
+    .text-success { color: #198754 !important; }
+    .text-warning { color: #ffc107 !important; }
+    .text-danger { color: #dc3545 !important; }
+    .text-orange { color: #fd7e14 !important; }
+    .text-muted { color: #6c757d !important; }
+    .text-secondary { color: #6c757d !important; }
+    
+    .table-sm th, .table-sm td {
+        padding: 0.2rem 0.3rem;
+        font-size: 0.8rem;
+        vertical-align: middle;
+    }
+    
+    .table th {
+        white-space: nowrap;
+        font-weight: 600;
+        background-color: #f8f9fa;
+    }
+    
+    .table th.text-center {
+        text-align: center;
+    }
+    
+    .table td.text-center {
+        text-align: center;
+    }
+    
+    .table .small {
+        font-size: 0.75rem;
+        line-height: 1.2;
+    }
+    
+    .reu-name-link {
+        color: #0d6efd !important;
+        font-weight: bold !important;
+        cursor: pointer;
+        text-decoration: none;
+        transition: all 0.2s;
+        display: inline-block;
+        padding: 2px 4px;
+        border-radius: 3px;
+    }
+    
+    .reu-name-link:hover {
+        color: #0a58ca !important;
+        text-decoration: underline !important;
+        background-color: #f0f7ff;
+        transform: translateY(-1px);
+    }
+    
+    .reu-name-link:active {
+        transform: translateY(0);
+    }
+    
+    .reu-name-cell {
+        position: relative;
+    }
+    
+    .reu-name-link[title]:hover::after {
+        content: attr(title);
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #333;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        white-space: nowrap;
+        z-index: 1000;
+        margin-bottom: 5px;
+        opacity: 0.9;
+    }
+    
+    .autocomplete-results::-webkit-scrollbar {
+        width: 8px;
+    }
+    
+    .autocomplete-results::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+    
+    .autocomplete-results::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 4px;
+    }
+    
+    .autocomplete-results::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+    }
+    
+    #selectedTeefInfo h6 {
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    #selectedTeefInfo .row {
+        margin-bottom: 0.5rem;
+    }
+    
+    #selectedTeefInfo .small {
+        font-size: 0.85rem;
+    }
+    
+    #selectedTeefInfo hr {
+        margin: 0.75rem 0;
+    }
+    
+    #bornAfterFilter:focus {
+        border-color: #6610f2;
+        box-shadow: 0 0 0 0.25rem rgba(102, 16, 242, 0.25);
+    }
+    
+    #coiFilter:focus {
+        border-color: #6610f2;
+        box-shadow: 0 0 0 0.25rem rgba(102, 16, 242, 0.25);
+    }
+    
+    .input-group-text {
+        background-color: #f8f9fa;
+        color: #495057;
+    }
+    
+    .is-invalid {
+        border-color: #dc3545 !important;
+    }
+    
+    .is-invalid:focus {
+        box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25) !important;
+    }
+    
+    td.text-success { font-weight: bold; }
+    td.text-warning { font-weight: bold; }
+    td.text-orange { font-weight: bold; }
+    td.text-danger { font-weight: bold; }
+    
+    .table th br {
+        display: block;
+        content: "";
+        margin-top: 2px;
+    }
+    
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.02); }
+        100% { transform: scale(1); }
+    }
+    
+    .reu-name-link:active {
+        animation: pulse 0.2s;
+    }
+    
+    #excludedHondenList .list-group-item {
+        padding: 0.5rem 1rem;
+        border-left: 3px solid #dc3545;
+    }
+    
+    #excludedKennelsList .list-group-item {
+        padding: 0.5rem 1rem;
+        border-left: 3px solid #ffc107;
+    }
+    
+    #excludedHondenList .badge,
+    #excludedKennelsList .badge {
+        font-size: 0.7rem;
+    }
+    
+    .bi-gender-male {
+        color: #0d6efd;
+    }
+    
+    .bi-gender-female {
+        color: #dc3545;
+    }
+    
+    .bi-house-door {
+        color: #6c757d;
+    }
+    
+    .position-relative {
+        position: relative;
+    }
+    
+    .card-body {
+        overflow: visible !important;
+    }
+    
+    .row.g-4 > .col-md-4,
+    .row.g-4 > .col-md-8 {
+        overflow: visible !important;
+    }
+    
+    .card {
+        overflow: visible !important;
+    }
+`;
+document.head.appendChild(style);
