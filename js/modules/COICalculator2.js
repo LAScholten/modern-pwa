@@ -217,7 +217,7 @@ class COICalculator2 {
             }
 
             // Check broer-zus combinatie
-            if (this._isFullSiblingCombination(dog) && dog.vader_id && dog.moeder_id) {
+            if (this._isFullSiblingCombination(dog)) {
                 console.log(`⚠️ Broer-Zus combinatie -> 25.000%`);
                 return '25.000';
             }
@@ -242,7 +242,7 @@ class COICalculator2 {
             console.log(`   ${dog.naam}: COI 6-gen = ${result}%`);
             
             // Toon officiële IK waarde als beschikbaar
-            if (dog.ik !== undefined && dog.ik !== null) {
+            if (dog.ik !== undefined) {
                 // Formatteer officiële IK ook met 3 decimalen
                 const officialIK = parseFloat(dog.ik).toFixed(3);
                 console.log(`   Officiële database: IK = ${officialIK}%`);
@@ -366,6 +366,18 @@ class COICalculator2 {
             console.log(`      Hond: ${dog.naam} (ID: ${dog.id})`);
             console.log(`      Moeder: ${moeder.naam} (ID: ${moeder.id})`);
             console.log(`      Vader: ${vader.naam} (ID: ${vader.id}) is zoon van ${moeder.naam}`);
+            return true;
+        }
+        
+        // Vader = grootvader via moeder (vader van moeder)
+        if (vader.vader_id && moeder.vader_id && vader.id === moeder.vader_id) {
+            console.log(`   ✅ Vader = grootvader via moeder combinatie!`);
+            return true;
+        }
+        
+        // Moeder = grootmoeder via vader (moeder van vader)
+        if (vader.moeder_id && moeder.moeder_id && moeder.id === vader.moeder_id) {
+            console.log(`   ✅ Moeder = grootmoeder via vader combinatie!`);
             return true;
         }
         
