@@ -665,7 +665,7 @@ class ReuTeefCombinatie {
         this.hondenCache.clear();
         
         // Laad honden data - GEBRUIK NIEUWE METHODE
-        await this.loadAllHonden();
+        await this.loadAllHondenPaginated();
         
         // NIET hier initialiseren, maar pas bij berekening
         this.coiCalculator = null;
@@ -1133,12 +1133,30 @@ class ReuTeefCombinatie {
         }
     }
     
-    async loadAllHonden() {
+    async loadAllHondenPaginated() {
         try {
-            // VERANDERD: Gebruik window.hondenService.getBeperkteHonden
-            if (window.hondenService && typeof window.hondenService.getBeperkteHonden === 'function') {
-                this.allHonden = await window.hondenService.getBeperkteHonden(200);
-                console.log(`✅ Geladen: ${this.allHonden.length} honden uit Supabase`);
+            if (window.hondenService && typeof window.hondenService.getHonden === 'function') {
+                let allHonden = [];
+                let currentPage = 1;
+                let hasMorePages = true;
+                const pageSize = 100;
+                const maxHonden = 5000; // Limiet voor performance
+                
+                while (hasMorePages && allHonden.length < maxHonden) {
+                    const result = await window.hondenService.getHonden(currentPage, pageSize);
+                    if (result.honden && result.honden.length > 0) {
+                        allHonden = allHonden.concat(result.honden);
+                        hasMorePages = result.heeftVolgende;
+                        currentPage++;
+                        
+                        console.log(`📄 Pagina ${currentPage-1}: ${result.honden.length} honden (totaal: ${allHonden.length})`);
+                    } else {
+                        hasMorePages = false;
+                    }
+                }
+                
+                this.allHonden = allHonden;
+                console.log(`✅ Geladen: ${this.allHonden.length} honden uit Supabase (gepagineerd)`);
                 
                 // Zorg dat alle gezondheidsvelden aanwezig zijn
                 this.allHonden = this.allHonden.map(hond => {
@@ -1168,7 +1186,7 @@ class ReuTeefCombinatie {
                     }
                 });
             } else {
-                console.error('❌ window.hondenService niet beschikbaar of getBeperkteHonden functie ontbreekt');
+                console.error('❌ window.hondenService niet beschikbaar of getHonden functie ontbreekt');
                 this.allHonden = [];
             }
         } catch (error) {
@@ -1248,8 +1266,8 @@ class ReuTeefCombinatie {
         }
         
         try {
-            // VERANDERD: Gebruik window.hondenService.zoekHonden
-            const result = await window.hondenService.zoekHonden({ naam: name });
+            // VERANDERD: Gebruik gepagineerde zoek
+            const result = await window.hondenService.zoekHonden({ naam: name }, 1, 50);
             if (result && result.honden && result.honden.length > 0) {
                 result.honden.forEach(hond => {
                     const volledigeHond = {
@@ -1368,7 +1386,7 @@ class ReuTeefCombinatie {
         
         input.addEventListener('focus', async () => {
             if (this.allHonden.length === 0) {
-                await this.loadAllHonden();
+                await this.loadAllHondenPaginated();
             }
         });
         
@@ -1395,7 +1413,7 @@ class ReuTeefCombinatie {
                     const naam = dog.naam ? dog.naam.toLowerCase() : '';
                     const kennelnaam = dog.kennelnaam ? dog.kennelnaam.toLowerCase() : '';
                     const combined = `${naam} ${kennelnaam}`;
-                    return combined.startsWith(searchTerm);
+                    return combined.includes(searchTerm);
                 });
             }
             
