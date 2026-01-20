@@ -6,8 +6,8 @@
 class BreedingManager {
     constructor() {
         this.currentLang = localStorage.getItem('appLanguage') || 'nl';
-        this.db = window.hondenService; // VERANDERD: gebruik window object
-        this.auth = window.auth; // VERANDERD: gebruik window object
+        this.db = null;
+        this.auth = null;
         this.translations = {
             nl: {
                 breedingPlan: "Fok Planning",
@@ -33,7 +33,7 @@ class BreedingManager {
             },
             de: {
                 breedingPlan: "Zuchtplanung",
-                breedingInfo: "Erstellen und verwalten Sie Zuchtpläne für Ihre Hunde. Wählen Sie een Methode:",
+                breedingInfo: "Erstellen und verwalten Sie Zuchtpläne für Ihre Hunde. Wählen Sie eine Methode:",
                 method1: "1. Rüde und Hündin Kombination",
                 method1Desc: "Wählen Sie einen bestimmten Rüden und eine Hündin für einen Zuchtplan",
                 method2: "2. Finde einen Rüden",
@@ -45,7 +45,10 @@ class BreedingManager {
         };
     }
     
-    // VERWIJDERD: injectDependencies functie niet meer nodig
+    injectDependencies(db, auth) {
+        this.db = db;
+        this.auth = auth;
+    }
     
     t(key) {
         return this.translations[this.currentLang][key] || key;
@@ -182,17 +185,47 @@ class BreedingManager {
             this.loadMainScreen();
         });
         
-        // Laad de ReuTeefCombinatie module
+        // Laad de ReuTeefCombinatie module - GEWIJZIGD
         try {
-            // Maak nieuwe instantie en laad content
-            if (window.reuTeefCombinatie) {
-                // Hergebruik bestaande instantie als beschikbaar
-                await window.reuTeefCombinatie.loadContent();
-            } else {
-                // Maak nieuwe instantie
-                const module = new ReuTeefCombinatie();
-                window.reuTeefCombinatie = module;
-                await module.loadContent();
+            console.log('🏗️ Loading ReuTeefCombinatie module...');
+            
+            // Controleer eerst of de klasse beschikbaar is
+            if (typeof ReuTeefCombinatie === 'undefined') {
+                console.error('❌ ReuTeefCombinatie klasse niet gevonden');
+                content.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        Module kan niet geladen worden. Probeer opnieuw.
+                    </div>
+                `;
+                return;
+            }
+            
+            try {
+                // Instantieer de module ALTIJD opnieuw
+                const reuTeefModule = new ReuTeefCombinatie();
+                
+                // Inject dependencies
+                reuTeefModule.db = this.db;
+                reuTeefModule.auth = this.auth;
+                
+                // Maak module beschikbaar via window object
+                window.reuTeefCombinatie = reuTeefModule;
+                
+                // Laad de content
+                await reuTeefModule.loadContent();
+                
+                console.log('✅ ReuTeefCombinatie module succesvol geladen');
+                
+            } catch (error) {
+                console.error('❌ Fout bij initialiseren ReuTeefCombinatie:', error);
+                content.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        Kon de Reu en Teef Combinatie module niet initialiseren.
+                        <br><small>${error.message}</small>
+                    </div>
+                `;
             }
             
         } catch (error) {
@@ -234,21 +267,52 @@ class BreedingManager {
             this.loadMainScreen();
         });
         
-        // Laad de ZoekReu module - controleer eerst of deze bestaat
+        // Laad de ZoekReu module
         try {
+            // Controleer eerst of de klasse beschikbaar is
             if (typeof ZoekReu === 'undefined') {
-                throw new Error('ZoekReu module is niet beschikbaar');
+                console.error('❌ ZoekReu klasse niet gevonden');
+                content.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        Module kan niet geladen worden. Probeer opnieuw.
+                    </div>
+                `;
+                return;
             }
             
-            const module = new ZoekReu();
-            await module.loadContent();
+            try {
+                // Instantieer de module ALTIJD opnieuw
+                const zoekReuModule = new ZoekReu();
+                
+                // Inject dependencies
+                zoekReuModule.injectDependencies(this.db, this.auth);
+                
+                // Maak module beschikbaar via window object
+                window.zoekReuModule = zoekReuModule;
+                
+                // Laad de content
+                await zoekReuModule.loadContent();
+                
+                console.log('✅ ZoekReu module succesvol geladen');
+                
+            } catch (error) {
+                console.error('❌ Fout bij initialiseren ZoekReu:', error);
+                content.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        Kon de Zoek Reu module niet initialiseren.
+                        <br><small>${error.message}</small>
+                    </div>
+                `;
+            }
             
         } catch (error) {
             console.error('Fout bij laden ZoekReu:', error);
             content.innerHTML = `
                 <div class="alert alert-danger">
                     <i class="bi bi-exclamation-triangle"></i>
-                    Kon de Zoek Reu module niet laden. Deze module is nog niet geïmplementeerd.
+                    Kon de Zoek Reu module niet laden. Probeer het opnieuw.
                     <br><small>${error.message}</small>
                 </div>
             `;
