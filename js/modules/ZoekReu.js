@@ -423,7 +423,7 @@ class ZoekReu {
                 notTested: "Niet getestet",
                 invalidDate: "Ungültiges Datum. Format: dd-mm-jjjj",
                 invalidCOI: "Ungültiger COI-Wert. Verwenden Sie eine Zahl tussen 0 en 100",
-                noTeefSelected: "Wählen Sie zuerst eine Hündin, um die COI-Berechnung zu verwenden",
+                noTeefSelected: "Wählen Sie zuerst eine Hündin, um die COI-Berechnung te gebruiken",
                 showPedigree: "Stammbaum anzeigen",
                 pedigreeTooltip: "Klicken, um den 4-Generationen-Stammbaum dieses Rüden anzuzeigen",
                 calculatingCOI: "COI-Werte worden berechnet...",
@@ -439,8 +439,8 @@ class ZoekReu {
                 breed: "Rasse",
                 manuallyEnteredFemale: "Manuell eingegebene Hündin",
                 coiNotAvailable: "COI-Berechnung ist für manuele Eingaben niet verfügbar",
-                selectFemaleToStart: "Wählen Sie eine Hündin, um zu beginnen",
-                useSearchCriteria: "Verwenden Sie Suchkriterien, um Rüden zu vinden",
+                selectFemaleToStart: "Wählen Sie eine Hündin, um te beginnen",
+                useSearchCriteria: "Verwenden Sie Suchkriterien, um Rüden zu finden",
                 searchingMales: "Suche nach geeigneten Rüden...",
                 pedigreeFunctionalityUnavailable: "Stamboomfunktionaliteit ist derzeit nicht verfügbar",
                 maleNotFound: "Konnte Rüdendaten niet finden",
@@ -2636,6 +2636,36 @@ class ZoekReu {
     async showReuPedigree(reuId, reuName) {
         console.log(`🔄 Toon stamboom voor reu: ${reuId} - ${reuName}`);
         
+        // VERBETERING: Initialiseer StamboomManager op dezelfde manier als in DogManager
+        if (!this.stamboomManager) {
+            if (typeof StamboomManager === 'undefined') {
+                console.error('❌ StamboomManager klasse niet gevonden!');
+                this.showAlert(this.t('pedigreeFunctionalityUnavailable'), 'warning');
+                return;
+            }
+            
+            try {
+                console.log('🔄 Initialiseer StamboomManager vanuit ZoekReu...');
+                
+                // Initialiseer StamboomManager op dezelfde manier als in DogManager
+                this.stamboomManager = new StamboomManager(this.db, this.currentLang);
+                
+                // Gebruik onze reeds geladen honden in plaats van opnieuw te laden
+                this.stamboomManager.allHonden = this.allHonden;
+                this.stamboomManager.coiCalculator = null; // Reset COI calculator
+                
+                // Forceer een snelle initialisatie zoals in DogManager
+                this.stamboomManager.initialized = true;
+                
+                console.log('✅ StamboomManager geïnitialiseerd met bestaande honden:', this.allHonden.length);
+                
+            } catch (error) {
+                console.error('❌ Fout bij initialiseren StamboomManager:', error);
+                this.showAlert(this.t('pedigreeFunctionalityUnavailable'), 'warning');
+                return;
+            }
+        }
+        
         const reu = this.allHonden.find(h => h.id == reuId);
         
         if (!reu) {
@@ -2644,113 +2674,13 @@ class ZoekReu {
         }
         
         try {
-            // DIRECTE OPROEP VAN STAMBOOMMANAGER - WERKEND VOORBEELD UIT DOGMANAGER
-            console.log('🔄 Roep StamboomManager.showPedigree aan...');
-            
-            // Maak een StamboomManager aan als die nog niet bestaat
-            if (!this.stamboomManager) {
-                console.log('🔄 Maak nieuwe StamboomManager aan...');
-                this.stamboomManager = new StamboomManager(this.db, this.currentLang);
-                // Gebruik onze reeds geladen honden
-                this.stamboomManager.allHonden = this.allHonden;
-                this.stamboomManager.initialized = true;
-            }
-            
-            // Gebruik de showPedigree functie direct
+            // Gebruik directe methode om stamboom te tonen zoals in DogManager
             await this.stamboomManager.showPedigree(reu);
             console.log('✅ Stamboom getoond voor:', reu.naam);
-            
         } catch (error) {
             console.error('❌ Fout bij tonen stamboom:', error);
-            console.error('Error details:', error.message);
-            console.error('Error stack:', error.stack);
-            
-            // Toon een fallback modal met de hond informatie
-            this.showFallbackPedigree(reu);
+            this.showAlert(this.t('errorShowingPedigree'), 'danger');
         }
-    }
-    
-    showFallbackPedigree(reu) {
-        const t = this.t.bind(this);
-        const modalId = 'fallbackPedigreeModal';
-        
-        // Maak een modal aan als fallback
-        const modalHTML = `
-            <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header bg-primary text-white">
-                            <h5 class="modal-title" id="${modalId}Label">
-                                <i class="bi bi-diagram-3 me-2"></i> Stamboom: ${reu.naam || t('unknown')}
-                            </h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Sluiten"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="alert alert-warning">
-                                <i class="bi bi-exclamation-triangle me-2"></i>
-                                <strong>Stamboomfunctionaliteit tijdelijk niet beschikbaar</strong>
-                                <p class="mb-0 mt-2">Hieronder tonen we de basisinformatie van de hond:</p>
-                            </div>
-                            
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <h6>Basisinformatie</h6>
-                                    <table class="table table-sm">
-                                        <tr>
-                                            <th>Naam:</th>
-                                            <td>${reu.naam || '-'}</td>
-                                        </tr>
-                                        <tr>
-                                            <th>Kennel:</th>
-                                            <td>${reu.kennelnaam || '-'}</td>
-                                        </tr>
-                                        <tr>
-                                            <th>Stamboomnr:</th>
-                                            <td>${reu.stamboomnr || '-'}</td>
-                                        </tr>
-                                        <tr>
-                                            <th>Ras:</th>
-                                            <td>${reu.ras || '-'}</td>
-                                        </tr>
-                                        <tr>
-                                            <th>Geboortedatum:</th>
-                                            <td>${reu.geboortedatum || '-'}</td>
-                                        </tr>
-                                    </table>
-                                </div>
-                                <div class="col-md-6">
-                                    <h6>Ouders</h6>
-                                    <table class="table table-sm">
-                                        <tr>
-                                            <th>Vader:</th>
-                                            <td>${reu.vader || '-'}</td>
-                                        </tr>
-                                        <tr>
-                                            <th>Moeder:</th>
-                                            <td>${reu.moeder || '-'}</td>
-                                        </tr>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                <i class="bi bi-x-circle me-1"></i> Sluiten
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        // Voeg modal toe aan DOM als die nog niet bestaat
-        if (!document.getElementById(modalId)) {
-            document.body.insertAdjacentHTML('beforeend', modalHTML);
-        }
-        
-        // Toon de modal
-        const modal = new bootstrap.Modal(document.getElementById(modalId));
-        modal.show();
     }
     
     getSearchCriteria() {
