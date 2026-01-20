@@ -6,11 +6,11 @@
 class ReuTeefCombinatie {
     constructor() {
         this.currentLang = localStorage.getItem('appLanguage') || 'nl';
-        this.db = window.hondenService; // VERANDERD: gebruik window object
-        this.auth = window.auth; // VERANDERD: gebruik window object
+        this.db = null; // VERANDERD: Nu null, wordt later geïnjecteerd
+        this.auth = null; // VERANDERD: Nu null, wordt later geïnjecteerd
         this.selectedTeef = null;
         this.selectedReu = null;
-        this.allHonden = [];
+        this.allHonden = []; // Zorg dat dit altijd een array is
         this.hondenCache = new Map();
         
         // Foto caches - IDENTIEK AAN STAMBOOMMANAGER
@@ -66,9 +66,9 @@ class ReuTeefCombinatie {
                 grandfatherLabel: "Grootvader",
                 grandmotherLabel: "Grootmoeder",
                 greatGrandfatherLabel: "Overgrootvader",
-                greatGrandmotherLabel: "Overgrootmoeder",
+                greatGrandmotherLabel: "Over-overgrootmoeder",
                 greatGreatGrandfatherLabel: "Over-overgrootvader",
-                greatGreatGrandmotherLabel: "Over-overgrootmoeder",
+                greatGreatGrandmotherLabel: "Over-over-overgrootmoeder",
                 typeToSearch: "Begin met typen om te zoeken",
                 noDogsFound: "Geen honden gevonden",
                 found: "gevonden",
@@ -287,7 +287,7 @@ class ReuTeefCombinatie {
                 close: "Schließen",
                 print: "Drucken",
                 loading: "Laden...",
-                noDogFound: "Kein Hund gefunden",
+                noDogFound: "Kein Hund gefonden",
                 unknownBreed: "Unbekannte Rasse",
                 genderTeef: "Hündin",
                 genderReu: "Rüde",
@@ -401,7 +401,12 @@ class ReuTeefCombinatie {
         this.setupGlobalEventListeners();
     }
     
-    // VERWIJDERD: injectDependencies() functie niet meer nodig
+    // Inject dependencies method
+    injectDependencies(db, auth) {
+        this.db = db;
+        this.auth = auth;
+        console.log('✅ ReuTeefCombinatie: Dependencies geïnjecteerd');
+    }
     
     t(key, params = {}) {
         let text = this.translations[this.currentLang][key] || key;
@@ -1132,44 +1137,55 @@ class ReuTeefCombinatie {
     
     async loadAllHonden() {
         try {
+            console.log('🔄 Laden van honden voor ReuTeefCombinatie...');
+            
             if (this.db && typeof this.db.getHonden === 'function') {
-                this.allHonden = await this.db.getHonden();
+                const result = await this.db.getHonden();
+                
+                // ZORG DAT HET EEN ARRAY IS
+                this.allHonden = Array.isArray(result) ? result : [];
+                
                 console.log(`✅ Geladen: ${this.allHonden.length} honden uit database voor ReuTeefCombinatie`);
                 
                 // Zorg dat alle gezondheidsvelden aanwezig zijn
-                this.allHonden = this.allHonden.map(hond => {
-                    return {
-                        ...hond,
-                        heupdysplasie: hond.heupdysplasie || '',
-                        elleboogdysplasie: hond.elleboogdysplasie || '',
-                        patella: hond.patella || '',
-                        ogen: hond.ogen || '',
-                        ogenVerklaring: hond.ogenVerklaring || '',
-                        dandyWalker: hond.dandyWalker || '',
-                        schildklier: hond.schildklier || '',
-                        schildklierVerklaring: hond.schildklierVerklaring || '',
-                        vachtkleur: hond.vachtkleur || '',
-                        ras: hond.ras || '',
-                        land: hond.land || '',
-                        postcode: hond.postcode || '',
-                        opmerkingen: hond.opmerkingen || ''
-                    };
-                });
-                
-                // Voeg alle honden toe aan cache
-                this.allHonden.forEach(hond => {
-                    this.hondenCache.set(hond.id, hond);
-                    if (hond.stamboomnr) {
-                        this.hondenCache.set(hond.stamboomnr, hond);
-                    }
-                });
+                if (this.allHonden.length > 0) {
+                    this.allHonden = this.allHonden.map(hond => {
+                        return {
+                            ...hond,
+                            heupdysplasie: hond.heupdysplasie || '',
+                            elleboogdysplasie: hond.elleboogdysplasie || '',
+                            patella: hond.patella || '',
+                            ogen: hond.ogen || '',
+                            ogenVerklaring: hond.ogenVerklaring || '',
+                            dandyWalker: hond.dandyWalker || '',
+                            schildklier: hond.schildklier || '',
+                            schildklierVerklaring: hond.schildklierVerklaring || '',
+                            vachtkleur: hond.vachtkleur || '',
+                            ras: hond.ras || '',
+                            land: hond.land || '',
+                            postcode: hond.postcode || '',
+                            opmerkingen: hond.opmerkingen || ''
+                        };
+                    });
+                    
+                    // Voeg alle honden toe aan cache
+                    this.allHonden.forEach(hond => {
+                        this.hondenCache.set(hond.id, hond);
+                        if (hond.stamboomnr) {
+                            this.hondenCache.set(hond.stamboomnr, hond);
+                        }
+                    });
+                } else {
+                    console.warn('⚠️ Geen honden geladen voor ReuTeefCombinatie');
+                    this.allHonden = []; // Zorg dat het een array blijft
+                }
             } else {
                 console.error('❌ Database niet beschikbaar of getHonden functie ontbreekt');
-                this.allHonden = [];
+                this.allHonden = []; // Zorg dat het een array is
             }
         } catch (error) {
             console.error('❌ Fout bij laden honden:', error);
-            this.allHonden = [];
+            this.allHonden = []; // Zorg dat het een array blijft
         }
     }
     
@@ -1244,7 +1260,7 @@ class ReuTeefCombinatie {
         
         try {
             const result = await this.db.zoekHonden({ naam: name });
-            if (result && result.length > 0) {
+            if (result && Array.isArray(result) && result.length > 0) {
                 result.forEach(hond => {
                     const volledigeHond = {
                         ...hond,
@@ -1884,8 +1900,4 @@ class ReuTeefCombinatie {
     }
 }
 
-window.reuTeefCombinatie = null;
-
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = ReuTeefCombinatie;
-}
+// Verwijder de window assignment hier, want dat gebeurt nu in de BreedingManager
