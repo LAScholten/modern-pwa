@@ -15,7 +15,7 @@ class ZoekReu {
         this.allHonden = [];
         this.coiCalculator2 = null;
         this.coiCalculatorReady = false;
-        this.stamboomManager = null;
+        this.stamboomManager = null;  // Dit wordt nu correct geïnitialiseerd
         this.excludeHonden = [];
         this.excludeKennels = [];
         this.excludeHondInputTimer = null;
@@ -2646,17 +2646,24 @@ class ZoekReu {
             try {
                 console.log('🔄 Initialiseer StamboomManager vanuit ZoekReu...');
                 
-                // Initialiseer StamboomManager met de reeds geladen honden
+                // Initialiseer StamboomManager zoals in DogManager
                 this.stamboomManager = new StamboomManager(this.db, this.currentLang);
                 
-                // Gebruik onze reeds geladen honden in plaats van opnieuw te laden
-                this.stamboomManager.allHonden = this.allHonden;
-                this.stamboomManager.coiCalculator = null; // Reset COI calculator
+                // Gebruik onze reeds geladen honden - belangrijk!
+                if (this.allHonden && this.allHonden.length > 0) {
+                    this.stamboomManager.allHonden = this.allHonden;
+                    console.log(`✅ StamboomManager geïnitialiseerd met ${this.allHonden.length} bestaande honden`);
+                } else {
+                    // Laad honden als ze er nog niet zijn
+                    console.log('⚠️ Honden nog niet geladen, laad nu...');
+                    await this.stamboomManager.loadAllHonden();
+                }
                 
-                // Optioneel: forceer een snelle initialisatie
+                // Zorg dat de manager geïnitialiseerd is
                 this.stamboomManager.initialized = true;
+                this.stamboomManager.coiCalculator = null; // Reset COI calculator voor snellere initialisatie
                 
-                console.log('✅ StamboomManager geïnitialiseerd met bestaande honden:', this.allHonden.length);
+                console.log('✅ StamboomManager succesvol geïnitialiseerd');
                 
             } catch (error) {
                 console.error('❌ Fout bij initialiseren StamboomManager:', error);
@@ -2673,9 +2680,13 @@ class ZoekReu {
         }
         
         try {
-            // Gebruik directe methode om stamboom te tonen zonder extra initialisatie
-            await this.stamboomManager.showPedigree(reu);
-            console.log('✅ Stamboom getoond voor:', reu.naam);
+            // Gebruik directe methode om stamboom te tonen
+            if (typeof this.stamboomManager.showPedigree === 'function') {
+                await this.stamboomManager.showPedigree(reu);
+                console.log('✅ Stamboom getoond voor:', reu.naam);
+            } else {
+                this.showAlert(this.t('pedigreeFunctionalityUnavailable'), 'warning');
+            }
         } catch (error) {
             console.error('❌ Fout bij tonen stamboom:', error);
             this.showAlert(this.t('errorShowingPedigree'), 'danger');
