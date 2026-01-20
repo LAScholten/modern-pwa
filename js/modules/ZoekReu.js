@@ -2556,12 +2556,12 @@ class ZoekReu {
             
             let found = false;
             
-            if (hond.vaderId) {
-                found = found || getAncestors(hond.vaderId, currentGeneration + 1);
+            if (hond.vader_id) {
+                found = found || getAncestors(hond.vader_id, currentGeneration + 1);
             }
             
-            if (hond.moederId) {
-                found = found || getAncestors(hond.moederId, currentGeneration + 1);
+            if (hond.moeder_id) {
+                found = found || getAncestors(hond.moeder_id, currentGeneration + 1);
             }
             
             return found;
@@ -2587,12 +2587,12 @@ class ZoekReu {
             
             let found = false;
             
-            if (hond.vaderId) {
-                found = found || getAncestors(hond.vaderId, currentGeneration + 1);
+            if (hond.vader_id) {
+                found = found || getAncestors(hond.vader_id, currentGeneration + 1);
             }
             
-            if (hond.moederId) {
-                found = found || getAncestors(hond.moederId, currentGeneration + 1);
+            if (hond.moeder_id) {
+                found = found || getAncestors(hond.moeder_id, currentGeneration + 1);
             }
             
             return found;
