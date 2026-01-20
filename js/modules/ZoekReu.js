@@ -440,9 +440,9 @@ class ZoekReu {
                 manuallyEnteredFemale: "Manuell eingegebene Hündin",
                 coiNotAvailable: "COI-Berechnung ist für manuele Eingaben niet verfügbar",
                 selectFemaleToStart: "Wählen Sie eine Hündin, um zu beginnen",
-                useSearchCriteria: "Verwenden Sie Suchkriterien, um Rüden zu vinden",
+                useSearchCriteria: "Verwenden Sie Suchkriterien, um Rüden zu finden",
                 searchingMales: "Suche nach geeigneten Rüden...",
-                pedigreeFunctionalityUnavailable: "Stamboomfunktionaliteit ist derzeit nicht verfügbar",
+                pedigreeFunctionalityUnavailable: "Stamboomfunktionaliteit ist derzeit nicht verfügbaar",
                 maleNotFound: "Konnte Rüdendaten niet finden",
                 errorShowingPedigree: "Beim Anzeigen des Stamboons is een Fehler aufgetreten",
                 combinedParents: "Kombinierte Eltern",
@@ -1076,10 +1076,10 @@ class ZoekReu {
                                         <div class="col-md-8">
                                             <div class="position-relative">
                                                 <input type="text" 
-                                                       class="form-control" 
-                                                       id="excludeKennelSearch" 
-                                                       placeholder="${t('excludeKennelsPlaceholder')}"
-                                                       autocomplete="off">
+                                                   class="form-control" 
+                                                   id="excludeKennelSearch" 
+                                                   placeholder="${t('excludeKennelsPlaceholder')}"
+                                                   autocomplete="off">
                                                 <div class="autocomplete-dropdown" id="excludeKennelDropdown" style="display: none;">
                                                     <div class="autocomplete-header">
                                                         <small class="text-muted">${t('kennelsFound')}: <span id="excludeKennelCount">0</span></small>
@@ -2645,14 +2645,6 @@ class ZoekReu {
         }
         
         try {
-            // **EXACT DEZELFDE LOGICA ALS IN DOGMANAGER**
-            if (typeof StamboomManager === 'undefined') {
-                this.showAlert(this.t('pedigreeFunctionalityUnavailable'), 'warning');
-                return;
-            }
-            
-            console.log('🔄 Initialiseer StamboomManager vanuit ZoekReu...');
-            
             // **EXACT DEZELFDE INITIALISATIE ALS IN DOGMANAGER**
             const stamboomManager = new StamboomManager(this.db, this.currentLang);
             
@@ -2661,11 +2653,10 @@ class ZoekReu {
             stamboomManager.coiCalculator = this.coiCalculator2;
             stamboomManager.initialized = true;
             
-            console.log('✅ StamboomManager geïnitialiseerd met bestaande honden:', this.allHonden.length);
+            console.log('✅ StamboomManager geïnitialiseerd zoals in DogManager');
             
-            // **EXACT DEZELFDE METHODE OM STAMBOOM TE TONEN ALS IN DOGMANAGER**
-            await stamboomManager.showPedigree(reu);
-            console.log('✅ Stamboom getoond voor:', reu.naam);
+            // **EXACT DEZELFDE AANROEP ALS IN DOGMANAGER**
+            stamboomManager.showPedigree(reu);
             
         } catch (error) {
             console.error('❌ Fout bij tonen stamboom:', error);
