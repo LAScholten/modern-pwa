@@ -125,12 +125,16 @@ const hondenService = {
     }
   },
 
-  // 5. Hond toevoegen - GECORRIGEERD: gebruik losse velden zoals in DogDataManager.js
+  // 5. Hond toevoegen - GECORRIGEERD: met RLS compliance
   async voegHondToe(hond) {
     try {
       const user = window.auth ? window.auth.getCurrentUser() : null;
       
-      // GEBRUIK DEZELFDE VELDEN ALS DogDataManager.js
+      if (!user || !user.id) {
+        throw new Error('Gebruiker niet ingelogd of geen user ID beschikbaar');
+      }
+      
+      // GEBRUIK DEZELFDE VELDEN ALS DogDataManager.js + user_id voor RLS
       const supabaseHond = {
         // Basis velden
         naam: hond.naam || '',
@@ -167,7 +171,11 @@ const hondenService = {
         // Opmerkingen
         opmerkingen: hond.opmerkingen || null,
         
-        // Systeemvelden (zorg dat deze in je database bestaan)
+        // BELANGRIJK: User ID voor RLS (Row Level Security)
+        user_id: user.id,
+        toegevoegd_door: user.id,
+        
+        // Systeemvelden
         createdat: new Date().toISOString(),
         updatedat: new Date().toISOString(),
         aangemaakt_op: new Date().toISOString(),
@@ -175,13 +183,12 @@ const hondenService = {
       };
       
       console.log('[HONDENSERVICE] voegHondToe - Data naar Supabase:', supabaseHond);
-      console.log('[HONDENSERVICE] Gezondheidsvelden:');
-      console.log('- Heupdysplasie:', supabaseHond.heupdysplasie);
-      console.log('- Elleboogdysplasie:', supabaseHond.elleboogdysplasie);
-      console.log('- Patella:', supabaseHond.patella);
-      console.log('- Ogen:', supabaseHond.ogen);
-      console.log('- Dandy Walker:', supabaseHond.dandyWalker);
-      console.log('- Schildklier:', supabaseHond.schildklier);
+      console.log('[HONDENSERVICE] User ID voor RLS:', user.id);
+      console.log('[HONDENSERVICE] Heupdysplasie:', supabaseHond.heupdysplasie);
+      console.log('[HONDENSERVICE] Elleboogdysplasie:', supabaseHond.elleboogdysplasie);
+      console.log('[HONDENSERVICE] Ogen:', supabaseHond.ogen);
+      console.log('[HONDENSERVICE] Dandy Walker:', supabaseHond.dandyWalker);
+      console.log('[HONDENSERVICE] Schildklier:', supabaseHond.schildklier);
       
       const { data, error } = await window.supabase
         .from('honden')
