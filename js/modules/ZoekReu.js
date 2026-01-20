@@ -323,7 +323,7 @@ class ZoekReu {
                 bornAfterPlaceholder: "dd-mm-jjjj",
                 inteeltCoefficient: "Max COI 6 Generationen",
                 inteeltPlaceholder: "Max %",
-                inteeltHelp: "Maximaler COI in % für Kombination mit ausgewählter Hündin (6 Generationen)",
+                inteeltHelp: "Maximaler COI in % für Kombination met ausgewählter Hündin (6 Generationen)",
                 excludeHondenFilter: "Ohne die folgenden Hunde in den ersten X Generationen",
                 excludeHondenPlaceholder: "Name oder Zwinger des Hundes eingeben...",
                 excludeKennelsFilter: "Ohne die folgenden Zwinger-Namen in den ersten X Generationen",
@@ -443,7 +443,7 @@ class ZoekReu {
                 useSearchCriteria: "Verwenden Sie Suchkriterien, um Rüden zu finden",
                 searchingMales: "Suche nach geeigneten Rüden...",
                 pedigreeFunctionalityUnavailable: "Stamboomfunktionaliteit ist derzeit nicht verfügbar",
-                maleNotFound: "Konnte Rüdendaten niet finden",
+                maleNotFound: "Konnte Rüdendaten nicht finden",
                 errorShowingPedigree: "Beim Anzeigen des Stamboons is een Fehler aufgetreten",
                 combinedParents: "Kombinierte Eltern",
                 noHondenFound: "Keine Hunde gefunden",
@@ -2638,8 +2638,30 @@ class ZoekReu {
         
         if (!this.stamboomManager && typeof StamboomManager !== 'undefined') {
             try {
-                this.stamboomManager = new StamboomManager(this.db, this.currentLang);
-                await this.stamboomManager.initialize();
+                // Controleer of StamboomManager al bestaat en geef database door indien nodig
+                if (window.stamboomManager) {
+                    this.stamboomManager = window.stamboomManager;
+                    console.log('✅ StamboomManager gevonden in window');
+                } else {
+                    this.stamboomManager = new StamboomManager();
+                    console.log('✅ Nieuwe StamboomManager gemaakt');
+                }
+                
+                // Geef de database door als de manager die nodig heeft
+                if (this.stamboomManager && !this.stamboomManager.db && this.db) {
+                    this.stamboomManager.db = this.db;
+                    console.log('✅ Database doorgegeven aan StamboomManager');
+                }
+                
+                // Geef alle honden door als de manager die nodig heeft
+                if (this.stamboomManager && !this.stamboomManager.allHonden && this.allHonden.length > 0) {
+                    this.stamboomManager.allHonden = this.allHonden;
+                    console.log(`✅ ${this.allHonden.length} honden doorgegeven aan StamboomManager`);
+                }
+                
+                if (typeof this.stamboomManager.initialize === 'function') {
+                    await this.stamboomManager.initialize();
+                }
                 console.log('✅ StamboomManager geïnitialiseerd vanuit ZoekReu');
             } catch (error) {
                 console.error('❌ Fout bij initialiseren StamboomManager:', error);
