@@ -443,7 +443,7 @@ class ZoekReu {
                 useSearchCriteria: "Verwenden Sie Suchkriterien, um Rüden zu finden",
                 searchingMales: "Suche nach geeigneten Rüden...",
                 pedigreeFunctionalityUnavailable: "Stamboomfunktionaliteit ist derzeit nicht verfügbar",
-                maleNotFound: "Konnte Rüdendaten niet finden",
+                maleNotFound: "Konnte Rüdendaten nicht finden",
                 errorShowingPedigree: "Beim Anzeigen des Stamboons is een Fehler aufgetreten",
                 combinedParents: "Kombinierte Eltern",
                 noHondenFound: "Keine Hunde gefunden",
@@ -2636,7 +2636,7 @@ class ZoekReu {
     async showReuPedigree(reuId, reuName) {
         console.log(`🔄 Toon stamboom voor reu: ${reuId} - ${reuName}`);
         
-        // VERBETERING: Initialiseer StamboomManager op dezelfde manier als in DogManager
+        // VERBETERING: Gebruik dezelfde aanpak als DogManager - open een modal
         if (!this.stamboomManager) {
             if (typeof StamboomManager === 'undefined') {
                 console.error('❌ StamboomManager klasse niet gevonden!');
@@ -2674,9 +2674,36 @@ class ZoekReu {
         }
         
         try {
-            // Gebruik directe methode om stamboom te tonen zoals in DogManager
-            await this.stamboomManager.showPedigree(reu);
-            console.log('✅ Stamboom getoond voor:', reu.naam);
+            // BELANGRIJK: In plaats van showPedigree te gebruiken, openen we de modal direct
+            // Dit is wat DogManager doet
+            console.log('📋 Gaat stamboom modal openen voor:', reu.naam);
+            
+            // Controleer of we een modal container hebben
+            let modalContainer = document.getElementById('stamboomModalContainer');
+            if (!modalContainer) {
+                // Maak een nieuwe modal container als die er niet is
+                modalContainer = document.createElement('div');
+                modalContainer.id = 'stamboomModalContainer';
+                document.body.appendChild(modalContainer);
+            }
+            
+            // Laad de StamboomManager content
+            await this.stamboomManager.loadContent(reu);
+            
+            // Vind de stamboom modal die door StamboomManager is aangemaakt
+            const stamboomModal = document.getElementById('stamboomModal');
+            if (!stamboomModal) {
+                console.error('❌ Stamboom modal niet gevonden na laden content');
+                this.showAlert(this.t('pedigreeFunctionalityUnavailable'), 'warning');
+                return;
+            }
+            
+            // Toon de modal met Bootstrap
+            const bsModal = new bootstrap.Modal(stamboomModal);
+            bsModal.show();
+            
+            console.log('✅ Stamboom modal geopend voor:', reu.naam);
+            
         } catch (error) {
             console.error('❌ Fout bij tonen stamboom:', error);
             this.showAlert(this.t('errorShowingPedigree'), 'danger');
