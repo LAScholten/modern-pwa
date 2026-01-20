@@ -6,8 +6,8 @@
 class ReuTeefCombinatie {
     constructor() {
         this.currentLang = localStorage.getItem('appLanguage') || 'nl';
-        this.db = null;
-        this.auth = null;
+        this.db = window.hondenService; // VERANDERD: gebruik window object
+        this.auth = window.auth; // VERANDERD: gebruik window object
         this.selectedTeef = null;
         this.selectedReu = null;
         this.allHonden = [];
@@ -62,13 +62,13 @@ class ReuTeefCombinatie {
                 loadingPedigree: "Stamboom wordt geladen...",
                 unknownAncestor: "Onbekend",
                 fatherLabel: "Vader",
-                motherLabel: "Mutter",
+                motherLabel: "Moeder",
                 grandfatherLabel: "Grootvader",
                 grandmotherLabel: "Grootmoeder",
                 greatGrandfatherLabel: "Overgrootvader",
-                greatGrandmotherLabel: "Over-overgrootmoeder",
+                greatGrandmotherLabel: "Overgrootmoeder",
                 greatGreatGrandfatherLabel: "Over-overgrootvader",
-                greatGreatGrandmotherLabel: "Over-over-overgrootmoeder",
+                greatGreatGrandmotherLabel: "Over-overgrootmoeder",
                 typeToSearch: "Begin met typen om te zoeken",
                 noDogsFound: "Geen honden gevonden",
                 found: "gevonden",
@@ -287,7 +287,7 @@ class ReuTeefCombinatie {
                 close: "Schließen",
                 print: "Drucken",
                 loading: "Laden...",
-                noDogFound: "Kein Hund gefonden",
+                noDogFound: "Kein Hund gefunden",
                 unknownBreed: "Unbekannte Rasse",
                 genderTeef: "Hündin",
                 genderReu: "Rüde",
@@ -401,12 +401,7 @@ class ReuTeefCombinatie {
         this.setupGlobalEventListeners();
     }
     
-    // Inject dependencies method
-    injectDependencies(db, auth) {
-        this.db = db;
-        this.auth = auth;
-        console.log('✅ ReuTeefCombinatie: Dependencies geïnjecteerd');
-    }
+    // VERWIJDERD: injectDependencies() functie niet meer nodig
     
     t(key, params = {}) {
         let text = this.translations[this.currentLang][key] || key;
@@ -1137,125 +1132,43 @@ class ReuTeefCombinatie {
     
     async loadAllHonden() {
         try {
-            console.log('🔄 Laden van honden voor ReuTeefCombinatie...');
-            
             if (this.db && typeof this.db.getHonden === 'function') {
-                console.log('📞 Roep db.getHonden() aan...');
-                
-                // ROEP DE JUISTE FUNCTIE AAN - MET PAGINATIE
-                // Controleer of er een alternatieve functie is voor alle honden
-                if (typeof this.db.getAllDogs === 'function') {
-                    console.log('✅ Gebruik db.getAllDogs() functie');
-                    const result = await this.db.getAllDogs();
-                    this.allHonden = Array.isArray(result) ? result : [];
-                } 
-                // OF probeer getHonden met paginatie parameters
-                else if (typeof this.db.getHonden === 'function') {
-                    console.log('✅ Gebruik db.getHonden() met paginatie parameters');
-                    // Probeer eerst zonder parameters, dan met parameters
-                    try {
-                        const result = await this.db.getHonden();
-                        this.allHonden = Array.isArray(result) ? result : [];
-                        
-                        // Als leeg, probeer dan met expliciete paginatie
-                        if (this.allHonden.length === 0) {
-                            const resultWithPagination = await this.db.getHonden({ 
-                                page: 1, 
-                                pageSize: 5000,
-                                includeAll: true 
-                            });
-                            this.allHonden = Array.isArray(resultWithPagination?.data || resultWithPagination) ? 
-                                (resultWithPagination.data || resultWithPagination) : [];
-                        }
-                    } catch (error) {
-                        console.warn('⚠️ db.getHonden() zonder parameters faalde:', error);
-                        // Probeer alternatieve methode
-                        this.loadHondenFromAlternativeSource();
-                    }
-                } 
-                else {
-                    console.error('❌ Geen geschikte functie gevonden voor het laden van honden');
-                    this.allHonden = [];
-                }
-                
+                this.allHonden = await this.db.getHonden();
                 console.log(`✅ Geladen: ${this.allHonden.length} honden uit database voor ReuTeefCombinatie`);
                 
                 // Zorg dat alle gezondheidsvelden aanwezig zijn
-                if (this.allHonden.length > 0) {
-                    this.allHonden = this.allHonden.map(hond => {
-                        return {
-                            ...hond,
-                            heupdysplasie: hond.heupdysplasie || '',
-                            elleboogdysplasie: hond.elleboogdysplasie || '',
-                            patella: hond.patella || '',
-                            ogen: hond.ogen || '',
-                            ogenVerklaring: hond.ogenVerklaring || '',
-                            dandyWalker: hond.dandyWalker || '',
-                            schildklier: hond.schildklier || '',
-                            schildklierVerklaring: hond.schildklierVerklaring || '',
-                            vachtkleur: hond.vachtkleur || '',
-                            ras: hond.ras || '',
-                            land: hond.land || '',
-                            postcode: hond.postcode || '',
-                            opmerkingen: hond.opmerkingen || ''
-                        };
-                    });
-                    
-                    // Voeg alle honden toe aan cache
-                    this.allHonden.forEach(hond => {
-                        if (hond.id) {
-                            this.hondenCache.set(hond.id, hond);
-                        }
-                        if (hond.stamboomnr) {
-                            this.hondenCache.set(hond.stamboomnr, hond);
-                        }
-                    });
-                    
-                    console.log(`✅ ${this.hondenCache.size} honden in cache geplaatst`);
-                } else {
-                    console.warn('⚠️ Geen honden geladen voor ReuTeefCombinatie, probeer alternatieve methode...');
-                    // Probeer alternatieve methode als leeg
-                    await this.loadHondenFromAlternativeSource();
-                }
+                this.allHonden = this.allHonden.map(hond => {
+                    return {
+                        ...hond,
+                        heupdysplasie: hond.heupdysplasie || '',
+                        elleboogdysplasie: hond.elleboogdysplasie || '',
+                        patella: hond.patella || '',
+                        ogen: hond.ogen || '',
+                        ogenVerklaring: hond.ogenVerklaring || '',
+                        dandyWalker: hond.dandyWalker || '',
+                        schildklier: hond.schildklier || '',
+                        schildklierVerklaring: hond.schildklierVerklaring || '',
+                        vachtkleur: hond.vachtkleur || '',
+                        ras: hond.ras || '',
+                        land: hond.land || '',
+                        postcode: hond.postcode || '',
+                        opmerkingen: hond.opmerkingen || ''
+                    };
+                });
+                
+                // Voeg alle honden toe aan cache
+                this.allHonden.forEach(hond => {
+                    this.hondenCache.set(hond.id, hond);
+                    if (hond.stamboomnr) {
+                        this.hondenCache.set(hond.stamboomnr, hond);
+                    }
+                });
             } else {
                 console.error('❌ Database niet beschikbaar of getHonden functie ontbreekt');
                 this.allHonden = [];
             }
         } catch (error) {
             console.error('❌ Fout bij laden honden:', error);
-            this.allHonden = [];
-        }
-    }
-    
-    async loadHondenFromAlternativeSource() {
-        console.log('🔄 Probeer alternatieve methode voor laden honden...');
-        
-        try {
-            // Probeer via de globale COICalculator als die bestaat
-            if (window.COIAllDogs && Array.isArray(window.COIAllDogs) && window.COIAllDogs.length > 0) {
-                console.log('✅ Gebruik COIAllDogs uit window object');
-                this.allHonden = window.COIAllDogs;
-            }
-            // Probeer via window object als dat bestaat
-            else if (window.allHonden && Array.isArray(window.allHonden) && window.allHonden.length > 0) {
-                console.log('✅ Gebruik allHonden uit window object');
-                this.allHonden = window.allHonden;
-            }
-            // Probeer via DogDataManager als die bestaat
-            else if (window.dogDataManager && typeof window.dogDataManager.getAllDogs === 'function') {
-                console.log('✅ Gebruik dogDataManager.getAllDogs()');
-                this.allHonden = await window.dogDataManager.getAllDogs();
-            }
-            // Laatste redmiddel: gebruik een lege array maar log een waarschuwing
-            else {
-                console.warn('⚠️ Kon geen honden vinden via alternatieve bronnen');
-                this.allHonden = [];
-            }
-            
-            console.log(`✅ Alternatief: ${this.allHonden.length} honden geladen`);
-            
-        } catch (error) {
-            console.error('❌ Fout bij alternatief laden honden:', error);
             this.allHonden = [];
         }
     }
@@ -1268,7 +1181,7 @@ class ReuTeefCombinatie {
         }
         
         // Dan in allHonden array zoeken
-        const dog = this.allHonden.find(dog => dog.id === id || dog.stamboomnr === id);
+        const dog = this.allHonden.find(dog => dog.id === id);
         if (dog) {
             this.hondenCache.set(id, dog);
             return dog;
@@ -1331,7 +1244,7 @@ class ReuTeefCombinatie {
         
         try {
             const result = await this.db.zoekHonden({ naam: name });
-            if (result && Array.isArray(result) && result.length > 0) {
+            if (result && result.length > 0) {
                 result.forEach(hond => {
                     const volledigeHond = {
                         ...hond,
@@ -1407,7 +1320,7 @@ class ReuTeefCombinatie {
                                  dog.geslacht === 'teven' ? this.t('genderTeef') : this.t('unknown');
                 
                 html += `
-                    <div class="dog-result-item" data-id="${dog.id || dog.stamboomnr}">
+                    <div class="dog-result-item" data-id="${dog.id}">
                         <div class="dog-name-line">
                             <span class="dog-name">${dog.naam || this.t('unknown')}</span>
                             ${dog.kennelnaam ? `<span class="text-muted ms-2">${dog.kennelnaam}</span>` : ''}
@@ -1426,11 +1339,8 @@ class ReuTeefCombinatie {
             
             resultsContainer.querySelectorAll('.dog-result-item').forEach(item => {
                 item.addEventListener('click', (e) => {
-                    const hondId = item.getAttribute('data-id');
-                    const hond = currentResults.find(d => 
-                        (d.id && d.id.toString() === hondId) || 
-                        (d.stamboomnr && d.stamboomnr === hondId)
-                    );
+                    const hondId = parseInt(item.getAttribute('data-id'));
+                    const hond = currentResults.find(d => d.id === hondId);
                     if (hond) {
                         resultsContainer.querySelectorAll('.dog-result-item').forEach(i => {
                             i.classList.remove('selected');
@@ -1478,9 +1388,8 @@ class ReuTeefCombinatie {
                 filteredHonden = filteredHonden.filter(dog => {
                     const naam = dog.naam ? dog.naam.toLowerCase() : '';
                     const kennelnaam = dog.kennelnaam ? dog.kennelnaam.toLowerCase() : '';
-                    const stamboomnr = dog.stamboomnr ? dog.stamboomnr.toLowerCase() : '';
-                    const combined = `${naam} ${kennelnaam} ${stamboomnr}`;
-                    return combined.includes(searchTerm);
+                    const combined = `${naam} ${kennelnaam}`;
+                    return combined.startsWith(searchTerm);
                 });
             }
             
@@ -1495,7 +1404,7 @@ class ReuTeefCombinatie {
                     return `
                         <div class="autocomplete-item ${index === activeIndex ? 'active' : ''}" 
                              data-index="${index}"
-                             data-id="${hond.id || hond.stamboomnr}">
+                             data-id="${hond.id}">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div style="flex: 1;">
                                     <div class="dog-name">${hond.naam || 'Onbekend'}</div>
