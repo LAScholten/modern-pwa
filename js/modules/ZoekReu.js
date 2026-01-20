@@ -15,7 +15,7 @@ class ZoekReu {
         this.allHonden = [];
         this.coiCalculator2 = null;
         this.coiCalculatorReady = false;
-        this.stamboomManager = null;  // Dit wordt nu correct geïnitialiseerd
+        this.stamboomManager = null;
         this.excludeHonden = [];
         this.excludeKennels = [];
         this.excludeHondInputTimer = null;
@@ -443,7 +443,7 @@ class ZoekReu {
                 useSearchCriteria: "Verwenden Sie Suchkriterien, um Rüden zu finden",
                 searchingMales: "Suche nach geeigneten Rüden...",
                 pedigreeFunctionalityUnavailable: "Stamboomfunktionaliteit ist derzeit nicht verfügbar",
-                maleNotFound: "Konnte Rüdendaten niet finden",
+                maleNotFound: "Konnte Rüdendaten nicht finden",
                 errorShowingPedigree: "Beim Anzeigen des Stamboons is een Fehler aufgetreten",
                 combinedParents: "Kombinierte Eltern",
                 noHondenFound: "Keine Hunde gefunden",
@@ -2680,13 +2680,57 @@ class ZoekReu {
         }
         
         try {
-            // Gebruik directe methode om stamboom te tonen
-            if (typeof this.stamboomManager.showPedigree === 'function') {
-                await this.stamboomManager.showPedigree(reu);
+            // Zoek een container om de stamboom in te tonen
+            let stamboomContainer = document.getElementById('stamboomContainer');
+            
+            // Als de container niet bestaat, maak er een
+            if (!stamboomContainer) {
+                // Eerst een modal maken zoals in DogManager
+                const modalId = 'stamboomModal';
+                const modalHTML = `
+                    <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
+                        <div class="modal-dialog modal-xl">
+                            <div class="modal-content">
+                                <div class="modal-header bg-primary text-white">
+                                    <h5 class="modal-title" id="${modalId}Label">
+                                        <i class="bi bi-diagram-3 me-2"></i>
+                                        ${this.t('pedigree')}: ${reu.naam || reuName}
+                                    </h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="${this.t('close')}"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div id="stamboomContent"></div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                        <i class="bi bi-x-circle me-1"></i>
+                                        ${this.t('close')}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Voeg de modal toe aan de DOM
+                document.body.insertAdjacentHTML('beforeend', modalHTML);
+                
+                // Open de modal
+                const modal = new bootstrap.Modal(document.getElementById(modalId));
+                modal.show();
+                
+                stamboomContainer = document.getElementById('stamboomContent');
+            }
+            
+            // Render de stamboom in de container
+            if (stamboomContainer && typeof this.stamboomManager.renderPedigree === 'function') {
+                await this.stamboomManager.renderPedigree(reu, stamboomContainer);
                 console.log('✅ Stamboom getoond voor:', reu.naam);
             } else {
-                this.showAlert(this.t('pedigreeFunctionalityUnavailable'), 'warning');
+                // Fallback naar de oude methode
+                await this.stamboomManager.showPedigree(reu);
             }
+            
         } catch (error) {
             console.error('❌ Fout bij tonen stamboom:', error);
             this.showAlert(this.t('errorShowingPedigree'), 'danger');
