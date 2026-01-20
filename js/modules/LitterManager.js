@@ -360,7 +360,7 @@ class LitterManager {
                 importExport: "Daten importieren/exportieren",
                 
                 // Meldungen
-                adminOnly: "Nur Administratoren kunnen Würfe hinzufügen/bearbeiten",
+                adminOnly: "Nur Administratoren können Würfe hinzufügen/bearbeiten",
                 fieldsRequired: "Name, Stammbaum-Nummer, Rasse, Vater en Mutter sind Pflichtfelder",
                 savingDog: "Hund wordt gespeichert...",
                 dogAdded: "Hund erfolgreich hinzugefügt!",
@@ -823,7 +823,7 @@ class LitterManager {
                 .recent-coat-color-btn {
                     white-space: nowrap;
                     font-size: 0.8em;
-                        padding: 4px 8px;
+                    padding: 4px 8px;
                 }
                 
                 /* Opslaan knoppen container */
@@ -1029,8 +1029,9 @@ class LitterManager {
         
         return `
             <form id="litterForm">
-                <input type="hidden" id="fatherId" value="${data.vaderId || ''}">
-                <input type="hidden" id="motherId" value="${data.moederId || ''}">
+                <!-- BELANGRIJK: Gebruik EXACT dezelfde veldnamen als DogManager -->
+                <input type="hidden" id="vader_id" value="${data.vader_id || ''}">
+                <input type="hidden" id="moeder_id" value="${data.moeder_id || ''}">
                 
                 <!-- CONTAINER 0: TOEGEVOEGDE HONDEN -->
                 <div class="form-container" id="added-dogs-container">
@@ -1250,7 +1251,7 @@ class LitterManager {
                             </div>
                             <div class="mb-3" id="eyesExplanationContainer" style="${data.ogen === 'Overig' ? '' : 'display: none;'}">
                                 <label for="eyesExplanation" class="form-label">${t('eyesExplanation')}</label>
-                                <input type="text" class="form-control" id="eyesExplanation" value="${data.ogenVerklaring || ''}">
+                                <input type="text" class="form-control" id="eyesExplanation" value="${data.ogenverklaring || ''}">
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -1280,7 +1281,7 @@ class LitterManager {
                             </div>
                             <div class="mb-3" id="thyroidExplanationContainer" style="${data.schildklier === 'Positief' ? '' : 'display: none;'}">
                                 <label for="thyroidExplanation" class="form-label">${t('thyroidExplanation')}</label>
-                                <input type="text" class="form-control" id="thyroidExplanation" value="${data.schildklierVerklaring || ''}">
+                                <input type="text" class="form-control" id="thyroidExplanation" value="${data.schildklierverklaring || ''}">
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -2019,7 +2020,8 @@ class LitterManager {
                 const dogName = item.getAttribute('data-name');
                 const dogKennel = item.getAttribute('data-kennel');
                 const input = document.getElementById(parentType);
-                const idInput = document.getElementById(`${parentType}Id`);
+                // BELANGRIJK: Gebruik vader_id en moeder_id zoals in DogManager
+                const idInput = parentType === 'father' ? document.getElementById('vader_id') : document.getElementById('moeder_id');
                 
                 // Voeg zowel naam als kennelnaam toe aan het input veld
                 const displayName = dogKennel ? `${dogName} ${dogKennel}` : dogName;
@@ -2029,6 +2031,7 @@ class LitterManager {
                 }
                 if (idInput) {
                     idInput.value = dogId;
+                    console.log(`LitterManager: ${parentType} ID opgeslagen:`, dogId, 'in veld:', idInput.id);
                 }
                 
                 dropdown.style.display = 'none';
@@ -2038,7 +2041,7 @@ class LitterManager {
     }
     
     async saveDog() {
-        console.log('LitterManager: saveDog aangeroepen');
+        console.log('=== LitterManager: START saveDog ===');
         
         if (!this.auth) {
             console.error('LitterManager: Auth niet beschikbaar!');
@@ -2084,49 +2087,71 @@ class LitterManager {
             }
         };
         
-        // Haal de vader en moeder ID's op uit de hidden inputs
-        const fatherIdInput = document.getElementById('fatherId');
-        const motherIdInput = document.getElementById('motherId');
-        const fatherIdValue = fatherIdInput?.value;
-        const motherIdValue = motherIdInput?.value;
+        // Haal de vader en moeder ID's op uit de hidden inputs - EXACT ZELFDE VELDNAMEN ALS DogManager
+        const vaderIdInput = document.getElementById('vader_id');
+        const moederIdInput = document.getElementById('moeder_id');
+        const vaderIdValue = vaderIdInput?.value;
+        const moederIdValue = moederIdInput?.value;
         
-        console.log('LitterManager: vaderId uit hidden input:', fatherIdValue);
-        console.log('LitterManager: moederId uit hidden input:', motherIdValue);
-        console.log('LitterManager: vaderId type:', typeof fatherIdValue);
-        console.log('LitterManager: moederId type:', typeof motherIdValue);
+        console.log('LitterManager: vader_id uit hidden input:', vaderIdValue);
+        console.log('LitterManager: moeder_id uit hidden input:', moederIdValue);
+        console.log('LitterManager: vader_id type:', typeof vaderIdValue);
+        console.log('LitterManager: moeder_id type:', typeof moederIdValue);
         
-        // Verzamel formulier data
+        // VERZAMEL FORMULIER DATA MET EXACT DEZELFDE VELDNAMEN ALS DogManager
         const dogData = {
+            // BASISINFORMATIE
             naam: document.getElementById('name')?.value.trim() || '',
             kennelnaam: document.getElementById('kennelName')?.value.trim() || '',
             stamboomnr: document.getElementById('pedigreeNumber')?.value.trim() || '',
             ras: document.getElementById('breed')?.value.trim() || '',
-            vachtkleur: document.getElementById('coatColor')?.value.trim() || '', // NIEUW: vachtkleur
+            vachtkleur: document.getElementById('coatColor')?.value.trim() || '',
             geslacht: document.getElementById('gender')?.value || '',
+            
+            // OUDERS - EXACT DEZELFDE VELDNAMEN ALS DogManager
             vader: document.getElementById('father')?.value.trim() || '',
-            vaderId: fatherIdValue ? parseInt(fatherIdValue) : null,
+            vader_id: vaderIdValue && vaderIdValue.trim() !== '' && !isNaN(parseInt(vaderIdValue)) 
+                ? parseInt(vaderIdValue) 
+                : null,
             moeder: document.getElementById('mother')?.value.trim() || '',
-            moederId: motherIdValue ? parseInt(motherIdValue) : null,
+            moeder_id: moederIdValue && moederIdValue.trim() !== '' && !isNaN(parseInt(moederIdValue)) 
+                ? parseInt(moederIdValue) 
+                : null,
+            
+            // DATUMS
             geboortedatum: formatDateForStorage(birthDateValue),
-            overlijdensdatum: formatDateForStorage(deathDateValue),
-            heupdysplasie: document.getElementById('hipDysplasia')?.value || '',
-            elleboogdysplasie: document.getElementById('elbowDysplasia')?.value || '',
-            patella: document.getElementById('patellaLuxation')?.value || '',
-            ogen: document.getElementById('eyes')?.value || '',
-            ogenVerklaring: document.getElementById('eyesExplanation')?.value.trim() || '',
-            dandyWalker: document.getElementById('dandyWalker')?.value || '',
-            schildklier: document.getElementById('thyroid')?.value || '',
-            schildklierVerklaring: document.getElementById('thyroidExplanation')?.value.trim() || '',
-            land: document.getElementById('country')?.value.trim() || '',
-            postcode: document.getElementById('zipCode')?.value.trim() || '',
-            opmerkingen: document.getElementById('remarks')?.value.trim() || '',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
+            overlijdensdatum: formatDateForStorage(deathDateValue) || null,
+            
+            // GEZONDHEIDSINFORMATIE - EXACT DEZELFDE VELDNAMEN ALS DogManager
+            heupdysplasie: document.getElementById('hipDysplasia')?.value || null,
+            elleboogdysplasie: document.getElementById('elbowDysplasia')?.value || null,
+            patella: document.getElementById('patellaLuxation')?.value || null,
+            ogen: document.getElementById('eyes')?.value || null,
+            ogenverklaring: document.getElementById('eyesExplanation')?.value.trim() || null, // CORRECTE VELDNAAM
+            dandyWalker: document.getElementById('dandyWalker')?.value || null,
+            schildklier: document.getElementById('thyroid')?.value || null,
+            schildklierverklaring: document.getElementById('thyroidExplanation')?.value.trim() || null, // CORRECTE VELDNAAM
+            
+            // LOCATIE
+            land: document.getElementById('country')?.value.trim() || null,
+            postcode: document.getElementById('zipCode')?.value.trim() || null,
+            
+            // OPMERKINGEN
+            opmerkingen: document.getElementById('remarks')?.value.trim() || null,
+            
+            // SYSTEEMVELDEN
+            createdat: new Date().toISOString(),
+            updatedat: new Date().toISOString()
         };
         
-        console.log('LitterManager: Dog data verzameld:', dogData);
-        console.log('LitterManager: vaderId in dogData:', dogData.vaderId, 'type:', typeof dogData.vaderId);
-        console.log('LitterManager: moederId in dogData:', dogData.moederId, 'type:', typeof dogData.moederId);
+        console.log('[LitterManager] === DOG DATA VOOR OPSLAG ===');
+        console.log('Aantal velden:', Object.keys(dogData).length);
+        console.log('Vader:', dogData.vader, 'vader_id:', dogData.vader_id);
+        console.log('Moeder:', dogData.moeder, 'moeder_id:', dogData.moeder_id);
+        console.log('Ogenverklaring:', dogData.ogenverklaring);
+        console.log('Schildklierverklaring:', dogData.schildklierverklaring);
+        console.log('Volledige data:', JSON.stringify(dogData, null, 2));
+        console.log('[LitterManager] === EINDE DOG DATA ===');
         
         // Validatie - OUDERS NU OOK VERPLICHT
         if (!dogData.naam) {
@@ -2166,14 +2191,21 @@ class LitterManager {
         
         try {
             console.log('LitterManager: Probeer hond op te slaan via database service...');
-            console.log('LitterManager: Data die naar db.voegHondToe wordt gestuurd:');
-            console.log('  - naam:', dogData.naam);
-            console.log('  - vader:', dogData.vader, 'vaderId:', dogData.vaderId);
-            console.log('  - moeder:', dogData.moeder, 'moederId:', dogData.moederId);
             
-            // GEBRUIK this.db IPV hondenService DIRECT
-            const result = await this.db.voegHondToe(dogData);
-            console.log('LitterManager: Hond opgeslagen met ID:', result);
+            // GEBRUIK EXACT DEZELFDE LOGICA ALS DogManager
+            let result;
+            
+            if (window.hondenService && window.hondenService.voegHondToe) {
+                console.log('LitterManager: Gebruik window.hondenService.voegHondToe methode');
+                result = await window.hondenService.voegHondToe(dogData);
+            } else if (this.db && this.db.voegHondToe) {
+                console.log('LitterManager: Gebruik this.db.voegHondToe methode');
+                result = await this.db.voegHondToe(dogData);
+            } else {
+                throw new Error('voegHondToe methode niet beschikbaar');
+            }
+            
+            console.log('LitterManager: Hond opgeslagen met resultaat:', result);
             
             // Foto uploaden als er een is geselecteerd
             const photoInput = document.getElementById('photo');
@@ -2194,8 +2226,8 @@ class LitterManager {
                 ogen: dogData.ogen,
                 dandyWalker: dogData.dandyWalker,
                 schildklier: dogData.schildklier,
-                vaderId: dogData.vaderId,
-                moederId: dogData.moederId
+                vader_id: dogData.vader_id,
+                moeder_id: dogData.moeder_id
             });
             
             // Update de UI lijst
@@ -2209,6 +2241,7 @@ class LitterManager {
             
         } catch (error) {
             console.error('LitterManager: Fout bij opslaan hond:', error);
+            console.error('LitterManager: Error stack:', error.stack);
             this.hideProgress();
             this.showError(`${this.t('addFailed')}${error.message}`);
         }
@@ -2222,10 +2255,10 @@ class LitterManager {
         }
         
         // Reset hidden inputs
-        const fatherIdInput = document.getElementById('fatherId');
-        const motherIdInput = document.getElementById('motherId');
-        if (fatherIdInput) fatherIdInput.value = '';
-        if (motherIdInput) motherIdInput.value = '';
+        const vaderIdInput = document.getElementById('vader_id');
+        const moederIdInput = document.getElementById('moeder_id');
+        if (vaderIdInput) vaderIdInput.value = '';
+        if (moederIdInput) moederIdInput.value = '';
         
         // Reset dropdowns
         const dropdowns = document.querySelectorAll('.autocomplete-dropdown');
@@ -2272,10 +2305,19 @@ class LitterManager {
                             uploadedAt: new Date().toISOString()
                         };
                         
-                        // GEBRUIK this.db IPV hondenService DIRECT
-                        await this.db.voegFotoToe(photoData);
-                        this.showSuccess(this.t('photoAdded'));
-                        resolve();
+                        // GEBRUIK window.hondenService IPV this.db
+                        if (window.hondenService && typeof window.hondenService.voegFotoToe === 'function') {
+                            await window.hondenService.voegFotoToe(photoData);
+                            this.showSuccess(this.t('photoAdded'));
+                            resolve();
+                        } else if (this.db && typeof this.db.voegFotoToe === 'function') {
+                            await this.db.voegFotoToe(photoData);
+                            this.showSuccess(this.t('photoAdded'));
+                            resolve();
+                        } else {
+                            console.warn('voegFotoToe methode niet beschikbaar');
+                            resolve();
+                        }
                     } catch (error) {
                         reject(error);
                     }
