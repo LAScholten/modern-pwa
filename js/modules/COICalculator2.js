@@ -803,4 +803,3 @@ if (typeof window !== 'undefined') {
         return calculator;
     };
 }
-}
