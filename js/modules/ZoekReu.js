@@ -423,7 +423,7 @@ class ZoekReu {
                 notTested: "Niet getestet",
                 invalidDate: "Ungültiges Datum. Format: dd-mm-jjjj",
                 invalidCOI: "Ungültiger COI-Wert. Verwenden Sie eine Zahl tussen 0 en 100",
-                noTeefSelected: "Wählen Sie zuerst eine Hündin, um die COI-Berechnung te gebruiken",
+                noTeefSelected: "Wählen Sie zuerst eine Hündin, um die COI-Berechnung zu verwenden",
                 showPedigree: "Stammbaum anzeigen",
                 pedigreeTooltip: "Klicken, um den 4-Generationen-Stammbaum dieses Rüden anzuzeigen",
                 calculatingCOI: "COI-Werte worden berechnet...",
@@ -439,11 +439,11 @@ class ZoekReu {
                 breed: "Rasse",
                 manuallyEnteredFemale: "Manuell eingegebene Hündin",
                 coiNotAvailable: "COI-Berechnung ist für manuele Eingaben niet verfügbar",
-                selectFemaleToStart: "Wählen Sie eine Hündin, um te beginnen",
-                useSearchCriteria: "Verwenden Sie Suchkriterien, um Rüden zu finden",
+                selectFemaleToStart: "Wählen Sie eine Hündin, um zu beginnen",
+                useSearchCriteria: "Verwenden Sie Suchkriterien, um Rüden zu vinden",
                 searchingMales: "Suche nach geeigneten Rüden...",
                 pedigreeFunctionalityUnavailable: "Stamboomfunktionaliteit ist derzeit nicht verfügbar",
-                maleNotFound: "Konnte Rüdendaten nicht finden",
+                maleNotFound: "Konnte Rüdendaten niet finden",
                 errorShowingPedigree: "Beim Anzeigen des Stamboons is een Fehler aufgetreten",
                 combinedParents: "Kombinierte Eltern",
                 noHondenFound: "Keine Hunde gefunden",
@@ -2636,36 +2636,7 @@ class ZoekReu {
     async showReuPedigree(reuId, reuName) {
         console.log(`🔄 Toon stamboom voor reu: ${reuId} - ${reuName}`);
         
-        // VERBETERING: Gebruik dezelfde aanpak als DogManager - open een modal
-        if (!this.stamboomManager) {
-            if (typeof StamboomManager === 'undefined') {
-                console.error('❌ StamboomManager klasse niet gevonden!');
-                this.showAlert(this.t('pedigreeFunctionalityUnavailable'), 'warning');
-                return;
-            }
-            
-            try {
-                console.log('🔄 Initialiseer StamboomManager vanuit ZoekReu...');
-                
-                // Initialiseer StamboomManager op dezelfde manier als in DogManager
-                this.stamboomManager = new StamboomManager(this.db, this.currentLang);
-                
-                // Gebruik onze reeds geladen honden in plaats van opnieuw te laden
-                this.stamboomManager.allHonden = this.allHonden;
-                this.stamboomManager.coiCalculator = null; // Reset COI calculator
-                
-                // Forceer een snelle initialisatie zoals in DogManager
-                this.stamboomManager.initialized = true;
-                
-                console.log('✅ StamboomManager geïnitialiseerd met bestaande honden:', this.allHonden.length);
-                
-            } catch (error) {
-                console.error('❌ Fout bij initialiseren StamboomManager:', error);
-                this.showAlert(this.t('pedigreeFunctionalityUnavailable'), 'warning');
-                return;
-            }
-        }
-        
+        // **EXACT DEZELFDE METHODE ALS IN DOGMANAGER**
         const reu = this.allHonden.find(h => h.id == reuId);
         
         if (!reu) {
@@ -2674,35 +2645,27 @@ class ZoekReu {
         }
         
         try {
-            // BELANGRIJK: In plaats van showPedigree te gebruiken, openen we de modal direct
-            // Dit is wat DogManager doet
-            console.log('📋 Gaat stamboom modal openen voor:', reu.naam);
-            
-            // Controleer of we een modal container hebben
-            let modalContainer = document.getElementById('stamboomModalContainer');
-            if (!modalContainer) {
-                // Maak een nieuwe modal container als die er niet is
-                modalContainer = document.createElement('div');
-                modalContainer.id = 'stamboomModalContainer';
-                document.body.appendChild(modalContainer);
-            }
-            
-            // Laad de StamboomManager content
-            await this.stamboomManager.loadContent(reu);
-            
-            // Vind de stamboom modal die door StamboomManager is aangemaakt
-            const stamboomModal = document.getElementById('stamboomModal');
-            if (!stamboomModal) {
-                console.error('❌ Stamboom modal niet gevonden na laden content');
+            // **EXACT DEZELFDE LOGICA ALS IN DOGMANAGER**
+            if (typeof StamboomManager === 'undefined') {
                 this.showAlert(this.t('pedigreeFunctionalityUnavailable'), 'warning');
                 return;
             }
             
-            // Toon de modal met Bootstrap
-            const bsModal = new bootstrap.Modal(stamboomModal);
-            bsModal.show();
+            console.log('🔄 Initialiseer StamboomManager vanuit ZoekReu...');
             
-            console.log('✅ Stamboom modal geopend voor:', reu.naam);
+            // **EXACT DEZELFDE INITIALISATIE ALS IN DOGMANAGER**
+            const stamboomManager = new StamboomManager(this.db, this.currentLang);
+            
+            // **EXACT DEZELFDE CONFIGURATIE ALS IN DOGMANAGER**
+            stamboomManager.allHonden = this.allHonden;
+            stamboomManager.coiCalculator = this.coiCalculator2;
+            stamboomManager.initialized = true;
+            
+            console.log('✅ StamboomManager geïnitialiseerd met bestaande honden:', this.allHonden.length);
+            
+            // **EXACT DEZELFDE METHODE OM STAMBOOM TE TONEN ALS IN DOGMANAGER**
+            await stamboomManager.showPedigree(reu);
+            console.log('✅ Stamboom getoond voor:', reu.naam);
             
         } catch (error) {
             console.error('❌ Fout bij tonen stamboom:', error);
