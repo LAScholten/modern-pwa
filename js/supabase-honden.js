@@ -125,23 +125,28 @@ const hondenService = {
     }
   },
 
-  // 5. Hond toevoegen - GECORRIGEERD: Gebruik losse velden in plaats van JSON
+  // 5. Hond toevoegen - GECORRIGEERD: gebruik losse velden zoals in DogDataManager.js
   async voegHondToe(hond) {
     try {
       const user = window.auth ? window.auth.getCurrentUser() : null;
       
-      // MAKEN DATABASEVELDEN - geen JSON!
+      // GEBRUIK DEZELFDE VELDEN ALS DogDataManager.js
       const supabaseHond = {
+        // Basis velden
         naam: hond.naam || '',
         kennelnaam: hond.kennelnaam || '',
         stamboomnr: hond.stamboomnr || '',
         ras: hond.ras || '',
         vachtkleur: hond.vachtkleur || '',
         geslacht: hond.geslacht || '',
+        
+        // Ouders
         vader_id: hond.vader_id || null,
         moeder_id: hond.moeder_id || null,
         vader: hond.vader || '',
         moeder: hond.moeder || '',
+        
+        // Datums
         geboortedatum: hond.geboortedatum || null,
         overlijdensdatum: hond.overlijdensdatum || null,
         
@@ -155,26 +160,28 @@ const hondenService = {
         schildklier: hond.schildklier || null,
         schildklierverklaring: hond.schildklierverklaring || null,
         
-        // LOCATIE
-        land: hond.land || '',
-        postcode: hond.postcode || '',
+        // Locatie
+        land: hond.land || null,
+        postcode: hond.postcode || null,
         
-        // OPMERKINGEN
-        opmerkingen: hond.opmerkingen || '',
+        // Opmerkingen
+        opmerkingen: hond.opmerkingen || null,
         
-        // SYSTEEMVELDEN
+        // Systeemvelden (zorg dat deze in je database bestaan)
+        createdat: new Date().toISOString(),
+        updatedat: new Date().toISOString(),
         aangemaakt_op: new Date().toISOString(),
         bijgewerkt_op: new Date().toISOString()
-        
-        // GEEN gezondheidsinfo JSON!
-        // GEEN status veld (als het niet in je database bestaat)
-        // GEEN toegevoegd_door (als het niet in je database bestaat)
       };
       
       console.log('[HONDENSERVICE] voegHondToe - Data naar Supabase:', supabaseHond);
-      console.log('[HONDENSERVICE] Heupdysplasie:', supabaseHond.heupdysplasie);
-      console.log('[HONDENSERVICE] Elleboogdysplasie:', supabaseHond.elleboogdysplasie);
-      console.log('[HONDENSERVICE] Ogen:', supabaseHond.ogen);
+      console.log('[HONDENSERVICE] Gezondheidsvelden:');
+      console.log('- Heupdysplasie:', supabaseHond.heupdysplasie);
+      console.log('- Elleboogdysplasie:', supabaseHond.elleboogdysplasie);
+      console.log('- Patella:', supabaseHond.patella);
+      console.log('- Ogen:', supabaseHond.ogen);
+      console.log('- Dandy Walker:', supabaseHond.dandyWalker);
+      console.log('- Schildklier:', supabaseHond.schildklier);
       
       const { data, error } = await window.supabase
         .from('honden')
@@ -194,7 +201,6 @@ const hondenService = {
       throw error;
     }
   },
-
 // 6. Update hond
 async updateHond(hondData) {
   try {
