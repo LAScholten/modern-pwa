@@ -440,9 +440,9 @@ class ZoekReu {
                 manuallyEnteredFemale: "Manuell eingegebene Hündin",
                 coiNotAvailable: "COI-Berechnung ist für manuele Eingaben niet verfügbar",
                 selectFemaleToStart: "Wählen Sie eine Hündin, um zu beginnen",
-                useSearchCriteria: "Verwenden Sie Suchkriterien, um Rüden zu vinden",
+                useSearchCriteria: "Verwenden Sie Suchkriterien, um Rüden zu finden",
                 searchingMales: "Suche nach geeigneten Rüden...",
-                pedigreeFunctionalityUnavailable: "Stamboomfunktionaliteit ist derzeit niet verfügbar",
+                pedigreeFunctionalityUnavailable: "Stamboomfunktionaliteit ist derzeit nicht verfügbar",
                 maleNotFound: "Konnte Rüdendaten niet finden",
                 errorShowingPedigree: "Beim Anzeigen des Stamboons is een Fehler aufgetreten",
                 combinedParents: "Kombinierte Eltern",
@@ -2636,10 +2636,9 @@ class ZoekReu {
     async showReuPedigree(reuId, reuName) {
         console.log(`🔄 Toon stamboom voor reu: ${reuId} - ${reuName}`);
         
-        // Eerst controleren of StamboomManager al bestaat
+        // Check of we al een StamboomManager hebben
         if (!this.stamboomManager) {
             if (typeof StamboomManager === 'undefined') {
-                console.error('❌ StamboomManager klasse niet gevonden!');
                 this.showAlert(this.t('pedigreeFunctionalityUnavailable'), 'warning');
                 return;
             }
@@ -2647,39 +2646,15 @@ class ZoekReu {
             try {
                 console.log('🔄 Initialiseer StamboomManager vanuit ZoekReu...');
                 
-                // Maak een simpele BaseModule mock als deze niet bestaat
-                if (typeof BaseModule === 'undefined') {
-                    console.log('⚠️ BaseModule niet gevonden, maak een simpele versie');
-                    window.BaseModule = class BaseModule {
-                        showProgress(message) {
-                            console.log('Progress:', message);
-                        }
-                        hideProgress() {
-                            console.log('Progress hidden');
-                        }
-                        showError(message) {
-                            console.error('Error:', message);
-                            alert(message);
-                        }
-                        showSuccess(message) {
-                            console.log('Success:', message);
-                        }
-                    };
-                }
-                
                 // Initialiseer StamboomManager met de reeds geladen honden
-                this.stamboomManager = new StamboomManager({
-                    getHonden: () => Promise.resolve({ honden: this.allHonden }),
-                    checkFotosExist: () => Promise.resolve(false),
-                    getFotoThumbnails: () => Promise.resolve([]),
-                    getFotoById: () => Promise.resolve(null)
-                }, this.currentLang);
+                this.stamboomManager = new StamboomManager(this.db, this.currentLang);
                 
-                // Gebruik onze reeds geladen honden
-                this.stamboomManager.allDogs = this.allHonden;
+                // Gebruik onze reeds geladen honden in plaats van opnieuw te laden
+                this.stamboomManager.allHonden = this.allHonden;
+                this.stamboomManager.coiCalculator = null; // Reset COI calculator
                 
-                // Markeer als geïnitialiseerd
-                this.stamboomManager._isActive = true;
+                // Optioneel: forceer een snelle initialisatie
+                this.stamboomManager.initialized = true;
                 
                 console.log('✅ StamboomManager geïnitialiseerd met bestaande honden:', this.allHonden.length);
                 
@@ -2698,7 +2673,7 @@ class ZoekReu {
         }
         
         try {
-            // Gebruik directe methode om stamboom te tonen
+            // Gebruik directe methode om stamboom te tonen zonder extra initialisatie
             await this.stamboomManager.showPedigree(reu);
             console.log('✅ Stamboom getoond voor:', reu.naam);
         } catch (error) {
