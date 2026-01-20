@@ -205,6 +205,7 @@ class StamboomManager extends BaseModule {
     
     async initialize() {
         try {
+            console.log('StamboomManager: Initialiseren...');
             this.showProgress(this.t('loadingAllDogs').replace('{loaded}', '0'));
             
             // Gebruik paginatie om ALLE honden te laden
@@ -222,20 +223,73 @@ class StamboomManager extends BaseModule {
             
             this._isActive = true;
             
-            // ZORG DAT DE VOORTGANGSINDICATOR WEL WORDT VERBORGEN
-            setTimeout(() => {
-                this.hideProgress();
-            }, 100);
+            // DIRECT het laadscherm verbergen
+            console.log('StamboomManager: Initialisatie voltooid, verberg voortgangsindicator...');
+            this.forceHideProgress();
             
         } catch (error) {
             console.error('Fout bij initialiseren StamboomManager:', error);
             this.showError('Kon stamboommanager niet initialiseren: ' + error.message);
             
-            // ZORG DAT DE VOORTGANGSINDICATOR WEL WORDT VERBORGEN BIJ ERROR
-            setTimeout(() => {
-                this.hideProgress();
-            }, 100);
+            // Zorg dat het laadscherm ook bij fouten wordt verborgen
+            this.forceHideProgress();
         }
+    }
+    
+    // Nieuwe methode om het laadscherm zeker te verbergen
+    forceHideProgress() {
+        console.log('forceHideProgress aangeroepen');
+        
+        // Methode 1: Roep de parent hideProgress aan
+        if (typeof super.hideProgress === 'function') {
+            super.hideProgress();
+            console.log('Parent hideProgress aangeroepen');
+        }
+        
+        // Methode 2: Direct DOM manipulatie om zeker te zijn
+        setTimeout(() => {
+            const progressOverlay = document.querySelector('.progress-overlay, .loading-overlay, .spinner-overlay');
+            const progressModal = document.querySelector('.modal.progress-modal, .loading-modal');
+            const loadingElements = document.querySelectorAll('.spinner-border, .progress, .loading-indicator');
+            
+            console.log('DOM cleanup:');
+            console.log('- Progress overlay gevonden:', !!progressOverlay);
+            console.log('- Progress modal gevonden:', !!progressModal);
+            console.log('- Loading elements gevonden:', loadingElements.length);
+            
+            // Verberg alle mogelijke laadelementen
+            if (progressOverlay) {
+                progressOverlay.style.display = 'none';
+                console.log('Progress overlay verborgen');
+            }
+            
+            if (progressModal) {
+                progressModal.style.display = 'none';
+                console.log('Progress modal verborgen');
+            }
+            
+            loadingElements.forEach(element => {
+                if (element && element.parentNode) {
+                    element.parentNode.style.display = 'none';
+                    console.log('Loading element verborgen');
+                }
+            });
+            
+            // Verberg ook Bootstrap modals die laadschermen kunnen zijn
+            const bootstrapModals = document.querySelectorAll('.modal.show');
+            bootstrapModals.forEach(modal => {
+                if (modal.id.includes('progress') || modal.id.includes('loading') || 
+                    modal.classList.contains('progress') || modal.classList.contains('loading')) {
+                    modal.style.display = 'none';
+                    const backdrop = document.querySelector('.modal-backdrop');
+                    if (backdrop) {
+                        backdrop.remove();
+                    }
+                    console.log('Bootstrap modal verborgen');
+                }
+            });
+            
+        }, 100);
     }
     
     async loadAllDogsWithPagination() {
@@ -1020,7 +1074,7 @@ class StamboomManager extends BaseModule {
                         <div class="info-grid">
                             ${dog.heupdysplasie ? `
                             <div class="info-row">
-                                <div class="info-item info-item-full">
+                                <div class="info-item info-item-full {
                                     <span class="info-label">${this.t('hipDysplasia')}:</span>
                                     <span class="info-value">${this.getHealthBadge(dog.heupdysplasie, 'hip')}</span>
                                 </div>
@@ -1029,7 +1083,7 @@ class StamboomManager extends BaseModule {
                             
                             ${dog.elleboogdysplasie ? `
                             <div class="info-row">
-                                <div class="info-item info-item-full">
+                                <div class="info-item info-item-full {
                                     <span class="info-label">${this.t('elbowDysplasia')}:</span>
                                     <span class="info-value">${this.getHealthBadge(dog.elleboogdysplasie, 'elbow')}</span>
                                 </div>
@@ -1038,7 +1092,7 @@ class StamboomManager extends BaseModule {
                             
                             ${dog.patella ? `
                             <div class="info-row">
-                                <div class="info-item info-item-full">
+                                <div class="info-item info-item-full {
                                     <span class="info-label">${this.t('patellaLuxation')}:</span>
                                     <span class="info-value">${this.getHealthBadge(dog.patella, 'patella')}</span>
                                 </div>
@@ -1047,7 +1101,7 @@ class StamboomManager extends BaseModule {
                             
                             ${dog.ogen ? `
                             <div class="info-row">
-                                <div class="info-item info-item-full">
+                                <div class="info-item info-item-full {
                                     <span class="info-label">${this.t('eyes')}:</span>
                                     <span class="info-value">${this.getHealthBadge(dog.ogen, 'eyes')}</span>
                                 </div>
@@ -1056,7 +1110,7 @@ class StamboomManager extends BaseModule {
                             
                             ${dog.ogenVerklaring ? `
                             <div class="info-row">
-                                <div class="info-item info-item-full">
+                                <div class="info-item info-item-full {
                                     <span class="info-label">${this.t('eyesExplanation')}:</span>
                                     <span class="info-value">${dog.ogenVerklaring}</span>
                                 </div>
@@ -1260,7 +1314,7 @@ class StamboomManager extends BaseModule {
         if (!this._isActive) return;
         
         // Verberg eerst eventuele voortgangsindicatoren die nog zichtbaar zijn
-        this.hideProgress();
+        this.forceHideProgress();
         
         if (!document.getElementById('pedigreeModal')) {
             this.createPedigreeModal();
