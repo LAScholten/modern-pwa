@@ -221,12 +221,20 @@ class StamboomManager extends BaseModule {
             }
             
             this._isActive = true;
-            this.hideProgress();
+            
+            // ZORG DAT DE VOORTGANGSINDICATOR WEL WORDT VERBORGEN
+            setTimeout(() => {
+                this.hideProgress();
+            }, 100);
             
         } catch (error) {
-            this.hideProgress();
             console.error('Fout bij initialiseren StamboomManager:', error);
             this.showError('Kon stamboommanager niet initialiseren: ' + error.message);
+            
+            // ZORG DAT DE VOORTGANGSINDICATOR WEL WORDT VERBORGEN BIJ ERROR
+            setTimeout(() => {
+                this.hideProgress();
+            }, 100);
         }
     }
     
