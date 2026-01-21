@@ -15,11 +15,6 @@ class ReuTeefStamboom {
         this.selectedTeef = null;
         this.selectedReu = null;
         
-        // COI Calculator
-        this.coiCalculator = null;
-        this.coiCalculatorReady = false;
-        this.coiCalculationInProgress = false;
-        
         // Gezondheidsanalyse cache
         this.healthAnalysisCache = new Map();
         
@@ -46,15 +41,6 @@ class ReuTeefStamboom {
         
         console.log(`🔍 Toekomstige pup van: ${selectedTeef.naam} + ${selectedReu.naam}`);
         console.log(`📁 Aantal honden in allHonden: ${this.allHonden.length}`);
-        
-        // VOORKOM MEERDERE GELIJKTIJDIGE BEREKENINGEN
-        if (this.coiCalculationInProgress) {
-            console.log('⚠️ COI berekening al bezig, wacht...');
-            this.mainModule.showAlert('COI berekening is al bezig, even wachten...', 'info');
-            return;
-        }
-        
-        this.coiCalculationInProgress = true;
         
         try {
             // Maak een virtuele toekomstige pup
@@ -83,92 +69,85 @@ class ReuTeefStamboom {
                 opmerkingen: null
             };
             
-            console.log('🔍 Toekomstige pup aangemaakt voor COI berekening:', futurePuppy);
+            console.log('🔍 Toekomstige pup aangemaakt:', futurePuppy);
             
-            // NIEUW: Gebruik EEN COICalculator met alle honden + toekomstige pup
-            // Eerst de hoofdcalculator initialiseren als dat nog niet gebeurd is
-            if (!this.coiCalculator || !this.coiCalculatorReady) {
-                console.log('🔄 Initialiseer hoofd COICalculator...');
-                const initialized = await this.initializeCOICalculator();
-                if (!initialized) {
-                    this.mainModule.showAlert('Kon COI berekening niet initialiseren', 'danger');
-                    return;
-                }
-            }
+            // BEREKEN EENVOUDIGE COI (zonder COICalculator)
+            const simpleCOI = this.calculateSimpleCOI(futurePuppy, selectedTeef, selectedReu);
+            console.log('✅ Eenvoudige COI berekend:', simpleCOI);
             
-            // NIEUW: Maak een NIEUWE COICalculator met alle bestaande honden + toekomstige pup
-            // Dit voorkomt dat we de hoofdcalculator vervuilen
-            const tempAllHonden = [...this.allHonden, futurePuppy];
-            console.log(`📊 Nieuwe dataset: ${tempAllHonden.length} honden (origineel: ${this.allHonden.length} + pup)`);
+            // Bereken gezondheidsanalyse
+            const healthAnalysis = await this.analyzeHealthInLine(futurePuppy, selectedTeef, selectedReu);
+            console.log('✅ Gezondheidsanalyse resultaat:', healthAnalysis);
             
-            let tempCOICalculator = null;
-            let coiResult = null;
-            
-            try {
-                console.log('🔄 Maak COICalculator voor toekomstige pup...');
-                tempCOICalculator = new COICalculator(tempAllHonden);
-                
-                // Bereken COI met de nieuwe calculator
-                coiResult = tempCOICalculator.calculateCOI(futurePuppy.id);
-                console.log('✅ COI resultaat via nieuwe COICalculator:', coiResult);
-                
-                // BEREKEN KINSHIP VOOR TOEKOMSTIGE PUP
-                let kinshipValue = 0;
-                if (tempCOICalculator && coiResult) {
-                    try {
-                        kinshipValue = this.calculateAverageKinshipForFuturePuppy(tempCOICalculator, futurePuppy.id, 6);
-                        console.log('✅ Kinship berekend voor toekomstige pup:', kinshipValue);
-                    } catch (kinshipError) {
-                        console.error('❌ Fout bij berekenen kinship voor toekomstige pup:', kinshipError);
-                    }
-                }
-                
-                // Voeg kinship toe aan coiResult
-                coiResult.kinship6Gen = kinshipValue.toFixed(3);
-                
-                // Bereken gezondheidsanalyse
-                const healthAnalysis = await this.analyzeHealthInLine(futurePuppy, selectedTeef, selectedReu);
-                console.log('✅ Gezondheidsanalyse resultaat:', healthAnalysis);
-                
-                // Toon stamboom
-                await this.createFuturePuppyModal(futurePuppy, selectedTeef, selectedReu, coiResult, healthAnalysis);
-                
-            } catch (calcError) {
-                console.error('❌ Fout bij COI berekening:', calcError);
-                this.mainModule.showAlert('Kon COI niet berekenen. Probeer opnieuw.', 'danger');
-            } finally {
-                // Opruimen
-                tempCOICalculator = null;
-            }
+            // Toon stamboom
+            await this.createFuturePuppyModal(futurePuppy, selectedTeef, selectedReu, simpleCOI, healthAnalysis);
             
         } catch (error) {
             console.error('❌ Fout bij tonen toekomstige pup stamboom:', error);
             this.mainModule.showAlert('Kon stamboom niet genereren. Probeer opnieuw.', 'danger');
-        } finally {
-            this.coiCalculationInProgress = false;
         }
     }
     
-    async initializeCOICalculator() {
-        try {
-            if (typeof COICalculator === 'undefined') {
-                console.error('❌ COICalculator klasse niet gevonden!');
-                this.coiCalculatorReady = false;
-                return false;
+    calculateSimpleCOI(futurePuppy, selectedTeef, selectedReu) {
+        // Eenvoudige COI schatting op basis van gemeenschappelijke voorouders
+        // Dit is een simpele benadering voor de toekomstige pup
+        
+        const fatherAncestors = this.getUniqueAncestorIds(selectedReu, 6);
+        const motherAncestors = this.getUniqueAncestorIds(selectedTeef, 6);
+        
+        // Tel gemeenschappelijke voorouders
+        const commonAncestors = fatherAncestors.filter(id => motherAncestors.includes(id));
+        
+        // Simpele COI formule: (aantal gemeenschappelijke voorouders / totaal unieke voorouders) * 100
+        const totalUniqueAncestors = new Set([...fatherAncestors, ...motherAncestors]).size;
+        const coiValue = totalUniqueAncestors > 0 ? (commonAncestors.length / totalUniqueAncestors) * 100 : 0;
+        
+        // Afronden op 3 decimalen
+        const roundedCOI = Math.min(coiValue, 100).toFixed(3);
+        
+        return {
+            coi6Gen: roundedCOI,
+            coiAllGen: roundedCOI,
+            kinship6Gen: '0.000' // Zonder COICalculator kunnen we kinship niet goed berekenen
+        };
+    }
+    
+    getUniqueAncestorIds(dog, generations) {
+        const ancestorIds = new Set();
+        const queue = [{ dog: dog, generation: 0 }];
+        
+        while (queue.length > 0) {
+            const { dog: currentDog, generation } = queue.shift();
+            
+            if (!currentDog || generation >= generations) {
+                continue;
             }
             
-            console.log('🔄 Initialiseer hoofd COICalculator voor database honden...');
-            this.coiCalculator = new COICalculator(this.allHonden);
-            this.coiCalculatorReady = true;
-            console.log('✅ Hoofd COICalculator succesvol geïnitialiseerd');
-            return true;
+            // Voeg huidige hond toe aan voorouders
+            if (currentDog.id && currentDog.id > 0) {
+                ancestorIds.add(currentDog.id);
+            }
             
-        } catch (error) {
-            console.error('❌ Fout bij initialiseren hoofd COICalculator:', error);
-            this.coiCalculator = null;
-            this.coiCalculatorReady = false;
-            return false;
+            // Vader en moeder toevoegen aan queue
+            const vaderId = currentDog.vaderId || currentDog.vader_id;
+            const moederId = currentDog.moederId || currentDog.moeder_id;
+            
+            if (vaderId) {
+                const father = this.getDogById(vaderId);
+                if (father) {
+                    queue.push({ dog: father, generation: generation + 1 });
+                }
+            }
+            
+            if (moederId) {
+                const mother = this.getDogById(moederId);
+                if (mother) {
+                    queue.push({ dog: mother, generation: generation + 1 });
+                }
+            }
         }
+        
+        return Array.from(ancestorIds);
     }
     
     async analyzeHealthInLine(futurePuppy, selectedTeef, selectedReu) {
@@ -209,7 +188,7 @@ class ReuTeefStamboom {
             { key: 'thyroid_tested', label: this.t('thyroidTested') },
             { key: 'thyroid_unknown', label: this.t('thyroidUnknown') }
         ];
-       
+        
         healthItems.forEach(item => {
             analysis.motherLine.counts[item.key] = 0;
             analysis.fatherLine.counts[item.key] = 0;
