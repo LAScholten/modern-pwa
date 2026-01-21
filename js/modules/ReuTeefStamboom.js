@@ -57,22 +57,6 @@ class ReuTeefStamboom {
         this.coiCalculationInProgress = true;
         
         try {
-            // NIEUW: Initialiseer COICalculator PAS NU, bij het daadwerkelijk berekenen
-            if (!this.coiCalculator || !this.coiCalculatorReady) {
-                console.log('🔄 COICalculator nog niet geïnitialiseerd, initialiseer nu...');
-                const initialized = await this.initializeCOICalculator();
-                if (!initialized) {
-                    this.mainModule.showAlert('Kon COI berekening niet initialiseren', 'danger');
-                    return;
-                }
-            }
-            
-            if (!this.coiCalculator) {
-                console.error('❌ COICalculator niet beschikbaar');
-                this.mainModule.showAlert('COI berekening niet beschikbaar', 'danger');
-                return;
-            }
-            
             // Maak een virtuele toekomstige pup
             const futurePuppy = {
                 id: -999999,
@@ -101,18 +85,32 @@ class ReuTeefStamboom {
             
             console.log('🔍 Toekomstige pup aangemaakt voor COI berekening:', futurePuppy);
             
-            // NIEUW: Maak een ECHT tijdelijke COICalculator zonder de hoofdcalculator te beïnvloeden
+            // NIEUW: Gebruik EEN COICalculator met alle honden + toekomstige pup
+            // Eerst de hoofdcalculator initialiseren als dat nog niet gebeurd is
+            if (!this.coiCalculator || !this.coiCalculatorReady) {
+                console.log('🔄 Initialiseer hoofd COICalculator...');
+                const initialized = await this.initializeCOICalculator();
+                if (!initialized) {
+                    this.mainModule.showAlert('Kon COI berekening niet initialiseren', 'danger');
+                    return;
+                }
+            }
+            
+            // NIEUW: Maak een NIEUWE COICalculator met alle bestaande honden + toekomstige pup
+            // Dit voorkomt dat we de hoofdcalculator vervuilen
+            const tempAllHonden = [...this.allHonden, futurePuppy];
+            console.log(`📊 Nieuwe dataset: ${tempAllHonden.length} honden (origineel: ${this.allHonden.length} + pup)`);
+            
             let tempCOICalculator = null;
             let coiResult = null;
             
             try {
-                console.log('🔄 Maak tijdelijke COICalculator voor toekomstige pup...');
-                // Gebruik allHonden + toekomstige pup
-                tempCOICalculator = new COICalculator([...this.allHonden, futurePuppy]);
+                console.log('🔄 Maak COICalculator voor toekomstige pup...');
+                tempCOICalculator = new COICalculator(tempAllHonden);
                 
-                // Bereken COI met tijdelijke calculator
+                // Bereken COI met de nieuwe calculator
                 coiResult = tempCOICalculator.calculateCOI(futurePuppy.id);
-                console.log('✅ COI resultaat via tijdelijke COICalculator:', coiResult);
+                console.log('✅ COI resultaat via nieuwe COICalculator:', coiResult);
                 
                 // BEREKEN KINSHIP VOOR TOEKOMSTIGE PUP
                 let kinshipValue = 0;
@@ -159,14 +157,14 @@ class ReuTeefStamboom {
                 return false;
             }
             
-            console.log('🔄 Initialiseer COICalculator voor de eerste keer...');
+            console.log('🔄 Initialiseer hoofd COICalculator voor database honden...');
             this.coiCalculator = new COICalculator(this.allHonden);
             this.coiCalculatorReady = true;
-            console.log('✅ COICalculator succesvol geïnitialiseerd');
+            console.log('✅ Hoofd COICalculator succesvol geïnitialiseerd');
             return true;
             
         } catch (error) {
-            console.error('❌ Fout bij initialiseren COICalculator:', error);
+            console.error('❌ Fout bij initialiseren hoofd COICalculator:', error);
             this.coiCalculator = null;
             this.coiCalculatorReady = false;
             return false;
@@ -211,7 +209,7 @@ class ReuTeefStamboom {
             { key: 'thyroid_tested', label: this.t('thyroidTested') },
             { key: 'thyroid_unknown', label: this.t('thyroidUnknown') }
         ];
-        
+       
         healthItems.forEach(item => {
             analysis.motherLine.counts[item.key] = 0;
             analysis.fatherLine.counts[item.key] = 0;
