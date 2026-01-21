@@ -1,6 +1,6 @@
 /**
  * Reu en Teef Stamboom Module - AFZONDERLIJK BESTAND
- * Gebruikt nu dezelfde allDogs array als StamboomManager
+ * Gebruikt nu dezelfde allHonden array als StamboomManager
  */
 
 class ReuTeefStamboom {
@@ -29,46 +29,7 @@ class ReuTeefStamboom {
     // NIEUW: Gebruik dezelfde getDogById methode als StamboomManager
     getDogById(id) {
         if (!id || id === 0) return null;
-        
-        // Zoek eerst in allHonden
-        const hond = this.allHonden.find(dog => dog.id === id);
-        
-        if (!hond) {
-            console.warn(`⚠️ Hond met ID ${id} niet gevonden in allHonden`);
-            // Creëer een placeholder object om crashes te voorkomen
-            return this._createPlaceholderHond(id);
-        }
-        
-        return hond;
-    }
-    
-    // NIEUW: Placeholder hond functie
-    _createPlaceholderHond(id, relatie = 'Onbekend') {
-        return {
-            id: id,
-            naam: `${relatie} (ID: ${id})`,
-            geslacht: 'onbekend',
-            vader_id: null,
-            moeder_id: null,
-            vaderId: null,
-            moederId: null,
-            afstammingsnummer: null,
-            geboortedatum: null,
-            kennelnaam: 'Onbekend',
-            vachtkleur: null,
-            heupdysplasie: null,
-            elleboogdysplasie: null,
-            patella: null,
-            ogen: null,
-            ogenVerklaring: null,
-            dandyWalker: null,
-            schildklier: null,
-            schildklierVerklaring: null,
-            land: null,
-            postcode: null,
-            opmerkingen: null,
-            ras: 'Eurasier'
-        };
+        return this.allHonden.find(dog => dog.id === id);
     }
     
     async showFuturePuppyPedigree(selectedTeef, selectedReu) {
@@ -85,12 +46,6 @@ class ReuTeefStamboom {
         
         console.log(`🔍 Toekomstige pup van: ${selectedTeef.naam} + ${selectedReu.naam}`);
         console.log(`📁 Aantal honden in allHonden: ${this.allHonden.length}`);
-        
-        // Debug: controleer of de specifieke honden aanwezig zijn
-        console.log(`🔍 Check hond ID ${selectedTeef.id} (${selectedTeef.naam}):`, 
-            this.allHonden.find(h => h.id === selectedTeef.id) ? 'AANWEZIG' : 'AFWEZIG');
-        console.log(`🔍 Check hond ID ${selectedReu.id} (${selectedReu.naam}):`, 
-            this.allHonden.find(h => h.id === selectedReu.id) ? 'AANWEZIG' : 'AFWEZIG');
         
         // VOORKOM MEERDERE GELIJKTIJDIGE BEREKENINGEN
         if (this.coiCalculationInProgress) {
@@ -118,7 +73,7 @@ class ReuTeefStamboom {
                 return;
             }
             
-            // Maak een virtuele toekomstige pup - STAP 1
+            // Maak een virtuele toekomstige pup
             const futurePuppy = {
                 id: -999999,
                 naam: this.t('futurePuppyName'),
@@ -146,58 +101,12 @@ class ReuTeefStamboom {
             
             console.log('🔍 Toekomstige pup aangemaakt voor COI berekening:', futurePuppy);
             
-            // NIEUW: VERBETERDE DATA LAAD LOGICA - STAP 2
-            console.log('🔄 START: Data loading voor toekomstige pup...');
-            
-            // 1. Laad ALLE benodigde honden voor deze berekening
-            const requiredDogIds = new Set();
-            
-            // Voeg de ouders toe
-            requiredDogIds.add(selectedTeef.id);
-            requiredDogIds.add(selectedReu.id);
-            
-            // Verzamel alle voorouder IDs tot 6 generaties
-            await this.collectAllRequiredDogIds(selectedTeef, requiredDogIds, 6);
-            await this.collectAllRequiredDogIds(selectedReu, requiredDogIds, 6);
-            
-            console.log(`📊 Vereiste honden IDs: ${Array.from(requiredDogIds).length} unieke IDs`);
-            
-            // 2. Controleer welke honden we al hebben
-            const missingIds = [];
-            for (const id of requiredDogIds) {
-                if (!this.allHonden.find(h => h.id === id)) {
-                    missingIds.push(id);
-                }
-            }
-            
-            console.log(`📊 Honden al aanwezig: ${requiredDogIds.size - missingIds.length}`);
-            console.log(`📊 Honden nog nodig: ${missingIds.length}`);
-            
-            // 3. Laad ontbrekende honden
-            if (missingIds.length > 0) {
-                console.log('🔄 Lade ontbrekende honden...');
-                await this.loadMissingDogs(missingIds);
-            }
-            
-            // 4. Controleer opnieuw
-            const allDogsPresent = Array.from(requiredDogIds).every(id => 
-                this.allHonden.find(h => h.id === id) || this.getDogById(id)
-            );
-            
-            if (!allDogsPresent) {
-                console.warn('⚠️ Niet alle vereiste honden konden geladen worden');
-            }
-            
-            console.log(`✅ Data loading voltooid. Totaal honden beschikbaar: ${this.allHonden.length}`);
-            
-            // BEREKEN COI MET ALLE HONDEN + TOEKOMSTIGE PUP - STAP 3
+            // NIEUW: Maak een ECHT tijdelijke COICalculator zonder de hoofdcalculator te beïnvloeden
             let tempCOICalculator = null;
             let coiResult = null;
             
             try {
                 console.log('🔄 Maak tijdelijke COICalculator voor toekomstige pup...');
-                console.log(`📊 Honden voor COICalculator: ${this.allHonden.length} bestaand + 1 toekomstige pup`);
-                
                 // Gebruik allHonden + toekomstige pup
                 tempCOICalculator = new COICalculator([...this.allHonden, futurePuppy]);
                 
@@ -223,7 +132,7 @@ class ReuTeefStamboom {
                 const healthAnalysis = await this.analyzeHealthInLine(futurePuppy, selectedTeef, selectedReu);
                 console.log('✅ Gezondheidsanalyse resultaat:', healthAnalysis);
                 
-                // TOON STAMBOOM - STAP 4
+                // Toon stamboom
                 await this.createFuturePuppyModal(futurePuppy, selectedTeef, selectedReu, coiResult, healthAnalysis);
                 
             } catch (calcError) {
@@ -239,118 +148,6 @@ class ReuTeefStamboom {
             this.mainModule.showAlert('Kon stamboom niet genereren. Probeer opnieuw.', 'danger');
         } finally {
             this.coiCalculationInProgress = false;
-        }
-    }
-    
-    // NIEUW: Verzamel alle vereiste hond IDs
-    async collectAllRequiredDogIds(dog, requiredIds, generations) {
-        if (!dog || generations <= 0) return;
-        
-        // Voeg huidige hond toe
-        requiredIds.add(dog.id);
-        
-        // Verzamel ouders
-        const vaderId = dog.vaderId || dog.vader_id;
-        const moederId = dog.moederId || dog.moeder_id;
-        
-        if (vaderId) {
-            const vader = this.getDogById(vaderId);
-            if (vader) {
-                await this.collectAllRequiredDogIds(vader, requiredIds, generations - 1);
-            } else {
-                // Voeg ID toe zelfs als hond niet in cache zit
-                requiredIds.add(vaderId);
-            }
-        }
-        
-        if (moederId) {
-            const moeder = this.getDogById(moederId);
-            if (moeder) {
-                await this.collectAllRequiredDogIds(moeder, requiredIds, generations - 1);
-            } else {
-                // Voeg ID toe zelfs als hond niet in cache zit
-                requiredIds.add(moederId);
-            }
-        }
-    }
-    
-    // NIEUW: Laad ontbrekende honden
-    async loadMissingDogs(missingIds) {
-        try {
-            console.log(`🔄 Lade ${missingIds.length} ontbrekende honden...`);
-            
-            const batchSize = 50;
-            for (let i = 0; i < missingIds.length; i += batchSize) {
-                const batch = missingIds.slice(i, i + batchSize);
-                console.log(`📥 Batch ${Math.floor(i/batchSize) + 1}: ${batch.length} honden`);
-                
-                for (const id of batch) {
-                    try {
-                        const response = await window.hondenService.getHondById(id);
-                        if (response.data) {
-                            this.allHonden.push(response.data);
-                            console.log(`✅ Geladen: ${response.data.naam} (ID: ${id})`);
-                        } else {
-                            console.warn(`⚠️ Hond ID ${id} niet gevonden in database`);
-                        }
-                    } catch (error) {
-                        console.error(`❌ Fout bij laden hond ${id}:`, error);
-                    }
-                    
-                    // Kleine pauze om database niet te overloaden
-                    await new Promise(resolve => setTimeout(resolve, 50));
-                }
-            }
-            
-            console.log(`✅ ${missingIds.length} honden geladen poging voltooid`);
-            
-        } catch (error) {
-            console.error('❌ Fout bij laden ontbrekende honden:', error);
-        }
-    }
-    
-    async loadAllHonden() {
-        try {
-            console.log('ReuTeefStamboom: Laden van alle honden...');
-            
-            let allHonden = [];
-            let currentPage = 1;
-            const pageSize = 1000;
-            let hasMorePages = true;
-            
-            while (hasMorePages) {
-                const result = await window.hondenService.getHonden(currentPage, pageSize);
-                
-                if (result.honden && result.honden.length > 0) {
-                    allHonden = allHonden.concat(result.honden);
-                    hasMorePages = result.heeftVolgende;
-                    currentPage++;
-                    
-                    console.log(`Pagina ${currentPage-1} geladen: ${result.honden.length} honden`);
-                    
-                    if (currentPage > 100) {
-                        console.warn('Veiligheidslimiet bereikt: te veel pagina\'s geladen');
-                        break;
-                    }
-                } else {
-                    hasMorePages = false;
-                }
-                
-                await new Promise(resolve => setTimeout(resolve, 100));
-            }
-            
-            allHonden.sort((a, b) => {
-                const naamA = a.naam || '';
-                const naamB = b.naam || '';
-                return naamA.localeCompare(naamB);
-            });
-            
-            this.allHonden = allHonden;
-            console.log(`✅ ReuTeefStamboom: TOTAAL ${this.allHonden.length} honden geladen`);
-            
-        } catch (error) {
-            console.error('Fout bij laden honden voor stambomen:', error);
-            this.allHonden = [];
         }
     }
     
@@ -1386,7 +1183,7 @@ class ReuTeefStamboom {
                     
                     .rtc-pedigree-card-compact.horizontal.gen0 .rtc-dog-pedigree-compact,
                     .rtc-pedigree-card-compact.horizontal.gen1 .rtc-dog-pedigree-compact,
-                    .rtc-pedigree-card.compact.horizontal.gen2 .rtc-dog-pedigree-compact,
+                    .rtc-pedigree-card-compact.horizontal.gen2 .rtc-dog-pedigree-compact,
                     .rtc-pedigree-card-compact.horizontal.gen0 .rtc-dog-breed-compact,
                     .rtc-pedigree-card-compact.horizontal.gen1 .rtc-dog-breed-compact,
                     .rtc-pedigree-card.compact.horizontal.gen2 .rtc-dog-breed-compact {
@@ -1971,64 +1768,6 @@ class ReuTeefStamboom {
                         font-size: 0.75rem !important;
                     }
                 }
-                
-                /* HEALTH ANALYSIS TABLE STYLES */
-                .health-analysis-table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    font-size: 0.8rem;
-                }
-                
-                .health-analysis-table th {
-                    background: #f8f9fa;
-                    padding: 8px;
-                    text-align: left;
-                    border-bottom: 2px solid #dee2e6;
-                    font-weight: 600;
-                }
-                
-                .health-analysis-table td {
-                    padding: 6px 8px;
-                    border-bottom: 1px solid #e9ecef;
-                }
-                
-                .health-analysis-table .health-category {
-                    font-weight: 500;
-                    color: #495057;
-                }
-                
-                .health-analysis-table .mother-count,
-                .health-analysis-table .father-count {
-                    text-align: center;
-                    font-weight: 600;
-                }
-                
-                .health-analysis-table .count-high {
-                    color: #dc3545;
-                    background: #fff5f5;
-                }
-                
-                .health-analysis-table .count-good {
-                    color: #198754;
-                    background: #f0fff4;
-                }
-                
-                /* LOADING INDICATOR */
-                .loading-indicator {
-                    display: inline-block;
-                    width: 20px;
-                    height: 20px;
-                    border: 3px solid #f3f3f3;
-                    border-top: 3px solid #198754;
-                    border-radius: 50%;
-                    animation: spin 1s linear infinite;
-                    margin-right: 10px;
-                }
-                
-                @keyframes spin {
-                    0% { transform: rotate(0deg); }
-                    100% { transform: rotate(360deg); }
-                }
             </style>
         `;
         
@@ -2207,7 +1946,7 @@ class ReuTeefStamboom {
         const reuVaderId = selectedReu.vaderId || selectedReu.vader_id;
         if (reuVaderId) {
             pedigreeTree.paternalGrandfather = this.getDogById(reuVaderId);
-            console.log(`✅ Reu vader gevonden (ID: ${reuVaderId}):`, pedigreeTree.paternalGrandfather?.naam || 'Onbekend');
+            console.log(`✅ Reu vader gevonden (ID: ${reuVaderId}):`, pedigreeTree.paternalGrandfather?.naam);
         } else {
             console.log('❌ Reu heeft geen vader_id');
         }
@@ -2216,7 +1955,7 @@ class ReuTeefStamboom {
         const reuMoederId = selectedReu.moederId || selectedReu.moeder_id;
         if (reuMoederId) {
             pedigreeTree.paternalGrandmother = this.getDogById(reuMoederId);
-            console.log(`✅ Reu moeder gevonden (ID: ${reuMoederId}):`, pedigreeTree.paternalGrandmother?.naam || 'Onbekend');
+            console.log(`✅ Reu moeder gevonden (ID: ${reuMoederId}):`, pedigreeTree.paternalGrandmother?.naam);
         } else {
             console.log('❌ Reu heeft geen moeder_id');
         }
@@ -2225,7 +1964,7 @@ class ReuTeefStamboom {
         const teefVaderId = selectedTeef.vaderId || selectedTeef.vader_id;
         if (teefVaderId) {
             pedigreeTree.maternalGrandfather = this.getDogById(teefVaderId);
-            console.log(`✅ Teef vader gevonden (ID: ${teefVaderId}):`, pedigreeTree.maternalGrandfather?.naam || 'Onbekend');
+            console.log(`✅ Teef vader gevonden (ID: ${teefVaderId}):`, pedigreeTree.maternalGrandfather?.naam);
         } else {
             console.log('❌ Teef heeft geen vader_id');
         }
@@ -2234,7 +1973,7 @@ class ReuTeefStamboom {
         const teefMoederId = selectedTeef.moederId || selectedTeef.moeder_id;
         if (teefMoederId) {
             pedigreeTree.maternalGrandmother = this.getDogById(teefMoederId);
-            console.log(`✅ Teef moeder gevonden (ID: ${teefMoederId}):`, pedigreeTree.maternalGrandmother?.naam || 'Onbekend');
+            console.log(`✅ Teef moeder gevonden (ID: ${teefMoederId}):`, pedigreeTree.maternalGrandmother?.naam);
         } else {
             console.log('❌ Teef heeft geen moeder_id');
         }
@@ -2341,16 +2080,16 @@ class ReuTeefStamboom {
         console.log('✅ Stamboom opgebouwd:', {
             ouders: `${selectedReu.naam} + ${selectedTeef.naam}`,
             grootouders: {
-                reuVader: pedigreeTree.paternalGrandfather?.naam || 'Onbekend',
-                reuMoeder: pedigreeTree.paternalGrandmother?.naam || 'Onbekend',
-                teefVader: pedigreeTree.maternalGrandfather?.naam || 'Onbekend',
-                teefMoeder: pedigreeTree.maternalGrandmother?.naam || 'Onbekend'
+                reuVader: pedigreeTree.paternalGrandfather?.naam,
+                reuMoeder: pedigreeTree.paternalGrandmother?.naam,
+                teefVader: pedigreeTree.maternalGrandfather?.naam,
+                teefMoeder: pedigreeTree.maternalGrandmother?.naam
             }
         });
         
         return pedigreeTree;
     }
-
+    
     async generateDogCard(dog, relation, isMainDog = false, generation = 0) {
         if (!dog) {
             return `
@@ -2690,7 +2429,7 @@ class ReuTeefStamboom {
                             
                             ${dog.ogen ? `
                             <div class="rtc-info-row">
-                                <div class="rtc-info-item rtc-info-item-full {
+                                <div class="rtc-info-item rtc-info-item-full">
                                     <span class="rtc-info-label">${this.t('eyes')}:</span>
                                     <span class="rtc-info-value">${this.mainModule.getHealthBadge(dog.ogen, 'eyes')}</span>
                                 </div>
@@ -2717,7 +2456,7 @@ class ReuTeefStamboom {
                             
                             ${dog.schildklier ? `
                             <div class="rtc-info-row">
-                                <div class="rtc-info-item rtc-info-item-full {
+                                <div class="rtc-info-item rtc-info-item-full">
                                     <span class="rtc-info-label">${this.t('thyroid')}:</span>
                                     <span class="rtc-info-value">${this.mainModule.getHealthBadge(dog.schildklier, 'thyroid')}</span>
                                 </div>
