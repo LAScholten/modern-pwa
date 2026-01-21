@@ -11,9 +11,6 @@ class PhotoManager extends BaseModule {
         this.currentLang = localStorage.getItem('appLanguage') || 'nl';
         this.allDogs = [];
         this.filteredDogs = [];
-        this.currentPage = 1;
-        this.dogsPerPage = 1000;
-        this.totalDogs = 0;
         this.translations = {
             nl: {
                 // Modal titels
@@ -30,8 +27,6 @@ class PhotoManager extends BaseModule {
                 describePhoto: "Beschrijf de foto...",
                 uploadPhoto: "Foto Uploaden",
                 noDogsFound: "Geen honden gevonden",
-                loadingDogs: "Honden laden...",
-                loadingPage: "Pagina laden...",
                 
                 // Overzicht
                 photoOverview: "Foto Overzicht",
@@ -89,8 +84,6 @@ class PhotoManager extends BaseModule {
                 describePhoto: "Describe the photo...",
                 uploadPhoto: "Upload Photo",
                 noDogsFound: "No dogs found",
-                loadingDogs: "Loading dogs...",
-                loadingPage: "Loading page...",
                 
                 // Overview
                 photoOverview: "Photo Overview",
@@ -148,8 +141,6 @@ class PhotoManager extends BaseModule {
                 describePhoto: "Beschreiben Sie das Foto...",
                 uploadPhoto: "Foto hochladen",
                 noDogsFound: "Keine Hunde gefunden",
-                loadingDogs: "Hunde laden...",
-                loadingPage: "Seite laden...",
                 
                 // Übersicht
                 photoOverview: "Foto Übersicht",
@@ -178,18 +169,18 @@ class PhotoManager extends BaseModule {
                 selectDogFirst: "Wählen Sie zuerst einen Hund",
                 selectPhotoFirst: "Wählen Sie zuerst ein Foto",
                 fileTooLarge: "Datei ist zu groot (maximal 5MB)",
-                invalidType: "Ungültiger Dateityp. Nur JPG, PNG und GIF sind erlaubt",
+                invalidType: "Ungeldiger Dateityp. Nur JPG, PNG und GIF sind erlaubt",
                 uploading: "Foto wird hochgeladen...",
                 uploadSuccess: "Foto erfolgreich hochgeladen!",
                 uploadFailed: "Upload fehlgeschlagen: ",
                 fileReadError: "Fehler beim Lesen der Datei",
                 loading: "Lade Fotos...",
                 loadFailed: "Laden fehlgeschlagen: ",
-                deleteConfirm: "Sind Sie sicher dat u dit foto wilt verwijderen? Dies kann nicht rückgängig gemacht werden.",
-                deleting: "Foto wird gelöscht...",
+                deleteConfirm: "Sind Sie sicher dat u dit foto wilt verwijderen? Dit kan niet ongedaan worden gemaakt.",
+                deleting: "Foto wordt gelöscht...",
                 deleteSuccess: "Foto erfolgreich gelöscht!",
                 deleteFailed: "Löschen fehlgeschlagen: ",
-                photoNotFound: "Foto nicht gefunden",
+                photoNotFound: "Foto niet gevonden",
                 loadDetailsFailed: "Fehler beim Laden der Fotodetails: "
             }
         };
@@ -240,7 +231,7 @@ class PhotoManager extends BaseModule {
                                                             <input type="text" class="form-control" id="photoHondSearch" 
                                                                    placeholder="${t('searchDog')}" autocomplete="off">
                                                             <div class="dropdown-menu w-100" id="dogDropdownMenu" style="max-height: 300px; overflow-y: auto;">
-                                                                <div class="dropdown-item text-muted">${t('loadingDogs')}</div>
+                                                                <div class="dropdown-item text-muted">${t('loadingPhotos')}</div>
                                                             </div>
                                                         </div>
                                                         <input type="hidden" id="selectedDogId">
@@ -386,24 +377,15 @@ class PhotoManager extends BaseModule {
         
         if (!searchInput || !dropdownMenu) return;
         
-        // Toon dropdown bij focus
-        searchInput.addEventListener('focus', () => {
-            if (this.allDogs.length === 0) {
-                this.loadDogsData().then(() => {
-                    this.filterDogs('');
-                    dropdownMenu.classList.add('show');
-                });
-            } else {
-                this.filterDogs('');
-                dropdownMenu.classList.add('show');
-            }
-        });
-        
         // Filter honden bij elke toetsaanslag
         searchInput.addEventListener('input', (e) => {
             const searchTerm = e.target.value.toLowerCase();
-            this.filterDogs(searchTerm);
-            dropdownMenu.classList.add('show');
+            if (searchTerm.length >= 2) { // Alleen zoeken als er minstens 2 letters zijn
+                this.filterDogs(searchTerm);
+                dropdownMenu.classList.add('show');
+            } else {
+                dropdownMenu.classList.remove('show');
+            }
         });
         
         // Verberg dropdown bij klik buiten
@@ -412,66 +394,6 @@ class PhotoManager extends BaseModule {
                 dropdownMenu.classList.remove('show');
             }
         });
-        
-        // Toon alle honden bij eerste klik
-        searchInput.addEventListener('click', () => {
-            if (dropdownMenu.children.length === 1 && dropdownMenu.children[0].classList.contains('text-muted')) {
-                if (this.allDogs.length === 0) {
-                    this.loadDogsData().then(() => {
-                        this.filterDogs('');
-                    });
-                } else {
-                    this.filterDogs('');
-                }
-            }
-            dropdownMenu.classList.add('show');
-        });
-    }
-    
-    async loadAllDogsWithPagination() {
-        const t = this.t.bind(this);
-        
-        try {
-            let allDogs = [];
-            let currentPage = 1;
-            let hasMore = true;
-            const pageSize = 1000; // 1000 per batch
-            
-            // Laad eerste pagina om totale aantal te krijgen
-            const firstResult = await window.hondenService.getHonden(currentPage, pageSize);
-            this.totalDogs = firstResult.totaal || 0;
-            
-            // Voeg eerste batch toe
-            if (firstResult.honden) {
-                allDogs = allDogs.concat(firstResult.honden);
-            }
-            
-            // Bepaal hoeveel pagina's er zijn (max 100 pagina's = 100,000 records)
-            const totalPages = Math.min(Math.ceil(this.totalDogs / pageSize), 100);
-            
-            // Laad de rest van de pagina's
-            for (currentPage = 2; currentPage <= totalPages; currentPage++) {
-                this.showProgress(`${t('loadingPage')} ${currentPage}/${totalPages}`);
-                
-                const result = await window.hondenService.getHonden(currentPage, pageSize);
-                if (result.honden && result.honden.length > 0) {
-                    allDogs = allDogs.concat(result.honden);
-                }
-                
-                if (!result.heeftVolgende) {
-                    hasMore = false;
-                    break;
-                }
-            }
-            
-            this.hideProgress();
-            return allDogs;
-            
-        } catch (error) {
-            this.hideProgress();
-            console.error('Fout bij laden honden met paginatie:', error);
-            return [];
-        }
     }
     
     async filterDogs(searchTerm = '') {
@@ -509,10 +431,7 @@ class PhotoManager extends BaseModule {
             return;
         }
         
-        // Toon maximaal 100 honden in dropdown
-        const displayDogs = this.filteredDogs.slice(0, 100);
-        
-        displayDogs.forEach(dog => {
+        this.filteredDogs.forEach(dog => {
             const item = document.createElement('a');
             item.className = 'dropdown-item';
             item.href = '#';
@@ -533,14 +452,6 @@ class PhotoManager extends BaseModule {
             
             dropdownMenu.appendChild(item);
         });
-        
-        // Als er meer honden zijn, toon een bericht
-        if (this.filteredDogs.length > 100) {
-            const moreItem = document.createElement('div');
-            moreItem.className = 'dropdown-item text-center text-muted small';
-            moreItem.textContent = `... en ${this.filteredDogs.length - 100} meer`;
-            dropdownMenu.appendChild(moreItem);
-        }
     }
     
     selectDog(dog) {
@@ -561,21 +472,42 @@ class PhotoManager extends BaseModule {
     
     async loadDogsData() {
         try {
-            // Gebruik de nieuwe methode om ALLE honden te laden met paginatie
-            this.showProgress(this.t('loadingDogs'));
-            this.allDogs = await this.loadAllDogsWithPagination();
+            // GEBRUIK DE SUPABASE SERVICE OM HONDEN TE LADEN MET PAGINATIE
+            let allDogs = [];
+            let currentPage = 1;
+            const pageSize = 1000; // Batch grootte
             
-            // Sorteer op naam
+            // Laad eerste pagina
+            const firstResult = await window.hondenService.getHonden(currentPage, pageSize);
+            const totalDogs = firstResult.totaal || 0;
+            
+            if (firstResult.honden) {
+                allDogs = allDogs.concat(firstResult.honden);
+            }
+            
+            // Bepaal hoeveel pagina's er zijn (max 100 pagina's = 100,000 records)
+            const totalPages = Math.min(Math.ceil(totalDogs / pageSize), 100);
+            
+            // Laad de rest van de pagina's
+            for (currentPage = 2; currentPage <= totalPages; currentPage++) {
+                const result = await window.hondenService.getHonden(currentPage, pageSize);
+                if (result.honden && result.honden.length > 0) {
+                    allDogs = allDogs.concat(result.honden);
+                }
+                
+                if (!result.heeftVolgende) {
+                    break;
+                }
+            }
+            
+            this.allDogs = allDogs;
             this.allDogs.sort((a, b) => a.naam.localeCompare(b.naam));
             
-            console.log(`Successvol ${this.allDogs.length} honden geladen van totaal ${this.totalDogs}`);
-            
-            this.hideProgress();
+            console.log(`Successvol ${this.allDogs.length} honden geladen van totaal ${totalDogs}`);
             
         } catch (error) {
             console.error('Fout bij laden honden:', error);
             this.allDogs = [];
-            this.hideProgress();
         }
     }
     
@@ -620,9 +552,6 @@ class PhotoManager extends BaseModule {
         
         reader.onload = async (e) => {
             try {
-                // VOORBEELD: Pas dit aan naar je eigen foto upload logica
-                // Dit is een voorbeeld - vervang met je eigen database calls
-                
                 const fotoData = {
                     stamboomnr: stamboomnr,
                     data: e.target.result,
@@ -633,11 +562,7 @@ class PhotoManager extends BaseModule {
                     uploadedAt: new Date().toISOString()
                 };
                 
-                // VERVANG DIT MET JE EIGEN FOTO UPLOAD LOGICA
-                // Bijvoorbeeld: await this.db.voegFotoToe(fotoData);
-                
-                // Voor nu: simuleer een succesvolle upload
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                await this.db.voegFotoToe(fotoData);
                 
                 this.hideProgress();
                 this.showSuccess(t('uploadSuccess'));
@@ -670,13 +595,7 @@ class PhotoManager extends BaseModule {
         this.showProgress(t('loading'));
         
         try {
-            // VERVANG DIT MET JE EIGEN FOTO LOAD LOGICA
-            // Bijvoorbeeld: const fotos = await this.db.getAllFotos();
-            
-            // Voor nu: simuleer lege foto lijst
-            const fotos = [];
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
+            const fotos = await this.db.getAllFotos();
             this.hideProgress();
             this.displayPhotos(fotos);
             
@@ -943,11 +862,7 @@ class PhotoManager extends BaseModule {
         this.showProgress(t('deleting'));
         
         try {
-            // VERVANG DIT MET JE EIGEN FOTO DELETE LOGICA
-            // Bijvoorbeeld: await this.db.verwijderFoto(parseInt(fotoId));
-            
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
+            await this.db.verwijderFoto(parseInt(fotoId));
             this.hideProgress();
             this.showSuccess(t('deleteSuccess'));
             await this.loadAllPhotos();
