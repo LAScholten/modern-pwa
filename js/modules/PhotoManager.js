@@ -1,8 +1,8 @@
 // js/modules/PhotoManager.js
 
 /**
- * Foto Management Module
- * Beheert foto upload en galerij
+ * Foto Management Module voor Supabase
+ * Beheert foto upload en galerij met paginatie
  */
 
 class PhotoManager extends BaseModule {
@@ -11,6 +11,12 @@ class PhotoManager extends BaseModule {
         this.currentLang = localStorage.getItem('appLanguage') || 'nl';
         this.allDogs = [];
         this.filteredDogs = [];
+        this.currentDogPage = 1;
+        this.dogsPerPage = 50;
+        this.totalDogs = 0;
+        this.isLoadingDogs = false;
+        this.hasMoreDogs = true;
+        
         this.translations = {
             nl: {
                 // Modal titels
@@ -20,13 +26,15 @@ class PhotoManager extends BaseModule {
                 // Upload sectie
                 photoUpload: "Foto Uploaden",
                 selectDog: "Selecteer Hond",
-                searchDog: "Zoek hond op naam...",
+                searchDog: "Zoek hond op naam of stamboomnr...",
                 selectPhoto: "Selecteer Foto",
-                maxSize: "Maximale grootte: 5MB. Ondersteunde formaten: JPG, PNG, GIF",
+                maxSize: "Maximale grootte: 5MB. Ondersteunde formaten: JPG, PNG, GIF, WebP",
                 description: "Beschrijving (optioneel)",
                 describePhoto: "Beschrijf de foto...",
                 uploadPhoto: "Foto Uploaden",
                 noDogsFound: "Geen honden gevonden",
+                loadingDogs: "Honden laden...",
+                loadMoreDogs: "Meer honden laden",
                 
                 // Overzicht
                 photoOverview: "Foto Overzicht",
@@ -55,7 +63,7 @@ class PhotoManager extends BaseModule {
                 selectDogFirst: "Selecteer eerst een hond",
                 selectPhotoFirst: "Selecteer eerst een foto",
                 fileTooLarge: "Bestand is te groot (maximaal 5MB)",
-                invalidType: "Ongeldig bestandstype. Alleen JPG, PNG en GIF zijn toegestaan",
+                invalidType: "Ongeldig bestandstype. Alleen JPG, PNG, GIF en WebP zijn toegestaan",
                 uploading: "Foto uploaden...",
                 uploadSuccess: "Foto succesvol geüpload!",
                 uploadFailed: "Upload mislukt: ",
@@ -64,10 +72,11 @@ class PhotoManager extends BaseModule {
                 loadFailed: "Laden mislukt: ",
                 deleteConfirm: "Weet je zeker dat je deze foto wilt verwijderen? Dit kan niet ongedaan worden gemaakt.",
                 deleting: "Foto verwijderen...",
-                deleteSuccess: "Foto succesvol verwijderen!",
+                deleteSuccess: "Foto succesvol verwijderd!",
                 deleteFailed: "Verwijderen mislukt: ",
                 photoNotFound: "Foto niet gevonden",
-                loadDetailsFailed: "Fout bij laden foto details: "
+                loadDetailsFailed: "Fout bij laden foto details: ",
+                searchToFindDogs: "Typ minimaal 2 letters om te zoeken"
             },
             en: {
                 // Modal titles
@@ -77,13 +86,15 @@ class PhotoManager extends BaseModule {
                 // Upload section
                 photoUpload: "Photo Upload",
                 selectDog: "Select Dog",
-                searchDog: "Search dog by name...",
+                searchDog: "Search dog by name or pedigree number...",
                 selectPhoto: "Select Photo",
-                maxSize: "Maximum size: 5MB. Supported formats: JPG, PNG, GIF",
+                maxSize: "Maximum size: 5MB. Supported formats: JPG, PNG, GIF, WebP",
                 description: "Description (optional)",
                 describePhoto: "Describe the photo...",
                 uploadPhoto: "Upload Photo",
                 noDogsFound: "No dogs found",
+                loadingDogs: "Loading dogs...",
+                loadMoreDogs: "Load more dogs",
                 
                 // Overview
                 photoOverview: "Photo Overview",
@@ -112,7 +123,7 @@ class PhotoManager extends BaseModule {
                 selectDogFirst: "Select a dog first",
                 selectPhotoFirst: "Select a photo first",
                 fileTooLarge: "File is too large (maximum 5MB)",
-                invalidType: "Invalid file type. Only JPG, PNG and GIF are allowed",
+                invalidType: "Invalid file type. Only JPG, PNG, GIF and WebP are allowed",
                 uploading: "Uploading photo...",
                 uploadSuccess: "Photo uploaded successfully!",
                 uploadFailed: "Upload failed: ",
@@ -124,7 +135,8 @@ class PhotoManager extends BaseModule {
                 deleteSuccess: "Photo successfully deleted!",
                 deleteFailed: "Delete failed: ",
                 photoNotFound: "Photo not found",
-                loadDetailsFailed: "Error loading photo details: "
+                loadDetailsFailed: "Error loading photo details: ",
+                searchToFindDogs: "Type at least 2 letters to search"
             },
             de: {
                 // Modal Titel
@@ -134,13 +146,15 @@ class PhotoManager extends BaseModule {
                 // Upload Bereich
                 photoUpload: "Foto Upload",
                 selectDog: "Hund auswählen",
-                searchDog: "Hund nach Namen suchen...",
+                searchDog: "Hund nach Namen oder Stammbaumnummer suchen...",
                 selectPhoto: "Foto auswählen",
-                maxSize: "Maximale Größe: 5MB. Unterstützte Formate: JPG, PNG, GIF",
+                maxSize: "Maximale Größe: 5MB. Unterstützte Formate: JPG, PNG, GIF, WebP",
                 description: "Beschreibung (optional)",
                 describePhoto: "Beschreiben Sie das Foto...",
                 uploadPhoto: "Foto hochladen",
                 noDogsFound: "Keine Hunde gefunden",
+                loadingDogs: "Hunde laden...",
+                loadMoreDogs: "Mehr Hunde laden",
                 
                 // Übersicht
                 photoOverview: "Foto Übersicht",
@@ -167,21 +181,22 @@ class PhotoManager extends BaseModule {
                 
                 // Meldungen
                 selectDogFirst: "Wählen Sie zuerst einen Hund",
-                selectPhotoFirst: "Wählen Sie zuerst een foto",
+                selectPhotoFirst: "Wählen Sie zuerst ein Foto",
                 fileTooLarge: "Datei ist zu groot (maximal 5MB)",
-                invalidType: "Ungeldiger Dateityp. Nur JPG, PNG und GIF sind erlaubt",
+                invalidType: "Ungeldiger Dateityp. Nur JPG, PNG, GIF und WebP sind erlaubt",
                 uploading: "Foto wird hochgeladen...",
                 uploadSuccess: "Foto erfolgreich hochgeladen!",
                 uploadFailed: "Upload fehlgeschlagen: ",
                 fileReadError: "Fehler beim Lesen der Datei",
                 loading: "Lade Fotos...",
                 loadFailed: "Laden fehlgeschlagen: ",
-                deleteConfirm: "Sind Sie sicher dat u dit foto wilt verwijderen? Dit kan niet ongedaan worden gemaakt.",
-                deleting: "Foto wordt gelöscht...",
+                deleteConfirm: "Sind Sie sicher dat u dit foto wilt verwijderen? Dies kann nicht rückgängig gemacht werden.",
+                deleting: "Foto wird gelöscht...",
                 deleteSuccess: "Foto erfolgreich gelöscht!",
                 deleteFailed: "Löschen fehlgeschlagen: ",
-                photoNotFound: "Foto niet gevonden",
-                loadDetailsFailed: "Fehler beim Laden der Fotodetails: "
+                photoNotFound: "Foto nicht gevonden",
+                loadDetailsFailed: "Fehler beim Laden der Fotodetails: ",
+                searchToFindDogs: "Geben Sie mindestens 2 Buchstaben ein, um zu suchen"
             }
         };
     }
@@ -231,7 +246,7 @@ class PhotoManager extends BaseModule {
                                                             <input type="text" class="form-control" id="photoHondSearch" 
                                                                    placeholder="${t('searchDog')}" autocomplete="off">
                                                             <div class="dropdown-menu w-100" id="dogDropdownMenu" style="max-height: 300px; overflow-y: auto;">
-                                                                <div class="dropdown-item text-muted">${t('loadingPhotos')}</div>
+                                                                <div class="dropdown-item text-muted">${t('searchToFindDogs')}</div>
                                                             </div>
                                                         </div>
                                                         <input type="hidden" id="selectedDogId">
@@ -313,24 +328,16 @@ class PhotoManager extends BaseModule {
         this.fixPhotoModalClose();
     }
     
-    /**
-     * Specifieke fix voor foto gallery modal
-     */
     fixPhotoModalClose() {
         const modalElement = document.getElementById('photoGalleryModal');
         if (!modalElement) return;
         
-        console.log('PhotoManager: Modal fixes geïnstalleerd');
-        
-        // Luister naar modal sluiten
         modalElement.addEventListener('hide.bs.modal', () => {
-            // Verwijder focus van close button
             const closeBtn = modalElement.querySelector('.btn-close:focus');
             if (closeBtn) {
                 closeBtn.blur();
             }
             
-            // Verwijder focus van andere elementen
             const focused = modalElement.querySelector(':focus');
             if (focused) {
                 focused.blur();
@@ -338,36 +345,24 @@ class PhotoManager extends BaseModule {
         });
         
         modalElement.addEventListener('hidden.bs.modal', () => {
-            console.log('Photo gallery modal gesloten');
-            
-            // Forceer cleanup van backdrops
             setTimeout(() => {
                 this.cleanupModalAfterClose();
             }, 50);
         });
     }
     
-    /**
-     * Cleanup na modal sluiten
-     */
     cleanupModalAfterClose() {
         const openModals = document.querySelectorAll('.modal.show');
         const backdrops = document.querySelectorAll('.modal-backdrop');
         
-        console.log(`Cleanup: ${openModals.length} modals open, ${backdrops.length} backdrops`);
-        
         if (openModals.length === 0 && backdrops.length > 0) {
-            // Verwijder alle backdrops
             backdrops.forEach(backdrop => {
                 backdrop.remove();
             });
             
-            // Reset body
             document.body.classList.remove('modal-open');
             document.body.style.overflow = '';
             document.body.style.paddingRight = '';
-            
-            console.log('PhotoManager: Modal cleanup uitgevoerd');
         }
     }
     
@@ -377,17 +372,32 @@ class PhotoManager extends BaseModule {
         
         if (!searchInput || !dropdownMenu) return;
         
-        // Toon dropdown bij focus
+        // Reset state bij focus
         searchInput.addEventListener('focus', () => {
-            this.filterDogs('');
-            dropdownMenu.classList.add('show');
+            this.allDogs = [];
+            this.filteredDogs = [];
+            this.currentDogPage = 1;
+            this.hasMoreDogs = true;
         });
         
-        // Filter honden bij elke toetsaanslag
+        // Zoeken bij input met debounce
+        let searchTimeout;
         searchInput.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            this.filterDogs(searchTerm);
-            dropdownMenu.classList.add('show');
+            clearTimeout(searchTimeout);
+            const searchTerm = e.target.value.trim();
+            
+            if (searchTerm.length >= 2) {
+                searchTimeout = setTimeout(() => {
+                    this.searchDogs(searchTerm);
+                }, 300);
+            } else {
+                dropdownMenu.classList.remove('show');
+                dropdownMenu.innerHTML = `
+                    <div class="dropdown-item text-muted">
+                        ${this.t('searchToFindDogs')}
+                    </div>
+                `;
+            }
         });
         
         // Verberg dropdown bij klik buiten
@@ -396,35 +406,68 @@ class PhotoManager extends BaseModule {
                 dropdownMenu.classList.remove('show');
             }
         });
-        
-        // Toon alle honden bij eerste klik
-        searchInput.addEventListener('click', () => {
-            if (dropdownMenu.children.length === 1 && dropdownMenu.children[0].classList.contains('text-muted')) {
-                this.filterDogs('');
-            }
-            dropdownMenu.classList.add('show');
-        });
     }
     
-    async filterDogs(searchTerm = '') {
+    async searchDogs(searchTerm) {
         const dropdownMenu = document.getElementById('dogDropdownMenu');
         if (!dropdownMenu) return;
         
-        if (!this.allDogs || this.allDogs.length === 0) {
-            await this.loadDogsData();
+        if (this.isLoadingDogs) return;
+        
+        this.isLoadingDogs = true;
+        dropdownMenu.innerHTML = `
+            <div class="dropdown-item text-muted">
+                <i class="bi bi-hourglass-split"></i> ${this.t('loadingDogs')}...
+            </div>
+        `;
+        dropdownMenu.classList.add('show');
+        
+        try {
+            // Reset bij nieuwe zoekopdracht
+            if (this.currentDogPage === 1) {
+                this.allDogs = [];
+                this.filteredDogs = [];
+            }
+            
+            // Zoek honden via Supabase service (zoals SearchManager)
+            const criteria = {
+                naam: searchTerm,
+                kennelnaam: searchTerm,
+                stamboomnr: searchTerm
+            };
+            
+            const result = await window.hondenService.zoekHonden(
+                criteria,
+                this.currentDogPage,
+                this.dogsPerPage
+            );
+            
+            if (result.honden && result.honden.length > 0) {
+                // Voeg nieuwe honden toe
+                this.allDogs = [...this.allDogs, ...result.honden];
+                this.filteredDogs = this.allDogs;
+                this.hasMoreDogs = result.heeftVolgende;
+                this.currentDogPage++;
+                
+                this.updateDropdownMenu(result.honden.length);
+            } else {
+                this.updateDropdownMenu(0);
+                this.hasMoreDogs = false;
+            }
+            
+        } catch (error) {
+            console.error('Fout bij zoeken honden:', error);
+            dropdownMenu.innerHTML = `
+                <div class="dropdown-item text-danger">
+                    <i class="bi bi-exclamation-triangle"></i> Fout bij laden
+                </div>
+            `;
+        } finally {
+            this.isLoadingDogs = false;
         }
-        
-        // ALLEEN ZOEKEN OP NAAM VAN DE HOND - EN ALLEEN ALS HET BEGINT MET DE ZOEKTERM
-        this.filteredDogs = this.allDogs.filter(dog => {
-            const dogName = dog.naam.toLowerCase();
-            // AANGEPAST: ALLEEN OP NAAM ZOEKEN EN ALLEEN ALS HET BEGINT MET DE ZOEKTERM
-            return dogName.startsWith(searchTerm);
-        });
-        
-        this.updateDropdownMenu();
     }
     
-    updateDropdownMenu() {
+    updateDropdownMenu(newResultsCount = 0) {
         const dropdownMenu = document.getElementById('dogDropdownMenu');
         const t = this.t.bind(this);
         
@@ -441,13 +484,16 @@ class PhotoManager extends BaseModule {
             return;
         }
         
-        this.filteredDogs.forEach(dog => {
+        // Toon maximaal 20 honden in dropdown
+        const displayDogs = this.filteredDogs.slice(0, 20);
+        
+        displayDogs.forEach(dog => {
             const item = document.createElement('a');
             item.className = 'dropdown-item';
             item.href = '#';
             item.innerHTML = `
                 <div>
-                    <strong>${dog.naam} ${dog.kennelnaam ? dog.kennelnaam : ''}</strong>
+                    <strong>${dog.naam || ''} ${dog.kennelnaam ? `(${dog.kennelnaam})` : ''}</strong>
                     <div class="small text-muted">
                         ${dog.ras || ''} • ${dog.stamboomnr || ''}
                     </div>
@@ -462,6 +508,28 @@ class PhotoManager extends BaseModule {
             
             dropdownMenu.appendChild(item);
         });
+        
+        // Toon "meer laden" knop als er meer zijn
+        if (this.hasMoreDogs && this.filteredDogs.length >= 20) {
+            const loadMoreItem = document.createElement('a');
+            loadMoreItem.className = 'dropdown-item text-center text-primary';
+            loadMoreItem.href = '#';
+            loadMoreItem.innerHTML = `
+                <i class="bi bi-chevron-down"></i> ${t('loadMoreDogs')}
+            `;
+            
+            loadMoreItem.addEventListener('click', (e) => {
+                e.preventDefault();
+                const searchInput = document.getElementById('photoHondSearch');
+                if (searchInput && searchInput.value.length >= 2) {
+                    this.searchDogs(searchInput.value);
+                }
+            });
+            
+            dropdownMenu.appendChild(loadMoreItem);
+        }
+        
+        dropdownMenu.classList.add('show');
     }
     
     selectDog(dog) {
@@ -470,7 +538,7 @@ class PhotoManager extends BaseModule {
         const stamboomnrInput = document.getElementById('selectedDogStamboomnr');
         
         if (searchInput) {
-            searchInput.value = `${dog.naam} ${dog.kennelnaam ? dog.kennelnaam : ''}`;
+            searchInput.value = `${dog.naam || ''} ${dog.kennelnaam ? `(${dog.kennelnaam})` : ''}`;
         }
         if (dogIdInput) {
             dogIdInput.value = dog.id;
@@ -480,44 +548,8 @@ class PhotoManager extends BaseModule {
         }
     }
     
-    async loadDogsData() {
-        try {
-            // Gebruik de Supabase service om honden te laden
-            let allDogs = [];
-            let page = 1;
-            const pageSize = 1000;
-            let hasMore = true;
-            
-            while (hasMore && page <= 100) { // Max 100.000 records
-                const result = await window.hondenService.getHonden(page, pageSize);
-                
-                if (result.honden && result.honden.length > 0) {
-                    allDogs = allDogs.concat(result.honden);
-                }
-                
-                hasMore = result.heeftVolgende;
-                page++;
-                
-                // Stop als we genoeg hebben of er geen meer zijn
-                if (!hasMore || allDogs.length >= 100000) {
-                    break;
-                }
-            }
-            
-            this.allDogs = allDogs;
-            this.allDogs.sort((a, b) => a.naam.localeCompare(b.naam));
-            
-            console.log(`Successvol ${this.allDogs.length} honden geladen`);
-            
-        } catch (error) {
-            console.error('Fout bij laden honden:', error);
-            this.allDogs = [];
-        }
-    }
-    
     async loadPhotosData() {
-        await this.loadDogsData();
-        await this.loadAllPhotos();
+        // Leeg - wordt alleen gebruikt als modal geopend wordt
     }
     
     async uploadPhoto() {
@@ -552,46 +584,71 @@ class PhotoManager extends BaseModule {
         
         this.showProgress(t('uploading'));
         
-        const reader = new FileReader();
-        
-        reader.onload = async (e) => {
-            try {
-                const fotoData = {
-                    stamboomnr: stamboomnr,
-                    data: e.target.result,
-                    filename: file.name,
-                    size: file.size,
-                    type: file.type,
-                    description: description,
-                    uploadedAt: new Date().toISOString()
-                };
-                
-                await this.db.voegFotoToe(fotoData);
-                
-                this.hideProgress();
-                this.showSuccess(t('uploadSuccess'));
-                
-                // Formulier resetten
-                document.getElementById('photoHondSearch').value = '';
-                document.getElementById('selectedDogId').value = '';
-                document.getElementById('selectedDogStamboomnr').value = '';
-                document.getElementById('photoDescription').value = '';
-                fileInput.value = '';
-                
-                await this.loadAllPhotos();
-                
-            } catch (error) {
-                this.hideProgress();
-                this.showError(`${t('uploadFailed')}${error.message}`);
+        try {
+            // Upload naar Supabase Storage (zoals in supabase-honden.js)
+            const user = window.auth ? window.auth.getCurrentUser() : null;
+            
+            if (!user || !user.id) {
+                throw new Error('Gebruiker niet ingelogd of geen user ID beschikbaar');
             }
-        };
-        
-        reader.onerror = () => {
+            
+            // Maak unieke bestandsnaam
+            const timestamp = Date.now();
+            const safeFilename = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+            const fileName = `${timestamp}_${safeFilename}`;
+            const filePath = `fotos/${stamboomnr}/${fileName}`;
+            
+            // Upload naar Supabase Storage
+            const { data: uploadData, error: uploadError } = await window.supabase
+                .storage
+                .from('fotos')
+                .upload(filePath, file);
+            
+            if (uploadError) throw uploadError;
+            
+            // Haal publieke URL op
+            const { data: urlData } = await window.supabase
+                .storage
+                .from('fotos')
+                .getPublicUrl(filePath);
+            
+            // Voeg metadata toe aan fotos tabel
+            const fotoData = {
+                stamboomnr: stamboomnr,
+                filename: file.name,
+                filepath: filePath,
+                url: urlData.publicUrl,
+                size: file.size,
+                type: file.type,
+                description: description,
+                uploaded_by: user.id,
+                uploaded_at: new Date().toISOString()
+            };
+            
+            const { data: dbData, error: dbError } = await window.supabase
+                .from('fotos')
+                .insert(fotoData)
+                .select()
+                .single();
+            
+            if (dbError) throw dbError;
+            
             this.hideProgress();
-            this.showError(t('fileReadError'));
-        };
-        
-        reader.readAsDataURL(file);
+            this.showSuccess(t('uploadSuccess'));
+            
+            // Formulier resetten
+            document.getElementById('photoHondSearch').value = '';
+            document.getElementById('selectedDogId').value = '';
+            document.getElementById('selectedDogStamboomnr').value = '';
+            document.getElementById('photoDescription').value = '';
+            fileInput.value = '';
+            
+            await this.loadAllPhotos();
+            
+        } catch (error) {
+            this.hideProgress();
+            this.showError(`${t('uploadFailed')}${error.message}`);
+        }
     }
     
     async loadAllPhotos() {
@@ -599,9 +656,15 @@ class PhotoManager extends BaseModule {
         this.showProgress(t('loading'));
         
         try {
-            const fotos = await this.db.getAllFotos();
+            // Gebruik de fotoService uit supabase-honden.js
+            const result = await window.fotoService.getFotosMetPaginatie(
+                null, // Alle foto's
+                1, // Pagina 1
+                12 // 12 foto's per pagina
+            );
+            
             this.hideProgress();
-            this.displayPhotos(fotos);
+            await this.displayPhotos(result.fotos || []);
             
         } catch (error) {
             this.hideProgress();
@@ -637,34 +700,47 @@ class PhotoManager extends BaseModule {
         
         let html = '';
         
-        fotos.forEach((foto, index) => {
-            const dog = this.allDogs.find(d => d.stamboomnr === foto.stamboomnr);
-            const dogName = dog ? `${dog.naam} ${dog.kennelnaam ? dog.kennelnaam : ''}` : t('unknownDog');
-            const uploadDatum = new Date(foto.uploadedAt).toLocaleDateString(this.currentLang);
+        for (const foto of fotos) {
+            // Laad hond informatie indien nodig
+            let dog = this.allDogs.find(d => d.stamboomnr === foto.stamboomnr);
+            if (!dog) {
+                try {
+                    dog = await window.hondenService.getHondByStamboomnr(foto.stamboomnr);
+                    if (dog) this.allDogs.push(dog);
+                } catch (error) {
+                    console.error('Fout bij laden hond info:', error);
+                }
+            }
+            
+            const dogName = dog ? `${dog.naam || ''} ${dog.kennelnaam ? `(${dog.kennelnaam})` : ''}` : t('unknownDog');
+            const uploadDatum = new Date(foto.uploaded_at || foto.uploadedAt).toLocaleDateString(this.currentLang);
+            const description = foto.description || '';
             
             html += `
                 <div class="col-md-4 col-lg-3 mb-4">
                     <div class="card h-100 photo-card">
                         <div class="card-img-top photo-thumbnail" 
                              style="height: 180px; cursor: pointer; background: #f8f9fa; display: flex; align-items: center; justify-content: center; overflow: hidden;"
-                             data-index="${index}">
-                            ${foto.data ? 
-                                `<img src="${foto.data}" alt="${foto.description || dogName}" 
+                             data-foto-id="${foto.id}">
+                            ${foto.url || foto.data ? 
+                                `<img src="${foto.url || foto.data}" alt="${description || dogName}" 
                                       style="max-width: 100%; max-height: 100%; object-fit: cover;">` :
                                 `<i class="bi bi-image text-muted" style="font-size: 3rem;"></i>`
                             }
                         </div>
                         <div class="card-body d-flex flex-column">
                             <h6 class="card-title mb-2">${dogName}</h6>
-                            ${foto.description ? `
+                            ${description ? `
                                 <p class="card-text small text-muted flex-grow-1">
-                                    ${foto.description}
+                                    ${description}
                                 </p>
                             ` : ''}
                             <div class="mt-auto">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <small class="text-muted">${uploadDatum}</small>
-                                    <button class="btn btn-sm btn-outline-danger delete-photo-btn" data-id="${foto.id}">
+                                    <button class="btn btn-sm btn-outline-danger delete-photo-btn" 
+                                            data-id="${foto.id}" 
+                                            data-filepath="${foto.filepath || ''}">
                                         <i class="bi bi-trash"></i> ${t('delete')}
                                     </button>
                                 </div>
@@ -673,190 +749,139 @@ class PhotoManager extends BaseModule {
                     </div>
                 </div>
             `;
-        });
+        }
         
         container.innerHTML = html;
         
-        // Event listener voor thumbnails (voor vergroting)
+        // Event listener voor thumbnails
         document.querySelectorAll('.photo-thumbnail').forEach(thumbnail => {
             thumbnail.addEventListener('click', (e) => {
-                const index = parseInt(e.currentTarget.dataset.index);
-                this.showPhotoGallery(fotos, index);
+                const fotoId = e.currentTarget.dataset.fotoId;
+                this.showPhotoDetails(fotoId);
             });
         });
         
         // Event listener voor delete knoppen
         document.querySelectorAll('.delete-photo-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+            btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 const fotoId = e.currentTarget.dataset.id;
-                this.deletePhoto(fotoId);
+                const filepath = e.currentTarget.dataset.filepath;
+                await this.deletePhoto(fotoId, filepath);
             });
         });
     }
     
-    async showPhotoGallery(fotos, startIndex = 0) {
+    async showPhotoDetails(fotoId) {
         const t = this.t.bind(this);
         
-        let currentIndex = startIndex;
-        
-        const getPhotoHTML = (foto, index) => {
-            const dog = this.allDogs.find(d => d.stamboomnr === foto.stamboomnr);
-            const dogName = dog ? `${dog.naam} ${dog.kennelnaam ? dog.kennelnaam : ''}` : t('unknownDog');
+        try {
+            // Haal foto details op
+            const { data: foto, error } = await window.supabase
+                .from('fotos')
+                .select('*')
+                .eq('id', fotoId)
+                .single();
             
-            return `
-                <div class="carousel-item ${index === currentIndex ? 'active' : ''}">
-                    <div class="row">
-                        <div class="col-lg-8">
-                            <div class="text-center mb-4">
-                                ${foto.data ? 
-                                    `<img src="${foto.data}" alt="${foto.description || dogName}" 
-                                          class="img-fluid rounded shadow" style="max-height: 70vh; max-width: 100%;">` :
-                                    `<div class="bg-light p-5 rounded text-center">
-                                        <i class="bi bi-image text-muted" style="font-size: 5rem;"></i>
-                                        <p class="mt-3 text-muted">${t('photoNotFound')}</p>
-                                    </div>`
-                                }
+            if (error) throw error;
+            
+            // Haal hond informatie op
+            let dog = this.allDogs.find(d => d.stamboomnr === foto.stamboomnr);
+            if (!dog) {
+                dog = await window.hondenService.getHondByStamboomnr(foto.stamboomnr);
+            }
+            
+            const dogName = dog ? `${dog.naam || ''} ${dog.kennelnaam ? `(${dog.kennelnaam})` : ''}` : t('unknownDog');
+            
+            const modalHTML = `
+                <div class="modal fade" id="photoDetailsModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header bg-dark text-white">
+                                <h5 class="modal-title">
+                                    <i class="bi bi-image"></i> ${t('photoDetails')}
+                                </h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                             </div>
-                        </div>
-                        <div class="col-lg-4">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h5 class="mb-0">${t('photoDetails')}</h5>
-                                </div>
-                                <div class="card-body">
-                                    <table class="table table-sm">
-                                        <tr>
-                                            <th style="width: 40%">${t('dog')}:</th>
-                                            <td><strong>${dogName}</strong></td>
-                                        </tr>
-                                        <tr>
-                                            <th>${t('filename')}:</th>
-                                            <td><small>${foto.filename}</small></td>
-                                        </tr>
-                                        <tr>
-                                            <th>${t('size')}:</th>
-                                            <td>${foto.size ? (foto.size / 1024).toFixed(1) + ' KB' : '-'}</td>
-                                        </tr>
-                                        <tr>
-                                            <th>${t('type')}:</th>
-                                            <td>${foto.type || '-'}</td>
-                                        </tr>
-                                        <tr>
-                                            <th>${t('uploadedOn')}:</th>
-                                            <td>${new Date(foto.uploadedAt).toLocaleString(this.currentLang)}</td>
-                                        </tr>
-                                    </table>
-                                    
-                                    ${foto.description ? `
-                                    <div class="mt-3">
-                                        <h6 class="border-bottom pb-2">${t('description')}</h6>
-                                        <div class="bg-light p-3 rounded small">
-                                            ${foto.description}
+                            <div class="modal-body">
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <div class="text-center mb-3">
+                                            ${foto.url ? 
+                                                `<img src="${foto.url}" alt="${foto.description || dogName}" 
+                                                      class="img-fluid rounded shadow" style="max-height: 60vh;">` :
+                                                `<div class="bg-light p-5 rounded text-center">
+                                                    <i class="bi bi-image text-muted" style="font-size: 5rem;"></i>
+                                                    <p class="mt-3 text-muted">${t('photoNotFound')}</p>
+                                                </div>`
+                                            }
                                         </div>
                                     </div>
-                                    ` : ''}
+                                    <div class="col-md-4">
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <table class="table table-sm">
+                                                    <tr>
+                                                        <th style="width: 40%">${t('dog')}:</th>
+                                                        <td><strong>${dogName}</strong></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>${t('filename')}:</th>
+                                                        <td><small>${foto.filename}</small></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>${t('size')}:</th>
+                                                        <td>${foto.size ? (foto.size / 1024).toFixed(1) + ' KB' : '-'}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>${t('type')}:</th>
+                                                        <td>${foto.type || '-'}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>${t('uploadedOn')}:</th>
+                                                        <td>${new Date(foto.uploaded_at).toLocaleString(this.currentLang)}</td>
+                                                    </tr>
+                                                </table>
+                                                
+                                                ${foto.description ? `
+                                                <div class="mt-3">
+                                                    <h6 class="border-bottom pb-2">${t('description')}</h6>
+                                                    <div class="bg-light p-3 rounded small">
+                                                        ${foto.description}
+                                                    </div>
+                                                </div>
+                                                ` : ''}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">${t('close')}</button>
                             </div>
                         </div>
                     </div>
                 </div>
             `;
-        };
-        
-        const carouselIndicators = fotos.map((_, index) => `
-            <button type="button" data-bs-target="#photoCarousel" data-bs-slide-to="${index}" 
-                    class="${index === currentIndex ? 'active' : ''}" aria-label="Foto ${index + 1}">
-            </button>
-        `).join('');
-        
-        const carouselItems = fotos.map((foto, index) => getPhotoHTML(foto, index)).join('');
-        
-        const html = `
-            <div class="modal fade" id="photoGalleryViewModal" tabindex="-1" aria-labelledby="photoGalleryViewModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-xl modal-fullscreen-lg-down">
-                    <div class="modal-content">
-                        <div class="modal-header bg-dark text-white">
-                            <h5 class="modal-title" id="photoGalleryViewModalLabel">
-                                <i class="bi bi-images"></i> ${t('allPhotos')} (${currentIndex + 1}/${fotos.length})
-                            </h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Sluiten"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div id="photoCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="false">
-                                <div class="carousel-indicators">
-                                    ${carouselIndicators}
-                                </div>
-                                <div class="carousel-inner">
-                                    ${carouselItems}
-                                </div>
-                                <button class="carousel-control-prev" type="button" data-bs-target="#photoCarousel" data-bs-slide="prev">
-                                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                                    <span class="visually-hidden">${t('prevPhoto')}</span>
-                                </button>
-                                <button class="carousel-control-next" type="button" data-bs-target="#photoCarousel" data-bs-slide="next">
-                                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                                    <span class="visually-hidden">${t('nextPhoto')}</span>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">${t('close')}</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        const container = document.getElementById('modalsContainer');
-        container.insertAdjacentHTML('beforeend', html);
-        
-        const modalElement = document.getElementById('photoGalleryViewModal');
-        const modal = new bootstrap.Modal(modalElement);
-        
-        // FIX: Voeg modal close fix toe voor deze modal
-        this.fixPhotoViewModalClose(modalElement);
-        
-        modal.show();
-        
-        // Update titel bij carousel slide
-        const carousel = modalElement.querySelector('#photoCarousel');
-        if (carousel) {
-            carousel.addEventListener('slide.bs.carousel', (event) => {
-                currentIndex = event.to;
-                const title = modalElement.querySelector('#photoGalleryViewModalLabel');
-                if (title) {
-                    title.innerHTML = `<i class="bi bi-images"></i> ${t('allPhotos')} (${currentIndex + 1}/${fotos.length})`;
-                }
+            
+            const container = document.getElementById('modalsContainer');
+            container.insertAdjacentHTML('beforeend', modalHTML);
+            
+            const modalElement = document.getElementById('photoDetailsModal');
+            const modal = new bootstrap.Modal(modalElement);
+            
+            modalElement.addEventListener('hidden.bs.modal', () => {
+                modalElement.remove();
             });
+            
+            modal.show();
+            
+        } catch (error) {
+            this.showError(`${t('loadDetailsFailed')}${error.message}`);
         }
-        
-        modalElement.addEventListener('hidden.bs.modal', () => {
-            modalElement.remove();
-        });
     }
     
-    /**
-     * Fix voor photo view modal
-     */
-    fixPhotoViewModalClose(modalElement) {
-        if (!modalElement) return;
-        
-        modalElement.addEventListener('hide.bs.modal', () => {
-            const closeBtn = modalElement.querySelector('.btn-close:focus');
-            if (closeBtn) {
-                closeBtn.blur();
-            }
-        });
-        
-        modalElement.addEventListener('hidden.bs.modal', () => {
-            setTimeout(() => {
-                this.cleanupModalAfterClose();
-            }, 50);
-        });
-    }
-    
-    async deletePhoto(fotoId) {
+    async deletePhoto(fotoId, filepath) {
         const t = this.t.bind(this);
         
         if (!confirm(t('deleteConfirm'))) {
@@ -866,9 +891,30 @@ class PhotoManager extends BaseModule {
         this.showProgress(t('deleting'));
         
         try {
-            await this.db.verwijderFoto(parseInt(fotoId));
+            // Verwijder uit storage als er een filepath is
+            if (filepath) {
+                const { error: storageError } = await window.supabase
+                    .storage
+                    .from('fotos')
+                    .remove([filepath]);
+                
+                if (storageError) {
+                    console.warn('Kon bestand niet verwijderen uit storage:', storageError);
+                }
+            }
+            
+            // Verwijder uit database
+            const { error: dbError } = await window.supabase
+                .from('fotos')
+                .delete()
+                .eq('id', fotoId);
+            
+            if (dbError) throw dbError;
+            
             this.hideProgress();
             this.showSuccess(t('deleteSuccess'));
+            
+            // Herlaad foto's
             await this.loadAllPhotos();
             
         } catch (error) {
