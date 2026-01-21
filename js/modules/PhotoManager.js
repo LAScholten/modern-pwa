@@ -11,12 +11,8 @@ class PhotoManager extends BaseModule {
         this.currentLang = localStorage.getItem('appLanguage') || 'nl';
         this.allDogs = [];
         this.filteredDogs = [];
-        this.currentDogPage = 1;
-        this.dogsPerPage = 50;
-        this.totalDogs = 0;
-        this.isLoadingDogs = false;
-        this.hasMoreDogs = true;
-        this.lastSearchTerm = '';
+        this.isLoadingAllDogs = false;
+        this.totalDogsLoaded = 0;
         
         this.translations = {
             nl: {
@@ -31,8 +27,8 @@ class PhotoManager extends BaseModule {
                 describePhoto: "Beschrijf de foto...",
                 uploadPhoto: "Foto Uploaden",
                 noDogsFound: "Geen honden gevonden",
-                loadingDogs: "Honden laden...",
-                loadMoreDogs: "Meer honden laden",
+                loadingAllDogs: "Alle honden laden...",
+                loadedDogs: "honden geladen",
                 photoOverview: "Foto Overzicht",
                 noPhotos: "Er zijn nog geen foto's geüpload",
                 loadingPhotos: "Foto's laden...",
@@ -68,7 +64,8 @@ class PhotoManager extends BaseModule {
                 deleteFailed: "Verwijderen mislukt: ",
                 photoNotFound: "Foto niet gevonden",
                 loadDetailsFailed: "Fout bij laden foto details: ",
-                searchToFindDogs: "Typ minimaal 2 letters om te zoeken"
+                searchToFindDogs: "Typ om te zoeken...",
+                loadingProgress: "Honden laden: "
             },
             en: {
                 photoGallery: "Photo Gallery",
@@ -82,8 +79,8 @@ class PhotoManager extends BaseModule {
                 describePhoto: "Describe the photo...",
                 uploadPhoto: "Upload Photo",
                 noDogsFound: "No dogs found",
-                loadingDogs: "Loading dogs...",
-                loadMoreDogs: "Load more dogs",
+                loadingAllDogs: "Loading all dogs...",
+                loadedDogs: "dogs loaded",
                 photoOverview: "Photo Overview",
                 noPhotos: "No photos uploaded yet",
                 loadingPhotos: "Loading photos...",
@@ -119,7 +116,8 @@ class PhotoManager extends BaseModule {
                 deleteFailed: "Delete failed: ",
                 photoNotFound: "Photo not found",
                 loadDetailsFailed: "Error loading photo details: ",
-                searchToFindDogs: "Type at least 2 letters to search"
+                searchToFindDogs: "Type to search...",
+                loadingProgress: "Loading dogs: "
             },
             de: {
                 photoGallery: "Foto Galerie",
@@ -133,8 +131,8 @@ class PhotoManager extends BaseModule {
                 describePhoto: "Beschreiben Sie das Foto...",
                 uploadPhoto: "Foto hochladen",
                 noDogsFound: "Keine Hunde gefunden",
-                loadingDogs: "Hunde laden...",
-                loadMoreDogs: "Mehr Hunde laden",
+                loadingAllDogs: "Alle Hunde laden...",
+                loadedDogs: "Hunde geladen",
                 photoOverview: "Foto Übersicht",
                 noPhotos: "Noch keine Fotos hochgeladen",
                 loadingPhotos: "Fotos laden...",
@@ -170,7 +168,8 @@ class PhotoManager extends BaseModule {
                 deleteFailed: "Löschen fehlgeschlagen: ",
                 photoNotFound: "Foto nicht gefunden",
                 loadDetailsFailed: "Fehler beim Laden der Fotodetails: ",
-                searchToFindDogs: "Geben Sie mindestens 2 Buchstaben ein, um zu suchen"
+                searchToFindDogs: "Tippen Sie zum Suchen...",
+                loadingProgress: "Hunde laden: "
             }
         };
     }
@@ -220,9 +219,10 @@ class PhotoManager extends BaseModule {
                                                             <input type="text" class="form-control" id="photoHondSearch" 
                                                                    placeholder="${t('searchDog')}" autocomplete="off">
                                                             <div class="dropdown-menu w-100" id="dogDropdownMenu" style="max-height: 300px; overflow-y: auto;">
-                                                                <div class="dropdown-item text-muted">${t('searchToFindDogs')}</div>
+                                                                <div class="dropdown-item text-muted">${t('loadingAllDogs')}</div>
                                                             </div>
                                                         </div>
+                                                        <div id="dogLoadingStatus" class="form-text text-muted small"></div>
                                                         <input type="hidden" id="selectedDogId">
                                                         <input type="hidden" id="selectedDogStamboomnr">
                                                         <input type="hidden" id="selectedDogName">
@@ -346,52 +346,20 @@ class PhotoManager extends BaseModule {
         
         if (!searchInput || !dropdownMenu) return;
         
-        // Toon dropdown bij focus
-        searchInput.addEventListener('focus', () => {
-            if (searchInput.value.length >= 2) {
-                const currentSearch = searchInput.value;
-                if (currentSearch !== this.lastSearchTerm) {
-                    this.resetSearch();
-                    this.lastSearchTerm = currentSearch;
-                    this.searchDogs(currentSearch);
-                }
-                dropdownMenu.classList.add('show');
+        // Laad ALLE honden bij eerste focus - PRECIES zoals SearchManager
+        searchInput.addEventListener('focus', async () => {
+            if (this.allDogs.length === 0 && !this.isLoadingAllDogs) {
+                await this.loadAllDogs();
             }
+            this.filterDogs(searchInput.value);
+            dropdownMenu.classList.add('show');
         });
         
-        // Zoeken bij input - EXACT zoals SearchManager
-        let searchTimeout;
+        // Filter bij elke toetsaanslag
         searchInput.addEventListener('input', (e) => {
-            clearTimeout(searchTimeout);
-            const searchTerm = e.target.value.trim();
-            
-            if (searchTerm.length >= 2) {
-                searchTimeout = setTimeout(() => {
-                    if (searchTerm !== this.lastSearchTerm) {
-                        this.resetSearch();
-                        this.lastSearchTerm = searchTerm;
-                        this.searchDogs(searchTerm);
-                    }
-                }, 500); // 500ms debounce
-            } else {
-                dropdownMenu.classList.remove('show');
-                dropdownMenu.innerHTML = `
-                    <div class="dropdown-item text-muted">
-                        ${this.t('searchToFindDogs')}
-                    </div>
-                `;
-                this.resetSearch();
-            }
-        });
-        
-        // Scroll om meer te laden
-        dropdownMenu.addEventListener('scroll', () => {
-            if (this.isLoadingDogs || !this.hasMoreDogs) return;
-            
-            const scrollBottom = dropdownMenu.scrollHeight - dropdownMenu.scrollTop - dropdownMenu.clientHeight;
-            if (scrollBottom < 50) {
-                this.loadMoreDogs();
-            }
+            const searchTerm = e.target.value.toLowerCase();
+            this.filterDogs(searchTerm);
+            dropdownMenu.classList.add('show');
         });
         
         // Verberg dropdown bij klik buiten
@@ -400,83 +368,165 @@ class PhotoManager extends BaseModule {
                 dropdownMenu.classList.remove('show');
             }
         });
+        
+        // Toon dropdown bij klik
+        searchInput.addEventListener('click', () => {
+            if (this.allDogs.length > 0) {
+                this.filterDogs(searchInput.value);
+                dropdownMenu.classList.add('show');
+            }
+        });
     }
     
-    resetSearch() {
-        this.allDogs = [];
-        this.filteredDogs = [];
-        this.currentDogPage = 1;
-        this.totalDogs = 0;
-        this.hasMoreDogs = true;
-        this.isLoadingDogs = false;
-    }
-    
-    async searchDogs(searchTerm) {
+    async loadAllDogs() {
         const dropdownMenu = document.getElementById('dogDropdownMenu');
-        if (!dropdownMenu || this.isLoadingDogs) return;
+        const loadingStatus = document.getElementById('dogLoadingStatus');
+        const t = this.t.bind(this);
         
-        this.isLoadingDogs = true;
-        dropdownMenu.innerHTML = `
-            <div class="dropdown-item text-muted">
-                <i class="bi bi-hourglass-split me-2"></i>${this.t('loadingDogs')}...
-            </div>
-        `;
-        dropdownMenu.classList.add('show');
+        if (this.isLoadingAllDogs) return;
         
-        try {
-            // Zoek criteria - EXACT zoals SearchManager
-            const criteria = {};
-            if (searchTerm) {
-                criteria.naam = searchTerm;
-                criteria.kennelnaam = searchTerm;
-                criteria.stamboomnr = searchTerm;
-                criteria.ras = searchTerm;
-            }
-            
-            const result = await window.hondenService.zoekHonden(
-                criteria,
-                this.currentDogPage,
-                this.dogsPerPage
-            );
-            
-            if (result.honden && result.honden.length > 0) {
-                this.allDogs = [...this.allDogs, ...result.honden];
-                this.filteredDogs = this.allDogs;
-                this.totalDogs = result.totaal || 0;
-                this.hasMoreDogs = result.heeftVolgende;
-                
-                this.updateDropdownMenu();
-            } else {
-                this.updateDropdownMenu(true);
-                this.hasMoreDogs = false;
-            }
-            
-        } catch (error) {
-            console.error('Fout bij zoeken honden:', error);
+        this.isLoadingAllDogs = true;
+        this.allDogs = [];
+        this.totalDogsLoaded = 0;
+        
+        if (dropdownMenu) {
             dropdownMenu.innerHTML = `
-                <div class="dropdown-item text-danger">
-                    <i class="bi bi-exclamation-triangle me-2"></i>Fout bij laden
+                <div class="dropdown-item text-muted">
+                    <i class="bi bi-hourglass-split me-2"></i>${t('loadingAllDogs')}...
                 </div>
             `;
+        }
+        
+        if (loadingStatus) {
+            loadingStatus.innerHTML = `<i class="bi bi-hourglass-split"></i> ${t('loadingAllDogs')}...`;
+        }
+        
+        try {
+            let page = 1;
+            const pageSize = 1000; // Batch grootte
+            let hasMore = true;
+            let totalDogs = 0;
+            
+            // Laad eerste pagina om totaal te krijgen
+            const firstResult = await window.hondenService.getHonden(page, pageSize);
+            totalDogs = firstResult.totaal || 0;
+            
+            if (firstResult.honden && firstResult.honden.length > 0) {
+                this.allDogs = [...this.allDogs, ...firstResult.honden];
+                this.totalDogsLoaded += firstResult.honden.length;
+                
+                if (loadingStatus) {
+                    loadingStatus.innerHTML = `${t('loadingProgress')} ${this.totalDogsLoaded} / ${totalDogs}`;
+                }
+            }
+            
+            hasMore = firstResult.heeftVolgende;
+            page++;
+            
+            // Laad de rest van de pagina's (max 100.000 records)
+            while (hasMore && page <= 100 && this.totalDogsLoaded < 100000) {
+                if (loadingStatus) {
+                    loadingStatus.innerHTML = `${t('loadingProgress')} ${this.totalDogsLoaded} / ${totalDogs}`;
+                }
+                
+                const result = await window.hondenService.getHonden(page, pageSize);
+                
+                if (result.honden && result.honden.length > 0) {
+                    this.allDogs = [...this.allDogs, ...result.honden];
+                    this.totalDogsLoaded += result.honden.length;
+                }
+                
+                hasMore = result.heeftVolgende;
+                page++;
+                
+                // Kleine pauze om UI te updaten
+                await new Promise(resolve => setTimeout(resolve, 10));
+            }
+            
+            // Sorteer op naam
+            this.allDogs.sort((a, b) => (a.naam || '').localeCompare(b.naam || ''));
+            
+            console.log(`PhotoManager: ${this.allDogs.length} honden geladen`);
+            
+            if (loadingStatus) {
+                loadingStatus.innerHTML = `<i class="bi bi-check-circle text-success"></i> ${this.allDogs.length} ${t('loadedDogs')}`;
+            }
+            
+            // Toon alle honden in dropdown
+            this.filterDogs('');
+            
+        } catch (error) {
+            console.error('Fout bij laden alle honden:', error);
+            
+            if (dropdownMenu) {
+                dropdownMenu.innerHTML = `
+                    <div class="dropdown-item text-danger">
+                        <i class="bi bi-exclamation-triangle me-2"></i>Fout bij laden honden
+                    </div>
+                `;
+            }
+            
+            if (loadingStatus) {
+                loadingStatus.innerHTML = `<i class="bi bi-exclamation-triangle text-danger"></i> Fout bij laden`;
+            }
         } finally {
-            this.isLoadingDogs = false;
+            this.isLoadingAllDogs = false;
         }
     }
     
-    async loadMoreDogs() {
-        if (this.isLoadingDogs || !this.hasMoreDogs || !this.lastSearchTerm) return;
-        
-        this.currentDogPage++;
-        await this.searchDogs(this.lastSearchTerm);
-    }
-    
-    updateDropdownMenu(noResults = false) {
+    filterDogs(searchTerm = '') {
         const dropdownMenu = document.getElementById('dogDropdownMenu');
         const t = this.t.bind(this);
         
         if (!dropdownMenu) return;
         
-        if (noResults || this.filteredDogs.length === 0) {
+        if (this.isLoadingAllDogs) {
+            dropdownMenu.innerHTML = `
+                <div class="dropdown-item text-muted">
+                    <i class="bi bi-hourglass-split me-2"></i>${t('loadingAllDogs')}...
+                </div>
+            `;
+            return;
+        }
+        
+        if (this.allDogs.length === 0) {
+            dropdownMenu.innerHTML = `
+                <div class="dropdown-item text-muted">
+                    ${t('searchToFindDogs')}
+                </div>
+            `;
+            return;
+        }
+        
+        const searchLower = searchTerm.toLowerCase().trim();
+        
+        if (searchLower === '') {
+            this.filteredDogs = this.allDogs.slice(0, 100); // Toon eerste 100 bij lege zoekopdracht
+        } else {
+            // Zoek in naam, kennelnaam, stamboomnr en ras - PRECIES zoals SearchManager
+            this.filteredDogs = this.allDogs.filter(dog => {
+                const naam = (dog.naam || '').toLowerCase();
+                const kennelnaam = (dog.kennelnaam || '').toLowerCase();
+                const stamboomnr = (dog.stamboomnr || '').toLowerCase();
+                const ras = (dog.ras || '').toLowerCase();
+                
+                return naam.includes(searchLower) ||
+                       kennelnaam.includes(searchLower) ||
+                       stamboomnr.includes(searchLower) ||
+                       ras.includes(searchLower);
+            });
+        }
+        
+        this.updateDropdownMenu();
+    }
+    
+    updateDropdownMenu() {
+        const dropdownMenu = document.getElementById('dogDropdownMenu');
+        const t = this.t.bind(this);
+        
+        if (!dropdownMenu) return;
+        
+        if (this.filteredDogs.length === 0) {
             dropdownMenu.innerHTML = `
                 <div class="dropdown-item text-muted">
                     ${t('noDogsFound')}
@@ -486,8 +536,10 @@ class PhotoManager extends BaseModule {
         }
         
         let html = '';
+        const displayCount = Math.min(this.filteredDogs.length, 100); // Max 100 tonen
         
-        this.filteredDogs.forEach(dog => {
+        for (let i = 0; i < displayCount; i++) {
+            const dog = this.filteredDogs[i];
             const displayName = `${dog.naam || ''}${dog.kennelnaam ? ` (${dog.kennelnaam})` : ''}`;
             const displayInfo = `${dog.ras || ''}${dog.stamboomnr ? ` • ${dog.stamboomnr}` : ''}`;
             
@@ -501,13 +553,13 @@ class PhotoManager extends BaseModule {
                     </div>
                 </a>
             `;
-        });
+        }
         
-        // Toon "meer laden" knop als er meer zijn
-        if (this.hasMoreDogs) {
+        // Toon telling als er meer zijn
+        if (this.filteredDogs.length > 100) {
             html += `
-                <div class="dropdown-item text-center text-primary" id="loadMoreDogsItem">
-                    <i class="bi bi-chevron-down"></i> ${t('loadMoreDogs')}
+                <div class="dropdown-item text-center text-muted small">
+                    ... en nog ${this.filteredDogs.length - 100} honden
                 </div>
             `;
         }
@@ -526,16 +578,6 @@ class PhotoManager extends BaseModule {
                 dropdownMenu.classList.remove('show');
             });
         });
-        
-        // Event listener voor "meer laden"
-        const loadMoreItem = document.getElementById('loadMoreDogsItem');
-        if (loadMoreItem) {
-            loadMoreItem.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                this.loadMoreDogs();
-            });
-        }
         
         dropdownMenu.classList.add('show');
     }
@@ -590,13 +632,11 @@ class PhotoManager extends BaseModule {
         this.showProgress(t('uploading'));
         
         try {
-            // Controleer of gebruiker is ingelogd
             const user = window.auth ? window.auth.getCurrentUser() : null;
             if (!user || !user.id) {
                 throw new Error('Niet ingelogd of geen gebruikers-ID beschikbaar');
             }
             
-            // Maak unieke bestandsnaam
             const timestamp = Date.now();
             const safeFilename = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
             const fileName = `${timestamp}_${safeFilename}`;
@@ -604,7 +644,6 @@ class PhotoManager extends BaseModule {
             
             console.log('Uploading to:', filePath);
             
-            // Upload naar Supabase Storage
             const { data: uploadData, error: uploadError } = await window.supabase
                 .storage
                 .from('fotos')
@@ -620,7 +659,6 @@ class PhotoManager extends BaseModule {
             
             console.log('Upload successful, getting public URL...');
             
-            // Haal publieke URL op
             const { data: urlData } = await window.supabase
                 .storage
                 .from('fotos')
@@ -628,7 +666,6 @@ class PhotoManager extends BaseModule {
             
             console.log('Public URL:', urlData.publicUrl);
             
-            // Voeg metadata toe aan database
             const fotoData = {
                 stamboomnr: stamboomnr,
                 filename: file.name,
@@ -659,7 +696,6 @@ class PhotoManager extends BaseModule {
             this.hideProgress();
             this.showSuccess(t('uploadSuccess'));
             
-            // Formulier resetten
             document.getElementById('photoHondSearch').value = '';
             document.getElementById('selectedDogId').value = '';
             document.getElementById('selectedDogStamboomnr').value = '';
@@ -667,7 +703,6 @@ class PhotoManager extends BaseModule {
             document.getElementById('photoDescription').value = '';
             fileInput.value = '';
             
-            // Herlaad foto's
             await this.loadAllPhotos();
             
         } catch (error) {
@@ -682,11 +717,10 @@ class PhotoManager extends BaseModule {
         this.showProgress(t('loading'));
         
         try {
-            // Gebruik de fotoService uit supabase-honden.js
             const result = await window.fotoService.getFotosMetPaginatie(
-                null, // Alle foto's
-                1,    // Pagina 1
-                12    // 12 foto's per pagina
+                null,
+                1,
+                12
             );
             
             this.hideProgress();
@@ -728,7 +762,6 @@ class PhotoManager extends BaseModule {
         let html = '';
         
         for (const foto of fotos) {
-            // Laad hond informatie indien nodig
             let dog = null;
             if (foto.stamboomnr) {
                 try {
@@ -782,7 +815,6 @@ class PhotoManager extends BaseModule {
         
         container.innerHTML = html;
         
-        // Event listener voor thumbnails
         document.querySelectorAll('.photo-thumbnail').forEach(thumbnail => {
             thumbnail.addEventListener('click', (e) => {
                 const fotoId = e.currentTarget.dataset.fotoId;
@@ -790,7 +822,6 @@ class PhotoManager extends BaseModule {
             });
         });
         
-        // Event listener voor delete knoppen
         document.querySelectorAll('.delete-photo-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
@@ -805,7 +836,6 @@ class PhotoManager extends BaseModule {
         const t = this.t.bind(this);
         
         try {
-            // Haal foto details op
             const { data: foto, error } = await window.supabase
                 .from('fotos')
                 .select('*')
@@ -814,7 +844,6 @@ class PhotoManager extends BaseModule {
             
             if (error) throw error;
             
-            // Haal hond informatie op
             let dog = null;
             if (foto.stamboomnr) {
                 dog = await window.hondenService.getHondByStamboomnr(foto.stamboomnr);
@@ -921,7 +950,6 @@ class PhotoManager extends BaseModule {
         this.showProgress(t('deleting'));
         
         try {
-            // Verwijder uit storage als er een filepath is
             if (filepath) {
                 const { error: storageError } = await window.supabase
                     .storage
@@ -933,7 +961,6 @@ class PhotoManager extends BaseModule {
                 }
             }
             
-            // Verwijder uit database
             const { error: dbError } = await window.supabase
                 .from('fotos')
                 .delete()
@@ -944,7 +971,6 @@ class PhotoManager extends BaseModule {
             this.hideProgress();
             this.showSuccess(t('deleteSuccess'));
             
-            // Herlaad foto's
             await this.loadAllPhotos();
             
         } catch (error) {
