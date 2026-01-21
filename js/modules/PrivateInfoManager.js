@@ -1,160 +1,43 @@
 /**
  * Privé Informatie Module
- * Beheert vertrouwelijke informatie over honden - Alleen lokaal opgeslagen
+ * EXACT ZELFDE LAADLOGICA ALS SEARCHMANAGER
  */
 
 class PrivateInfoManager extends BaseModule {
     constructor() {
         super();
         this.currentLang = localStorage.getItem('appLanguage') || 'nl';
-        this.currentHondId = null;
-        this.currentPriveInfo = null;
         this.allDogs = [];
-        this.filteredDogs = [];
+        this.isLoading = false;
+        this.currentPriveInfo = null;
+        
         this.translations = {
             nl: {
-                // Modal titels
                 privateInfo: "Privé Informatie",
                 privateNotes: "Privé Notities",
                 notesPlaceholder: "Voer hier alle vertrouwelijke informatie in...",
-                
-                // Selectie sectie
                 selectDog: "Selecteer Hond",
                 dog: "Hond",
-                chooseDog: "Kies een hond...",
                 typeDogName: "Typ hondennaam...",
                 loadInfo: "Info Laden",
-                
-                // Beveiligingsinfo
                 securityInfo: "Beveiligingsinfo",
-                privateStorage: "Alle informatie wordt alleen lokaal opgeslagen in uw browser",
-                privateNote: "Deze notities zijn alleen zichtbaar voor u en worden niet gedeeld",
-                
-                // Knoppen
+                privateStorage: "Alle informatie wordt veilig opgeslagen",
+                privateNote: "Deze notities zijn alleen voor u zichtbaar",
                 clear: "Wissen",
                 save: "Opslaan",
                 backup: "Backup",
                 restore: "Restore",
-                
-                // Alerts
                 selectDogFirst: "Selecteer eerst een hond",
                 loadingInfo: "Privé info laden...",
-                noInfoFound: "Geen privé informatie gevonden voor deze hond. U kunt nieuwe informatie toevoegen.",
-                loadFailed: "Laden mislukt: ",
-                dogNotFound: "Hond niet gevonden in database",
-                dogSelectionRequired: "Selecteer een hond uit de lijst",
+                noInfoFound: "Geen privé informatie gevonden",
                 savingInfo: "Privé info opslaan...",
-                saveSuccess: "Privé informatie succesvol opgeslagen!",
-                saveFailed: "Opslaan mislukt: ",
+                saveSuccess: "Privé informatie opgeslagen!",
                 clearConfirm: "Weet je zeker dat je alle notities wilt wissen?",
-                fieldsCleared: "Notities gewist. Vergeet niet op te slaan als je de wijzigingen wilt bewaren.",
                 makingBackup: "Backup maken...",
-                backupSuccess: "Backup succesvol gemaakt!",
-                backupFailed: "Backup mislukt: ",
-                invalidBackup: "Ongeldig backup bestand",
-                restoreConfirm: "Weet je zeker dat je deze backup wilt herstellen?",
+                backupSuccess: "Backup gemaakt!",
                 restoring: "Backup herstellen...",
-                restoreSuccess: "Backup succesvol hersteld!",
-                restoreFailed: "Herstellen mislukt: ",
-                backupReadError: "Fout bij lezen backup bestand",
-                noDogsFound: "Geen honden gevonden",
-                loadingPhotos: "Foto's laden..."
-            },
-            en: {
-                // Modal titles
-                privateInfo: "Private Information",
-                privateNotes: "Private Notes",
-                notesPlaceholder: "Enter all confidential information here...",
-                
-                // Selection section
-                selectDog: "Select Dog",
-                dog: "Dog",
-                chooseDog: "Choose a dog...",
-                typeDogName: "Type dog name...",
-                loadInfo: "Load Info",
-                
-                // Security info
-                securityInfo: "Security Info",
-                privateStorage: "All information is stored locally in your browser only",
-                privateNote: "These notes are only visible to you and are not shared",
-                
-                // Buttons
-                clear: "Clear",
-                save: "Save",
-                backup: "Backup",
-                restore: "Restore",
-                
-                // Alerts
-                selectDogFirst: "Select a dog first",
-                loadingInfo: "Loading private info...",
-                noInfoFound: "No private information found for this dog. You can add new information.",
-                loadFailed: "Loading failed: ",
-                dogNotFound: "Dog not found in database",
-                dogSelectionRequired: "Select a dog from the list",
-                savingInfo: "Saving private info...",
-                saveSuccess: "Private information successfully saved!",
-                saveFailed: "Save failed: ",
-                clearConfirm: "Are you sure you want to clear all notes?",
-                fieldsCleared: "Notes cleared. Don't forget to save if you want to keep the changes.",
-                makingBackup: "Making backup...",
-                backupSuccess: "Backup successfully created!",
-                backupFailed: "Backup failed: ",
-                invalidBackup: "Invalid backup file",
-                restoreConfirm: "Are you sure you want to restore this backup?",
-                restoring: "Restoring backup...",
-                restoreSuccess: "Backup successfully restored!",
-                restoreFailed: "Restore failed: ",
-                backupReadError: "Error reading backup file",
-                noDogsFound: "No dogs found",
-                loadingPhotos: "Loading photos..."
-            },
-            de: {
-                // Modal Titel
-                privateInfo: "Private Informationen",
-                privateNotes: "Private Notizen",
-                notesPlaceholder: "Geben Sie hier alle vertraulichen Informationen ein...",
-                
-                // Auswahlbereich
-                selectDog: "Hund auswählen",
-                dog: "Hund",
-                chooseDog: "Wählen Sie einen Hund...",
-                typeDogName: "Hundename eingeben...",
-                loadInfo: "Info Laden",
-                
-                // Sicherheitsinfo
-                securityInfo: "Sicherheitsinfo",
-                privateStorage: "Alle Informationen werden nur lokal in Ihrem Browser gespeichert",
-                privateNote: "Diese Notizen zijn alleen voor u sichtbaar en werden niet geteilt",
-                
-                // Knöpfe
-                clear: "Löschen",
-                save: "Speichern",
-                backup: "Backup",
-                restore: "Wiederherstellen",
-                
-                // Meldungen
-                selectDogFirst: "Wählen Sie zuerst einen Hund",
-                loadingInfo: "Private Info wird geladen...",
-                noInfoFound: "Keine privaten Informationen für diesen Hund gefunden. Sie können neue Informationen hinzufügen.",
-                loadFailed: "Laden fehlgeschlagen: ",
-                dogNotFound: "Hund nicht in der Datenbank gefunden",
-                dogSelectionRequired: "Wählen Sie einen Hund aus der Liste",
-                savingInfo: "Private Info wird gespeichert...",
-                saveSuccess: "Private Informationen erfolgreich gespeichert!",
-                saveFailed: "Speichern fehlgeschlagen: ",
-                clearConfirm: "Sind Sie sicher, dass Sie alle Notizen löschen möchten?",
-                fieldsCleared: "Notizen gelöscht. Vergessen Sie nicht zu speichern, wenn Sie die Änderungen behalten möchten.",
-                makingBackup: "Backup wird erstellt...",
-                backupSuccess: "Backup erfolgreich erstellt!",
-                backupFailed: "Backup fehlgeschlagen: ",
-                invalidBackup: "Ungültige Backup-Datei",
-                restoreConfirm: "Sind Sie sicher, dass Sie dieses Backup wiederherstellen möchten?",
-                restoring: "Backup wird wiederhergestellt...",
-                restoreSuccess: "Backup erfolgreich wiederhergestellt!",
-                restoreFailed: "Wiederherstellen fehlgeschlagen: ",
-                backupReadError: "Fehler beim Lesen der Backup-Datei",
-                noDogsFound: "Keine Hunde gefunden",
-                loadingPhotos: "Fotos laden..."
+                loadingDogs: "Honden laden...",
+                noDogsFound: "Geen honden gevonden"
             }
         };
     }
@@ -163,14 +46,84 @@ class PrivateInfoManager extends BaseModule {
         return this.translations[this.currentLang][key] || key;
     }
     
-    updateLanguage(lang) {
-        this.currentLang = lang;
-        if (document.getElementById('privateInfoModal')) {
-            this.loadPrivateInfoData();
-            this.setupDogSearch();
-            if (this.currentHondId) {
-                this.loadPrivateInfoForDog();
+    // EXACT DEZELFDE FUNCTIE ALS SEARCHMANAGER
+    async loadAllDogsWithPaginationDogDataManagerStyle() {
+        try {
+            console.log('PrivateInfoManager: Laden van alle honden met paginatie (DogDataManager stijl)...');
+            
+            let allDogs = [];
+            let currentPage = 1;
+            const pageSize = 1000;
+            let hasMorePages = true;
+            let totalLoaded = 0;
+            
+            while (hasMorePages) {
+                console.log(`PrivateInfoManager: Laden pagina ${currentPage}...`);
+                
+                const result = await hondenService.getHonden(currentPage, pageSize);
+                
+                if (result.honden && result.honden.length > 0) {
+                    allDogs = allDogs.concat(result.honden);
+                    totalLoaded += result.honden.length;
+                    
+                    this.showProgress(`Honden laden... (${totalLoaded} geladen)`);
+                    
+                    console.log(`PrivateInfoManager: Pagina ${currentPage} geladen: ${result.honden.length} honden`);
+                    
+                    hasMorePages = result.heeftVolgende;
+                    
+                    if (hasMorePages) {
+                        currentPage++;
+                    }
+                    
+                    if (currentPage > 100) {
+                        console.warn('PrivateInfoManager: Veiligheidslimiet bereikt: te veel pagina\'s geladen');
+                        break;
+                    }
+                } else {
+                    hasMorePages = false;
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 100));
             }
+            
+            console.log(`PrivateInfoManager: TOTAAL ${allDogs.length} honden geladen`);
+            
+            return allDogs;
+            
+        } catch (error) {
+            console.error('PrivateInfoManager: Fout bij laden honden:', error);
+            throw error;
+        }
+    }
+    
+    async loadSearchData() {
+        if (this.isLoading) {
+            console.log('PrivateInfoManager: Al bezig met laden, skip...');
+            return;
+        }
+        
+        try {
+            this.isLoading = true;
+            this.showProgress("Honden laden... (0 geladen)");
+            
+            this.allDogs = await this.loadAllDogsWithPaginationDogDataManagerStyle();
+            
+            this.allDogs.sort((a, b) => {
+                const naamA = a.naam || '';
+                const naamB = b.naam || '';
+                return naamA.localeCompare(naamB);
+            });
+            
+            console.log(`PrivateInfoManager: ${this.allDogs.length} honden geladen voor privé info`);
+            
+        } catch (error) {
+            console.error('PrivateInfoManager: Fout bij laden honden:', error);
+            this.showError(`Laden mislukt: ${error.message}`);
+            this.allDogs = [];
+        } finally {
+            this.isLoading = false;
+            this.hideProgress();
         }
     }
     
@@ -198,10 +151,15 @@ class PrivateInfoManager extends BaseModule {
                                             <div class="mb-3">
                                                 <label for="privateHondSearch" class="form-label">${t('dog')}</label>
                                                 <div class="dropdown">
-                                                    <input type="text" class="form-control" id="privateHondSearch" 
-                                                        placeholder="${t('typeDogName')}" autocomplete="off">
-                                                    <div class="dropdown-menu w-100" id="dogDropdownMenu" style="max-height: 300px; overflow-y: auto;">
-                                                        <div class="dropdown-item text-muted">${t('loadingPhotos')}</div>
+                                                    <input type="text" 
+                                                           class="form-control" 
+                                                           id="privateHondSearch" 
+                                                           placeholder="${t('typeDogName')}"
+                                                           autocomplete="off">
+                                                    <div class="dropdown-menu w-100" 
+                                                         id="dogDropdownMenu" 
+                                                         style="max-height: 300px; overflow-y: auto;">
+                                                        <div class="dropdown-item text-muted">${t('loadingDogs')}</div>
                                                     </div>
                                                 </div>
                                                 <input type="hidden" id="selectedDogId">
@@ -270,53 +228,52 @@ class PrivateInfoManager extends BaseModule {
         `;
     }
     
-    setupEvents() {
-        const loadBtn = document.getElementById('loadPrivateInfoBtn');
-        if (loadBtn) {
-            loadBtn.addEventListener('click', () => {
-                this.loadPrivateInfoForDog();
-            });
+    async showModal() {
+        console.log('PrivateInfoManager: showModal() aangeroepen');
+        
+        if (!document.getElementById('privateInfoModal')) {
+            document.body.insertAdjacentHTML('beforeend', this.getModalHTML());
+            this.setupEvents();
         }
         
-        const saveBtn = document.getElementById('savePrivateInfoBtn');
-        if (saveBtn) {
-            saveBtn.addEventListener('click', () => {
-                this.savePrivateInfo();
-            });
-        }
+        const modalElement = document.getElementById('privateInfoModal');
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
         
-        const clearBtn = document.getElementById('clearPrivateInfoBtn');
-        if (clearBtn) {
-            clearBtn.addEventListener('click', () => {
-                this.clearPrivateInfo();
+        modalElement.addEventListener('shown.bs.modal', () => {
+            this.loadSearchData().then(() => {
+                this.setupDogSearch();
             });
-        }
-        
-        const backupBtn = document.getElementById('backupPrivateInfoBtn');
-        if (backupBtn) {
-            backupBtn.addEventListener('click', () => {
-                this.backupPrivateInfo();
-            });
-        }
-        
-        const restoreBtn = document.getElementById('restorePrivateInfoBtn');
-        if (restoreBtn) {
-            restoreBtn.addEventListener('click', () => {
-                this.restorePrivateInfo();
-            });
-        }
-        
-        this.setupDogSearch();
+        });
     }
     
-    async loadPrivateInfoData() {
-        try {
-            this.allDogs = await hondenService.getHonden();
-            this.allDogs.sort((a, b) => a.naam.localeCompare(b.naam));
-        } catch (error) {
-            console.error('Fout bij laden honden:', error);
-            this.allDogs = [];
-        }
+    setupEvents() {
+        document.addEventListener('click', (e) => {
+            if (e.target && (e.target.id === 'loadPrivateInfoBtn' || e.target.closest('#loadPrivateInfoBtn'))) {
+                e.preventDefault();
+                this.loadPrivateInfoForDog();
+            }
+            
+            if (e.target && (e.target.id === 'savePrivateInfoBtn' || e.target.closest('#savePrivateInfoBtn'))) {
+                e.preventDefault();
+                this.savePrivateInfo();
+            }
+            
+            if (e.target && (e.target.id === 'clearPrivateInfoBtn' || e.target.closest('#clearPrivateInfoBtn'))) {
+                e.preventDefault();
+                this.clearPrivateInfo();
+            }
+            
+            if (e.target && (e.target.id === 'backupPrivateInfoBtn' || e.target.closest('#backupPrivateInfoBtn'))) {
+                e.preventDefault();
+                this.backupPrivateInfo();
+            }
+            
+            if (e.target && (e.target.id === 'restorePrivateInfoBtn' || e.target.closest('#restorePrivateInfoBtn'))) {
+                e.preventDefault();
+                this.restorePrivateInfo();
+            }
+        });
     }
     
     setupDogSearch() {
@@ -325,93 +282,59 @@ class PrivateInfoManager extends BaseModule {
         
         if (!searchInput || !dropdownMenu) return;
         
-        // Toon dropdown bij focus
+        this.updateDropdownWithDogs(this.allDogs);
+        
         searchInput.addEventListener('focus', () => {
-            this.showAllDogs();
             dropdownMenu.classList.add('show');
         });
         
-        // Filter honden bij elke toetsaanslag - ALLEEN OP NAAM
         searchInput.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            this.filterDogs(searchTerm);
+            const searchTerm = e.target.value.toLowerCase().trim();
+            
+            if (searchTerm.length >= 1) {
+                const filteredDogs = this.allDogs.filter(dog => {
+                    const naam = dog.naam ? dog.naam.toLowerCase() : '';
+                    const kennel = dog.kennelnaam ? dog.kennelnaam.toLowerCase() : '';
+                    const combined = `${naam} ${kennel}`;
+                    return combined.startsWith(searchTerm);
+                });
+                this.updateDropdownWithDogs(filteredDogs);
+            } else {
+                this.updateDropdownWithDogs(this.allDogs);
+            }
+            
             dropdownMenu.classList.add('show');
         });
         
-        // Verberg dropdown bij klik buiten
         document.addEventListener('click', (e) => {
             if (!searchInput.contains(e.target) && !dropdownMenu.contains(e.target)) {
                 dropdownMenu.classList.remove('show');
             }
         });
-        
-        // Toon alle honden bij eerste klik
-        searchInput.addEventListener('click', () => {
-            this.showAllDogs();
-            dropdownMenu.classList.add('show');
-        });
     }
     
-    async showAllDogs() {
+    updateDropdownWithDogs(dogs) {
         const dropdownMenu = document.getElementById('dogDropdownMenu');
         if (!dropdownMenu) return;
         
-        if (this.allDogs.length === 0) {
-            await this.loadPrivateInfoData();
-        }
-        
-        this.filteredDogs = [...this.allDogs];
-        this.updateDropdownMenu();
-    }
-    
-    async filterDogs(searchTerm) {
-        const dropdownMenu = document.getElementById('dogDropdownMenu');
-        if (!dropdownMenu) return;
-        
-        if (this.allDogs.length === 0) {
-            await this.loadPrivateInfoData();
-        }
-        
-        if (!searchTerm.trim()) {
-            this.filteredDogs = [...this.allDogs];
-        } else {
-            // AANGEPAST: ALLEEN ZOEKEN OP NAAM VAN DE HOND EN ALLEEN ALS HET BEGINT MET DE ZOEKTERM
-            this.filteredDogs = this.allDogs.filter(dog => {
-                const dogName = dog.naam.toLowerCase();
-                // ALLEEN OP NAAM ZOEKEN EN ALLEEN ALS HET BEGINT MET DE ZOEKTERM
-                return dogName.startsWith(searchTerm);
-            });
-        }
-        
-        this.updateDropdownMenu();
-    }
-    
-    updateDropdownMenu() {
-        const dropdownMenu = document.getElementById('dogDropdownMenu');
-        const t = this.t.bind(this);
-        
-        if (!dropdownMenu) return;
-        
-        dropdownMenu.innerHTML = '';
-        
-        if (this.filteredDogs.length === 0) {
-            dropdownMenu.innerHTML = `
-                <div class="dropdown-item text-muted">
-                    ${t('noDogsFound')}
-                </div>
-            `;
+        if (dogs.length === 0) {
+            dropdownMenu.innerHTML = `<div class="dropdown-item text-muted">${this.t('loadingDogs')}</div>`;
             return;
         }
         
-        this.filteredDogs.forEach(dog => {
+        dropdownMenu.innerHTML = '';
+        
+        dogs.slice(0, 50).forEach(dog => {
             const item = document.createElement('a');
             item.className = 'dropdown-item';
             item.href = '#';
             item.innerHTML = `
                 <div>
-                    <strong>${dog.naam}</strong>
+                    <strong>${dog.naam || 'Naam onbekend'}</strong>
                     <div class="small text-muted">
-                        ${dog.ras || ''} • ${dog.stamboomnr || ''}
+                        ${dog.stamboomnr || ''} 
+                        ${dog.ras ? '| ' + dog.ras : ''}
+                        ${dog.kennelnaam ? '| ' + dog.kennelnaam : ''}
                     </div>
                 </div>
             `;
@@ -432,215 +355,146 @@ class PrivateInfoManager extends BaseModule {
         const stamboomnrInput = document.getElementById('selectedDogStamboomnr');
         const infoDiv = document.getElementById('selectedDogInfo');
         
-        if (searchInput) {
-            searchInput.value = dog.naam;
-        }
-        if (dogIdInput) {
-            dogIdInput.value = dog.id;
-        }
-        if (stamboomnrInput) {
-            stamboomnrInput.value = dog.stamboomnr || '';
-        }
+        if (searchInput) searchInput.value = dog.naam || '';
+        if (dogIdInput) dogIdInput.value = dog.id;
+        if (stamboomnrInput) stamboomnrInput.value = dog.stamboomnr || '';
+        
         if (infoDiv) {
             infoDiv.innerHTML = `
                 <span class="text-success">
                     <i class="bi bi-check-circle"></i> Geselecteerd: 
-                    ${dog.stamboomnr ? dog.stamboomnr + ' | ' : ''}
-                    ${dog.ras ? dog.ras + ' | ' : ''}
-                    Geb: ${dog.geboortedatum || 'onbekend'}
+                    ${dog.naam || ''} 
+                    ${dog.stamboomnr ? '(' + dog.stamboomnr + ')' : ''}
                 </span>
             `;
         }
     }
     
     async loadPrivateInfoForDog() {
-        const t = this.t.bind(this);
-        const dogId = document.getElementById('selectedDogId').value;
-        const stamboomnr = document.getElementById('selectedDogStamboomnr').value;
+        const dogId = document.getElementById('selectedDogId')?.value;
+        const stamboomnr = document.getElementById('selectedDogStamboomnr')?.value;
         
         if (!dogId || !stamboomnr) {
-            this.showError(t('selectDogFirst'));
+            this.showError(this.t('selectDogFirst'));
             return;
         }
         
-        this.currentHondId = parseInt(dogId);
-        
-        this.showProgress(t('loadingInfo'));
+        this.showProgress(this.t('loadingInfo'));
         
         try {
-            // Haal privé info uit LOKALE OPSLAG (niet uit server database)
-            this.currentPriveInfo = await this.getLocalPrivateInfo(stamboomnr);
+            if (!window.priveInfoService) {
+                throw new Error('Privé info service niet beschikbaar');
+            }
+            
+            const result = await window.priveInfoService.getPriveInfoMetPaginatie(1, 1000);
+            const priveInfo = result.priveInfo?.find(info => info.stamboomnr === stamboomnr);
+            
+            this.currentPriveInfo = priveInfo ? {
+                ...priveInfo,
+                privateNotes: priveInfo.privatenotes || ''
+            } : null;
             
             this.hideProgress();
             this.displayPrivateInfo();
             
-            // Update header met de geselecteerde hond
-            const selectedDog = this.allDogs.find(d => d.id.toString() === dogId);
-            if (selectedDog) {
-                this.updatePrivateInfoHeader(selectedDog);
-            }
-            
         } catch (error) {
+            console.error('Fout bij laden privé info:', error);
             this.hideProgress();
-            
-            if (error.message.includes('niet gevonden') || !this.currentPriveInfo) {
-                this.currentPriveInfo = null;
-                this.displayPrivateInfo();
-                this.showInfo(t('noInfoFound'));
-            } else {
-                this.showError(`${t('loadFailed')}${error.message}`);
-            }
+            this.showError('Fout bij laden: ' + error.message);
         }
-    }
-    
-    async getLocalPrivateInfo(stamboomnr) {
-        // Haal privé info uit localStorage (lokaal opgeslagen)
-        const privateInfoKey = `private_info_${stamboomnr}`;
-        const savedInfo = localStorage.getItem(privateInfoKey);
-        
-        if (savedInfo) {
-            return JSON.parse(savedInfo);
-        }
-        return null;
     }
     
     displayPrivateInfo() {
         const notesTextarea = document.getElementById('privateNotes');
         if (!notesTextarea) return;
-        
-        notesTextarea.value = '';
-        
-        if (this.currentPriveInfo) {
-            notesTextarea.value = this.currentPriveInfo.privateNotes || '';
-        }
-        
-        // Zorg ervoor dat textarea altijd beschikbaar is
+        notesTextarea.value = this.currentPriveInfo?.privateNotes || '';
         notesTextarea.removeAttribute('disabled');
     }
     
-    updatePrivateInfoHeader(dog) {
-        const modalTitle = document.querySelector('#privateInfoModal .modal-title');
-        if (modalTitle && dog) {
-            modalTitle.innerHTML = `
-                <i class="bi bi-lock"></i> ${this.t('privateInfo')} - 
-                ${dog.naam} 
-                <small class="text-muted">(${dog.stamboomnr || 'Geen stamboomnr'})</small>
-            `;
-        }
-    }
-    
     async savePrivateInfo() {
-        const t = this.t.bind(this);
-        
-        const dogId = document.getElementById('selectedDogId').value;
-        const stamboomnr = document.getElementById('selectedDogStamboomnr').value;
+        const dogId = document.getElementById('selectedDogId')?.value;
+        const stamboomnr = document.getElementById('selectedDogStamboomnr')?.value;
+        const notes = document.getElementById('privateNotes')?.value.trim() || '';
         
         if (!dogId || !stamboomnr) {
-            this.showError(t('selectDogFirst'));
+            this.showError(this.t('selectDogFirst'));
             return;
         }
         
-        this.showProgress(t('savingInfo'));
+        this.showProgress(this.t('savingInfo'));
         
         try {
+            if (!window.priveInfoService) {
+                throw new Error('Privé info service niet beschikbaar');
+            }
+            
             const priveInfo = {
                 stamboomnr: stamboomnr,
-                privateNotes: document.getElementById('privateNotes').value.trim(),
-                savedAt: new Date().toISOString(),
-                hondId: dogId
+                privateNotes: notes
             };
             
-            // Opslaan in LOKALE OPSLAG (localStorage)
-            await this.saveLocalPrivateInfo(stamboomnr, priveInfo);
+            await window.priveInfoService.bewaarPriveInfo(priveInfo);
+            this.currentPriveInfo = priveInfo;
             
             this.hideProgress();
-            this.showSuccess(t('saveSuccess'));
-            
-            // Herlaad de info na opslaan
-            this.currentPriveInfo = await this.getLocalPrivateInfo(stamboomnr);
-            this.displayPrivateInfo();
+            this.showSuccess(this.t('saveSuccess'));
             
         } catch (error) {
+            console.error('Fout bij opslaan:', error);
             this.hideProgress();
-            this.showError(`${t('saveFailed')}${error.message}`);
+            this.showError('Opslaan mislukt: ' + error.message);
         }
-    }
-    
-    async saveLocalPrivateInfo(stamboomnr, priveInfo) {
-        // Sla privé info op in localStorage (lokaal opgeslagen)
-        const privateInfoKey = `private_info_${stamboomnr}`;
-        localStorage.setItem(privateInfoKey, JSON.stringify(priveInfo));
-        
-        // Update ook in-memory cache
-        this.currentPriveInfo = priveInfo;
     }
     
     clearPrivateInfo() {
-        const t = this.t.bind(this);
-        
-        if (!confirm(t('clearConfirm'))) {
-            return;
+        if (confirm(this.t('clearConfirm'))) {
+            document.getElementById('privateNotes').value = '';
+            this.showSuccess('Notities gewist');
         }
-        
-        document.getElementById('privateNotes').value = '';
-        
-        this.showSuccess(t('fieldsCleared'));
     }
     
     async backupPrivateInfo() {
-        const t = this.t.bind(this);
-        
-        this.showProgress(t('makingBackup'));
+        this.showProgress(this.t('makingBackup'));
         
         try {
-            // Haal alle privé info op uit localStorage
-            const allPriveInfo = this.getAllLocalPrivateInfo();
+            if (!window.priveInfoService) {
+                throw new Error('Privé info service niet beschikbaar');
+            }
+            
+            const result = await window.priveInfoService.getPriveInfoMetPaginatie(1, 10000);
             
             const backupData = {
                 backupDatum: new Date().toISOString(),
-                aantalRecords: allPriveInfo.length,
-                appNaam: "Honden Registratie Prive Info",
-                data: allPriveInfo
+                aantalRecords: result.priveInfo?.length || 0,
+                appNaam: "Honden Privé Info",
+                data: (result.priveInfo || []).map(info => ({
+                    stamboomnr: info.stamboomnr,
+                    privateNotes: info.privatenotes || '',
+                    savedAt: info.laatstgewijzigd || new Date().toISOString()
+                }))
             };
             
-            const jsonString = JSON.stringify(backupData, null, 2);
-            const blob = new Blob([jsonString], { type: 'application/json' });
-            const filename = `honden-prive-info-backup-${new Date().toISOString().split('T')[0]}.json`;
+            const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `prive-info-backup-${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
             
-            this.downloadFile(blob, filename);
             this.hideProgress();
-            this.showSuccess(t('backupSuccess'));
+            this.showSuccess(this.t('backupSuccess'));
             
         } catch (error) {
+            console.error('Backup fout:', error);
             this.hideProgress();
-            this.showError(`${t('backupFailed')}${error.message}`);
+            this.showError('Backup mislukt: ' + error.message);
         }
     }
     
-    getAllLocalPrivateInfo() {
-        // Haal alle privé info op uit localStorage
-        const allPrivateInfo = [];
-        const keys = Object.keys(localStorage);
-        
-        keys.forEach(key => {
-            if (key.startsWith('private_info_')) {
-                try {
-                    const info = JSON.parse(localStorage.getItem(key));
-                    if (info && info.stamboomnr) {
-                        allPrivateInfo.push(info);
-                    }
-                } catch (error) {
-                    console.error(`Fout bij lezen van ${key}:`, error);
-                }
-            }
-        });
-        
-        return allPrivateInfo;
-    }
-    
-    async restorePrivateInfo() {
-        const t = this.t.bind(this);
-        
+    restorePrivateInfo() {
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = '.json';
@@ -656,61 +510,44 @@ class PrivateInfoManager extends BaseModule {
                     const backupData = JSON.parse(e.target.result);
                     
                     if (!backupData.data || !Array.isArray(backupData.data)) {
-                        throw new Error(t('invalidBackup'));
+                        throw new Error('Ongeldig backup bestand');
                     }
                     
-                    if (!confirm(t('restoreConfirm'))) {
+                    if (!confirm('Backup herstellen? Bestaande data wordt overschreven.')) {
                         return;
                     }
                     
-                    this.showProgress(t('restoring'));
+                    this.showProgress(this.t('restoring'));
                     
-                    const priveInfoData = backupData.data;
+                    if (!window.priveInfoService) {
+                        throw new Error('Privé info service niet beschikbaar');
+                    }
                     
                     let successCount = 0;
                     let errorCount = 0;
                     
-                    for (const info of priveInfoData) {
+                    for (const item of backupData.data) {
                         try {
-                            if (info.stamboomnr) {
-                                // Opslaan in localStorage
-                                const privateInfoKey = `private_info_${info.stamboomnr}`;
-                                localStorage.setItem(privateInfoKey, JSON.stringify(info));
+                            if (item.stamboomnr) {
+                                await window.priveInfoService.bewaarPriveInfo({
+                                    stamboomnr: item.stamboomnr,
+                                    privateNotes: item.privateNotes || ''
+                                });
                                 successCount++;
-                            } else {
-                                errorCount++;
                             }
                         } catch (error) {
-                            console.error('Fout bij importeren privé info:', error);
+                            console.error('Fout bij restore:', error);
                             errorCount++;
                         }
                     }
                     
                     this.hideProgress();
-                    
-                    if (errorCount > 0) {
-                        this.showInfo(`${successCount} records hersteld, ${errorCount} mislukt`);
-                    } else {
-                        this.showSuccess(t('restoreSuccess'));
-                    }
-                    
-                    // Herlaad eventueel huidige info als we die hebben geopend
-                    if (this.currentHondId) {
-                        const stamboomnr = document.getElementById('selectedDogStamboomnr').value;
-                        if (stamboomnr) {
-                            this.currentPriveInfo = await this.getLocalPrivateInfo(stamboomnr);
-                            this.displayPrivateInfo();
-                        }
-                    }
+                    this.showSuccess(`${successCount} records hersteld${errorCount > 0 ? `, ${errorCount} mislukt` : ''}`);
                     
                 } catch (error) {
                     this.hideProgress();
-                    this.showError(`${t('restoreFailed')}${error.message}`);
+                    this.showError('Restore mislukt: ' + error.message);
                 }
-            };
-            
-            reader.onerror = () => {
-                this.showError(t('backupReadError'));
             };
             
             reader.readAsText(file);
@@ -719,45 +556,29 @@ class PrivateInfoManager extends BaseModule {
         input.click();
     }
     
-    // Helper method voor bestandsdownload
-    downloadFile(blob, filename) {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }
-    
-    // Helper methoden voor notificaties
     showProgress(message) {
-        // Implementeer een progress indicator
-        console.log('Progress:', message);
-        // Voorbeeld: this.showToast(message, 'info');
+        if (window.uiHandler && window.uiHandler.showProgress) {
+            window.uiHandler.showProgress(message);
+        }
     }
     
     hideProgress() {
-        // Implementeer het verbergen van de progress indicator
-        console.log('Progress hidden');
+        if (window.uiHandler && window.uiHandler.hideProgress) {
+            window.uiHandler.hideProgress();
+        }
     }
     
     showSuccess(message) {
-        // Implementeer een success melding
-        console.log('Success:', message);
-        alert(message); // Tijdelijke oplossing
+        if (window.uiHandler && window.uiHandler.showSuccess) {
+            window.uiHandler.showSuccess(message);
+        }
     }
     
     showError(message) {
-        // Implementeer een error melding
-        console.error('Error:', message);
-        alert(message); // Tijdelijke oplossing
-    }
-    
-    showInfo(message) {
-        // Implementeer een info melding
-        console.log('Info:', message);
-        alert(message); // Tijdelijke oplossing
+        if (window.uiHandler && window.uiHandler.showError) {
+            window.uiHandler.showError(message);
+        }
     }
 }
+
+window.PrivateInfoManager = PrivateInfoManager;
