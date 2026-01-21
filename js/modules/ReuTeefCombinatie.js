@@ -798,15 +798,15 @@ class ReuTeefCombinatie {
             this.showFuturePuppyPedigree();
         });
         
-        // Setup autocomplete voor teef
+        // Setup autocomplete voor teef - ALLEEN TEVEN
         this.setupAutocomplete('teefSearch', 'teefSearchResults', 'teven', (hond) => {
             this.selectTeef(hond);
-        });
+        }, 'female');
         
-        // Setup autocomplete voor reu
+        // Setup autocomplete voor reu - ALLEEN REUEN
         this.setupAutocomplete('reuSearch', 'reuSearchResults', 'reuen', (hond) => {
             this.selectReu(hond);
-        });
+        }, 'male');
         
         // Update button states
         this.updateButtonStates();
@@ -1281,13 +1281,23 @@ class ReuTeefCombinatie {
         }
     }
     
-    async findHondByNameOrPedigree(name) {
+    async findHondByNameOrPedigree(name, requiredGender = null) {
         if (!name || !name.trim()) return null;
         
         const searchName = name.toLowerCase().trim();
         
         // Eerst in geladen honden zoeken
         for (const hond of this.allHonden) {
+            // Filter op geslacht als requiredGender is opgegeven
+            if (requiredGender) {
+                if (requiredGender === 'female' && !(hond.geslacht === 'teven' || hond.geslacht === 'vrouwelijk')) {
+                    continue;
+                }
+                if (requiredGender === 'male' && !(hond.geslacht === 'reuen' || hond.geslacht === 'mannelijk')) {
+                    continue;
+                }
+            }
+            
             const hondNaam = hond.naam?.toLowerCase() || '';
             const stamboomnr = hond.stamboomnr?.toLowerCase() || '';
             const kennelNaam = hond.kennelnaam?.toLowerCase() || '';
@@ -1302,34 +1312,48 @@ class ReuTeefCombinatie {
         // Als niet gevonden, zoek direct in database
         try {
             // VERANDERD: Gebruik gepagineerde zoek
-            const result = await window.hondenService.zoekHonden({ naam: name }, 1, 100);
+            const result = await window.hondenService.zoekHonden({ naam: name }, 1, 50);
             if (result && result.honden && result.honden.length > 0) {
-                result.honden.forEach(hond => {
-                    const volledigeHond = {
-                        ...hond,
-                        heupdysplasie: hond.heupdysplasie || '',
-                        elleboogdysplasie: hond.elleboogdysplasie || '',
-                        patella: hond.patella || '',
-                        ogen: hond.ogen || '',
-                        ogenVerklaring: hond.ogenVerklaring || '',
-                        dandyWalker: hond.dandyWalker || '',
-                        schildklier: hond.schildklier || '',
-                        schildklierVerklaring: hond.schildklierVerklaring || '',
-                        vachtkleur: hond.vachtkleur || '',
-                        ras: hond.ras || ''
-                    };
+                // Filter op geslacht als requiredGender is opgegeven
+                const filteredHonden = result.honden.filter(hond => {
+                    if (!requiredGender) return true;
                     
-                    this.hondenCache.set(volledigeHond.id, volledigeHond);
-                    if (volledigeHond.stamboomnr) {
-                        this.hondenCache.set(volledigeHond.stamboomnr, volledigeHond);
+                    if (requiredGender === 'female') {
+                        return hond.geslacht === 'teven' || hond.geslacht === 'vrouwelijk';
+                    } else if (requiredGender === 'male') {
+                        return hond.geslacht === 'reuen' || hond.geslacht === 'mannelijk';
                     }
-                    
-                    const exists = this.allHonden.some(dog => dog.id === volledigeHond.id);
-                    if (!exists) {
-                        this.allHonden.push(volledigeHond);
-                    }
+                    return true;
                 });
-                return result.honden[0];
+                
+                if (filteredHonden.length > 0) {
+                    filteredHonden.forEach(hond => {
+                        const volledigeHond = {
+                            ...hond,
+                            heupdysplasie: hond.heupdysplasie || '',
+                            elleboogdysplasie: hond.elleboogdysplasie || '',
+                            patella: hond.patella || '',
+                            ogen: hond.ogen || '',
+                            ogenVerklaring: hond.ogenVerklaring || '',
+                            dandyWalker: hond.dandyWalker || '',
+                            schildklier: hond.schildklier || '',
+                            schildklierVerklaring: hond.schildklierVerklaring || '',
+                            vachtkleur: hond.vachtkleur || '',
+                            ras: hond.ras || ''
+                        };
+                        
+                        this.hondenCache.set(volledigeHond.id, volledigeHond);
+                        if (volledigeHond.stamboomnr) {
+                            this.hondenCache.set(volledigeHond.stamboomnr, volledigeHond);
+                        }
+                        
+                        const exists = this.allHonden.some(dog => dog.id === volledigeHond.id);
+                        if (!exists) {
+                            this.allHonden.push(volledigeHond);
+                        }
+                    });
+                    return filteredHonden[0];
+                }
             }
         } catch (error) {
             console.error(`❌ Fout bij zoeken hond op naam "${name}":`, error);
@@ -1339,7 +1363,7 @@ class ReuTeefCombinatie {
         return null;
     }
     
-    setupAutocomplete(inputId, resultsId, geslacht, onSelect) {
+    setupAutocomplete(inputId, resultsId, geslacht, onSelect, requiredGender = null) {
         const input = document.getElementById(inputId);
         const dropdown = document.getElementById(inputId.replace('Search', 'Dropdown'));
         const resultsContainer = document.getElementById(resultsId);
@@ -1436,9 +1460,10 @@ class ReuTeefCombinatie {
             }
             
             let filteredHonden = this.allHonden.filter(hond => {
-                if (geslacht === 'teven') {
+                // Filter op geslacht op basis van requiredGender
+                if (requiredGender === 'female') {
                     return hond.geslacht === 'teven' || hond.geslacht === 'vrouwelijk';
-                } else if (geslacht === 'reuen') {
+                } else if (requiredGender === 'male') {
                     return hond.geslacht === 'reuen' || hond.geslacht === 'mannelijk';
                 }
                 return true;
@@ -1459,8 +1484,18 @@ class ReuTeefCombinatie {
                 try {
                     const result = await window.hondenService.zoekHonden({ naam: searchTerm }, 1, 50);
                     if (result && result.honden && result.honden.length > 0) {
-                        // Voeg nieuwe honden toe aan cache
-                        result.honden.forEach(hond => {
+                        // Filter op geslacht
+                        const genderFiltered = result.honden.filter(hond => {
+                            if (requiredGender === 'female') {
+                                return hond.geslacht === 'teven' || hond.geslacht === 'vrouwelijk';
+                            } else if (requiredGender === 'male') {
+                                return hond.geslacht === 'reuen' || hond.geslacht === 'mannelijk';
+                            }
+                            return true;
+                        });
+                        
+                        // Voeg nieuwe honden toe aan cache en filteredHonden
+                        genderFiltered.forEach(hond => {
                             if (!filteredHonden.some(d => d.id === hond.id)) {
                                 filteredHonden.push(hond);
                             }
@@ -1609,12 +1644,24 @@ class ReuTeefCombinatie {
     }
     
     selectTeef(hond) {
+        // Controleer of het echt een teef is
+        if (hond.geslacht !== 'teven' && hond.geslacht !== 'vrouwelijk') {
+            this.showAlert("Dit is geen teef. Selecteer alstublieft een teef.", 'warning');
+            return;
+        }
+        
         this.selectedTeef = hond;
         this.showHondDetails('teefDetails', hond, 'teef');
         this.updateButtonStates();
     }
     
     selectReu(hond) {
+        // Controleer of het echt een reu is
+        if (hond.geslacht !== 'reuen' && hond.geslacht !== 'mannelijk') {
+            this.showAlert("Dit is geen reu. Selecteer alstublieft een reu.", 'warning');
+            return;
+        }
+        
         this.selectedReu = hond;
         this.showHondDetails('reuDetails', hond, 'reu');
         this.updateButtonStates();
@@ -1756,13 +1803,13 @@ class ReuTeefCombinatie {
         if (hond.vaderId) {
             result.vader = await this.getHondById(hond.vaderId);
         } else if (hond.vader) {
-            result.vader = await this.findHondByNameOrPedigree(hond.vader);
+            result.vader = await this.findHondByNameOrPedigree(hond.vader, 'male');
         }
         
         if (hond.moederId) {
             result.moeder = await this.getHondById(hond.moederId);
         } else if (hond.moeder) {
-            result.moeder = await this.findHondByNameOrPedigree(hond.moeder);
+            result.moeder = await this.findHondByNameOrPedigree(hond.moeder, 'female');
         }
         
         return result;
