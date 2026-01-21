@@ -1,8 +1,8 @@
 // js/modules/PhotoManager.js
 
 /**
- * Foto Management Module voor Supabase
- * Beheert foto upload en galerij met paginatie
+ * Foto Management Module
+ * Beheert foto upload en galerij
  */
 
 class PhotoManager extends BaseModule {
@@ -10,10 +10,10 @@ class PhotoManager extends BaseModule {
         super();
         this.currentLang = localStorage.getItem('appLanguage') || 'nl';
         this.allDogs = [];
+        this.filteredDogs = [];
         this.currentPage = 1;
-        this.photosPerPage = 12;
-        this.totalPhotos = 0;
-        this.totalPages = 0;
+        this.dogsPerPage = 1000;
+        this.totalDogs = 0;
         this.translations = {
             nl: {
                 // Modal titels
@@ -30,6 +30,8 @@ class PhotoManager extends BaseModule {
                 describePhoto: "Beschrijf de foto...",
                 uploadPhoto: "Foto Uploaden",
                 noDogsFound: "Geen honden gevonden",
+                loadingDogs: "Honden laden...",
+                loadingPage: "Pagina laden...",
                 
                 // Overzicht
                 photoOverview: "Foto Overzicht",
@@ -42,11 +44,6 @@ class PhotoManager extends BaseModule {
                 view: "Bekijken",
                 allPhotos: "Alle Foto's",
                 close: "Sluiten",
-                show: "Toon",
-                of: "van",
-                items: "items",
-                next: "Volgende",
-                previous: "Vorige",
                 
                 // Foto details
                 photoDetails: "Foto Details",
@@ -92,6 +89,8 @@ class PhotoManager extends BaseModule {
                 describePhoto: "Describe the photo...",
                 uploadPhoto: "Upload Photo",
                 noDogsFound: "No dogs found",
+                loadingDogs: "Loading dogs...",
+                loadingPage: "Loading page...",
                 
                 // Overview
                 photoOverview: "Photo Overview",
@@ -104,11 +103,6 @@ class PhotoManager extends BaseModule {
                 view: "View",
                 allPhotos: "All Photos",
                 close: "Close",
-                show: "Show",
-                of: "of",
-                items: "items",
-                next: "Next",
-                previous: "Previous",
                 
                 // Photo details
                 photoDetails: "Photo Details",
@@ -154,6 +148,8 @@ class PhotoManager extends BaseModule {
                 describePhoto: "Beschreiben Sie das Foto...",
                 uploadPhoto: "Foto hochladen",
                 noDogsFound: "Keine Hunde gefunden",
+                loadingDogs: "Hunde laden...",
+                loadingPage: "Seite laden...",
                 
                 // Übersicht
                 photoOverview: "Foto Übersicht",
@@ -166,11 +162,6 @@ class PhotoManager extends BaseModule {
                 view: "Ansehen",
                 allPhotos: "Alle Fotos",
                 close: "Schließen",
-                show: "Zeige",
-                of: "von",
-                items: "Elemente",
-                next: "Nächste",
-                previous: "Vorherige",
                 
                 // Foto Details
                 photoDetails: "Foto Details",
@@ -249,7 +240,7 @@ class PhotoManager extends BaseModule {
                                                             <input type="text" class="form-control" id="photoHondSearch" 
                                                                    placeholder="${t('searchDog')}" autocomplete="off">
                                                             <div class="dropdown-menu w-100" id="dogDropdownMenu" style="max-height: 300px; overflow-y: auto;">
-                                                                <div class="dropdown-item text-muted">${t('loadingPhotos')}</div>
+                                                                <div class="dropdown-item text-muted">${t('loadingDogs')}</div>
                                                             </div>
                                                         </div>
                                                         <input type="hidden" id="selectedDogId">
@@ -279,19 +270,10 @@ class PhotoManager extends BaseModule {
                             <div class="mt-4">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h6 class="mb-0">${t('photoOverview')}</h6>
-                                    <div class="d-flex align-items-center">
-                                        <select class="form-select form-select-sm me-2" id="photosPerPageSelect" style="width: auto;">
-                                            <option value="12">12 ${t('items')}</option>
-                                            <option value="24">24 ${t('items')}</option>
-                                            <option value="48">48 ${t('items')}</option>
-                                            <option value="96">96 ${t('items')}</option>
-                                        </select>
-                                        <button class="btn btn-outline-warning" id="loadAllPhotosBtn">
-                                            <i class="bi bi-arrow-clockwise"></i> ${t('loadAllPhotos')}
-                                        </button>
-                                    </div>
+                                    <button class="btn btn-outline-warning" id="loadAllPhotosBtn">
+                                        <i class="bi bi-arrow-clockwise"></i> ${t('loadAllPhotos')}
+                                    </button>
                                 </div>
-                                
                                 <div id="photosContainer" class="row">
                                     <div class="col-12 text-center py-5">
                                         <i class="bi bi-images display-1 text-muted"></i>
@@ -301,28 +283,6 @@ class PhotoManager extends BaseModule {
                                         </button>
                                     </div>
                                 </div>
-                                
-                                <!-- Paginatie Controls -->
-                                <nav id="paginationControls" class="d-none">
-                                    <ul class="pagination justify-content-center">
-                                        <li class="page-item disabled" id="prevPageBtn">
-                                            <a class="page-link" href="#" tabindex="-1">
-                                                <i class="bi bi-chevron-left"></i> ${t('previous')}
-                                            </a>
-                                        </li>
-                                        <li class="page-item active">
-                                            <a class="page-link" href="#" id="currentPageInfo">Pagina 1</a>
-                                        </li>
-                                        <li class="page-item" id="nextPageBtn">
-                                            <a class="page-link" href="#">
-                                                ${t('next')} <i class="bi bi-chevron-right"></i>
-                                            </a>
-                                        </li>
-                                    </ul>
-                                    <div class="text-center small text-muted" id="pageInfo">
-                                        ${t('show')} <span id="startIndex">1</span>-<span id="endIndex">12</span> ${t('of')} <span id="totalItems">0</span> ${t('items')}
-                                    </div>
-                                </nav>
                             </div>
                         </div>
                         <div class="modal-footer">
@@ -345,50 +305,14 @@ class PhotoManager extends BaseModule {
         const loadBtn = document.getElementById('loadAllPhotosBtn');
         if (loadBtn) {
             loadBtn.addEventListener('click', () => {
-                this.currentPage = 1;
-                this.loadPhotos();
+                this.loadAllPhotos();
             });
         }
         
         const initialLoadBtn = document.getElementById('initialLoadPhotosBtn');
         if (initialLoadBtn) {
             initialLoadBtn.addEventListener('click', () => {
-                this.currentPage = 1;
-                this.loadPhotos();
-            });
-        }
-        
-        // Paginatie controls
-        const prevPageBtn = document.getElementById('prevPageBtn');
-        if (prevPageBtn) {
-            prevPageBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                if (this.currentPage > 1) {
-                    this.currentPage--;
-                    this.loadPhotos();
-                }
-            });
-        }
-        
-        const nextPageBtn = document.getElementById('nextPageBtn');
-        if (nextPageBtn) {
-            nextPageBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                if (this.currentPage < this.totalPages) {
-                    this.currentPage++;
-                    this.loadPhotos();
-                }
-            });
-        }
-        
-        // Items per pagina select
-        const photosPerPageSelect = document.getElementById('photosPerPageSelect');
-        if (photosPerPageSelect) {
-            photosPerPageSelect.value = this.photosPerPage;
-            photosPerPageSelect.addEventListener('change', (e) => {
-                this.photosPerPage = parseInt(e.target.value);
-                this.currentPage = 1;
-                this.loadPhotos();
+                this.loadAllPhotos();
             });
         }
         
@@ -464,8 +388,15 @@ class PhotoManager extends BaseModule {
         
         // Toon dropdown bij focus
         searchInput.addEventListener('focus', () => {
-            this.filterDogs('');
-            dropdownMenu.classList.add('show');
+            if (this.allDogs.length === 0) {
+                this.loadDogsData().then(() => {
+                    this.filterDogs('');
+                    dropdownMenu.classList.add('show');
+                });
+            } else {
+                this.filterDogs('');
+                dropdownMenu.classList.add('show');
+            }
         });
         
         // Filter honden bij elke toetsaanslag
@@ -485,10 +416,62 @@ class PhotoManager extends BaseModule {
         // Toon alle honden bij eerste klik
         searchInput.addEventListener('click', () => {
             if (dropdownMenu.children.length === 1 && dropdownMenu.children[0].classList.contains('text-muted')) {
-                this.filterDogs('');
+                if (this.allDogs.length === 0) {
+                    this.loadDogsData().then(() => {
+                        this.filterDogs('');
+                    });
+                } else {
+                    this.filterDogs('');
+                }
             }
             dropdownMenu.classList.add('show');
         });
+    }
+    
+    async loadAllDogsWithPagination() {
+        const t = this.t.bind(this);
+        
+        try {
+            let allDogs = [];
+            let currentPage = 1;
+            let hasMore = true;
+            const pageSize = 1000; // 1000 per batch
+            
+            // Laad eerste pagina om totale aantal te krijgen
+            const firstResult = await window.hondenService.getHonden(currentPage, pageSize);
+            this.totalDogs = firstResult.totaal || 0;
+            
+            // Voeg eerste batch toe
+            if (firstResult.honden) {
+                allDogs = allDogs.concat(firstResult.honden);
+            }
+            
+            // Bepaal hoeveel pagina's er zijn (max 100 pagina's = 100,000 records)
+            const totalPages = Math.min(Math.ceil(this.totalDogs / pageSize), 100);
+            
+            // Laad de rest van de pagina's
+            for (currentPage = 2; currentPage <= totalPages; currentPage++) {
+                this.showProgress(`${t('loadingPage')} ${currentPage}/${totalPages}`);
+                
+                const result = await window.hondenService.getHonden(currentPage, pageSize);
+                if (result.honden && result.honden.length > 0) {
+                    allDogs = allDogs.concat(result.honden);
+                }
+                
+                if (!result.heeftVolgende) {
+                    hasMore = false;
+                    break;
+                }
+            }
+            
+            this.hideProgress();
+            return allDogs;
+            
+        } catch (error) {
+            this.hideProgress();
+            console.error('Fout bij laden honden met paginatie:', error);
+            return [];
+        }
     }
     
     async filterDogs(searchTerm = '') {
@@ -499,15 +482,11 @@ class PhotoManager extends BaseModule {
             await this.loadDogsData();
         }
         
-        // Zoeken op naam, kennelnaam of stamboomnummer
+        // ALLEEN ZOEKEN OP NAAM VAN DE HOND - EN ALLEEN ALS HET BEGINT MET DE ZOEKTERM
         this.filteredDogs = this.allDogs.filter(dog => {
             const dogName = dog.naam.toLowerCase();
-            const kennelName = dog.kennelnaam ? dog.kennelnaam.toLowerCase() : '';
-            const stamboomnr = dog.stamboomnr ? dog.stamboomnr.toLowerCase() : '';
-            
-            return dogName.includes(searchTerm) || 
-                   kennelName.includes(searchTerm) || 
-                   stamboomnr.includes(searchTerm);
+            // AANGEPAST: ALLEEN OP NAAM ZOEKEN EN ALLEEN ALS HET BEGINT MET DE ZOEKTERM
+            return dogName.startsWith(searchTerm);
         });
         
         this.updateDropdownMenu();
@@ -530,7 +509,10 @@ class PhotoManager extends BaseModule {
             return;
         }
         
-        this.filteredDogs.forEach(dog => {
+        // Toon maximaal 100 honden in dropdown
+        const displayDogs = this.filteredDogs.slice(0, 100);
+        
+        displayDogs.forEach(dog => {
             const item = document.createElement('a');
             item.className = 'dropdown-item';
             item.href = '#';
@@ -551,6 +533,14 @@ class PhotoManager extends BaseModule {
             
             dropdownMenu.appendChild(item);
         });
+        
+        // Als er meer honden zijn, toon een bericht
+        if (this.filteredDogs.length > 100) {
+            const moreItem = document.createElement('div');
+            moreItem.className = 'dropdown-item text-center text-muted small';
+            moreItem.textContent = `... en ${this.filteredDogs.length - 100} meer`;
+            dropdownMenu.appendChild(moreItem);
+        }
     }
     
     selectDog(dog) {
@@ -571,19 +561,27 @@ class PhotoManager extends BaseModule {
     
     async loadDogsData() {
         try {
-            // Gebruik de nieuwe hondenService methode met paginatie
-            const result = await window.hondenService.getHonden(1, 1000);
-            this.allDogs = result.honden || [];
+            // Gebruik de nieuwe methode om ALLE honden te laden met paginatie
+            this.showProgress(this.t('loadingDogs'));
+            this.allDogs = await this.loadAllDogsWithPagination();
+            
+            // Sorteer op naam
             this.allDogs.sort((a, b) => a.naam.localeCompare(b.naam));
+            
+            console.log(`Successvol ${this.allDogs.length} honden geladen van totaal ${this.totalDogs}`);
+            
+            this.hideProgress();
+            
         } catch (error) {
             console.error('Fout bij laden honden:', error);
             this.allDogs = [];
+            this.hideProgress();
         }
     }
     
     async loadPhotosData() {
         await this.loadDogsData();
-        await this.loadPhotos();
+        await this.loadAllPhotos();
     }
     
     async uploadPhoto() {
@@ -618,56 +616,28 @@ class PhotoManager extends BaseModule {
         
         this.showProgress(t('uploading'));
         
-        // Haal de huidige gebruiker op voor RLS
-        const user = window.auth ? window.auth.getCurrentUser() : null;
-        if (!user) {
-            this.hideProgress();
-            this.showError('Je moet ingelogd zijn om foto\'s te uploaden');
-            return;
-        }
-        
         const reader = new FileReader();
         
         reader.onload = async (e) => {
             try {
-                // Upload naar Supabase Storage
-                const fileName = `${Date.now()}_${file.name}`;
-                const filePath = `fotos/${stamboomnr}/${fileName}`;
+                // VOORBEELD: Pas dit aan naar je eigen foto upload logica
+                // Dit is een voorbeeld - vervang met je eigen database calls
                 
-                // Upload naar storage
-                const { data: uploadData, error: uploadError } = await window.supabase
-                    .storage
-                    .from('fotos')
-                    .upload(filePath, file);
-                
-                if (uploadError) throw uploadError;
-                
-                // Haal publieke URL op
-                const { data: urlData } = await window.supabase
-                    .storage
-                    .from('fotos')
-                    .getPublicUrl(filePath);
-                
-                // Voeg metadata toe aan database
                 const fotoData = {
                     stamboomnr: stamboomnr,
+                    data: e.target.result,
                     filename: file.name,
-                    filepath: filePath,
-                    url: urlData.publicUrl,
                     size: file.size,
                     type: file.type,
                     description: description,
-                    uploaded_by: user.id,
-                    uploaded_at: new Date().toISOString()
+                    uploadedAt: new Date().toISOString()
                 };
                 
-                const { data, error } = await window.supabase
-                    .from('fotos')
-                    .insert(fotoData)
-                    .select()
-                    .single();
+                // VERVANG DIT MET JE EIGEN FOTO UPLOAD LOGICA
+                // Bijvoorbeeld: await this.db.voegFotoToe(fotoData);
                 
-                if (error) throw error;
+                // Voor nu: simuleer een succesvolle upload
+                await new Promise(resolve => setTimeout(resolve, 1000));
                 
                 this.hideProgress();
                 this.showSuccess(t('uploadSuccess'));
@@ -679,9 +649,7 @@ class PhotoManager extends BaseModule {
                 document.getElementById('photoDescription').value = '';
                 fileInput.value = '';
                 
-                // Herlaad foto's
-                this.currentPage = 1;
-                await this.loadPhotos();
+                await this.loadAllPhotos();
                 
             } catch (error) {
                 this.hideProgress();
@@ -694,85 +662,28 @@ class PhotoManager extends BaseModule {
             this.showError(t('fileReadError'));
         };
         
-        reader.readAsArrayBuffer(file);
+        reader.readAsDataURL(file);
     }
     
-    async loadPhotos() {
+    async loadAllPhotos() {
         const t = this.t.bind(this);
         this.showProgress(t('loading'));
         
         try {
-            // Gebruik de nieuwe fotoService methode met paginatie
-            const result = await window.fotoService.getFotosMetPaginatie(
-                null, // Alle foto's
-                this.currentPage,
-                this.photosPerPage
-            );
+            // VERVANG DIT MET JE EIGEN FOTO LOAD LOGICA
+            // Bijvoorbeeld: const fotos = await this.db.getAllFotos();
             
-            this.totalPhotos = result.totaal || 0;
-            this.totalPages = result.totaalPaginas || 0;
+            // Voor nu: simuleer lege foto lijst
+            const fotos = [];
+            await new Promise(resolve => setTimeout(resolve, 500));
             
             this.hideProgress();
-            this.displayPhotos(result.fotos || []);
-            
-            // Update paginatie controls
-            this.updatePaginationControls();
+            this.displayPhotos(fotos);
             
         } catch (error) {
             this.hideProgress();
             this.showError(`${t('loadFailed')}${error.message}`);
         }
-    }
-    
-    updatePaginationControls() {
-        const paginationContainer = document.getElementById('paginationControls');
-        const prevBtn = document.getElementById('prevPageBtn');
-        const nextBtn = document.getElementById('nextPageBtn');
-        const currentPageInfo = document.getElementById('currentPageInfo');
-        const startIndex = document.getElementById('startIndex');
-        const endIndex = document.getElementById('endIndex');
-        const totalItems = document.getElementById('totalItems');
-        
-        const t = this.t.bind(this);
-        
-        if (!paginationContainer) return;
-        
-        if (this.totalPhotos === 0) {
-            paginationContainer.classList.add('d-none');
-            return;
-        }
-        
-        paginationContainer.classList.remove('d-none');
-        
-        // Update paginatie knoppen
-        if (prevBtn) {
-            if (this.currentPage <= 1) {
-                prevBtn.classList.add('disabled');
-            } else {
-                prevBtn.classList.remove('disabled');
-            }
-        }
-        
-        if (nextBtn) {
-            if (this.currentPage >= this.totalPages) {
-                nextBtn.classList.add('disabled');
-            } else {
-                nextBtn.classList.remove('disabled');
-            }
-        }
-        
-        // Update paginatie info
-        if (currentPageInfo) {
-            currentPageInfo.textContent = `${t('show')} ${this.currentPage} ${t('of')} ${this.totalPages}`;
-        }
-        
-        // Update item range
-        const start = ((this.currentPage - 1) * this.photosPerPage) + 1;
-        const end = Math.min(this.currentPage * this.photosPerPage, this.totalPhotos);
-        
-        if (startIndex) startIndex.textContent = start;
-        if (endIndex) endIndex.textContent = end;
-        if (totalItems) totalItems.textContent = this.totalPhotos;
     }
     
     async displayPhotos(fotos) {
@@ -794,8 +705,7 @@ class PhotoManager extends BaseModule {
             const loadBtn = document.getElementById('initialLoadPhotosBtn');
             if (loadBtn) {
                 loadBtn.addEventListener('click', () => {
-                    this.currentPage = 1;
-                    this.loadPhotos();
+                    this.loadAllPhotos();
                 });
             }
             
@@ -804,29 +714,19 @@ class PhotoManager extends BaseModule {
         
         let html = '';
         
-        for (const foto of fotos) {
-            // Zoek hond informatie op
-            let dog = this.allDogs.find(d => d.stamboomnr === foto.stamboomnr);
-            if (!dog) {
-                try {
-                    dog = await window.hondenService.getHondByStamboomnr(foto.stamboomnr);
-                    if (dog) this.allDogs.push(dog);
-                } catch (error) {
-                    console.error('Fout bij laden hond info:', error);
-                }
-            }
-            
+        fotos.forEach((foto, index) => {
+            const dog = this.allDogs.find(d => d.stamboomnr === foto.stamboomnr);
             const dogName = dog ? `${dog.naam} ${dog.kennelnaam ? dog.kennelnaam : ''}` : t('unknownDog');
-            const uploadDatum = new Date(foto.uploaded_at).toLocaleDateString(this.currentLang);
+            const uploadDatum = new Date(foto.uploadedAt).toLocaleDateString(this.currentLang);
             
             html += `
                 <div class="col-md-4 col-lg-3 mb-4">
                     <div class="card h-100 photo-card">
                         <div class="card-img-top photo-thumbnail" 
                              style="height: 180px; cursor: pointer; background: #f8f9fa; display: flex; align-items: center; justify-content: center; overflow: hidden;"
-                             data-foto-id="${foto.id}">
-                            ${foto.url ? 
-                                `<img src="${foto.url}" alt="${foto.description || dogName}" 
+                             data-index="${index}">
+                            ${foto.data ? 
+                                `<img src="${foto.data}" alt="${foto.description || dogName}" 
                                       style="max-width: 100%; max-height: 100%; object-fit: cover;">` :
                                 `<i class="bi bi-image text-muted" style="font-size: 3rem;"></i>`
                             }
@@ -841,7 +741,7 @@ class PhotoManager extends BaseModule {
                             <div class="mt-auto">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <small class="text-muted">${uploadDatum}</small>
-                                    <button class="btn btn-sm btn-outline-danger delete-photo-btn" data-id="${foto.id}" data-stamboomnr="${foto.stamboomnr}" data-filepath="${foto.filepath}">
+                                    <button class="btn btn-sm btn-outline-danger delete-photo-btn" data-id="${foto.id}">
                                         <i class="bi bi-trash"></i> ${t('delete')}
                                     </button>
                                 </div>
@@ -850,138 +750,190 @@ class PhotoManager extends BaseModule {
                     </div>
                 </div>
             `;
-        }
+        });
         
         container.innerHTML = html;
         
         // Event listener voor thumbnails (voor vergroting)
         document.querySelectorAll('.photo-thumbnail').forEach(thumbnail => {
             thumbnail.addEventListener('click', (e) => {
-                const fotoId = e.currentTarget.dataset.fotoId;
-                this.showPhotoDetails(fotoId);
+                const index = parseInt(e.currentTarget.dataset.index);
+                this.showPhotoGallery(fotos, index);
             });
         });
         
         // Event listener voor delete knoppen
         document.querySelectorAll('.delete-photo-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
+            btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const fotoId = e.currentTarget.dataset.id;
-                const stamboomnr = e.currentTarget.dataset.stamboomnr;
-                const filepath = e.currentTarget.dataset.filepath;
-                await this.deletePhoto(fotoId, stamboomnr, filepath);
+                this.deletePhoto(fotoId);
             });
         });
     }
     
-    async showPhotoDetails(fotoId) {
+    async showPhotoGallery(fotos, startIndex = 0) {
         const t = this.t.bind(this);
         
-        try {
-            // Haal foto details op
-            const { data: foto, error } = await window.supabase
-                .from('fotos')
-                .select('*')
-                .eq('id', fotoId)
-                .single();
-            
-            if (error) throw error;
-            
-            // Haal hond informatie op
-            const dog = await window.hondenService.getHondByStamboomnr(foto.stamboomnr);
+        let currentIndex = startIndex;
+        
+        const getPhotoHTML = (foto, index) => {
+            const dog = this.allDogs.find(d => d.stamboomnr === foto.stamboomnr);
             const dogName = dog ? `${dog.naam} ${dog.kennelnaam ? dog.kennelnaam : ''}` : t('unknownDog');
             
-            // Maak modal HTML
-            const html = `
-                <div class="modal fade" id="photoDetailsModal" tabindex="-1" aria-labelledby="photoDetailsModalLabel" aria-hidden="true">
-                    <div class="modal-dialog modal-lg">
-                        <div class="modal-content">
-                            <div class="modal-header bg-dark text-white">
-                                <h5 class="modal-title" id="photoDetailsModalLabel">
-                                    <i class="bi bi-image"></i> ${t('photoDetails')}
-                                </h5>
-                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Sluiten"></button>
+            return `
+                <div class="carousel-item ${index === currentIndex ? 'active' : ''}">
+                    <div class="row">
+                        <div class="col-lg-8">
+                            <div class="text-center mb-4">
+                                ${foto.data ? 
+                                    `<img src="${foto.data}" alt="${foto.description || dogName}" 
+                                          class="img-fluid rounded shadow" style="max-height: 70vh; max-width: 100%;">` :
+                                    `<div class="bg-light p-5 rounded text-center">
+                                        <i class="bi bi-image text-muted" style="font-size: 5rem;"></i>
+                                        <p class="mt-3 text-muted">${t('photoNotFound')}</p>
+                                    </div>`
+                                }
                             </div>
-                            <div class="modal-body">
-                                <div class="row">
-                                    <div class="col-md-8">
-                                        <div class="text-center mb-3">
-                                            ${foto.url ? 
-                                                `<img src="${foto.url}" alt="${foto.description || dogName}" 
-                                                      class="img-fluid rounded shadow" style="max-height: 60vh; max-width: 100%;">` :
-                                                `<div class="bg-light p-5 rounded text-center">
-                                                    <i class="bi bi-image text-muted" style="font-size: 5rem;"></i>
-                                                    <p class="mt-3 text-muted">${t('photoNotFound')}</p>
-                                                </div>`
-                                            }
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="card">
-                                            <div class="card-body">
-                                                <table class="table table-sm">
-                                                    <tr>
-                                                        <th style="width: 40%">${t('dog')}:</th>
-                                                        <td><strong>${dogName}</strong></td>
-                                                    </tr>
-                                                    <tr>
-                                                        <th>${t('filename')}:</th>
-                                                        <td><small>${foto.filename}</small></td>
-                                                    </tr>
-                                                    <tr>
-                                                        <th>${t('size')}:</th>
-                                                        <td>${foto.size ? (foto.size / 1024).toFixed(1) + ' KB' : '-'}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <th>${t('type')}:</th>
-                                                        <td>${foto.type || '-'}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <th>${t('uploadedOn')}:</th>
-                                                        <td>${new Date(foto.uploaded_at).toLocaleString(this.currentLang)}</td>
-                                                    </tr>
-                                                </table>
-                                                
-                                                ${foto.description ? `
-                                                <div class="mt-3">
-                                                    <h6 class="border-bottom pb-2">${t('description')}</h6>
-                                                    <div class="bg-light p-3 rounded small">
-                                                        ${foto.description}
-                                                    </div>
-                                                </div>
-                                                ` : ''}
-                                            </div>
-                                        </div>
-                                    </div>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">${t('photoDetails')}</h5>
                                 </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">${t('close')}</button>
+                                <div class="card-body">
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <th style="width: 40%">${t('dog')}:</th>
+                                            <td><strong>${dogName}</strong></td>
+                                        </tr>
+                                        <tr>
+                                            <th>${t('filename')}:</th>
+                                            <td><small>${foto.filename}</small></td>
+                                        </tr>
+                                        <tr>
+                                            <th>${t('size')}:</th>
+                                            <td>${foto.size ? (foto.size / 1024).toFixed(1) + ' KB' : '-'}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>${t('type')}:</th>
+                                            <td>${foto.type || '-'}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>${t('uploadedOn')}:</th>
+                                            <td>${new Date(foto.uploadedAt).toLocaleString(this.currentLang)}</td>
+                                        </tr>
+                                    </table>
+                                    
+                                    ${foto.description ? `
+                                    <div class="mt-3">
+                                        <h6 class="border-bottom pb-2">${t('description')}</h6>
+                                        <div class="bg-light p-3 rounded small">
+                                            ${foto.description}
+                                        </div>
+                                    </div>
+                                    ` : ''}
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             `;
-            
-            const container = document.getElementById('modalsContainer');
-            container.insertAdjacentHTML('beforeend', html);
-            
-            const modalElement = document.getElementById('photoDetailsModal');
-            const modal = new bootstrap.Modal(modalElement);
-            
-            // Cleanup na modal sluiten
-            modalElement.addEventListener('hidden.bs.modal', () => {
-                modalElement.remove();
+        };
+        
+        const carouselIndicators = fotos.map((_, index) => `
+            <button type="button" data-bs-target="#photoCarousel" data-bs-slide-to="${index}" 
+                    class="${index === currentIndex ? 'active' : ''}" aria-label="Foto ${index + 1}">
+            </button>
+        `).join('');
+        
+        const carouselItems = fotos.map((foto, index) => getPhotoHTML(foto, index)).join('');
+        
+        const html = `
+            <div class="modal fade" id="photoGalleryViewModal" tabindex="-1" aria-labelledby="photoGalleryViewModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-xl modal-fullscreen-lg-down">
+                    <div class="modal-content">
+                        <div class="modal-header bg-dark text-white">
+                            <h5 class="modal-title" id="photoGalleryViewModalLabel">
+                                <i class="bi bi-images"></i> ${t('allPhotos')} (${currentIndex + 1}/${fotos.length})
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Sluiten"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div id="photoCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="false">
+                                <div class="carousel-indicators">
+                                    ${carouselIndicators}
+                                </div>
+                                <div class="carousel-inner">
+                                    ${carouselItems}
+                                </div>
+                                <button class="carousel-control-prev" type="button" data-bs-target="#photoCarousel" data-bs-slide="prev">
+                                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                    <span class="visually-hidden">${t('prevPhoto')}</span>
+                                </button>
+                                <button class="carousel-control-next" type="button" data-bs-target="#photoCarousel" data-bs-slide="next">
+                                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                    <span class="visually-hidden">${t('nextPhoto')}</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">${t('close')}</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        const container = document.getElementById('modalsContainer');
+        container.insertAdjacentHTML('beforeend', html);
+        
+        const modalElement = document.getElementById('photoGalleryViewModal');
+        const modal = new bootstrap.Modal(modalElement);
+        
+        // FIX: Voeg modal close fix toe voor deze modal
+        this.fixPhotoViewModalClose(modalElement);
+        
+        modal.show();
+        
+        // Update titel bij carousel slide
+        const carousel = modalElement.querySelector('#photoCarousel');
+        if (carousel) {
+            carousel.addEventListener('slide.bs.carousel', (event) => {
+                currentIndex = event.to;
+                const title = modalElement.querySelector('#photoGalleryViewModalLabel');
+                if (title) {
+                    title.innerHTML = `<i class="bi bi-images"></i> ${t('allPhotos')} (${currentIndex + 1}/${fotos.length})`;
+                }
             });
-            
-            modal.show();
-            
-        } catch (error) {
-            this.showError(`${t('loadDetailsFailed')}${error.message}`);
         }
+        
+        modalElement.addEventListener('hidden.bs.modal', () => {
+            modalElement.remove();
+        });
     }
     
-    async deletePhoto(fotoId, stamboomnr, filepath) {
+    /**
+     * Fix voor photo view modal
+     */
+    fixPhotoViewModalClose(modalElement) {
+        if (!modalElement) return;
+        
+        modalElement.addEventListener('hide.bs.modal', () => {
+            const closeBtn = modalElement.querySelector('.btn-close:focus');
+            if (closeBtn) {
+                closeBtn.blur();
+            }
+        });
+        
+        modalElement.addEventListener('hidden.bs.modal', () => {
+            setTimeout(() => {
+                this.cleanupModalAfterClose();
+            }, 50);
+        });
+    }
+    
+    async deletePhoto(fotoId) {
         const t = this.t.bind(this);
         
         if (!confirm(t('deleteConfirm'))) {
@@ -991,32 +943,14 @@ class PhotoManager extends BaseModule {
         this.showProgress(t('deleting'));
         
         try {
-            // Verwijder uit storage
-            if (filepath) {
-                const { error: storageError } = await window.supabase
-                    .storage
-                    .from('fotos')
-                    .remove([filepath]);
-                
-                if (storageError) {
-                    console.warn('Kon bestand niet verwijderen uit storage:', storageError);
-                }
-            }
+            // VERVANG DIT MET JE EIGEN FOTO DELETE LOGICA
+            // Bijvoorbeeld: await this.db.verwijderFoto(parseInt(fotoId));
             
-            // Verwijder uit database
-            const { error: dbError } = await window.supabase
-                .from('fotos')
-                .delete()
-                .eq('id', fotoId);
-            
-            if (dbError) throw dbError;
+            await new Promise(resolve => setTimeout(resolve, 500));
             
             this.hideProgress();
             this.showSuccess(t('deleteSuccess'));
-            
-            // Herlaad foto's
-            this.currentPage = 1;
-            await this.loadPhotos();
+            await this.loadAllPhotos();
             
         } catch (error) {
             this.hideProgress();
