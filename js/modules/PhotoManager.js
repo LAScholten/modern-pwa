@@ -218,7 +218,7 @@ class PhotoManager extends BaseModule {
                 fileReadError: "Fehler beim Lesen der Datei",
                 loading: "Lade Fotos...",
                 loadFailed: "Laden fehlgeschlagen: ",
-                deleteConfirm: "Sind Sie sicher dat u dies foto wilt verwijderen? Dit kan nicht ongedaan worden gemaakt.",
+                deleteConfirm: "Sind Sie sicher dat u dies foto wilt verwijderen? Dit kan nicht ongedaan worden gemacht.",
                 deleting: "Foto wird gelöscht...",
                 deleteSuccess: "Foto erfolgreich gelöscht!",
                 deleteFailed: "Löschen fehlgeschlagen: ",
@@ -367,8 +367,6 @@ class PhotoManager extends BaseModule {
     }
     
     setupEvents() {
-        console.log('PhotoManager: setupEvents aangeroepen');
-        
         const uploadBtn = document.getElementById('uploadPhotoBtn');
         if (uploadBtn) {
             uploadBtn.addEventListener('click', () => {
@@ -502,13 +500,9 @@ class PhotoManager extends BaseModule {
         try {
             console.log(`PhotoManager: Laden honden pagina ${this.currentDogPage}...`);
             
-            // CORRECT: Gebruik de hondenService zoals gedefinieerd in supabase-honden.js
             const result = await hondenService.getHonden(this.currentDogPage, this.dogPageSize);
             
-            console.log('PhotoManager: Resultaat van getHonden:', result);
-            
             if (result.honden && result.honden.length > 0) {
-                // Voeg nieuwe honden toe
                 this.allDogs = this.allDogs.concat(result.honden);
                 this.hasMoreDogs = result.heeftVolgende;
                 this.currentDogPage++;
@@ -522,7 +516,6 @@ class PhotoManager extends BaseModule {
                 }
             } else {
                 this.hasMoreDogs = false;
-                console.log('PhotoManager: Geen honden meer om te laden');
             }
             
         } catch (error) {
@@ -545,16 +538,10 @@ class PhotoManager extends BaseModule {
             return;
         }
         
-        // Zoek in geladen honden
+        // ALLEEN ZOEKEN OP NAAM VAN DE HOND - EN ALLEEN ALS HET BEGINT MET DE ZOEKTERM
         this.filteredDogs = this.allDogs.filter(dog => {
             const dogName = dog.naam ? dog.naam.toLowerCase() : '';
-            const kennelName = dog.kennelnaam ? dog.kennelnaam.toLowerCase() : '';
-            const fullName = `${dogName} ${kennelName}`.toLowerCase().trim();
-            
-            // Zoek op naam, kennelnaam of volledige naam
-            return dogName.includes(searchTerm) || 
-                   kennelName.includes(searchTerm) || 
-                   fullName.includes(searchTerm);
+            return dogName.startsWith(searchTerm);
         }).slice(0, 50); // Beperk tot 50 resultaten voor dropdown
         
         this.updateDropdownMenu();
@@ -570,14 +557,11 @@ class PhotoManager extends BaseModule {
             `;
             dropdownMenu.appendChild(loadMoreItem);
             
-            const loadMoreBtn = document.getElementById('loadMoreDogsBtn');
-            if (loadMoreBtn) {
-                loadMoreBtn.addEventListener('click', async (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    await this.loadMoreDogs();
-                });
-            }
+            document.getElementById('loadMoreDogsBtn')?.addEventListener('click', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                await this.loadMoreDogs();
+            });
         }
     }
     
@@ -640,8 +624,6 @@ class PhotoManager extends BaseModule {
         const dogIdInput = document.getElementById('selectedDogId');
         const stamboomnrInput = document.getElementById('selectedDogStamboomnr');
         
-        console.log('PhotoManager: Hond geselecteerd:', dog);
-        
         if (searchInput) {
             searchInput.value = dog.naam;
         }
@@ -654,14 +636,11 @@ class PhotoManager extends BaseModule {
     }
     
     async loadPhotosData() {
-        console.log('PhotoManager: loadPhotosData aangeroepen');
         await this.loadFirstDogPage();
         await this.loadFirstPhotoPage();
     }
     
     async loadFirstPhotoPage() {
-        console.log('PhotoManager: loadFirstPhotoPage aangeroepen');
-        
         this.currentPhotoPage = 1;
         this.allPhotos = [];
         this.totalPhotos = 0;
@@ -673,8 +652,6 @@ class PhotoManager extends BaseModule {
         try {
             // Gebruik Supabase service om foto's te laden MET PAGINATIE
             const result = await this.getFotosMetPaginatie(this.currentPhotoPage, this.photoPageSize);
-            
-            console.log('PhotoManager: Foto resultaat:', result);
             
             this.allPhotos = result.fotos || [];
             this.totalPhotos = result.totaal || 0;
@@ -702,11 +679,8 @@ class PhotoManager extends BaseModule {
         
         try {
             this.currentPhotoPage++;
-            console.log(`PhotoManager: Laden foto pagina ${this.currentPhotoPage}...`);
             
             const result = await this.getFotosMetPaginatie(this.currentPhotoPage, this.photoPageSize);
-            
-            console.log('PhotoManager: Meer foto resultaat:', result);
             
             if (result.fotos && result.fotos.length > 0) {
                 this.allPhotos = this.allPhotos.concat(result.fotos);
@@ -745,8 +719,6 @@ class PhotoManager extends BaseModule {
         const t = this.t.bind(this);
         
         try {
-            console.log(`PhotoManager: Laden specifieke foto pagina ${page}...`);
-            
             const result = await this.getFotosMetPaginatie(page, this.photoPageSize);
             
             this.allPhotos = result.fotos || [];
@@ -765,21 +737,14 @@ class PhotoManager extends BaseModule {
     
     async getFotosMetPaginatie(page = 1, pageSize = 12) {
         try {
-            console.log(`PhotoManager: getFotosMetPaginatie pagina ${page}, grootte ${pageSize}`);
-            
             // Gebruik de window.fotoService die al beschikbaar is (vanuit supabase-honden.js)
             if (window.fotoService && window.fotoService.getFotosMetPaginatie) {
-                // Roep de service aan zonder stamboomnr (alle foto's)
-                const result = await window.fotoService.getFotosMetPaginatie(null, page, pageSize);
-                console.log('PhotoManager: getFotosMetPaginatie result:', result);
-                return result;
+                return await window.fotoService.getFotosMetPaginatie(null, page, pageSize);
             } else {
-                console.warn('PhotoManager: Foto service niet beschikbaar, gebruik fallback');
                 throw new Error('Foto service niet beschikbaar');
             }
         } catch (error) {
             console.error('PhotoManager: Fout in getFotosMetPaginatie:', error);
-            // Fallback voor als de service niet werkt
             return {
                 fotos: [],
                 pagina: page,
@@ -864,8 +829,6 @@ class PhotoManager extends BaseModule {
         const fileInput = document.getElementById('photoFile');
         const description = document.getElementById('photoDescription').value.trim();
         
-        console.log('PhotoManager: uploadPhoto aangeroepen', { dogId, stamboomnr });
-        
         if (!dogId || !stamboomnr) {
             this.showError(t('selectDogFirst'));
             return;
@@ -904,8 +867,6 @@ class PhotoManager extends BaseModule {
                     description: description,
                     uploadedAt: new Date().toISOString()
                 };
-                
-                console.log('PhotoManager: Foto data voor upload:', fotoData);
                 
                 // Gebruik Supabase service voor upload
                 if (window.fotoService && window.fotoService.voegFotoToe) {
@@ -946,8 +907,6 @@ class PhotoManager extends BaseModule {
         const t = this.t.bind(this);
         const container = document.getElementById('photosContainer');
         if (!container) return;
-        
-        console.log('PhotoManager: displayPhotos aangeroepen, aantal foto\'s:', this.allPhotos.length);
         
         if (!this.allPhotos || this.allPhotos.length === 0) {
             container.innerHTML = `
@@ -993,8 +952,8 @@ class PhotoManager extends BaseModule {
                         <div class="card-img-top photo-thumbnail" 
                              style="height: 180px; cursor: pointer; background: #f8f9fa; display: flex; align-items: center; justify-content: center; overflow: hidden;"
                              data-index="${index}">
-                            ${foto.data || foto.thumbnail ? 
-                                `<img src="${foto.data || foto.thumbnail}" alt="${foto.description || dogName}" 
+                            ${foto.thumbnail ? 
+                                `<img src="${foto.thumbnail}" alt="${foto.description || dogName}" 
                                       style="max-width: 100%; max-height: 100%; object-fit: cover;">` :
                                 `<i class="bi bi-image text-muted" style="font-size: 3rem;"></i>`
                             }
@@ -1051,9 +1010,8 @@ class PhotoManager extends BaseModule {
         this.showProgress(t('deleting'));
         
         try {
-            console.log(`PhotoManager: Verwijderen foto met ID ${fotoId}`);
-            
             // Gebruik Supabase service voor verwijderen
+            // Note: De fotoService heeft geen verwijder methode, dus we gebruiken direct Supabase
             if (window.supabase) {
                 const { error } = await window.supabase
                     .from('fotos')
@@ -1099,8 +1057,8 @@ class PhotoManager extends BaseModule {
                     <div class="row">
                         <div class="col-lg-8">
                             <div class="text-center mb-4">
-                                ${foto.data || foto.thumbnail ? 
-                                    `<img src="${foto.data || foto.thumbnail}" alt="${foto.description || dogName}" 
+                                ${foto.thumbnail ? 
+                                    `<img src="${foto.thumbnail}" alt="${foto.description || dogName}" 
                                           class="img-fluid rounded shadow" style="max-height: 70vh; max-width: 100%;">` :
                                     `<div class="bg-light p-5 rounded text-center">
                                         <i class="bi bi-image text-muted" style="font-size: 5rem;"></i>
@@ -1199,11 +1157,6 @@ class PhotoManager extends BaseModule {
         `;
         
         const container = document.getElementById('modalsContainer');
-        if (!container) {
-            console.error('PhotoManager: modalsContainer niet gevonden');
-            return;
-        }
-        
         container.insertAdjacentHTML('beforeend', html);
         
         const modalElement = document.getElementById('photoGalleryViewModal');
@@ -1229,66 +1182,34 @@ class PhotoManager extends BaseModule {
     }
     
     showProgress(message) {
-        console.log('PhotoManager Progress:', message);
         if (window.uiHandler && window.uiHandler.showProgress) {
             window.uiHandler.showProgress(message);
         } else {
-            // Fallback voor als uiHandler niet beschikbaar is
-            const progressDiv = document.createElement('div');
-            progressDiv.className = 'alert alert-info alert-dismissible fade show';
-            progressDiv.innerHTML = `
-                <div class="d-flex align-items-center">
-                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                    <span>${message}</span>
-                </div>
-            `;
-            
-            const container = document.querySelector('.modal-body');
-            if (container) {
-                const existingProgress = container.querySelector('.alert-info');
-                if (existingProgress) {
-                    existingProgress.remove();
-                }
-                container.prepend(progressDiv);
-            }
+            console.log('Progress:', message);
         }
     }
     
     hideProgress() {
-        console.log('PhotoManager Hide progress');
         if (window.uiHandler && window.uiHandler.hideProgress) {
             window.uiHandler.hideProgress();
         } else {
-            // Fallback voor als uiHandler niet beschikbaar is
-            const progressDiv = document.querySelector('.alert-info');
-            if (progressDiv) {
-                progressDiv.remove();
-            }
+            console.log('Hide progress');
         }
     }
     
     showSuccess(message) {
-        console.log('PhotoManager Success:', message);
         if (window.uiHandler && window.uiHandler.showSuccess) {
             window.uiHandler.showSuccess(message);
         } else {
-            // Fallback voor als uiHandler niet beschikbaar is
-            alert(message);
+            console.log('Success:', message);
         }
     }
     
     showError(message) {
-        console.error('PhotoManager Error:', message);
         if (window.uiHandler && window.uiHandler.showError) {
             window.uiHandler.showError(message);
         } else {
-            // Fallback voor als uiHandler niet beschikbaar is
-            alert('Fout: ' + message);
+            console.error('Error:', message);
         }
     }
-}
-
-// Maak globaal beschikbaar
-if (typeof window !== 'undefined') {
-    window.PhotoManager = PhotoManager;
 }
