@@ -6,6 +6,7 @@ class PrivateInfoManager extends BaseModule {
         this.isLoading = false;
         this.currentPriveInfo = null;
         
+        // EXACT ZELFDE ALS SEARCHMANAGER
         this.translations = {
             nl: {
                 privateInfo: "Privé Informatie",
@@ -31,17 +32,16 @@ class PrivateInfoManager extends BaseModule {
                 makingBackup: "Backup maken...",
                 backupSuccess: "Backup gemaakt!",
                 restoring: "Backup herstellen...",
-                loadingDogs: "Honden laden... ({loaded} geladen)",
+                loadingDogs: "Honden laden...",
                 noDogsFound: "Geen honden gevonden",
-                typeToSearch: "Begin met typen om te zoeken"
+                typeToSearch: "Begin met typen om te zoeken" // EXACT ZELFDE
             }
         };
     }
     
-    t(key) {
-        return this.translations[this.currentLang][key] || key;
-    }
+    t(key) { return this.translations[this.currentLang][key] || key; }
     
+    // EXACT DEZELFDE FUNCTIE ALS SEARCHMANAGER
     async loadSearchData() {
         if (this.isLoading) return;
         
@@ -49,13 +49,11 @@ class PrivateInfoManager extends BaseModule {
             this.isLoading = true;
             this.showProgress("Honden laden... (0 geladen)");
             
+            // EXACT DEZELFDE METHODE
             this.allDogs = await this.loadAllDogsWithPaginationDogDataManagerStyle();
             
-            this.allDogs.sort((a, b) => {
-                const naamA = a.naam || '';
-                const naamB = b.naam || '';
-                return naamA.localeCompare(naamB);
-            });
+            // EXACT ZELFDE SORTING
+            this.allDogs.sort((a, b) => (a.naam || '').localeCompare(b.naam || ''));
             
             console.log(`PrivateInfoManager: ${this.allDogs.length} honden geladen`);
             
@@ -69,6 +67,7 @@ class PrivateInfoManager extends BaseModule {
         }
     }
     
+    // EXACT DEZELFDE FUNCTIE ALS SEARCHMANAGER
     async loadAllDogsWithPaginationDogDataManagerStyle() {
         try {
             let allDogs = [];
@@ -88,10 +87,7 @@ class PrivateInfoManager extends BaseModule {
                     
                     hasMorePages = result.heeftVolgende;
                     
-                    if (hasMorePages) {
-                        currentPage++;
-                    }
-                    
+                    if (hasMorePages) currentPage++;
                     if (currentPage > 100) break;
                 } else {
                     hasMorePages = false;
@@ -108,110 +104,7 @@ class PrivateInfoManager extends BaseModule {
         }
     }
     
-    showInitialView() {
-        const dropdownMenu = document.getElementById('dogDropdownMenu');
-        if (!dropdownMenu) return;
-        
-        dropdownMenu.innerHTML = `<div class="dropdown-item text-muted">${this.t('typeToSearch')}</div>`;
-    }
-    
-    getModalHTML() {
-        const t = this.t.bind(this);
-        
-        return `
-            <div class="modal fade" id="privateInfoModal" tabindex="-1" aria-labelledby="privateInfoModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-xl">
-                    <div class="modal-content">
-                        <div class="modal-header bg-dark text-white">
-                            <h5 class="modal-title" id="privateInfoModalLabel">
-                                <i class="bi bi-lock"></i> ${t('privateInfo')}
-                            </h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Sluiten"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="row mb-4">
-                                <div class="col-md-4">
-                                    <div class="card">
-                                        <div class="card-header">
-                                            <h6 class="mb-0"><i class="bi bi-search"></i> ${t('selectDog')}</h6>
-                                        </div>
-                                        <div class="card-body">
-                                            <div class="mb-3">
-                                                <label for="privateHondSearch" class="form-label">${t('dog')}</label>
-                                                <div class="dropdown">
-                                                    <input type="text" class="form-control" id="privateHondSearch" placeholder="${t('typeDogName')}" autocomplete="off">
-                                                    <div class="dropdown-menu w-100" id="dogDropdownMenu" style="max-height: 300px; overflow-y: auto;">
-                                                        <div class="dropdown-item text-muted">${t('loadingDogs')}</div>
-                                                    </div>
-                                                </div>
-                                                <input type="hidden" id="selectedDogId">
-                                                <input type="hidden" id="selectedDogStamboomnr">
-                                                <div class="small text-muted mt-1" id="selectedDogInfo"></div>
-                                            </div>
-                                            <button class="btn btn-dark w-100" id="loadPrivateInfoBtn">
-                                                <i class="bi bi-eye"></i> ${t('loadInfo')}
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-md-8">
-                                    <div class="card">
-                                        <div class="card-header">
-                                            <h6 class="mb-0"><i class="bi bi-shield"></i> ${t('securityInfo')}</h6>
-                                        </div>
-                                        <div class="card-body">
-                                            <div class="small">
-                                                <p><i class="bi bi-check-circle text-success"></i> ${t('privateStorage')}</p>
-                                                <p><i class="bi bi-person-check text-info"></i> ${t('privateNote')}</p>
-                                            </div>
-                                            <div class="mt-3">
-                                                <button class="btn btn-outline-dark btn-sm" id="backupPrivateInfoBtn">
-                                                    <i class="bi bi-download"></i> ${t('backup')}
-                                                </button>
-                                                <button class="btn btn-outline-dark btn-sm" id="restorePrivateInfoBtn">
-                                                    <i class="bi bi-upload"></i> ${t('restore')}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="card">
-                                <div class="card-header">
-                                    <h6 class="mb-0"><i class="bi bi-journal-text"></i> ${t('privateNotes')}</h6>
-                                </div>
-                                <div class="card-body">
-                                    <div id="privateInfoForm">
-                                        <div class="mb-3">
-                                            <textarea class="form-control" id="privateNotes" rows="12" placeholder="${t('notesPlaceholder')}"></textarea>
-                                        </div>
-                                        
-                                        <div class="d-flex justify-content-between">
-                                            <button class="btn btn-secondary" id="clearPrivateInfoBtn">
-                                                <i class="bi bi-x-circle"></i> ${t('clear')}
-                                            </button>
-                                            <button class="btn btn-dark" id="savePrivateInfoBtn">
-                                                <i class="bi bi-save"></i> ${t('save')}
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Sluiten</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-    
     async showModal() {
-        console.log('PrivateInfoManager: showModal() aangeroepen');
-        
         if (!document.getElementById('privateInfoModal')) {
             document.body.insertAdjacentHTML('beforeend', this.getModalHTML());
             this.setupEvents();
@@ -221,14 +114,91 @@ class PrivateInfoManager extends BaseModule {
         const modal = new bootstrap.Modal(modalElement);
         modal.show();
         
-        modalElement.addEventListener('shown.bs.modal', () => {
-            this.loadSearchData().then(() => {
-                this.setupDogSearch();
-            });
-        });
+        // NIET hier honden laden - EXACT ZELFDE ALS SEARCHMANAGER
+        // SearchManager laadt pas bij focus op zoekveld
+    }
+    
+    getModalHTML() {
+        const t = this.t.bind(this);
+        return `
+            <div class="modal fade" id="privateInfoModal" tabindex="-1">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header bg-dark text-white">
+                            <h5 class="modal-title"><i class="bi bi-lock"></i> ${t('privateInfo')}</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row mb-4">
+                                <div class="col-md-4">
+                                    <div class="card">
+                                        <div class="card-header"><h6 class="mb-0"><i class="bi bi-search"></i> ${t('selectDog')}</h6></div>
+                                        <div class="card-body">
+                                            <div class="mb-3">
+                                                <label class="form-label">${t('dog')}</label>
+                                                <div class="dropdown">
+                                                    <input type="text" class="form-control" id="privateHondSearch" placeholder="${t('typeDogName')}" autocomplete="off">
+                                                    <div class="dropdown-menu w-100" id="dogDropdownMenu" style="max-height: 300px; overflow-y: auto;">
+                                                        <div class="dropdown-item text-muted">${t('typeToSearch')}</div>
+                                                    </div>
+                                                </div>
+                                                <input type="hidden" id="selectedDogId">
+                                                <input type="hidden" id="selectedDogStamboomnr">
+                                                <div class="small text-muted mt-1" id="selectedDogInfo"></div>
+                                            </div>
+                                            <button class="btn btn-dark w-100" id="loadPrivateInfoBtn">${t('loadInfo')}</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-8">
+                                    <div class="card">
+                                        <div class="card-header"><h6 class="mb-0"><i class="bi bi-shield"></i> ${t('securityInfo')}</h6></div>
+                                        <div class="card-body">
+                                            <div class="small">
+                                                <p><i class="bi bi-check-circle text-success"></i> ${t('privateStorage')}</p>
+                                                <p><i class="bi bi-person-check text-info"></i> ${t('privateNote')}</p>
+                                            </div>
+                                            <div class="mt-3">
+                                                <button class="btn btn-outline-dark btn-sm" id="backupPrivateInfoBtn">${t('backup')}</button>
+                                                <button class="btn btn-outline-dark btn-sm" id="restorePrivateInfoBtn">${t('restore')}</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="card-header"><h6 class="mb-0"><i class="bi bi-journal-text"></i> ${t('privateNotes')}</h6></div>
+                                <div class="card-body">
+                                    <textarea class="form-control" id="privateNotes" rows="12" placeholder="${t('notesPlaceholder')}"></textarea>
+                                    <div class="d-flex justify-content-between mt-3">
+                                        <button class="btn btn-secondary" id="clearPrivateInfoBtn">${t('clear')}</button>
+                                        <button class="btn btn-dark" id="savePrivateInfoBtn">${t('save')}</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Sluiten</button>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
     }
     
     setupEvents() {
+        // EXACT ZELFDE ALS SEARCHMANAGER - laad bij focus op zoekveld
+        const searchInput = document.getElementById('privateHondSearch');
+        if (searchInput) {
+            searchInput.addEventListener('focus', async () => {
+                if (this.allDogs.length === 0) {
+                    await this.loadSearchData(); // LAAD NU PAS
+                }
+                this.setupDogSearch();
+            });
+        }
+        
         document.addEventListener('click', (e) => {
             if (e.target && (e.target.id === 'loadPrivateInfoBtn' || e.target.closest('#loadPrivateInfoBtn'))) {
                 e.preventDefault();
@@ -265,10 +235,6 @@ class PrivateInfoManager extends BaseModule {
         
         this.updateDropdownWithDogs(this.allDogs);
         
-        searchInput.addEventListener('focus', () => {
-            dropdownMenu.classList.add('show');
-        });
-        
         searchInput.addEventListener('input', (e) => {
             const searchTerm = e.target.value.toLowerCase().trim();
             
@@ -284,6 +250,10 @@ class PrivateInfoManager extends BaseModule {
                 this.updateDropdownWithDogs(this.allDogs);
             }
             
+            dropdownMenu.classList.add('show');
+        });
+        
+        searchInput.addEventListener('focus', () => {
             dropdownMenu.classList.add('show');
         });
         
@@ -309,46 +279,16 @@ class PrivateInfoManager extends BaseModule {
             const item = document.createElement('a');
             item.className = 'dropdown-item';
             item.href = '#';
-            item.innerHTML = `
-                <div>
-                    <strong>${dog.naam || 'Naam onbekend'}</strong>
-                    <div class="small text-muted">
-                        ${dog.stamboomnr || ''} 
-                        ${dog.ras ? '| ' + dog.ras : ''}
-                        ${dog.kennelnaam ? '| ' + dog.kennelnaam : ''}
-                    </div>
-                </div>
-            `;
-            
+            item.innerHTML = `<strong>${dog.naam || ''}</strong><div class="small text-muted">${dog.stamboomnr || ''}</div>`;
             item.addEventListener('click', (e) => {
                 e.preventDefault();
-                this.selectDog(dog);
+                document.getElementById('privateHondSearch').value = dog.naam || '';
+                document.getElementById('selectedDogId').value = dog.id;
+                document.getElementById('selectedDogStamboomnr').value = dog.stamboomnr || '';
                 dropdownMenu.classList.remove('show');
             });
-            
             dropdownMenu.appendChild(item);
         });
-    }
-    
-    selectDog(dog) {
-        const searchInput = document.getElementById('privateHondSearch');
-        const dogIdInput = document.getElementById('selectedDogId');
-        const stamboomnrInput = document.getElementById('selectedDogStamboomnr');
-        const infoDiv = document.getElementById('selectedDogInfo');
-        
-        if (searchInput) searchInput.value = dog.naam || '';
-        if (dogIdInput) dogIdInput.value = dog.id;
-        if (stamboomnrInput) stamboomnrInput.value = dog.stamboomnr || '';
-        
-        if (infoDiv) {
-            infoDiv.innerHTML = `
-                <span class="text-success">
-                    <i class="bi bi-check-circle"></i> Geselecteerd: 
-                    ${dog.naam || ''} 
-                    ${dog.stamboomnr ? '(' + dog.stamboomnr + ')' : ''}
-                </span>
-            `;
-        }
     }
     
     async loadPrivateInfoForDog() {
@@ -363,9 +303,7 @@ class PrivateInfoManager extends BaseModule {
         this.showProgress(this.t('loadingInfo'));
         
         try {
-            if (!window.priveInfoService) {
-                throw new Error('Privé info service niet beschikbaar');
-            }
+            if (!window.priveInfoService) throw new Error('Privé info service niet beschikbaar');
             
             const result = await window.priveInfoService.getPriveInfoMetPaginatie(1, 1000);
             const priveInfo = result.priveInfo?.find(info => info.stamboomnr === stamboomnr);
@@ -405,15 +343,9 @@ class PrivateInfoManager extends BaseModule {
         this.showProgress(this.t('savingInfo'));
         
         try {
-            if (!window.priveInfoService) {
-                throw new Error('Privé info service niet beschikbaar');
-            }
+            if (!window.priveInfoService) throw new Error('Privé info service niet beschikbaar');
             
-            const priveInfo = {
-                stamboomnr: stamboomnr,
-                privateNotes: notes
-            };
-            
+            const priveInfo = { stamboomnr: stamboomnr, privateNotes: notes };
             await window.priveInfoService.bewaarPriveInfo(priveInfo);
             this.currentPriveInfo = priveInfo;
             
@@ -438,9 +370,7 @@ class PrivateInfoManager extends BaseModule {
         this.showProgress(this.t('makingBackup'));
         
         try {
-            if (!window.priveInfoService) {
-                throw new Error('Privé info service niet beschikbaar');
-            }
+            if (!window.priveInfoService) throw new Error('Privé info service niet beschikbaar');
             
             const result = await window.priveInfoService.getPriveInfoMetPaginatie(1, 10000);
             
@@ -500,9 +430,7 @@ class PrivateInfoManager extends BaseModule {
                     
                     this.showProgress(this.t('restoring'));
                     
-                    if (!window.priveInfoService) {
-                        throw new Error('Privé info service niet beschikbaar');
-                    }
+                    if (!window.priveInfoService) throw new Error('Privé info service niet beschikbaar');
                     
                     let successCount = 0;
                     let errorCount = 0;
@@ -538,27 +466,19 @@ class PrivateInfoManager extends BaseModule {
     }
     
     showProgress(message) {
-        if (window.uiHandler && window.uiHandler.showProgress) {
-            window.uiHandler.showProgress(message);
-        }
+        if (window.uiHandler?.showProgress) window.uiHandler.showProgress(message);
     }
     
     hideProgress() {
-        if (window.uiHandler && window.uiHandler.hideProgress) {
-            window.uiHandler.hideProgress();
-        }
+        if (window.uiHandler?.hideProgress) window.uiHandler.hideProgress();
     }
     
     showSuccess(message) {
-        if (window.uiHandler && window.uiHandler.showSuccess) {
-            window.uiHandler.showSuccess(message);
-        }
+        if (window.uiHandler?.showSuccess) window.uiHandler.showSuccess(message);
     }
     
     showError(message) {
-        if (window.uiHandler && window.uiHandler.showError) {
-            window.uiHandler.showError(message);
-        }
+        if (window.uiHandler?.showError) window.uiHandler.showError(message);
     }
 }
 
