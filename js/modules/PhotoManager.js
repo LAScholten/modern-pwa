@@ -65,7 +65,8 @@ class PhotoManager extends BaseModule {
                 photoNotFound: "Foto niet gevonden",
                 loadDetailsFailed: "Fout bij laden foto details: ",
                 searchToFindDogs: "Typ om te zoeken...",
-                loadingProgress: "Honden laden: "
+                loadingProgress: "Honden laden: ",
+                thumbnailError: "Thumbnail maken mislukt"
             },
             en: {
                 photoGallery: "Photo Gallery",
@@ -117,7 +118,8 @@ class PhotoManager extends BaseModule {
                 photoNotFound: "Photo not found",
                 loadDetailsFailed: "Error loading photo details: ",
                 searchToFindDogs: "Type to search...",
-                loadingProgress: "Loading dogs: "
+                loadingProgress: "Loading dogs: ",
+                thumbnailError: "Thumbnail creation failed"
             },
             de: {
                 photoGallery: "Foto Galerie",
@@ -169,7 +171,8 @@ class PhotoManager extends BaseModule {
                 photoNotFound: "Foto nicht gefunden",
                 loadDetailsFailed: "Fehler beim Laden der Fotodetails: ",
                 searchToFindDogs: "Tippen Sie zum Suchen...",
-                loadingProgress: "Hunde laden: "
+                loadingProgress: "Hunde laden: ",
+                thumbnailError: "Thumbnail-Erstellung fehlgeschlagen"
             }
         };
     }
@@ -631,85 +634,126 @@ class PhotoManager extends BaseModule {
         
         this.showProgress(t('uploading'));
         
-        try {
-            const user = window.auth ? window.auth.getCurrentUser() : null;
-            if (!user || !user.id) {
-                throw new Error('Niet ingelogd of geen gebruikers-ID beschikbaar');
-            }
-            
-            const timestamp = Date.now();
-            const safeFilename = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-            const fileName = `${timestamp}_${safeFilename}`;
-            const filePath = `fotos/${stamboomnr}/${fileName}`;
-            
-            console.log('Uploading to:', filePath);
-            
-            const { data: uploadData, error: uploadError } = await window.supabase
-                .storage
-                .from('fotos')
-                .upload(filePath, file, {
-                    cacheControl: '3600',
-                    upsert: false
+        const reader = new FileReader();
+        
+        reader.onload = async (e) => {
+            try {
+                // Haal gebruiker op
+                const user = window.auth ? window.auth.getCurrentUser() : null;
+                if (!user || !user.id) {
+                    throw new Error('Niet ingelogd of geen gebruikers-ID beschikbaar');
+                }
+                
+                // Converteer naar Base64 (volledige data met data: prefix)
+                const base64Data = e.target.result;
+                
+                // Maak thumbnail (gereduceerde versie)
+                let thumbnail = null;
+                try {
+                    // Maak een kleine thumbnail (max 200px)
+                    const img = new Image();
+                    img.src = base64Data;
+                    
+                    await new Promise((resolve) => {
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            const ctx = canvas.getContext('2d');
+                            
+                            // Bereken nieuwe afmetingen
+                            const maxSize = 200;
+                            let width = img.width;
+                            let height = img.height;
+                            
+                            if (width > height) {
+                                if (width > maxSize) {
+                                    height = (height * maxSize) / width;
+                                    width = maxSize;
+                                }
+                            } else {
+                                if (height > maxSize) {
+                                    width = (width * maxSize) / height;
+                                    height = maxSize;
+                                }
+                            }
+                            
+                            canvas.width = width;
+                            canvas.height = height;
+                            ctx.drawImage(img, 0, 0, width, height);
+                            
+                            thumbnail = canvas.toDataURL('image/jpeg', 0.7);
+                            resolve();
+                        };
+                    });
+                } catch (thumbError) {
+                    console.warn('Thumbnail maken mislukt:', thumbError);
+                    // Gebruik de originele data als fallback
+                    thumbnail = base64Data;
+                }
+                
+                // Maak foto object voor database (VOLGENS JOUW TABEL STRUCTUUR)
+                const fotoData = {
+                    stamboomnr: stamboomnr,
+                    data: base64Data, // volledige Base64 data met data: prefix
+                    thumbnail: thumbnail,   // thumbnail als Base64
+                    filename: file.name,
+                    size: file.size,
+                    type: file.type,
+                    uploaded_at: new Date().toISOString(),
+                    geupload_door: user.id,
+                    hond_id: dogId ? parseInt(dogId) : null
+                };
+                
+                console.log('Foto data voor database:', {
+                    stamboomnr: fotoData.stamboomnr,
+                    filename: fotoData.filename,
+                    size: fotoData.size,
+                    hasData: !!fotoData.data,
+                    hasThumbnail: !!fotoData.thumbnail,
+                    geupload_door: fotoData.geupload_door,
+                    hond_id: fotoData.hond_id
                 });
-            
-            if (uploadError) {
-                console.error('Storage upload error:', uploadError);
-                throw uploadError;
+                
+                // Voeg toe aan database via Supabase
+                const { data: dbData, error: dbError } = await window.supabase
+                    .from('fotos')
+                    .insert(fotoData)
+                    .select()
+                    .single();
+                
+                if (dbError) {
+                    console.error('Database insert error:', dbError);
+                    throw dbError;
+                }
+                
+                console.log('Database insert successful:', dbData);
+                
+                this.hideProgress();
+                this.showSuccess(t('uploadSuccess'));
+                
+                // Formulier resetten
+                document.getElementById('photoHondSearch').value = '';
+                document.getElementById('selectedDogId').value = '';
+                document.getElementById('selectedDogStamboomnr').value = '';
+                document.getElementById('selectedDogName').value = '';
+                document.getElementById('photoDescription').value = '';
+                fileInput.value = '';
+                
+                // Herlaad foto's
+                await this.loadAllPhotos();
+                
+            } catch (error) {
+                console.error('Upload error:', error);
+                this.hideProgress();
+                this.showError(`${t('uploadFailed')}${error.message}`);
             }
-            
-            console.log('Upload successful, getting public URL...');
-            
-            const { data: urlData } = await window.supabase
-                .storage
-                .from('fotos')
-                .getPublicUrl(filePath);
-            
-            console.log('Public URL:', urlData.publicUrl);
-            
-            const fotoData = {
-                stamboomnr: stamboomnr,
-                filename: file.name,
-                filepath: filePath,
-                url: urlData.publicUrl,
-                size: file.size,
-                type: file.type,
-                description: description,
-                uploaded_by: user.id,
-                uploaded_at: new Date().toISOString()
-            };
-            
-            console.log('Inserting into database:', fotoData);
-            
-            const { data: dbData, error: dbError } = await window.supabase
-                .from('fotos')
-                .insert(fotoData)
-                .select()
-                .single();
-            
-            if (dbError) {
-                console.error('Database insert error:', dbError);
-                throw dbError;
-            }
-            
-            console.log('Database insert successful:', dbData);
-            
+        };
+        
+        reader.onerror = () => {
             this.hideProgress();
-            this.showSuccess(t('uploadSuccess'));
-            
-            document.getElementById('photoHondSearch').value = '';
-            document.getElementById('selectedDogId').value = '';
-            document.getElementById('selectedDogStamboomnr').value = '';
-            document.getElementById('selectedDogName').value = '';
-            document.getElementById('photoDescription').value = '';
-            fileInput.value = '';
-            
-            await this.loadAllPhotos();
-            
-        } catch (error) {
-            console.error('Upload error:', error);
-            this.hideProgress();
-            this.showError(`${t('uploadFailed')}${error.message}`);
-        }
+            this.showError(t('fileReadError'));
+        };
+        
+        reader.readAsDataURL(file);
     }
     
     async loadAllPhotos() {
@@ -717,14 +761,17 @@ class PhotoManager extends BaseModule {
         this.showProgress(t('loading'));
         
         try {
-            const result = await window.fotoService.getFotosMetPaginatie(
-                null,
-                1,
-                12
-            );
+            // Direct query uitvoeren omdat fotoService niet bestaat
+            const { data: fotos, error } = await window.supabase
+                .from('fotos')
+                .select('*')
+                .order('uploaded_at', { ascending: false })
+                .limit(12);
+            
+            if (error) throw error;
             
             this.hideProgress();
-            await this.displayPhotos(result.fotos || []);
+            await this.displayPhotos(fotos || []);
             
         } catch (error) {
             console.error('Error loading photos:', error);
@@ -772,9 +819,9 @@ class PhotoManager extends BaseModule {
             }
             
             const dogName = dog ? `${dog.naam || ''}${dog.kennelnaam ? ` (${dog.kennelnaam})` : ''}` : t('unknownDog');
-            const uploadDatum = new Date(foto.uploaded_at || foto.uploadedAt).toLocaleDateString(this.currentLang);
-            const description = foto.description || '';
-            const imageUrl = foto.url || foto.data;
+            const uploadDatum = new Date(foto.uploaded_at).toLocaleDateString(this.currentLang);
+            const description = foto.data || ''; // Opmerking: jouw tabel heeft geen description veld
+            const imageUrl = foto.thumbnail || foto.data; // Gebruik thumbnail als die er is, anders volledige data
             
             html += `
                 <div class="col-md-4 col-lg-3 mb-4">
@@ -783,7 +830,7 @@ class PhotoManager extends BaseModule {
                              style="height: 180px; cursor: pointer; background: #f8f9fa; display: flex; align-items: center; justify-content: center; overflow: hidden;"
                              data-foto-id="${foto.id}">
                             ${imageUrl ? 
-                                `<img src="${imageUrl}" alt="${description || dogName}" 
+                                `<img src="${imageUrl}" alt="${dogName}" 
                                       style="max-width: 100%; max-height: 100%; object-fit: cover;"
                                       onerror="this.src='data:image/svg+xml,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"100\" height=\"100\" fill=\"%236c757d\"><rect width=\"100%\" height=\"100%\" fill=\"%23f8f9fa\"/><text x=\"50%\" y=\"50%\" dy=\".3em\" text-anchor=\"middle\" font-size=\"14\">Image</text></svg>'">` :
                                 `<i class="bi bi-image text-muted" style="font-size: 3rem;"></i>`
@@ -791,17 +838,11 @@ class PhotoManager extends BaseModule {
                         </div>
                         <div class="card-body d-flex flex-column">
                             <h6 class="card-title mb-2 text-truncate" title="${dogName}">${dogName}</h6>
-                            ${description ? `
-                                <p class="card-text small text-muted flex-grow-1" style="max-height: 60px; overflow: hidden;">
-                                    ${description}
-                                </p>
-                            ` : ''}
                             <div class="mt-auto">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <small class="text-muted">${uploadDatum}</small>
                                     <button class="btn btn-sm btn-outline-danger delete-photo-btn" 
                                             data-id="${foto.id}" 
-                                            data-filepath="${foto.filepath || ''}"
                                             title="${t('delete')}">
                                         <i class="bi bi-trash"></i>
                                     </button>
@@ -826,8 +867,7 @@ class PhotoManager extends BaseModule {
             btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 const fotoId = btn.dataset.id;
-                const filepath = btn.dataset.filepath;
-                await this.deletePhoto(fotoId, filepath);
+                await this.deletePhoto(fotoId);
             });
         });
     }
@@ -865,8 +905,8 @@ class PhotoManager extends BaseModule {
                                 <div class="row">
                                     <div class="col-md-8">
                                         <div class="text-center mb-3">
-                                            ${foto.url ? 
-                                                `<img src="${foto.url}" alt="${foto.description || dogName}" 
+                                            ${foto.data ? 
+                                                `<img src="${foto.data}" alt="${dogName}" 
                                                       class="img-fluid rounded shadow" style="max-height: 60vh; max-width: 100%;">` :
                                                 `<div class="bg-light p-5 rounded text-center">
                                                     <i class="bi bi-image text-muted" style="font-size: 5rem;"></i>
@@ -900,15 +940,6 @@ class PhotoManager extends BaseModule {
                                                         <td>${new Date(foto.uploaded_at).toLocaleString(this.currentLang)}</td>
                                                     </tr>
                                                 </table>
-                                                
-                                                ${foto.description ? `
-                                                <div class="mt-3">
-                                                    <h6 class="border-bottom pb-2">${t('description')}</h6>
-                                                    <div class="bg-light p-3 rounded small">
-                                                        ${foto.description}
-                                                    </div>
-                                                </div>
-                                                ` : ''}
                                             </div>
                                         </div>
                                     </div>
@@ -940,7 +971,7 @@ class PhotoManager extends BaseModule {
         }
     }
     
-    async deletePhoto(fotoId, filepath) {
+    async deletePhoto(fotoId) {
         const t = this.t.bind(this);
         
         if (!confirm(t('deleteConfirm'))) {
@@ -950,17 +981,6 @@ class PhotoManager extends BaseModule {
         this.showProgress(t('deleting'));
         
         try {
-            if (filepath) {
-                const { error: storageError } = await window.supabase
-                    .storage
-                    .from('fotos')
-                    .remove([filepath]);
-                
-                if (storageError) {
-                    console.warn('Could not delete file from storage:', storageError);
-                }
-            }
-            
             const { error: dbError } = await window.supabase
                 .from('fotos')
                 .delete()
