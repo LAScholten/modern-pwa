@@ -420,17 +420,30 @@ class ReuTeefCombinatie {
         if (!dogId || dogId === 0) return false;
         const dog = this.getDogById(dogId);
         if (!dog || !dog.stamboomnr) return false;
+        
+        // Controleer cache
         const cacheKey = `has_${dogId}_${dog.stamboomnr}`;
         if (this.dogHasPhotosCache.has(cacheKey)) {
             return this.dogHasPhotosCache.get(cacheKey);
         }
+        
         try {
-            // GEBRUIK window.hondenService in plaats van this.db
-            const hasPhotos = await window.hondenService.checkFotosExist(dog.stamboomnr);
-            this.dogHasPhotosCache.set(cacheKey, hasPhotos);
-            return hasPhotos;
+            // ALTERNATIEF: Probeer via fotoService als beschikbaar
+            if (window.fotoService && typeof window.fotoService.getFotoThumbnails === 'function') {
+                const thumbnails = await window.fotoService.getFotoThumbnails(dog.stamboomnr, 1);
+                const hasPhotos = thumbnails && thumbnails.length > 0;
+                this.dogHasPhotosCache.set(cacheKey, hasPhotos);
+                return hasPhotos;
+            }
+            
+            // Als functie niet beschikbaar is, retourneer false
+            this.dogHasPhotosCache.set(cacheKey, false);
+            return false;
+            
         } catch (error) {
             console.error('Fout bij checken foto\'s voor hond:', dogId, error);
+            // Cache false om herhaalde fouten te voorkomen
+            this.dogHasPhotosCache.set(cacheKey, false);
             return false;
         }
     }
@@ -439,15 +452,22 @@ class ReuTeefCombinatie {
         if (!dogId || dogId === 0) return [];
         const dog = this.getDogById(dogId);
         if (!dog || !dog.stamboomnr) return [];
+        
         const cacheKey = `thumbs_${dogId}_${dog.stamboomnr}_${limit}`;
         if (this.dogThumbnailsCache.has(cacheKey)) {
             return this.dogThumbnailsCache.get(cacheKey);
         }
+        
         try {
-            // GEBRUIK window.hondenService in plaats van this.db
-            const thumbnails = await window.hondenService.getFotoThumbnails(dog.stamboomnr, limit);
-            this.dogThumbnailsCache.set(cacheKey, thumbnails || []);
-            return thumbnails || [];
+            // GEBRUIK window.fotoService in plaats van window.hondenService
+            if (window.fotoService && typeof window.fotoService.getFotoThumbnails === 'function') {
+                const thumbnails = await window.fotoService.getFotoThumbnails(dog.stamboomnr, limit);
+                this.dogThumbnailsCache.set(cacheKey, thumbnails || []);
+                return thumbnails || [];
+            } else {
+                console.warn(`getFotoThumbnails functie niet beschikbaar via fotoService`);
+                return [];
+            }
         } catch (error) {
             console.error('Fout bij ophalen thumbnails voor hond:', dogId, error);
             return [];
@@ -1644,24 +1664,12 @@ class ReuTeefCombinatie {
     }
     
     selectTeef(hond) {
-        // Controleer of het echt een teef is
-        if (hond.geslacht !== 'teven' && hond.geslacht !== 'vrouwelijk') {
-            this.showAlert("Dit is geen teef. Selecteer alstublieft een teef.", 'warning');
-            return;
-        }
-        
         this.selectedTeef = hond;
         this.showHondDetails('teefDetails', hond, 'teef');
         this.updateButtonStates();
     }
     
     selectReu(hond) {
-        // Controleer of het echt een reu is
-        if (hond.geslacht !== 'reuen' && hond.geslacht !== 'mannelijk') {
-            this.showAlert("Dit is geen reu. Selecteer alstublieft een reu.", 'warning');
-            return;
-        }
-        
         this.selectedReu = hond;
         this.showHondDetails('reuDetails', hond, 'reu');
         this.updateButtonStates();
