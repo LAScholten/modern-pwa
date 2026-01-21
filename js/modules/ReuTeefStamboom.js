@@ -60,8 +60,6 @@ class ReuTeefStamboom {
                 geslacht: 'onbekend',
                 vader_id: selectedReu.id,
                 moeder_id: selectedTeef.id,
-                vader: selectedReu.naam,
-                moeder: selectedTeef.naam,
                 kennelnaam: this.t('combinedParents'),
                 stamboomnr: 'VOORSPELD',
                 geboortedatum: new Date().toISOString().split('T')[0],
@@ -1182,10 +1180,6 @@ class ReuTeefStamboom {
                     .rtc-pedigree-card-compact.horizontal.gen3 .rtc-click-hint-compact {
                         font-size: 0.48rem;
                     }
-                    
-                    .rtc-pedigree-card-compact.horizontal.gen4 .rtc-dog-name-kennel-compact {
-                        font-size: 0.6rem !important;
-                    }
                 }
                 
                 @media (min-width: 1024px) and (max-width: 1365px) {
@@ -1915,116 +1909,116 @@ class ReuTeefStamboom {
         
         // Vul de stamboom op dezelfde manier als StamboomManager
         if (selectedReu && selectedReu.vader_id) {
-            pedigreeTree.paternalGrandfather = this.mainModule.getDogById(selectedReu.vader_id);
+            pedigreeTree.paternalGrandfather = this.mainModule.getHondById(selectedReu.vader_id);
         }
         
         if (selectedReu && selectedReu.moeder_id) {
-            pedigreeTree.paternalGrandmother = this.mainModule.getDogById(selectedReu.moeder_id);
+            pedigreeTree.paternalGrandmother = this.mainModule.getHondById(selectedReu.moeder_id);
         }
         
         if (selectedTeef && selectedTeef.vader_id) {
-            pedigreeTree.maternalGrandfather = this.mainModule.getDogById(selectedTeef.vader_id);
+            pedigreeTree.maternalGrandfather = this.mainModule.getHondById(selectedTeef.vader_id);
         }
         
         if (selectedTeef && selectedTeef.moeder_id) {
-            pedigreeTree.maternalGrandmother = this.mainModule.getDogById(selectedTeef.moeder_id);
+            pedigreeTree.maternalGrandmother = this.mainModule.getHondById(selectedTeef.moeder_id);
         }
         
         if (pedigreeTree.paternalGrandfather && pedigreeTree.paternalGrandfather.vader_id) {
-            pedigreeTree.paternalGreatGrandfather1 = this.mainModule.getDogById(pedigreeTree.paternalGrandfather.vader_id);
+            pedigreeTree.paternalGreatGrandfather1 = this.mainModule.getHondById(pedigreeTree.paternalGrandfather.vader_id);
         }
         
         if (pedigreeTree.paternalGrandfather && pedigreeTree.paternalGrandfather.moeder_id) {
-            pedigreeTree.paternalGreatGrandmother1 = this.mainModule.getDogById(pedigreeTree.paternalGrandfather.moeder_id);
+            pedigreeTree.paternalGreatGrandmother1 = this.mainModule.getHondById(pedigreeTree.paternalGrandfather.moeder_id);
         }
         
         if (pedigreeTree.paternalGrandmother && pedigreeTree.paternalGrandmother.vader_id) {
-            pedigreeTree.paternalGreatGrandfather2 = this.mainModule.getDogById(pedigreeTree.paternalGrandmother.vader_id);
+            pedigreeTree.paternalGreatGrandfather2 = this.mainModule.getHondById(pedigreeTree.paternalGrandmother.vader_id);
         }
         
         if (pedigreeTree.paternalGrandmother && pedigreeTree.paternalGrandmother.moeder_id) {
-            pedigreeTree.paternalGreatGrandmother2 = this.mainModule.getDogById(pedigreeTree.paternalGrandmother.moeder_id);
+            pedigreeTree.paternalGreatGrandmother2 = this.mainModule.getHondById(pedigreeTree.paternalGrandmother.moeder_id);
         }
         
         if (pedigreeTree.maternalGrandfather && pedigreeTree.maternalGrandfather.vader_id) {
-            pedigreeTree.maternalGreatGrandfather1 = this.mainModule.getDogById(pedigreeTree.maternalGrandfather.vader_id);
+            pedigreeTree.maternalGreatGrandfather1 = this.mainModule.getHondById(pedigreeTree.maternalGrandfather.vader_id);
         }
         
         if (pedigreeTree.maternalGrandfather && pedigreeTree.maternalGrandfather.moeder_id) {
-            pedigreeTree.maternalGreatGrandmother1 = this.mainModule.getDogById(pedigreeTree.maternalGrandfather.moeder_id);
+            pedigreeTree.maternalGreatGrandmother1 = this.mainModule.getHondById(pedigreeTree.maternalGrandfather.moeder_id);
         }
         
         if (pedigreeTree.maternalGrandmother && pedigreeTree.maternalGrandmother.vader_id) {
-            pedigreeTree.maternalGreatGrandfather2 = this.mainModule.getDogById(pedigreeTree.maternalGrandmother.vader_id);
+            pedigreeTree.maternalGreatGrandfather2 = this.mainModule.getHondById(pedigreeTree.maternalGrandmother.vader_id);
         }
         
         if (pedigreeTree.maternalGrandmother && pedigreeTree.maternalGrandmother.moeder_id) {
-            pedigreeTree.maternalGreatGrandmother2 = this.mainModule.getDogById(pedigreeTree.maternalGrandmother.moeder_id);
+            pedigreeTree.maternalGreatGrandmother2 = this.mainModule.getHondById(pedigreeTree.maternalGrandmother.moeder_id);
         }
         
         // Over-overgrootouders (generatie 4)
         if (pedigreeTree.paternalGreatGrandfather1 && pedigreeTree.paternalGreatGrandfather1.vader_id) {
-            pedigreeTree.paternalGreatGreatGrandfather1 = this.mainModule.getDogById(pedigreeTree.paternalGreatGrandfather1.vader_id);
+            pedigreeTree.paternalGreatGreatGrandfather1 = this.mainModule.getHondById(pedigreeTree.paternalGreatGrandfather1.vader_id);
         }
         
         if (pedigreeTree.paternalGreatGrandfather1 && pedigreeTree.paternalGreatGrandfather1.moeder_id) {
-            pedigreeTree.paternalGreatGreatGrandmother1 = this.mainModule.getDogById(pedigreeTree.paternalGreatGrandfather1.moeder_id);
+            pedigreeTree.paternalGreatGreatGrandmother1 = this.mainModule.getHondById(pedigreeTree.paternalGreatGrandfather1.moeder_id);
         }
         
         if (pedigreeTree.paternalGreatGrandmother1 && pedigreeTree.paternalGreatGrandmother1.vader_id) {
-            pedigreeTree.paternalGreatGreatGrandfather2 = this.mainModule.getDogById(pedigreeTree.paternalGreatGrandmother1.vader_id);
+            pedigreeTree.paternalGreatGreatGrandfather2 = this.mainModule.getHondById(pedigreeTree.paternalGreatGrandmother1.vader_id);
         }
         
         if (pedigreeTree.paternalGreatGrandmother1 && pedigreeTree.paternalGreatGrandmother1.moeder_id) {
-            pedigreeTree.paternalGreatGreatGrandmother2 = this.mainModule.getDogById(pedigreeTree.paternalGreatGrandmother1.moeder_id);
+            pedigreeTree.paternalGreatGreatGrandmother2 = this.mainModule.getHondById(pedigreeTree.paternalGreatGrandmother1.moeder_id);
         }
         
         if (pedigreeTree.paternalGreatGrandfather2 && pedigreeTree.paternalGreatGrandfather2.vader_id) {
-            pedigreeTree.paternalGreatGreatGrandfather3 = this.mainModule.getDogById(pedigreeTree.paternalGreatGrandfather2.vader_id);
+            pedigreeTree.paternalGreatGreatGrandfather3 = this.mainModule.getHondById(pedigreeTree.paternalGreatGrandfather2.vader_id);
         }
         
         if (pedigreeTree.paternalGreatGrandfather2 && pedigreeTree.paternalGreatGrandfather2.moeder_id) {
-            pedigreeTree.paternalGreatGreatGrandmother3 = this.mainModule.getDogById(pedigreeTree.paternalGreatGrandfather2.moeder_id);
+            pedigreeTree.paternalGreatGreatGrandmother3 = this.mainModule.getHondById(pedigreeTree.paternalGreatGrandfather2.moeder_id);
         }
         
         if (pedigreeTree.paternalGreatGrandmother2 && pedigreeTree.paternalGreatGrandmother2.vader_id) {
-            pedigreeTree.paternalGreatGreatGrandfather4 = this.mainModule.getDogById(pedigreeTree.paternalGreatGrandmother2.vader_id);
+            pedigreeTree.paternalGreatGreatGrandfather4 = this.mainModule.getHondById(pedigreeTree.paternalGreatGrandmother2.vader_id);
         }
         
         if (pedigreeTree.paternalGreatGrandmother2 && pedigreeTree.paternalGreatGrandmother2.moeder_id) {
-            pedigreeTree.paternalGreatGreatGrandmother4 = this.mainModule.getDogById(pedigreeTree.paternalGreatGrandmother2.moeder_id);
+            pedigreeTree.paternalGreatGreatGrandmother4 = this.mainModule.getHondById(pedigreeTree.paternalGreatGrandmother2.moeder_id);
         }
         
         if (pedigreeTree.maternalGreatGrandfather1 && pedigreeTree.maternalGreatGrandfather1.vader_id) {
-            pedigreeTree.maternalGreatGreatGrandfather1 = this.mainModule.getDogById(pedigreeTree.maternalGreatGrandfather1.vader_id);
+            pedigreeTree.maternalGreatGreatGrandfather1 = this.mainModule.getHondById(pedigreeTree.maternalGreatGrandfather1.vader_id);
         }
         
         if (pedigreeTree.maternalGreatGrandfather1 && pedigreeTree.maternalGreatGrandfather1.moeder_id) {
-            pedigreeTree.maternalGreatGreatGrandmother1 = this.mainModule.getDogById(pedigreeTree.maternalGreatGrandfather1.moeder_id);
+            pedigreeTree.maternalGreatGreatGrandmother1 = this.mainModule.getHondById(pedigreeTree.maternalGreatGrandfather1.moeder_id);
         }
         
         if (pedigreeTree.maternalGreatGrandmother1 && pedigreeTree.maternalGreatGrandmother1.vader_id) {
-            pedigreeTree.maternalGreatGreatGrandfather2 = this.mainModule.getDogById(pedigreeTree.maternalGreatGrandmother1.vader_id);
+            pedigreeTree.maternalGreatGreatGrandfather2 = this.mainModule.getHondById(pedigreeTree.maternalGreatGrandmother1.vader_id);
         }
         
         if (pedigreeTree.maternalGreatGrandmother1 && pedigreeTree.maternalGreatGrandmother1.moeder_id) {
-            pedigreeTree.maternalGreatGreatGrandmother2 = this.mainModule.getDogById(pedigreeTree.maternalGreatGrandmother1.moeder_id);
+            pedigreeTree.maternalGreatGreatGrandmother2 = this.mainModule.getHondById(pedigreeTree.maternalGreatGrandmother1.moeder_id);
         }
         
         if (pedigreeTree.maternalGreatGrandfather2 && pedigreeTree.maternalGreatGrandfather2.vader_id) {
-            pedigreeTree.maternalGreatGreatGrandfather3 = this.mainModule.getDogById(pedigreeTree.maternalGreatGrandfather2.vader_id);
+            pedigreeTree.maternalGreatGreatGrandfather3 = this.mainModule.getHondById(pedigreeTree.maternalGreatGrandfather2.vader_id);
         }
         
         if (pedigreeTree.maternalGreatGrandfather2 && pedigreeTree.maternalGreatGrandfather2.moeder_id) {
-            pedigreeTree.maternalGreatGreatGrandmother3 = this.mainModule.getDogById(pedigreeTree.maternalGreatGrandfather2.moeder_id);
+            pedigreeTree.maternalGreatGreatGrandmother3 = this.mainModule.getHondById(pedigreeTree.maternalGreatGrandfather2.moeder_id);
         }
         
         if (pedigreeTree.maternalGreatGrandmother2 && pedigreeTree.maternalGreatGrandmother2.vader_id) {
-            pedigreeTree.maternalGreatGreatGrandfather4 = this.mainModule.getDogById(pedigreeTree.maternalGreatGrandmother2.vader_id);
+            pedigreeTree.maternalGreatGreatGrandfather4 = this.mainModule.getHondById(pedigreeTree.maternalGreatGrandmother2.vader_id);
         }
         
         if (pedigreeTree.maternalGreatGrandmother2 && pedigreeTree.maternalGreatGrandmother2.moeder_id) {
-            pedigreeTree.maternalGreatGreatGrandmother4 = this.mainModule.getDogById(pedigreeTree.maternalGreatGrandmother2.moeder_id);
+            pedigreeTree.maternalGreatGreatGrandmother4 = this.mainModule.getHondById(pedigreeTree.maternalGreatGrandmother2.moeder_id);
         }
         
         return pedigreeTree;
@@ -2151,7 +2145,7 @@ class ReuTeefStamboom {
                     return;
                 }
                 
-                const dog = this.mainModule.getDogById(dogId);
+                const dog = this.mainModule.getHondById(dogId);
                 if (!dog) return;
                 
                 const relation = card.getAttribute('data-relation') || '';
@@ -2712,7 +2706,7 @@ class ReuTeefStamboom {
         
         if (!dogId || dogId === 0) return { coi6Gen: '0.0', coiAllGen: '0.0', kinship6Gen: '0.0' };
         
-        const dog = this.mainModule.getDogById(dogId);
+        const dog = this.mainModule.getHondById(dogId);
         if (!dog) return { coi6Gen: '0.0', coiAllGen: '0.0', kinship6Gen: '0.0' };
         
         // Basisgevallen eerst
@@ -2743,8 +2737,8 @@ class ReuTeefStamboom {
         }
         
         // Eenvoudige berekening als COICalculator niet werkt
-        const vader = this.mainModule.getDogById(dog.vader_id);
-        const moeder = this.mainModule.getDogById(dog.moeder_id);
+        const vader = this.mainModule.getHondById(dog.vader_id);
+        const moeder = this.mainModule.getHondById(dog.moeder_id);
         
         if (!vader || !moeder) {
             return { coi6Gen: '0.0', coiAllGen: '0.0', kinship6Gen: '0.0' };
@@ -2759,7 +2753,7 @@ class ReuTeefStamboom {
         if (!this.coiCalculator || !dogId || dogId === 0) return 0;
         
         try {
-            const dog = this.mainModule.getDogById(dogId);
+            const dog = this.mainModule.getHondById(dogId);
             if (!dog || !dog.vader_id || !dog.moeder_id) return 0;
             
             const allAncestors = this.coiCalculator._getAllAncestors(dogId, generations);
