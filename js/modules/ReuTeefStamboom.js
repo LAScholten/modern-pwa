@@ -1,6 +1,6 @@
 /**
  * Reu en Teef Stamboom Module - AFZONDERLIJK BESTAND
- * Gebruikt nu dezelfde allHonden array als StamboomManager
+ * Gebruikt nu dezelfde allDogs array als StamboomManager
  */
 
 class ReuTeefStamboom {
@@ -73,7 +73,7 @@ class ReuTeefStamboom {
                 return;
             }
             
-            // Maak een virtuele toekomstige pup
+            // Maak een virtuele toekomstige pup - STAP 1
             const futurePuppy = {
                 id: -999999,
                 naam: this.t('futurePuppyName'),
@@ -101,7 +101,14 @@ class ReuTeefStamboom {
             
             console.log('🔍 Toekomstige pup aangemaakt voor COI berekening:', futurePuppy);
             
-            // NIEUW: Maak een ECHT tijdelijke COICalculator zonder de hoofdcalculator te beïnvloeden
+            // LAAD ALLE HONDEN UIT DATABASE - STAP 2
+            // Controleer eerst of we alle honden hebben
+            if (this.allHonden.length < 1000) { // Als minder dan 1000 honden, laad dan alles
+                console.log('🔄 Lade alle honden opnieuw voor complete dataset...');
+                await this.loadAllHonden();
+            }
+            
+            // BEREKEN COI MET ALLE HONDEN + TOEKOMSTIGE PUP - STAP 3
             let tempCOICalculator = null;
             let coiResult = null;
             
@@ -132,7 +139,7 @@ class ReuTeefStamboom {
                 const healthAnalysis = await this.analyzeHealthInLine(futurePuppy, selectedTeef, selectedReu);
                 console.log('✅ Gezondheidsanalyse resultaat:', healthAnalysis);
                 
-                // Toon stamboom
+                // TOON STAMBOOM - STAP 4
                 await this.createFuturePuppyModal(futurePuppy, selectedTeef, selectedReu, coiResult, healthAnalysis);
                 
             } catch (calcError) {
@@ -148,6 +155,51 @@ class ReuTeefStamboom {
             this.mainModule.showAlert('Kon stamboom niet genereren. Probeer opnieuw.', 'danger');
         } finally {
             this.coiCalculationInProgress = false;
+        }
+    }
+    
+    async loadAllHonden() {
+        try {
+            console.log('ReuTeefStamboom: Laden van alle honden...');
+            
+            let allHonden = [];
+            let currentPage = 1;
+            const pageSize = 1000;
+            let hasMorePages = true;
+            
+            while (hasMorePages) {
+                const result = await window.hondenService.getHonden(currentPage, pageSize);
+                
+                if (result.honden && result.honden.length > 0) {
+                    allHonden = allHonden.concat(result.honden);
+                    hasMorePages = result.heeftVolgende;
+                    currentPage++;
+                    
+                    console.log(`Pagina ${currentPage-1} geladen: ${result.honden.length} honden`);
+                    
+                    if (currentPage > 100) {
+                        console.warn('Veiligheidslimiet bereikt: te veel pagina\'s geladen');
+                        break;
+                    }
+                } else {
+                    hasMorePages = false;
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+            allHonden.sort((a, b) => {
+                const naamA = a.naam || '';
+                const naamB = b.naam || '';
+                return naamA.localeCompare(naamB);
+            });
+            
+            this.allHonden = allHonden;
+            console.log(`✅ ReuTeefStamboom: TOTAAL ${this.allHonden.length} honden geladen`);
+            
+        } catch (error) {
+            console.error('Fout bij laden honden voor stambomen:', error);
+            this.allHonden = [];
         }
     }
     
@@ -1183,7 +1235,7 @@ class ReuTeefStamboom {
                     
                     .rtc-pedigree-card-compact.horizontal.gen0 .rtc-dog-pedigree-compact,
                     .rtc-pedigree-card-compact.horizontal.gen1 .rtc-dog-pedigree-compact,
-                    .rtc-pedigree-card-compact.horizontal.gen2 .rtc-dog-pedigree-compact,
+                    .rtc-pedigree-card.compact.horizontal.gen2 .rtc-dog-pedigree-compact,
                     .rtc-pedigree-card-compact.horizontal.gen0 .rtc-dog-breed-compact,
                     .rtc-pedigree-card-compact.horizontal.gen1 .rtc-dog-breed-compact,
                     .rtc-pedigree-card.compact.horizontal.gen2 .rtc-dog-breed-compact {
@@ -2089,7 +2141,7 @@ class ReuTeefStamboom {
         
         return pedigreeTree;
     }
-    
+
     async generateDogCard(dog, relation, isMainDog = false, generation = 0) {
         if (!dog) {
             return `
