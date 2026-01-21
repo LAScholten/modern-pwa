@@ -1,6 +1,6 @@
 /**
  * Reu en Teef Stamboom Module - EXACT ZELFDE ALS STAMBOOMMANAGER
- * Gebruikt nu EXACT dezelfde laadlogica als StamboomManager
+ * Wacht nu op StamboomManager om klaar te zijn
  */
 
 class ReuTeefStamboom {
@@ -10,56 +10,139 @@ class ReuTeefStamboom {
         this.currentLang = mainModule.currentLang;
         
         // EXACT DEZELFDE als StamboomManager: gebruik allDogs (niet allHonden)
-        this.allDogs = mainModule.allDogs || [];
+        this.allDogs = [];
+        this.initialized = false;
         
         this.selectedTeef = null;
         this.selectedReu = null;
         
         // EXACT DEZELFDE COI Calculator logica
-        this.coiCalculator = mainModule.coiCalculator || null;
-        this.coiCalculatorReady = !!mainModule.coiCalculator;
+        this.coiCalculator = null;
+        this.coiCalculatorReady = false;
         this.coiCalculationInProgress = false;
         
         // EXACT DEZELFDE caches
-        this.dogPhotosCache = mainModule.dogPhotosCache || new Map();
-        this.dogHasPhotosCache = mainModule.dogHasPhotosCache || new Map();
-        this.dogThumbnailsCache = mainModule.dogThumbnailsCache || new Map();
-        this.fullPhotoCache = mainModule.fullPhotoCache || new Map();
+        this.dogPhotosCache = new Map();
+        this.dogHasPhotosCache = new Map();
+        this.dogThumbnailsCache = new Map();
+        this.fullPhotoCache = new Map();
         this.healthAnalysisCache = new Map();
         
-        console.log(`ReuTeefStamboom geïnitialiseerd met ${this.allDogs.length} honden (EXACT ZELFDE ALS STAMBOOM)`);
+        console.log(`ReuTeefStamboom: Constructor aangeroepen, wacht op initialisatie...`);
+        
+        // Start initialisatie asynchroon
+        this.initializeAsync();
+    }
+    
+    // ASYNCHRONE INITIALISATIE die wacht op StamboomManager
+    async initializeAsync() {
+        try {
+            console.log('ReuTeefStamboom: Wacht op StamboomManager...');
+            
+            // Wacht maximaal 10 seconden op StamboomManager
+            let attempts = 0;
+            const maxAttempts = 100; // 100 * 100ms = 10 seconden
+            
+            while (attempts < maxAttempts) {
+                attempts++;
+                
+                // Controleer of StamboomManager bestaat EN actief is
+                if (this.mainModule && this.mainModule._isActive && 
+                    this.mainModule.allDogs && this.mainModule.allDogs.length > 0) {
+                    
+                    // Kopieer de data van StamboomManager
+                    this.allDogs = [...this.mainModule.allDogs];
+                    this.coiCalculator = this.mainModule.coiCalculator;
+                    this.coiCalculatorReady = !!this.coiCalculator;
+                    
+                    // Kopieer caches als ze bestaan
+                    if (this.mainModule.dogPhotosCache) {
+                        this.dogPhotosCache = new Map(this.mainModule.dogPhotosCache);
+                    }
+                    if (this.mainModule.dogHasPhotosCache) {
+                        this.dogHasPhotosCache = new Map(this.mainModule.dogHasPhotosCache);
+                    }
+                    if (this.mainModule.dogThumbnailsCache) {
+                        this.dogThumbnailsCache = new Map(this.mainModule.dogThumbnailsCache);
+                    }
+                    if (this.mainModule.fullPhotoCache) {
+                        this.fullPhotoCache = new Map(this.mainModule.fullPhotoCache);
+                    }
+                    
+                    console.log(`✅ ReuTeefStamboom: Geïnitialiseerd met ${this.allDogs.length} honden (EXACT ZELFDE ALS STAMBOOM)`);
+                    console.log(`✅ ReuTeefStamboom: COI Calculator beschikbaar: ${this.coiCalculatorReady}`);
+                    this.initialized = true;
+                    return;
+                }
+                
+                // Wacht 100ms en probeer opnieuw
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+                if (attempts % 10 === 0) {
+                    console.log(`⏳ ReuTeefStamboom: Wacht op StamboomManager... (${attempts}/100)`);
+                }
+            }
+            
+            // Timeout bereikt
+            console.error('❌ ReuTeefStamboom: Timeout - StamboomManager niet klaar na 10 seconden');
+            this.initialized = false;
+            
+        } catch (error) {
+            console.error('❌ ReuTeefStamboom: Fout bij initialiseren:', error);
+            this.initialized = false;
+        }
     }
     
     // EXACT DEZELFDE getDogById als StamboomManager
     getDogById(id) {
         if (!id || id === 0) return null;
-        return this.allDogs.find(dog => dog.id === id);
+        
+        // Gebruik eerst onze eigen array
+        let dog = this.allDogs.find(dog => dog.id === id);
+        
+        // Als niet gevonden en StamboomManager beschikbaar is, probeer daar
+        if (!dog && this.mainModule && this.mainModule._isActive && 
+            typeof this.mainModule.getDogById === 'function') {
+            dog = this.mainModule.getDogById(id);
+        }
+        
+        return dog;
     }
     
-    // NIEUW: EXACT DEZELFDE laadlogica als StamboomManager
-    async initialize() {
-        try {
-            console.log('ReuTeefStamboom: Initialiseren met EXACT ZELFDE logica als StamboomManager...');
+    // NIEUW: Controleer of module klaar is
+    isReady() {
+        return this.initialized && this.allDogs.length > 0;
+    }
+    
+    // NIEUW: Wacht tot module klaar is
+    async waitUntilReady() {
+        if (this.isReady()) {
+            return true;
+        }
+        
+        console.log('⏳ ReuTeefStamboom: Wacht tot module klaar is...');
+        
+        // Wacht maximaal 5 seconden
+        let attempts = 0;
+        const maxAttempts = 50; // 50 * 100ms = 5 seconden
+        
+        while (attempts < maxAttempts) {
+            attempts++;
             
-            // Gebruik NU dezelfde allDogs array die StamboomManager heeft geladen
-            // We doen hier NIETS anders - gewoon dezelfde array gebruiken
-            
-            console.log(`${this.allDogs.length} honden beschikbaar (gelijk aan StamboomManager)`);
-            
-            // EXACT DEZELFDE COI Calculator initialisatie
-            if (typeof COICalculator !== 'undefined') {
-                this.coiCalculator = new COICalculator(this.allDogs);
-                this.coiCalculatorReady = true;
-                console.log('COI Calculator geïnitialiseerd vanuit extern bestand (EXACT ZELFDE ALS STAMBOOM)');
-            } else {
-                console.error('COICalculator klasse niet gevonden!');
-                this.coiCalculator = null;
-                this.coiCalculatorReady = false;
+            if (this.isReady()) {
+                console.log('✅ ReuTeefStamboom: Module is nu klaar!');
+                return true;
             }
             
-        } catch (error) {
-            console.error('Fout bij initialiseren ReuTeefStamboom:', error);
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            if (attempts % 10 === 0) {
+                console.log(`⏳ ReuTeefStamboom: Nog steeds wachten... (${attempts}/50)`);
+            }
         }
+        
+        console.error('❌ ReuTeefStamboom: Timeout - Module niet klaar na 5 seconden');
+        return false;
     }
     
     // EXACT DEZELFDE checkDogHasPhotos als StamboomManager
@@ -385,25 +468,34 @@ class ReuTeefStamboom {
         return pedigreeTree;
     }
     
-    // EXACT DEZELFDE showFuturePuppyPedigree logica (maar nu wel goed)
+    // EXACT DEZELFDE showFuturePuppyPedigree logica (maar nu met wacht-logica)
     async showFuturePuppyPedigree(selectedTeef, selectedReu) {
-        // Bewaar de geselecteerde honden
-        this.selectedTeef = selectedTeef;
-        this.selectedReu = selectedReu;
+        console.log('ReuTeefStamboom: showFuturePuppyPedigree aangeroepen');
         
-        // Controleer of allDogs geladen is (EXACT ZELFDE ALS STAMBOOM)
+        // Wacht tot module klaar is
+        const isReady = await this.waitUntilReady();
+        if (!isReady) {
+            this.showError('Stamboom data nog niet geladen. Probeer over enkele seconden opnieuw.');
+            return;
+        }
+        
+        // Controleer of allDogs geladen is
         if (this.allDogs.length === 0) {
-            console.error('allDogs array is leeg! StamboomManager misschien nog niet klaar?');
+            console.error('ReuTeefStamboom: allDogs array is nog steeds leeg!');
             this.showError('Hondengegevens niet geladen. Probeer opnieuw.');
             return;
         }
         
-        console.log(`Toekomstige pup van: ${selectedTeef.naam} + ${selectedReu.naam}`);
-        console.log(`Aantal honden in allDogs: ${this.allDogs.length} (EXACT ZELFDE ALS STAMBOOM)`);
+        // Bewaar de geselecteerde honden
+        this.selectedTeef = selectedTeef;
+        this.selectedReu = selectedReu;
+        
+        console.log(`✅ ReuTeefStamboom: Toekomstige pup van: ${selectedTeef.naam} + ${selectedReu.naam}`);
+        console.log(`✅ ReuTeefStamboom: Aantal honden in allDogs: ${this.allDogs.length}`);
         
         // Voorkom meerdere gelijktijdige berekeningen
         if (this.coiCalculationInProgress) {
-            console.log('COI berekening al bezig, wacht...');
+            console.log('ReuTeefStamboom: COI berekening al bezig, wacht...');
             this.showAlert('COI berekening is al bezig, even wachten...', 'info');
             return;
         }
@@ -411,13 +503,15 @@ class ReuTeefStamboom {
         this.coiCalculationInProgress = true;
         
         try {
-            // COI Calculator zou al geïnitialiseerd moeten zijn (EXACT ZELFDE ALS STAMBOOM)
+            // COI Calculator zou nu beschikbaar moeten zijn
             if (!this.coiCalculator || !this.coiCalculatorReady) {
-                console.log('COICalculator niet klaar, probeer te initialiseren...');
-                await this.initialize();
-                if (!this.coiCalculatorReady) {
-                    this.showError('Kon COI berekening niet initialiseren');
-                    return;
+                console.log('ReuTeefStamboom: COICalculator niet klaar, probeer te gebruiken wat we hebben...');
+                
+                // Probeer StamboomManager's calculator te gebruiken
+                if (this.mainModule && this.mainModule.coiCalculator) {
+                    this.coiCalculator = this.mainModule.coiCalculator;
+                    this.coiCalculatorReady = true;
+                    console.log('✅ ReuTeefStamboom: Gebruik StamboomManager\'s COICalculator');
                 }
             }
             
@@ -447,7 +541,7 @@ class ReuTeefStamboom {
                 opmerkingen: null
             };
             
-            console.log('Toekomstige pup aangemaakt voor COI berekening');
+            console.log('✅ ReuTeefStamboom: Toekomstige pup aangemaakt voor COI berekening');
             
             // EXACT DEZELFDE COI berekening als StamboomManager
             let coiResult = { coi6Gen: '0.0', coiAllGen: '0.0', kinship6Gen: '0.0' };
@@ -463,19 +557,26 @@ class ReuTeefStamboom {
                     kinshipValue = this.calculateAverageKinshipForFuturePuppy(tempCOICalculator, futurePuppy.id, 6);
                     coiResult.kinship6Gen = kinshipValue.toFixed(3);
                     
+                    console.log('✅ ReuTeefStamboom: COI berekend:', coiResult);
+                    
                 } catch (calcError) {
-                    console.error('Fout bij COI berekening:', calcError);
+                    console.error('ReuTeefStamboom: Fout bij COI berekening:', calcError);
                 }
+            } else {
+                console.warn('ReuTeefStamboom: Geen COICalculator beschikbaar, gebruik standaard waarden');
             }
             
             // Bereken gezondheidsanalyse
+            console.log('ReuTeefStamboom: Bereken gezondheidsanalyse...');
             const healthAnalysis = await this.analyzeHealthInLine(futurePuppy, selectedTeef, selectedReu);
+            console.log('✅ ReuTeefStamboom: Gezondheidsanalyse voltooid');
             
             // Toon stamboom
+            console.log('ReuTeefStamboom: Toon stamboom modal...');
             await this.createFuturePuppyModal(futurePuppy, selectedTeef, selectedReu, coiResult, healthAnalysis);
             
         } catch (error) {
-            console.error('Fout bij tonen toekomstige pup stamboom:', error);
+            console.error('ReuTeefStamboom: Fout bij tonen toekomstige pup stamboom:', error);
             this.showError('Kon stamboom niet genereren. Probeer opnieuw.');
         } finally {
             this.coiCalculationInProgress = false;
@@ -725,9 +826,6 @@ class ReuTeefStamboom {
     
     // EXACT DEZELFDE createFuturePuppyModal (maar met eigen prefix)
     async createFuturePuppyModal(futurePuppy, selectedTeef, selectedReu, coiResult, healthAnalysis) {
-        // Deze methode blijft hetzelfde qua functionaliteit, 
-        // maar gebruikt nu dezelfde data en methodes als StamboomManager
-        
         const modalId = 'rtc-futurePuppyModal';
         
         // Verwijder bestaande modal
@@ -1219,9 +1317,6 @@ class ReuTeefStamboom {
         `;
     }
     
-    // Rest van de methodes blijven hetzelfde...
-    // (setupCardClickEvents, showDogDetailPopup, getDogDetailPopupHTML, etc.)
-    
     setupCardClickEvents() {
         const cards = document.querySelectorAll('.rtc-pedigree-card-compact.horizontal:not(.empty)');
         cards.forEach(card => {
@@ -1588,7 +1683,7 @@ class ReuTeefStamboom {
     
     // Helper methoden voor feedback (EXACT ZELFDE als StamboomManager zou hebben)
     showError(message) {
-        console.error('Error:', message);
+        console.error('ReuTeefStamboom Error:', message);
         if (this.mainModule && typeof this.mainModule.showError === 'function') {
             this.mainModule.showError(message);
         } else {
@@ -1597,7 +1692,7 @@ class ReuTeefStamboom {
     }
     
     showAlert(message, type = 'info') {
-        console.log(`${type}:`, message);
+        console.log(`ReuTeefStamboom ${type}:`, message);
         if (this.mainModule && typeof this.mainModule.showAlert === 'function') {
             this.mainModule.showAlert(message, type);
         } else {
