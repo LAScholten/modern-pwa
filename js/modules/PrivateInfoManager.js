@@ -1,8 +1,3 @@
-/**
- * Privé Informatie Module
- * EXACT ZELFDE LAADLOGICA ALS SEARCHMANAGER
- */
-
 class PrivateInfoManager extends BaseModule {
     constructor() {
         super();
@@ -36,8 +31,9 @@ class PrivateInfoManager extends BaseModule {
                 makingBackup: "Backup maken...",
                 backupSuccess: "Backup gemaakt!",
                 restoring: "Backup herstellen...",
-                loadingDogs: "Honden laden...",
-                noDogsFound: "Geen honden gevonden"
+                loadingDogs: "Honden laden... ({loaded} geladen)",
+                noDogsFound: "Geen honden gevonden",
+                typeToSearch: "Begin met typen om te zoeken"
             }
         };
     }
@@ -46,62 +42,8 @@ class PrivateInfoManager extends BaseModule {
         return this.translations[this.currentLang][key] || key;
     }
     
-    // EXACT DEZELFDE FUNCTIE ALS SEARCHMANAGER
-    async loadAllDogsWithPaginationDogDataManagerStyle() {
-        try {
-            console.log('PrivateInfoManager: Laden van alle honden met paginatie (DogDataManager stijl)...');
-            
-            let allDogs = [];
-            let currentPage = 1;
-            const pageSize = 1000;
-            let hasMorePages = true;
-            let totalLoaded = 0;
-            
-            while (hasMorePages) {
-                console.log(`PrivateInfoManager: Laden pagina ${currentPage}...`);
-                
-                const result = await hondenService.getHonden(currentPage, pageSize);
-                
-                if (result.honden && result.honden.length > 0) {
-                    allDogs = allDogs.concat(result.honden);
-                    totalLoaded += result.honden.length;
-                    
-                    this.showProgress(`Honden laden... (${totalLoaded} geladen)`);
-                    
-                    console.log(`PrivateInfoManager: Pagina ${currentPage} geladen: ${result.honden.length} honden`);
-                    
-                    hasMorePages = result.heeftVolgende;
-                    
-                    if (hasMorePages) {
-                        currentPage++;
-                    }
-                    
-                    if (currentPage > 100) {
-                        console.warn('PrivateInfoManager: Veiligheidslimiet bereikt: te veel pagina\'s geladen');
-                        break;
-                    }
-                } else {
-                    hasMorePages = false;
-                }
-                
-                await new Promise(resolve => setTimeout(resolve, 100));
-            }
-            
-            console.log(`PrivateInfoManager: TOTAAL ${allDogs.length} honden geladen`);
-            
-            return allDogs;
-            
-        } catch (error) {
-            console.error('PrivateInfoManager: Fout bij laden honden:', error);
-            throw error;
-        }
-    }
-    
     async loadSearchData() {
-        if (this.isLoading) {
-            console.log('PrivateInfoManager: Al bezig met laden, skip...');
-            return;
-        }
+        if (this.isLoading) return;
         
         try {
             this.isLoading = true;
@@ -115,7 +57,7 @@ class PrivateInfoManager extends BaseModule {
                 return naamA.localeCompare(naamB);
             });
             
-            console.log(`PrivateInfoManager: ${this.allDogs.length} honden geladen voor privé info`);
+            console.log(`PrivateInfoManager: ${this.allDogs.length} honden geladen`);
             
         } catch (error) {
             console.error('PrivateInfoManager: Fout bij laden honden:', error);
@@ -125,6 +67,52 @@ class PrivateInfoManager extends BaseModule {
             this.isLoading = false;
             this.hideProgress();
         }
+    }
+    
+    async loadAllDogsWithPaginationDogDataManagerStyle() {
+        try {
+            let allDogs = [];
+            let currentPage = 1;
+            const pageSize = 1000;
+            let hasMorePages = true;
+            let totalLoaded = 0;
+            
+            while (hasMorePages) {
+                const result = await hondenService.getHonden(currentPage, pageSize);
+                
+                if (result.honden && result.honden.length > 0) {
+                    allDogs = allDogs.concat(result.honden);
+                    totalLoaded += result.honden.length;
+                    
+                    this.showProgress(`Honden laden... (${totalLoaded} geladen)`);
+                    
+                    hasMorePages = result.heeftVolgende;
+                    
+                    if (hasMorePages) {
+                        currentPage++;
+                    }
+                    
+                    if (currentPage > 100) break;
+                } else {
+                    hasMorePages = false;
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+            return allDogs;
+            
+        } catch (error) {
+            console.error('PrivateInfoManager: Fout bij laden honden:', error);
+            throw error;
+        }
+    }
+    
+    showInitialView() {
+        const dropdownMenu = document.getElementById('dogDropdownMenu');
+        if (!dropdownMenu) return;
+        
+        dropdownMenu.innerHTML = `<div class="dropdown-item text-muted">${this.t('typeToSearch')}</div>`;
     }
     
     getModalHTML() {
@@ -151,14 +139,8 @@ class PrivateInfoManager extends BaseModule {
                                             <div class="mb-3">
                                                 <label for="privateHondSearch" class="form-label">${t('dog')}</label>
                                                 <div class="dropdown">
-                                                    <input type="text" 
-                                                           class="form-control" 
-                                                           id="privateHondSearch" 
-                                                           placeholder="${t('typeDogName')}"
-                                                           autocomplete="off">
-                                                    <div class="dropdown-menu w-100" 
-                                                         id="dogDropdownMenu" 
-                                                         style="max-height: 300px; overflow-y: auto;">
+                                                    <input type="text" class="form-control" id="privateHondSearch" placeholder="${t('typeDogName')}" autocomplete="off">
+                                                    <div class="dropdown-menu w-100" id="dogDropdownMenu" style="max-height: 300px; overflow-y: auto;">
                                                         <div class="dropdown-item text-muted">${t('loadingDogs')}</div>
                                                     </div>
                                                 </div>
@@ -203,8 +185,7 @@ class PrivateInfoManager extends BaseModule {
                                 <div class="card-body">
                                     <div id="privateInfoForm">
                                         <div class="mb-3">
-                                            <textarea class="form-control" id="privateNotes" rows="12" 
-                                                placeholder="${t('notesPlaceholder')}"></textarea>
+                                            <textarea class="form-control" id="privateNotes" rows="12" placeholder="${t('notesPlaceholder')}"></textarea>
                                         </div>
                                         
                                         <div class="d-flex justify-content-between">
@@ -293,8 +274,8 @@ class PrivateInfoManager extends BaseModule {
             
             if (searchTerm.length >= 1) {
                 const filteredDogs = this.allDogs.filter(dog => {
-                    const naam = dog.naam ? dog.naam.toLowerCase() : '';
-                    const kennel = dog.kennelnaam ? dog.kennelnaam.toLowerCase() : '';
+                    const naam = (dog.naam || '').toLowerCase();
+                    const kennel = (dog.kennelnaam || '').toLowerCase();
                     const combined = `${naam} ${kennel}`;
                     return combined.startsWith(searchTerm);
                 });
@@ -317,12 +298,12 @@ class PrivateInfoManager extends BaseModule {
         const dropdownMenu = document.getElementById('dogDropdownMenu');
         if (!dropdownMenu) return;
         
+        dropdownMenu.innerHTML = '';
+        
         if (dogs.length === 0) {
-            dropdownMenu.innerHTML = `<div class="dropdown-item text-muted">${this.t('loadingDogs')}</div>`;
+            dropdownMenu.innerHTML = `<div class="dropdown-item text-muted">${this.t('noDogsFound')}</div>`;
             return;
         }
-        
-        dropdownMenu.innerHTML = '';
         
         dogs.slice(0, 50).forEach(dog => {
             const item = document.createElement('a');
