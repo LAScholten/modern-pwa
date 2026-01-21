@@ -29,7 +29,25 @@ class ReuTeefStamboom {
     // NIEUW: Gebruik dezelfde getDogById methode als StamboomManager
     getDogById(id) {
         if (!id || id === 0) return null;
-        return this.allHonden.find(dog => dog.id === id);
+        
+        // DEBUG: Log de zoekopdracht
+        console.log(`🔍 getDogById(${id}) called, allHonden length:`, this.allHonden.length);
+        console.log(`🔍 Searching for ID ${id} (type: ${typeof id})...`);
+        
+        const found = this.allHonden.find(dog => {
+            const dogId = dog.id;
+            const match = dogId === id;
+            
+            // DEBUG: Log alleen als we in de buurt zijn van de gezochte ID
+            if (Math.abs(dogId - id) < 10) {
+                console.log(`  - Checking dog ID: ${dogId} (type: ${typeof dogId}), naam: "${dog.naam}", match: ${match}`);
+            }
+            
+            return match;
+        });
+        
+        console.log(`🔍 Found for ID ${id}:`, found ? `YES - ${found.naam}` : 'NO - undefined');
+        return found;
     }
     
     async showFuturePuppyPedigree(selectedTeef, selectedReu) {
@@ -46,6 +64,18 @@ class ReuTeefStamboom {
         
         console.log(`🔍 Toekomstige pup van: ${selectedTeef.naam} + ${selectedReu.naam}`);
         console.log(`📁 Aantal honden in allHonden: ${this.allHonden.length}`);
+        
+        // DEBUG: Controleer of de specifieke IDs in de array zitten
+        console.log('🔍 DEBUG: Controle van specifieke IDs in allHonden:');
+        console.log(`  - ID 2130 aanwezig?`, this.allHonden.some(d => {
+            const match = d.id == 2130;
+            if (match) console.log(`     Gevonden:`, d);
+            return match;
+        }));
+        console.log(`  - ID 2122 aanwezig?`, this.allHonden.some(d => d.id == 2122));
+        console.log(`  - ID 1908 aanwezig?`, this.allHonden.some(d => d.id == 1908));
+        console.log(`  - ID ${selectedReu.id} (reu) aanwezig?`, this.allHonden.some(d => d.id == selectedReu.id));
+        console.log(`  - ID ${selectedTeef.id} (teef) aanwezig?`, this.allHonden.some(d => d.id == selectedTeef.id));
         
         // VOORKOM MEERDERE GELIJKTIJDIGE BEREKENINGEN
         if (this.coiCalculationInProgress) {
@@ -211,126 +241,7 @@ class ReuTeefStamboom {
             { key: 'thyroid_tested', label: this.t('thyroidTested') },
             { key: 'thyroid_unknown', label: this.t('thyroidUnknown') }
         ];
-        
-        healthItems.forEach(item => {
-            analysis.motherLine.counts[item.key] = 0;
-            analysis.fatherLine.counts[item.key] = 0;
-        });
-        
-        const motherAncestors = await this.collectAncestorsFromParent(selectedTeef, 6);
-        const fatherAncestors = await this.collectAncestorsFromParent(selectedReu, 6);
-        
-        console.log(`📊 Moederlijn voorouders: ${motherAncestors.length}, Vaderlijn voorouders: ${fatherAncestors.length}`);
-        
-        for (const ancestor of motherAncestors) {
-            analysis.motherLine.total++;
-            this.updateHealthCounts(analysis.motherLine.counts, ancestor);
-        }
-        
-        for (const ancestor of fatherAncestors) {
-            analysis.fatherLine.total++;
-            this.updateHealthCounts(analysis.fatherLine.counts, ancestor);
-        }
-        
-        return analysis;
-    }
-    
-    async collectAncestorsFromParent(parentDog, generations) {
-        const ancestors = [];
-        const queue = [{ dog: parentDog, generation: 1 }];
-        const visited = new Set();
-        
-        while (queue.length > 0) {
-            const { dog: currentDog, generation } = queue.shift();
-            
-            if (!currentDog || visited.has(currentDog.id) || generation > generations) {
-                continue;
-            }
-            
-            visited.add(currentDog.id);
-            
-            let fullDog = currentDog;
-            if (!currentDog.heupdysplasie && currentDog.heupdysplasie === undefined) {
-                // Gebruik nu getDogById() die uit allHonden haalt
-                fullDog = this.getDogById(currentDog.id) || currentDog;
-            }
-            
-            ancestors.push(fullDog);
-            
-            // NIEUW: Gebruik FLEXIBELE veldnamen zoals in StamboomManager
-            const vaderId = fullDog.vaderId || fullDog.vader_id;
-            const moederId = fullDog.moederId || fullDog.moeder_id;
-            
-            if (vaderId) {
-                const father = this.getDogById(vaderId);
-                if (father) {
-                    queue.push({ dog: father, generation: generation + 1 });
-                }
-            }
-            
-            if (moederId) {
-                const mother = this.getDogById(moederId);
-                if (mother) {
-                    queue.push({ dog: mother, generation: generation + 1 });
-                }
-            }
-        }
-        
-        return ancestors;
-    }
-    
-    updateHealthCounts(counts, ancestor) {
-        if (ancestor.heupdysplasie) {
-            const hdKey = this.getHDKey(ancestor.heupdysplasie);
-            if (hdKey) {
-                counts[hdKey]++;
-            }
-        } else {
-            counts['hd_unknown']++;
-        }
-        
-        if (ancestor.elleboogdysplasie) {
-            const edKey = this.getEDKey(ancestor.elleboogdysplasie);
-            if (edKey) {
-                counts[edKey]++;
-            }
-        } else {
-            counts['ed_unknown']++;
-        }
-        
-        if (ancestor.patella) {
-            const plKey = this.getPLKey(ancestor.patella);
-            if (plKey) {
-                counts[plKey]++;
-            }
-        } else {
-            counts['pl_unknown']++;
-        }
-        
-        if (ancestor.ogen) {
-            const eyesKey = this.getEyesKey(ancestor.ogen);
-            if (eyesKey) {
-                counts[eyesKey]++;
-            }
-        } else {
-            counts['eyes_unknown']++;
-        }
-        
-        if (ancestor.dandyWalker) {
-            const dwlmKey = this.getDWLMKey(ancestor.dandyWalker);
-            if (dwlmKey) {
-                counts[dwlmKey]++;
-            }
-        } else {
-            counts['dwlm_unknown']++;
-        }
-        
-        if (ancestor.schildklier) {
-            counts['thyroid_tested']++;
-        } else {
-            counts['thyroid_unknown']++;
-        }
-    }
+      
     
     getHDKey(hdValue) {
         const hd = (hdValue || '').toLowerCase().trim();
