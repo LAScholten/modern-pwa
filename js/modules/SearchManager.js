@@ -1454,101 +1454,231 @@ class SearchManager extends BaseModule {
                     font-size: 0.8rem;
                 }
                 
-                /* ============================================= */
-                /* GROTE FOTO OVERLAY STYLES - ZELFDE ALS PHOTOMANAGER */
-                /* ============================================= */
-                .photo-large-overlay {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    background: rgba(0, 0, 0, 0.95);
-                    z-index: 1070;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    animation: fadeIn 0.3s;
-                }
-                
-                .photo-large-container {
-                    background: white;
-                    border-radius: 12px;
-                    overflow: hidden;
-                    box-shadow: 0 15px 50px rgba(0,0,0,0.8);
-                    display: flex;
-                    flex-direction: column;
-                    max-height: 95vh;
-                    max-width: 95vw;
-                    width: auto;
-                    animation: slideUp 0.3s;
-                }
-                
-                .photo-large-header {
-                    padding: 15px 20px;
-                    background: linear-gradient(135deg, #0d6efd, #6f42c1);
-                    color: white;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                }
-                
-                .photo-large-header .modal-title {
-                    margin: 0;
-                    font-size: 1.2rem;
-                    font-weight: 600;
-                }
-                
-                .photo-large-close {
-                    background: none;
-                    border: none;
-                    color: white;
-                    opacity: 0.8;
-                    font-size: 1.5rem;
-                    cursor: pointer;
-                    width: 36px;
-                    height: 36px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    border-radius: 50%;
-                    transition: all 0.2s;
-                }
-                
-                .photo-large-close:hover {
-                    opacity: 1;
-                    background: rgba(255, 255, 255, 0.2);
-                }
-                
-                .photo-large-content {
-                    padding: 20px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    overflow: hidden;
-                    flex: 1;
-                    min-height: 300px;
-                    background: #000;
-                }
-                
-                .photo-large-img {
-                    max-width: 100%;
-                    max-height: calc(95vh - 120px);
-                    object-fit: contain;
-                    border-radius: 4px;
-                }
-                
-                .photo-large-footer {
-                    padding: 15px 20px;
-                    background: #f8f9fa;
-                    border-top: 1px solid #dee2e6;
-                    text-align: center;
-                }
-                
-                .photo-large-close-btn {
-                    min-width: 120px;
-                }
-                
+/* ============================================= */
+/* GROTE FOTO OVERLAY STYLES - BIJNA FULLSCREEN */
+/* ============================================= */
+.photo-large-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.98);
+    z-index: 99999; /* Heel hoog z-index om boven alles te zijn */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s;
+    backdrop-filter: blur(5px);
+}
+
+.photo-large-container {
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 25px 80px rgba(0,0,0,0.95);
+    display: flex;
+    flex-direction: column;
+    max-height: 98vh;
+    max-width: 98vw;
+    width: auto;
+    animation: slideUp 0.3s;
+    border: 1px solid rgba(255,255,255,0.15);
+}
+
+.photo-large-header {
+    padding: 12px 15px;
+    background: linear-gradient(135deg, #0d6efd, #6f42c1);
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.photo-large-header .modal-title {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    max-width: 75%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.photo-large-close {
+    background: none;
+    border: none;
+    color: white;
+    opacity: 0.8;
+    font-size: 1.3rem;
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.photo-large-close:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.photo-large-content {
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: auto;
+    flex: 1;
+    min-height: 200px;
+    background: #000;
+}
+
+.photo-large-img {
+    max-width: 98vw;
+    max-height: 90vh;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 2px;
+}
+
+.photo-large-footer {
+    padding: 12px 15px;
+    background: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.photo-large-close-btn {
+    min-width: 100px;
+    font-size: 0.9rem;
+    padding: 6px 15px;
+}
+
+/* Mobile responsive adjustments - BIJNA FULLSCREEN */
+@media (max-width: 768px) {
+    .photo-large-container {
+        max-height: 98vh;
+        max-width: 98vw;
+        margin: 1vh 1vw;
+        border-radius: 4px;
+    }
+    
+    .photo-large-content {
+        padding: 8px;
+    }
+    
+    .photo-large-img {
+        max-width: 98vw;
+        max-height: 85vh;
+    }
+    
+    .photo-large-header {
+        padding: 10px 12px;
+    }
+    
+    .photo-large-header .modal-title {
+        font-size: 0.9rem;
+    }
+    
+    .photo-large-footer {
+        padding: 10px 12px;
+    }
+    
+    .photo-large-close-btn {
+        min-width: 90px;
+        font-size: 0.85rem;
+        padding: 5px 12px;
+    }
+}
+
+/* Extra small screens - MAXIMAAL GROOT */
+@media (max-width: 480px) {
+    .photo-large-container {
+        max-height: 100vh;
+        max-width: 100vw;
+        margin: 0;
+        border-radius: 0;
+    }
+    
+    .photo-large-content {
+        padding: 5px;
+    }
+    
+    .photo-large-img {
+        max-width: 100vw;
+        max-height: 92vh;
+    }
+    
+    .photo-large-header {
+        padding: 8px 10px;
+    }
+    
+    .photo-large-header .modal-title {
+        font-size: 0.85rem;
+    }
+}
+
+/* Landscape mode on mobile - OPTIMAAL VOOR LIGGENDE FOTO'S */
+@media (max-width: 768px) and (orientation: landscape) {
+    .photo-large-container {
+        max-height: 98vh;
+        max-width: 98vw;
+    }
+    
+    .photo-large-content {
+        padding: 10px;
+    }
+    
+    .photo-large-img {
+        max-width: 98vw;
+        max-height: 88vh;
+    }
+    
+    .photo-large-header {
+        padding: 8px 10px;
+    }
+    
+    .photo-large-footer {
+        padding: 8px 10px;
+    }
+}
+
+/* Desktop large screens - NOG GROTER */
+@media (min-width: 1200px) {
+    .photo-large-container {
+        max-height: 96vh;
+        max-width: 96vw;
+    }
+    
+    .photo-large-img {
+        max-width: 96vw;
+        max-height: 88vh;
+    }
+}
+
+/* Animation for better effect */
+@keyframes zoomIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.photo-large-img {
+    animation: zoomIn 0.2s ease-out;
+}
                 /* ============================================= */
                 /* NAKOMELINGEN MODAL STYLES - AANGEPAST VOOR MOBIEL */
                 /* ============================================= */
