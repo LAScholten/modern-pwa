@@ -1,12 +1,14 @@
- /**
+/**
  * Stamboom Manager Module
- * Beheert 5-generatie stambomen voor honden
+ * Beheert 5-generatie stambomen voor honden - GECORRIGEERDE VERSIE
+ * Werkt samen met Supabase services via window object
  */
 
 class StamboomManager extends BaseModule {
     constructor(hondenService, currentLang = 'nl') {
         super();
-        this.hondenService = hondenService;
+        this.hondenService = window.hondenService || hondenService;
+        this.fotoService = window.fotoService;
         this.currentLang = currentLang;
         this.allDogs = [];
         this.coiCalculator = null;
@@ -73,7 +75,8 @@ class StamboomManager extends BaseModule {
                 photos: "Foto's",
                 noPhotos: "Geen foto's beschikbaar",
                 clickToEnlarge: "Klik om te vergroten",
-                closePhoto: "Sluiten"
+                closePhoto: "Sluiten",
+                loadFailed: "Fout bij laden: "
             },
             en: {
                 pedigreeTitle: "Pedigree of {name}",
@@ -131,7 +134,8 @@ class StamboomManager extends BaseModule {
                 photos: "Photos",
                 noPhotos: "No photos available",
                 clickToEnlarge: "Click to enlarge",
-                closePhoto: "Close"
+                closePhoto: "Close",
+                loadFailed: "Loading failed: "
             },
             de: {
                 pedigreeTitle: "Ahnentafel von {name}",
@@ -189,14 +193,13 @@ class StamboomManager extends BaseModule {
                 photos: "Fotos",
                 noPhotos: "Keine Fotos verfügbar",
                 clickToEnlarge: "Klicken zum Vergrößern",
-                closePhoto: "Schließen"
+                closePhoto: "Schließen",
+                loadFailed: "Fehler beim Laden: "
             }
         };
         
         this._eventHandlers = {};
         this._isActive = false;
-        
-        this.setupGlobalEventListeners();
     }
     
     t(key) {
@@ -222,6 +225,7 @@ class StamboomManager extends BaseModule {
             }
             
             this._isActive = true;
+            this.setupGlobalEventListeners();
             
             // DIRECT het laadscherm verbergen
             console.log('StamboomManager: Initialisatie voltooid, verberg voortgangsindicator...');
@@ -364,6 +368,118 @@ class StamboomManager extends BaseModule {
         this.fullPhotoCache.clear();
     }
     
+    setupGlobalEventListeners() {
+        const thumbnailClickHandler = async (e) => {
+            if (!this._isActive) return;
+            
+            const thumbnail = e.target.closest('.photo-thumbnail');
+            if (thumbnail) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const photoId = thumbnail.getAttribute('data-photo-id');
+                const isThumbnail = thumbnail.getAttribute('data-is-thumbnail') === 'true';
+                
+                if (!photoId) return;
+                
+                try {
+                    // Haal dog naam op uit verschillende bronnen
+                    let dogName = '';
+                    const detailPopup = document.querySelector('.dog-detail-popup');
+                    if (detailPopup) {
+                        const titleElement = detailPopup.querySelector('.popup-title');
+                        if (titleElement) {
+                            dogName = titleElement.textContent.trim();
+                            // Verwijder eventuele iconen en extra tekst
+                            dogName = dogName.replace(/^[^a-zA-Z]*/, '').trim();
+                        }
+                    }
+                    
+                    if (this.fotoService && typeof this.fotoService.getFotoById === 'function') {
+                        const fullPhoto = await this.fotoService.getFotoById(photoId);
+                        
+                        if (fullPhoto && fullPhoto.data) {
+                            this.showLargePhoto(fullPhoto.data, dogName);
+                        } else {
+                            console.error('Kon volledige foto niet laden:', photoId);
+                            const imgElement = thumbnail.querySelector('img');
+                            if (imgElement && imgElement.src) {
+                                this.showLargePhoto(imgElement.src, dogName);
+                            }
+                        }
+                    } else {
+                        // Fallback: gebruik thumbnail als full photo
+                        const imgElement = thumbnail.querySelector('img');
+                        if (imgElement && imgElement.src) {
+                            this.showLargePhoto(imgElement.src, dogName);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Fout bij laden volledige foto:', error);
+                }
+            }
+        };
+        
+        const photoCloseHandler = (e) => {
+            if (!this._isActive) return;
+            
+            if (e.target.classList.contains('photo-large-close') || 
+                e.target.classList.contains('photo-large-close-btn') ||
+                e.target.closest('.photo-large-close') ||
+                e.target.closest('.photo-large-close-btn')) {
+                const overlay = document.getElementById('photoLargeOverlay');
+                if (overlay) {
+                    overlay.style.display = 'none';
+                    setTimeout(() => {
+                        if (overlay.parentNode) {
+                            overlay.parentNode.removeChild(overlay);
+                        }
+                    }, 300);
+                }
+            }
+            
+            if (e.target.id === 'photoLargeOverlay') {
+                const overlay = e.target;
+                overlay.style.display = 'none';
+                setTimeout(() => {
+                    if (overlay.parentNode) {
+                        overlay.parentNode.removeChild(overlay);
+                    }
+                }, 300);
+            }
+        };
+        
+        const escapeKeyHandler = (e) => {
+            if (!this._isActive) return;
+            
+            if (e.key === 'Escape') {
+                const photoOverlay = document.getElementById('photoLargeOverlay');
+                if (photoOverlay && photoOverlay.style.display !== 'none') {
+                    photoOverlay.style.display = 'none';
+                    setTimeout(() => {
+                        if (photoOverlay.parentNode) {
+                            photoOverlay.parentNode.removeChild(photoOverlay);
+                        }
+                    }, 300);
+                    return;
+                }
+                
+                const popupOverlay = document.getElementById('pedigreePopupOverlay');
+                if (popupOverlay && popupOverlay.style.display !== 'none') {
+                    popupOverlay.style.display = 'none';
+                }
+            }
+        };
+        
+        document.addEventListener('click', thumbnailClickHandler);
+        document.addEventListener('click', photoCloseHandler);
+        document.addEventListener('keydown', escapeKeyHandler);
+        
+        this._eventHandlers.thumbnailClick = thumbnailClickHandler;
+        this._eventHandlers.photoClose = photoCloseHandler;
+        this._eventHandlers.escapeKey = escapeKeyHandler;
+    }
+    
     removeGlobalEventListeners() {
         if (this._eventHandlers.thumbnailClick) {
             document.removeEventListener('click', this._eventHandlers.thumbnailClick);
@@ -407,13 +523,13 @@ class StamboomManager extends BaseModule {
         }
         try {
             // Controleer of de functie bestaat in de service
-            if (typeof this.hondenService.checkFotosExist === 'function') {
-                const hasPhotos = await this.hondenService.checkFotosExist(dog.stamboomnr);
+            if (this.fotoService && typeof this.fotoService.checkFotosExist === 'function') {
+                const hasPhotos = await this.fotoService.checkFotosExist(dog.stamboomnr);
                 this.dogHasPhotosCache.set(cacheKey, hasPhotos);
                 return hasPhotos;
             } else {
                 // Als de functie niet bestaat, retourneer false
-                console.warn('checkFotosExist functie niet beschikbaar in hondenService');
+                console.warn('checkFotosExist functie niet beschikbaar in fotoService');
                 this.dogHasPhotosCache.set(cacheKey, false);
                 return false;
             }
@@ -434,13 +550,13 @@ class StamboomManager extends BaseModule {
         }
         try {
             // Controleer of de functie bestaat in de service
-            if (typeof this.hondenService.getFotoThumbnails === 'function') {
-                const thumbnails = await this.hondenService.getFotoThumbnails(dog.stamboomnr, limit);
+            if (this.fotoService && typeof this.fotoService.getFotoThumbnails === 'function') {
+                const thumbnails = await this.fotoService.getFotoThumbnails(dog.stamboomnr, limit);
                 this.dogThumbnailsCache.set(cacheKey, thumbnails || []);
                 return thumbnails || [];
             } else {
                 // Als de functie niet bestaat, retourneer lege array
-                console.warn('getFotoThumbnails functie niet beschikbaar in hondenService');
+                console.warn('getFotoThumbnails functie niet beschikbaar in fotoService');
                 this.dogThumbnailsCache.set(cacheKey, []);
                 return [];
             }
@@ -458,15 +574,15 @@ class StamboomManager extends BaseModule {
         }
         try {
             // Controleer of de functie bestaat in de service
-            if (typeof this.hondenService.getFotoById === 'function') {
-                const foto = await this.hondenService.getFotoById(fotoId);
+            if (this.fotoService && typeof this.fotoService.getFotoById === 'function') {
+                const foto = await this.fotoService.getFotoById(fotoId);
                 if (foto) {
                     this.fullPhotoCache.set(cacheKey, foto);
                 }
                 return foto;
             } else {
                 // Als de functie niet bestaat, retourneer null
-                console.warn('getFotoById functie niet beschikbaar in hondenService');
+                console.warn('getFotoById functie niet beschikbaar in fotoService');
                 return null;
             }
         } catch (error) {
@@ -481,11 +597,18 @@ class StamboomManager extends BaseModule {
         const dog = this.getDogById(dogId);
         if (!dog) return { coi6Gen: '0.0', homozygosity6Gen: '0.0', kinship6Gen: '0.0' };
         
-        if (!dog.vaderId || !dog.moederId) {
+        if (!dog.vader_id && !dog.vaderId) {
             return { coi6Gen: '0.0', homozygosity6Gen: '0.0', kinship6Gen: '0.0' };
         }
         
-        if (dog.vaderId === dog.moederId) {
+        if (!dog.moeder_id && !dog.moederId) {
+            return { coi6Gen: '0.0', homozygosity6Gen: '0.0', kinship6Gen: '0.0' };
+        }
+        
+        const vaderId = dog.vader_id || dog.vaderId;
+        const moederId = dog.moeder_id || dog.moederId;
+        
+        if (vaderId === moederId) {
             return { coi6Gen: '25.0', homozygosity6Gen: '25.0', kinship6Gen: '25.0' };
         }
         
@@ -512,7 +635,12 @@ class StamboomManager extends BaseModule {
         
         try {
             const dog = this.getDogById(dogId);
-            if (!dog || !dog.vaderId || !dog.moederId) return 0;
+            if (!dog) return 0;
+            
+            const vaderId = dog.vader_id || dog.vaderId;
+            const moederId = dog.moeder_id || dog.moederId;
+            
+            if (!vaderId || !moederId) return 0;
             
             const allAncestors = this.coiCalculator._getAllAncestors(dogId, generations);
             const ancestorIds = Array.from(allAncestors.keys());
@@ -590,20 +718,20 @@ class StamboomManager extends BaseModule {
         pedigreeTree.mainDog = mainDog;
         
         // Ouders - gebruik de juiste veldnamen
-        if (mainDog.vaderId || mainDog.vader_id) {
-            const vaderId = mainDog.vaderId || mainDog.vader_id;
+        if (mainDog.vader_id || mainDog.vaderId) {
+            const vaderId = mainDog.vader_id || mainDog.vaderId;
             pedigreeTree.father = this.getDogById(vaderId);
         }
         
-        if (mainDog.moederId || mainDog.moeder_id) {
-            const moederId = mainDog.moederId || mainDog.moeder_id;
+        if (mainDog.moeder_id || mainDog.moederId) {
+            const moederId = mainDog.moeder_id || mainDog.moederId;
             pedigreeTree.mother = this.getDogById(moederId);
         }
         
         // Grootouders
         if (pedigreeTree.father) {
-            const vaderId = pedigreeTree.father.vaderId || pedigreeTree.father.vader_id;
-            const moederId = pedigreeTree.father.moederId || pedigreeTree.father.moeder_id;
+            const vaderId = pedigreeTree.father.vader_id || pedigreeTree.father.vaderId;
+            const moederId = pedigreeTree.father.moeder_id || pedigreeTree.father.moederId;
             
             if (vaderId) {
                 pedigreeTree.paternalGrandfather = this.getDogById(vaderId);
@@ -615,8 +743,8 @@ class StamboomManager extends BaseModule {
         }
         
         if (pedigreeTree.mother) {
-            const vaderId = pedigreeTree.mother.vaderId || pedigreeTree.mother.vader_id;
-            const moederId = pedigreeTree.mother.moederId || pedigreeTree.mother.moeder_id;
+            const vaderId = pedigreeTree.mother.vader_id || pedigreeTree.mother.vaderId;
+            const moederId = pedigreeTree.mother.moeder_id || pedigreeTree.mother.moederId;
             
             if (vaderId) {
                 pedigreeTree.maternalGrandfather = this.getDogById(vaderId);
@@ -629,8 +757,8 @@ class StamboomManager extends BaseModule {
         
         // Overgrootouders
         if (pedigreeTree.paternalGrandfather) {
-            const vaderId = pedigreeTree.paternalGrandfather.vaderId || pedigreeTree.paternalGrandfather.vader_id;
-            const moederId = pedigreeTree.paternalGrandfather.moederId || pedigreeTree.paternalGrandfather.moeder_id;
+            const vaderId = pedigreeTree.paternalGrandfather.vader_id || pedigreeTree.paternalGrandfather.vaderId;
+            const moederId = pedigreeTree.paternalGrandfather.moeder_id || pedigreeTree.paternalGrandfather.moederId;
             
             if (vaderId) {
                 pedigreeTree.paternalGreatGrandfather1 = this.getDogById(vaderId);
@@ -642,8 +770,8 @@ class StamboomManager extends BaseModule {
         }
         
         if (pedigreeTree.paternalGrandmother) {
-            const vaderId = pedigreeTree.paternalGrandmother.vaderId || pedigreeTree.paternalGrandmother.vader_id;
-            const moederId = pedigreeTree.paternalGrandmother.moederId || pedigreeTree.paternalGrandmother.moeder_id;
+            const vaderId = pedigreeTree.paternalGrandmother.vader_id || pedigreeTree.paternalGrandmother.vaderId;
+            const moederId = pedigreeTree.paternalGrandmother.moeder_id || pedigreeTree.paternalGrandmother.moederId;
             
             if (vaderId) {
                 pedigreeTree.paternalGreatGrandfather2 = this.getDogById(vaderId);
@@ -655,8 +783,8 @@ class StamboomManager extends BaseModule {
         }
         
         if (pedigreeTree.maternalGrandfather) {
-            const vaderId = pedigreeTree.maternalGrandfather.vaderId || pedigreeTree.maternalGrandfather.vader_id;
-            const moederId = pedigreeTree.maternalGrandfather.moederId || pedigreeTree.maternalGrandfather.moeder_id;
+            const vaderId = pedigreeTree.maternalGrandfather.vader_id || pedigreeTree.maternalGrandfather.vaderId;
+            const moederId = pedigreeTree.maternalGrandfather.moeder_id || pedigreeTree.maternalGrandfather.moederId;
             
             if (vaderId) {
                 pedigreeTree.maternalGreatGrandfather1 = this.getDogById(vaderId);
@@ -668,8 +796,8 @@ class StamboomManager extends BaseModule {
         }
         
         if (pedigreeTree.maternalGrandmother) {
-            const vaderId = pedigreeTree.maternalGrandmother.vaderId || pedigreeTree.maternalGrandmother.vader_id;
-            const moederId = pedigreeTree.maternalGrandmother.moederId || pedigreeTree.maternalGrandmother.moeder_id;
+            const vaderId = pedigreeTree.maternalGrandmother.vader_id || pedigreeTree.maternalGrandmother.vaderId;
+            const moederId = pedigreeTree.maternalGrandmother.moeder_id || pedigreeTree.maternalGrandmother.moederId;
             
             if (vaderId) {
                 pedigreeTree.maternalGreatGrandfather2 = this.getDogById(vaderId);
@@ -682,8 +810,8 @@ class StamboomManager extends BaseModule {
         
         // Overovergrootouders
         if (pedigreeTree.paternalGreatGrandfather1) {
-            const vaderId = pedigreeTree.paternalGreatGrandfather1.vaderId || pedigreeTree.paternalGreatGrandfather1.vader_id;
-            const moederId = pedigreeTree.paternalGreatGrandfather1.moederId || pedigreeTree.paternalGreatGrandfather1.moeder_id;
+            const vaderId = pedigreeTree.paternalGreatGrandfather1.vader_id || pedigreeTree.paternalGreatGrandfather1.vaderId;
+            const moederId = pedigreeTree.paternalGreatGrandfather1.moeder_id || pedigreeTree.paternalGreatGrandfather1.moederId;
             
             if (vaderId) {
                 pedigreeTree.paternalGreatGreatGrandfather1 = this.getDogById(vaderId);
@@ -695,8 +823,8 @@ class StamboomManager extends BaseModule {
         }
         
         if (pedigreeTree.paternalGreatGrandmother1) {
-            const vaderId = pedigreeTree.paternalGreatGrandmother1.vaderId || pedigreeTree.paternalGreatGrandmother1.vader_id;
-            const moederId = pedigreeTree.paternalGreatGrandmother1.moederId || pedigreeTree.paternalGreatGrandmother1.moeder_id;
+            const vaderId = pedigreeTree.paternalGreatGrandmother1.vader_id || pedigreeTree.paternalGreatGrandmother1.vaderId;
+            const moederId = pedigreeTree.paternalGreatGrandmother1.moeder_id || pedigreeTree.paternalGreatGrandmother1.moederId;
             
             if (vaderId) {
                 pedigreeTree.paternalGreatGreatGrandfather2 = this.getDogById(vaderId);
@@ -708,8 +836,8 @@ class StamboomManager extends BaseModule {
         }
         
         if (pedigreeTree.paternalGreatGrandfather2) {
-            const vaderId = pedigreeTree.paternalGreatGrandfather2.vaderId || pedigreeTree.paternalGreatGrandfather2.vader_id;
-            const moederId = pedigreeTree.paternalGreatGrandfather2.moederId || pedigreeTree.paternalGreatGrandfather2.moeder_id;
+            const vaderId = pedigreeTree.paternalGreatGrandfather2.vader_id || pedigreeTree.paternalGreatGrandfather2.vaderId;
+            const moederId = pedigreeTree.paternalGreatGrandfather2.moeder_id || pedigreeTree.paternalGreatGrandfather2.moederId;
             
             if (vaderId) {
                 pedigreeTree.paternalGreatGreatGrandfather3 = this.getDogById(vaderId);
@@ -721,8 +849,8 @@ class StamboomManager extends BaseModule {
         }
         
         if (pedigreeTree.paternalGreatGrandmother2) {
-            const vaderId = pedigreeTree.paternalGreatGrandmother2.vaderId || pedigreeTree.paternalGreatGrandmother2.vader_id;
-            const moederId = pedigreeTree.paternalGreatGrandmother2.moederId || pedigreeTree.paternalGreatGrandmother2.moeder_id;
+            const vaderId = pedigreeTree.paternalGreatGrandmother2.vader_id || pedigreeTree.paternalGreatGrandmother2.vaderId;
+            const moederId = pedigreeTree.paternalGreatGrandmother2.moeder_id || pedigreeTree.paternalGreatGrandmother2.moederId;
             
             if (vaderId) {
                 pedigreeTree.paternalGreatGreatGrandfather4 = this.getDogById(vaderId);
@@ -734,8 +862,8 @@ class StamboomManager extends BaseModule {
         }
         
         if (pedigreeTree.maternalGreatGrandfather1) {
-            const vaderId = pedigreeTree.maternalGreatGrandfather1.vaderId || pedigreeTree.maternalGreatGrandfather1.vader_id;
-            const moederId = pedigreeTree.maternalGreatGrandfather1.moederId || pedigreeTree.maternalGreatGrandfather1.moeder_id;
+            const vaderId = pedigreeTree.maternalGreatGrandfather1.vader_id || pedigreeTree.maternalGreatGrandfather1.vaderId;
+            const moederId = pedigreeTree.maternalGreatGrandfather1.moeder_id || pedigreeTree.maternalGreatGrandfather1.moederId;
             
             if (vaderId) {
                 pedigreeTree.maternalGreatGreatGrandfather1 = this.getDogById(vaderId);
@@ -747,8 +875,8 @@ class StamboomManager extends BaseModule {
         }
         
         if (pedigreeTree.maternalGreatGrandmother1) {
-            const vaderId = pedigreeTree.maternalGreatGrandmother1.vaderId || pedigreeTree.maternalGreatGrandmother1.vader_id;
-            const moederId = pedigreeTree.maternalGreatGrandmother1.moederId || pedigreeTree.maternalGreatGrandmother1.moeder_id;
+            const vaderId = pedigreeTree.maternalGreatGrandmother1.vader_id || pedigreeTree.maternalGreatGrandmother1.vaderId;
+            const moederId = pedigreeTree.maternalGreatGrandmother1.moeder_id || pedigreeTree.maternalGreatGrandmother1.moederId;
             
             if (vaderId) {
                 pedigreeTree.maternalGreatGreatGrandfather2 = this.getDogById(vaderId);
@@ -760,8 +888,8 @@ class StamboomManager extends BaseModule {
         }
         
         if (pedigreeTree.maternalGreatGrandfather2) {
-            const vaderId = pedigreeTree.maternalGreatGrandfather2.vaderId || pedigreeTree.maternalGreatGrandfather2.vader_id;
-            const moederId = pedigreeTree.maternalGreatGrandfather2.moederId || pedigreeTree.maternalGreatGrandfather2.moeder_id;
+            const vaderId = pedigreeTree.maternalGreatGrandfather2.vader_id || pedigreeTree.maternalGreatGrandfather2.vaderId;
+            const moederId = pedigreeTree.maternalGreatGrandfather2.moeder_id || pedigreeTree.maternalGreatGrandfather2.moederId;
             
             if (vaderId) {
                 pedigreeTree.maternalGreatGreatGrandfather3 = this.getDogById(vaderId);
@@ -773,8 +901,8 @@ class StamboomManager extends BaseModule {
         }
         
         if (pedigreeTree.maternalGreatGrandmother2) {
-            const vaderId = pedigreeTree.maternalGreatGrandmother2.vaderId || pedigreeTree.maternalGreatGrandmother2.vader_id;
-            const moederId = pedigreeTree.maternalGreatGrandmother2.moederId || pedigreeTree.maternalGreatGrandmother2.moeder_id;
+            const vaderId = pedigreeTree.maternalGreatGrandmother2.vader_id || pedigreeTree.maternalGreatGrandmother2.vaderId;
+            const moederId = pedigreeTree.maternalGreatGrandmother2.moeder_id || pedigreeTree.maternalGreatGrandmother2.moederId;
             
             if (vaderId) {
                 pedigreeTree.maternalGreatGreatGrandfather4 = this.getDogById(vaderId);
@@ -924,7 +1052,6 @@ class StamboomManager extends BaseModule {
         `;
     }
     
-    // NAAST ELKAAR - DRIE WAARDES IN ÉÉN RIJ
     async getDogDetailPopupHTML(dog, relation = '') {
         if (!dog) return '';
         
@@ -959,9 +1086,10 @@ class StamboomManager extends BaseModule {
                                 <div class="photo-thumbnail" 
                                      data-photo-id="${thumb.id}" 
                                      data-dog-id="${dog.id}" 
+                                     data-dog-name="${dog.naam || ''}"
                                      data-photo-index="${index}"
                                      data-is-thumbnail="true">
-                                    <img src="${thumb.thumbnail}" 
+                                    <img src="${thumb.thumbnail || ''}" 
                                          alt="${dog.naam || ''} - ${thumb.filename || ''}" 
                                          class="thumbnail-img"
                                          loading="lazy">
@@ -1074,7 +1202,7 @@ class StamboomManager extends BaseModule {
                         <div class="info-grid">
                             ${dog.heupdysplasie ? `
                             <div class="info-row">
-                                <div class="info-item info-item-full {
+                                <div class="info-item info-item-full">
                                     <span class="info-label">${this.t('hipDysplasia')}:</span>
                                     <span class="info-value">${this.getHealthBadge(dog.heupdysplasie, 'hip')}</span>
                                 </div>
@@ -1083,7 +1211,7 @@ class StamboomManager extends BaseModule {
                             
                             ${dog.elleboogdysplasie ? `
                             <div class="info-row">
-                                <div class="info-item info-item-full {
+                                <div class="info-item info-item-full">
                                     <span class="info-label">${this.t('elbowDysplasia')}:</span>
                                     <span class="info-value">${this.getHealthBadge(dog.elleboogdysplasie, 'elbow')}</span>
                                 </div>
@@ -1092,7 +1220,7 @@ class StamboomManager extends BaseModule {
                             
                             ${dog.patella ? `
                             <div class="info-row">
-                                <div class="info-item info-item-full {
+                                <div class="info-item info-item-full">
                                     <span class="info-label">${this.t('patellaLuxation')}:</span>
                                     <span class="info-value">${this.getHealthBadge(dog.patella, 'patella')}</span>
                                 </div>
@@ -1101,25 +1229,25 @@ class StamboomManager extends BaseModule {
                             
                             ${dog.ogen ? `
                             <div class="info-row">
-                                <div class="info-item info-item-full {
+                                <div class="info-item info-item-full">
                                     <span class="info-label">${this.t('eyes')}:</span>
                                     <span class="info-value">${this.getHealthBadge(dog.ogen, 'eyes')}</span>
                                 </div>
                             </div>
                             ` : ''}
                             
-                            ${dog.ogenVerklaring ? `
+                            ${dog.ogenverklaring ? `
                             <div class="info-row">
-                                <div class="info-item info-item-full {
+                                <div class="info-item info-item-full">
                                     <span class="info-label">${this.t('eyesExplanation')}:</span>
-                                    <span class="info-value">${dog.ogenVerklaring}</span>
+                                    <span class="info-value">${dog.ogenverklaring}</span>
                                 </div>
                             </div>
                             ` : ''}
                             
                             ${dog.dandyWalker ? `
                             <div class="info-row">
-                                <div class="info-item info-item-full {
+                                <div class="info-item info-item-full">
                                     <span class="info-label">${this.t('dandyWalker')}:</span>
                                     <span class="info-value">${this.getHealthBadge(dog.dandyWalker, 'dandy')}</span>
                                 </div>
@@ -1128,18 +1256,18 @@ class StamboomManager extends BaseModule {
                             
                             ${dog.schildklier ? `
                             <div class="info-row">
-                                <div class="info-item info-item-full {
+                                <div class="info-item info-item-full">
                                     <span class="info-label">${this.t('thyroid')}:</span>
                                     <span class="info-value">${this.getHealthBadge(dog.schildklier, 'thyroid')}</span>
                                 </div>
                             </div>
                             ` : ''}
                             
-                            ${dog.schildklierVerklaring ? `
+                            ${dog.schildklierverklaring ? `
                             <div class="info-row">
-                                <div class="info-item info-item-full {
+                                <div class="info-item info-item-full">
                                     <span class="info-label">${this.t('thyroidExplanation')}:</span>
-                                    <span class="info-value">${dog.schildklierVerklaring}</span>
+                                    <span class="info-value">${dog.schildklierverklaring}</span>
                                 </div>
                             </div>
                             ` : ''}
@@ -1167,105 +1295,6 @@ class StamboomManager extends BaseModule {
                 </div>
             </div>
         `;
-    }
-    
-    setupGlobalEventListeners() {
-        const thumbnailClickHandler = async (e) => {
-            if (!this._isActive) return;
-            
-            const thumbnail = e.target.closest('.photo-thumbnail');
-            if (thumbnail) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                const photoId = thumbnail.getAttribute('data-photo-id');
-                const isThumbnail = thumbnail.getAttribute('data-is-thumbnail') === 'true';
-                
-                if (!photoId) return;
-                
-                try {
-                    const fullPhoto = await this.getFullSizeFoto(photoId);
-                    
-                    if (fullPhoto && fullPhoto.data) {
-                        const popupTitle = document.querySelector('.popup-title');
-                        let dogName = '';
-                        if (popupTitle) {
-                            dogName = popupTitle.textContent.trim();
-                            dogName = dogName.replace(/^[^a-zA-Z]*/, '').trim();
-                        }
-                        
-                        this.showLargePhoto(fullPhoto.data, dogName);
-                    } else {
-                        console.error('Kon volledige foto niet laden:', photoId);
-                        const imgElement = thumbnail.querySelector('img');
-                        if (imgElement && imgElement.src) {
-                            this.showLargePhoto(imgElement.src, dogName);
-                        }
-                    }
-                } catch (error) {
-                    console.error('Fout bij laden volledige foto:', error);
-                }
-            }
-        };
-        
-        const photoCloseHandler = (e) => {
-            if (!this._isActive) return;
-            
-            if (e.target.classList.contains('photo-large-close') || 
-                e.target.classList.contains('photo-large-close-btn') ||
-                e.target.closest('.photo-large-close') ||
-                e.target.closest('.photo-large-close-btn')) {
-                const overlay = document.getElementById('photoLargeOverlay');
-                if (overlay) {
-                    overlay.style.display = 'none';
-                    setTimeout(() => {
-                        if (overlay.parentNode) {
-                            overlay.parentNode.removeChild(overlay);
-                        }
-                    }, 300);
-                }
-            }
-            
-            if (e.target.id === 'photoLargeOverlay') {
-                const overlay = e.target;
-                overlay.style.display = 'none';
-                setTimeout(() => {
-                    if (overlay.parentNode) {
-                        overlay.parentNode.removeChild(overlay);
-                    }
-                }, 300);
-            }
-        };
-        
-        const escapeKeyHandler = (e) => {
-            if (!this._isActive) return;
-            
-            if (e.key === 'Escape') {
-                const photoOverlay = document.getElementById('photoLargeOverlay');
-                if (photoOverlay && photoOverlay.style.display !== 'none') {
-                    photoOverlay.style.display = 'none';
-                    setTimeout(() => {
-                        if (photoOverlay.parentNode) {
-                            photoOverlay.parentNode.removeChild(photoOverlay);
-                        }
-                    }, 300);
-                    return;
-                }
-                
-                const popupOverlay = document.getElementById('pedigreePopupOverlay');
-                if (popupOverlay && popupOverlay.style.display !== 'none') {
-                    popupOverlay.style.display = 'none';
-                }
-            }
-        };
-        
-        document.addEventListener('click', thumbnailClickHandler);
-        document.addEventListener('click', photoCloseHandler);
-        document.addEventListener('keydown', escapeKeyHandler);
-        
-        this._eventHandlers.thumbnailClick = thumbnailClickHandler;
-        this._eventHandlers.photoClose = photoCloseHandler;
-        this._eventHandlers.escapeKey = escapeKeyHandler;
     }
     
     showLargePhoto(photoData, dogName = '') {
@@ -2889,4 +2918,11 @@ class StamboomManager extends BaseModule {
             console.log('Success:', message);
         }
     }
+}
+
+// Export de klasse
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = StamboomManager;
+} else if (typeof window !== 'undefined') {
+    window.StamboomManager = StamboomManager;
 }
