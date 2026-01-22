@@ -1703,8 +1703,9 @@ class SearchManager extends BaseModule {
                 }
                 
                 .photo-large-close-btn:hover {
-                    background: rgba(255, 255, 255, 0.25);
-                    border-color: rgba(255, 255, 255, 0.5);
+                    background: #5a6268;     /* <-- TOEVOEGEN */
+                    border-color: #545b62;   /* <-- TOEVOEGEN */
+                    color: white;            /* <-- TOEVOEGEN */
                 }
                 
                 /* Hide controls when not hovering for cleaner view */
