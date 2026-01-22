@@ -123,7 +123,7 @@ class PhotoManager extends BaseModule {
             },
             de: {
                 photoGallery: "Foto Galerie",
-                photoInfo: "Foto Galerie - Hunderfotos ansehen und verwalten. Laden Sie neue Fotos hoch oder löschen Sie vorhandene.",
+                photoInfo: "Foto Galerie - Hunderfotos ansehen und verwalten. Laden Sie nieuwe Fotos hoch of löschen Sie vorhandene.",
                 photoUpload: "Foto Upload",
                 selectDog: "Hund auswählen",
                 searchDog: "Hund nach Namen, Zwinge oder Stammbaumnummer suchen...",
@@ -849,11 +849,12 @@ class PhotoManager extends BaseModule {
                     <div class="card h-100 photo-card">
                         <div class="card-img-top photo-thumbnail" 
                              style="height: 180px; cursor: pointer; background: #f8f9fa; display: flex; align-items: center; justify-content: center; overflow: hidden;"
-                             data-foto-id="${foto.id}">
+                             data-foto-id="${foto.id}"
+                             data-dog-name="${dogName}">
                             ${imageUrl ? 
                                 `<img src="${imageUrl}" alt="${dogName}" 
                                       style="max-width: 100%; max-height: 100%; object-fit: cover;"
-                                      onerror="this.onerror=null; this.src='data:image/svg+xml,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"100\" height=\"100\" fill=\"%236c757d\"><rect width=\"100%\" height=\"100%\" fill=\"%23f8f9fa\"/><text x=\"50%\" y=\"50%\" dy=\".3em\" text-anchor=\"middle\" font-size=\"14\">${t('thumbnailError')}</text></svg>'">` :
+                                      data-foto-id="${foto.id}">` :
                                 `<i class="bi bi-image text-muted" style="font-size: 3rem;"></i>`
                             }
                         </div>
@@ -877,11 +878,13 @@ class PhotoManager extends BaseModule {
         
         container.innerHTML = html;
         
-        // Voeg event listeners toe
-        document.querySelectorAll('.photo-thumbnail').forEach(thumbnail => {
-            thumbnail.addEventListener('click', (e) => {
+        // Voeg event listeners toe - GEEN SearchManager errors meer!
+        document.querySelectorAll('.photo-thumbnail, .photo-thumbnail img').forEach(element => {
+            element.addEventListener('click', (e) => {
+                e.stopPropagation();
                 const fotoId = e.currentTarget.dataset.fotoId;
-                this.showPhotoDetails(fotoId);
+                const dogName = e.currentTarget.closest('.photo-thumbnail')?.dataset.dogName || t('unknownDog');
+                this.showPhotoDetails(fotoId, dogName);
             });
         });
         
@@ -894,7 +897,7 @@ class PhotoManager extends BaseModule {
         });
     }
     
-    async showPhotoDetails(fotoId) {
+    async showPhotoDetails(fotoId, providedDogName = null) {
         const t = this.t.bind(this);
         
         try {
@@ -906,8 +909,8 @@ class PhotoManager extends BaseModule {
             
             if (error) throw error;
             
-            let dogName = t('unknownDog');
-            if (foto.stamboomnr) {
+            let dogName = providedDogName || t('unknownDog');
+            if (!providedDogName && foto.stamboomnr) {
                 try {
                     const dog = await window.hondenService.getHondByStamboomnr(foto.stamboomnr);
                     if (dog) {
@@ -980,8 +983,18 @@ class PhotoManager extends BaseModule {
                 </div>
             `;
             
+            // Verwijder eerst bestaande modal als die er is
+            const existingModal = document.getElementById('photoDetailsModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
             const container = document.getElementById('modalsContainer');
-            container.insertAdjacentHTML('beforeend', modalHTML);
+            if (container) {
+                container.insertAdjacentHTML('beforeend', modalHTML);
+            } else {
+                document.body.insertAdjacentHTML('beforeend', modalHTML);
+            }
             
             const modalElement = document.getElementById('photoDetailsModal');
             const modal = new bootstrap.Modal(modalElement);
