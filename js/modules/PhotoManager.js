@@ -806,22 +806,43 @@ class PhotoManager extends BaseModule {
             return;
         }
         
-        let html = '';
+        // Verzamel eerst alle honden info ASYNCHROON
+        const fotosWithDogInfo = [];
         
         for (const foto of fotos) {
-            let dog = null;
+            let dogInfo = {
+                name: t('unknownDog'),
+                kennel: ''
+            };
+            
             if (foto.stamboomnr) {
                 try {
-                    dog = await window.hondenService.getHondByStamboomnr(foto.stamboomnr);
+                    const dog = await window.hondenService.getHondByStamboomnr(foto.stamboomnr);
+                    if (dog) {
+                        dogInfo.name = dog.naam || '';
+                        dogInfo.kennel = dog.kennelnaam || '';
+                    }
                 } catch (error) {
                     console.error('Error loading dog info:', error);
                 }
             }
             
-            const dogName = dog ? `${dog.naam || ''}${dog.kennelnaam ? ` (${dog.kennelnaam})` : ''}` : t('unknownDog');
+            fotosWithDogInfo.push({
+                ...foto,
+                dogInfo
+            });
+        }
+        
+        // GENEREER NU de HTML met alle benodigde info
+        let html = '';
+        
+        for (const foto of fotosWithDogInfo) {
+            const dogName = foto.dogInfo.name ? 
+                `${foto.dogInfo.name}${foto.dogInfo.kennel ? ` (${foto.dogInfo.kennel})` : ''}` : 
+                t('unknownDog');
+                
             const uploadDatum = new Date(foto.uploaded_at).toLocaleDateString(this.currentLang);
-            const description = foto.data || ''; // Opmerking: jouw tabel heeft geen description veld
-            const imageUrl = foto.thumbnail || foto.data; // Gebruik thumbnail als die er is, anders volledige data
+            const imageUrl = foto.thumbnail || foto.data;
             
             html += `
                 <div class="col-md-4 col-lg-3 mb-4">
@@ -832,7 +853,7 @@ class PhotoManager extends BaseModule {
                             ${imageUrl ? 
                                 `<img src="${imageUrl}" alt="${dogName}" 
                                       style="max-width: 100%; max-height: 100%; object-fit: cover;"
-                                      onerror="this.src='data:image/svg+xml,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"100\" height=\"100\" fill=\"%236c757d\"><rect width=\"100%\" height=\"100%\" fill=\"%23f8f9fa\"/><text x=\"50%\" y=\"50%\" dy=\".3em\" text-anchor=\"middle\" font-size=\"14\">Image</text></svg>'">` :
+                                      onerror="this.onerror=null; this.src='data:image/svg+xml,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"100\" height=\"100\" fill=\"%236c757d\"><rect width=\"100%\" height=\"100%\" fill=\"%23f8f9fa\"/><text x=\"50%\" y=\"50%\" dy=\".3em\" text-anchor=\"middle\" font-size=\"14\">${t('thumbnailError')}</text></svg>'">` :
                                 `<i class="bi bi-image text-muted" style="font-size: 3rem;"></i>`
                             }
                         </div>
@@ -856,6 +877,7 @@ class PhotoManager extends BaseModule {
         
         container.innerHTML = html;
         
+        // Voeg event listeners toe
         document.querySelectorAll('.photo-thumbnail').forEach(thumbnail => {
             thumbnail.addEventListener('click', (e) => {
                 const fotoId = e.currentTarget.dataset.fotoId;
@@ -884,12 +906,17 @@ class PhotoManager extends BaseModule {
             
             if (error) throw error;
             
-            let dog = null;
+            let dogName = t('unknownDog');
             if (foto.stamboomnr) {
-                dog = await window.hondenService.getHondByStamboomnr(foto.stamboomnr);
+                try {
+                    const dog = await window.hondenService.getHondByStamboomnr(foto.stamboomnr);
+                    if (dog) {
+                        dogName = `${dog.naam || ''}${dog.kennelnaam ? ` (${dog.kennelnaam})` : ''}`;
+                    }
+                } catch (error) {
+                    console.error('Error loading dog info:', error);
+                }
             }
-            
-            const dogName = dog ? `${dog.naam || ''}${dog.kennelnaam ? ` (${dog.kennelnaam})` : ''}` : t('unknownDog');
             
             const modalHTML = `
                 <div class="modal fade" id="photoDetailsModal" tabindex="-1">
@@ -997,6 +1024,61 @@ class PhotoManager extends BaseModule {
             console.error('Error deleting photo:', error);
             this.hideProgress();
             this.showError(`${t('deleteFailed')}${error.message}`);
+        }
+    }
+    
+    // Helper method voor progress tonen
+    showProgress(message) {
+        const container = document.getElementById('photosContainer');
+        if (container) {
+            container.innerHTML = `
+                <div class="col-12 text-center py-5">
+                    <div class="spinner-border text-warning" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-3 text-muted">${message}</p>
+                </div>
+            `;
+        }
+    }
+    
+    // Helper method voor progress verbergen
+    hideProgress() {
+        const progressEl = document.querySelector('#photosContainer .spinner-border');
+        if (progressEl) {
+            progressEl.remove();
+        }
+    }
+    
+    // Helper method voor foutmelding
+    showError(message) {
+        const container = document.getElementById('photosContainer');
+        if (container) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+            alertDiv.innerHTML = `
+                <i class="bi bi-exclamation-triangle"></i> ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            container.prepend(alertDiv);
+        }
+    }
+    
+    // Helper method voor succesmelding
+    showSuccess(message) {
+        const container = document.getElementById('photosContainer');
+        if (container) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-success alert-dismissible fade show';
+            alertDiv.innerHTML = `
+                <i class="bi bi-check-circle"></i> ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            container.prepend(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
         }
     }
 }
