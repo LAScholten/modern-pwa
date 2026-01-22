@@ -12,6 +12,7 @@ class ReuTeefCombinatie {
         this.selectedReu = null;
         this.allHonden = [];
         this.hondenCache = new Map();
+        this.isLoading = false; // Voorkom dubbele laadpogingen - IDENTIEK AAN SEARCHMANAGER
         
         // Foto caches - IDENTIEK AAN STAMBOOMMANAGER
         this.dogPhotosCache = new Map();
@@ -664,7 +665,7 @@ class ReuTeefCombinatie {
         this.selectedReu = null;
         this.hondenCache.clear();
         
-        // Laad honden data
+        // Laad honden data - NU MET EXACT DEZELFDE METHODE ALS SEARCHMANAGER
         await this.loadAllHonden();
         
         // NIET hier initialiseren, maar pas bij berekening
@@ -1133,46 +1134,112 @@ class ReuTeefCombinatie {
         }
     }
     
+    // ==================== EXACT DEZELFDE LADINGSMETHODE ALS SEARCHMANAGER ====================
+    
     async loadAllHonden() {
+        // Voorkom dubbele laadpogingen - IDENTIEK AAN SEARCHMANAGER
+        if (this.isLoading) {
+            console.log('ReuTeefCombinatie: Al bezig met laden, skip...');
+            return;
+        }
+        
         try {
-            if (this.db && typeof this.db.getHonden === 'function') {
-                this.allHonden = await this.db.getHonden();
-                console.log(`✅ Geladen: ${this.allHonden.length} honden uit database voor ReuTeefCombinatie`);
-                
-                // Zorg dat alle gezondheidsvelden aanwezig zijn
-                this.allHonden = this.allHonden.map(hond => {
-                    return {
-                        ...hond,
-                        heupdysplasie: hond.heupdysplasie || '',
-                        elleboogdysplasie: hond.elleboogdysplasie || '',
-                        patella: hond.patella || '',
-                        ogen: hond.ogen || '',
-                        ogenVerklaring: hond.ogenVerklaring || '',
-                        dandyWalker: hond.dandyWalker || '',
-                        schildklier: hond.schildklier || '',
-                        schildklierVerklaring: hond.schildklierVerklaring || '',
-                        vachtkleur: hond.vachtkleur || '',
-                        ras: hond.ras || '',
-                        land: hond.land || '',
-                        postcode: hond.postcode || '',
-                        opmerkingen: hond.opmerkingen || ''
-                    };
-                });
-                
-                // Voeg alle honden toe aan cache
-                this.allHonden.forEach(hond => {
-                    this.hondenCache.set(hond.id, hond);
-                    if (hond.stamboomnr) {
-                        this.hondenCache.set(hond.stamboomnr, hond);
-                    }
-                });
-            } else {
-                console.error('❌ Database niet beschikbaar of getHonden functie ontbreekt');
-                this.allHonden = [];
-            }
+            this.isLoading = true;
+            console.log('ReuTeefCombinatie: Laden van alle honden...');
+            
+            // GEBRUIK EXACT DEZELFDE METHODE ALS SearchManager.loadSearchData()
+            this.allHonden = await this.loadAllDogsWithPaginationSearchManagerStyle();
+            
+            // Sorteer op naam - IDENTIEK AAN SEARCHMANAGER
+            this.allHonden.sort((a, b) => {
+                const naamA = a.naam || '';
+                const naamB = b.naam || '';
+                return naamA.localeCompare(naamB);
+            });
+            
+            console.log(`✅ ReuTeefCombinatie: ${this.allHonden.length} honden geladen voor combinatie`);
+            
+            // Voeg alle honden toe aan cache
+            this.allHonden.forEach(hond => {
+                this.hondenCache.set(hond.id, hond);
+                if (hond.stamboomnr) {
+                    this.hondenCache.set(hond.stamboomnr, hond);
+                }
+            });
+            
         } catch (error) {
-            console.error('❌ Fout bij laden honden:', error);
+            console.error('❌ ReuTeefCombinatie: Fout bij laden honden:', error);
             this.allHonden = [];
+        } finally {
+            // Zorg dat isLoading altijd wordt gereset - IDENTIEK AAN SEARCHMANAGER
+            this.isLoading = false;
+        }
+    }
+    
+    /**
+     * EXACT DEZELFDE LOADING LOGICA ALS SearchManager
+     */
+    async loadAllDogsWithPaginationSearchManagerStyle() {
+        try {
+            console.log('ReuTeefCombinatie: Laden van alle honden met paginatie (SearchManager stijl)...');
+            
+            // Reset array
+            let allDogs = [];
+            
+            let currentPage = 1;
+            const pageSize = 1000; // Maximaal wat Supabase toestaat
+            let hasMorePages = true;
+            let totalLoaded = 0;
+            
+            // Loop door alle pagina's - EXACT ZELFDE LOGICA ALS SEARCHMANAGER
+            while (hasMorePages) {
+                console.log(`ReuTeefCombinatie: Laden pagina ${currentPage}...`);
+                
+                // Gebruik de getHonden() methode van hondenService (zelfde als SearchManager)
+                const result = await hondenService.getHonden(currentPage, pageSize);
+                
+                if (result.honden && result.honden.length > 0) {
+                    // Voeg honden toe aan array
+                    allDogs = allDogs.concat(result.honden);
+                    totalLoaded += result.honden.length;
+                    
+                    console.log(`ReuTeefCombinatie: Pagina ${currentPage} geladen: ${result.honden.length} honden`);
+                    
+                    // Controleer of er nog meer pagina's zijn (zelfde als SearchManager)
+                    hasMorePages = result.heeftVolgende;
+                    
+                    if (hasMorePages) {
+                        currentPage++;
+                    }
+                    
+                    // Veiligheidslimiet voor oneindige lus (zelfde als SearchManager)
+                    if (currentPage > 100) {
+                        console.warn('ReuTeefCombinatie: Veiligheidslimiet bereikt: te veel pagina\'s geladen');
+                        break;
+                    }
+                } else {
+                    hasMorePages = false;
+                }
+                
+                // Kleine pauze om de server niet te overbelasten (zelfde als SearchManager)
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+            // DEBUG: Controleer of de juiste velden worden geladen
+            if (allDogs.length > 0) {
+                const sampleDog = allDogs[0];
+                console.log('ReuTeefCombinatie - Voorbeeld hond velden:', Object.keys(sampleDog));
+                console.log('ReuTeefCombinatie - vader_id in sample:', sampleDog.vader_id);
+                console.log('ReuTeefCombinatie - moeder_id in sample:', sampleDog.moeder_id);
+            }
+            
+            console.log(`ReuTeefCombinatie: TOTAAL ${allDogs.length} honden geladen`);
+            
+            return allDogs;
+            
+        } catch (error) {
+            console.error('ReuTeefCombinatie: Fout bij laden honden voor combinatie:', error);
+            throw error;
         }
     }
     
