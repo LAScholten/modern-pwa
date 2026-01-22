@@ -1,6 +1,7 @@
 /**
  * Reu en Teef Stamboom Module - AFZONDERLIJK BESTAND
  * Bevat alle stamboom functionaliteit voor toekomstige pup
+ * **FOTOFUNCTIE GECORRIGEERD** - Gebruikt nu EXACT DEZELFDE LOGICA ALS STAMBOOMMANAGER
  */
 
 class ReuTeefStamboom {
@@ -21,8 +22,12 @@ class ReuTeefStamboom {
         // Gezondheidsanalyse cache
         this.healthAnalysisCache = new Map();
         
-        // **EXACT DEZELFDE CACHE LOGICA ALS STAMBOOMMANAGER**
-        this.dogPhotosCache = new Map(); // Cache voor hondenfoto's - ZELFDE ALS STAMBOOMMANAGER
+        // **EXACT DEZELFDE CACHE ALS STAMBOOMMANAGER**
+        this.dogPhotosCache = new Map(); // Cache voor hondenfoto's
+        
+        // **EXACT DEZELFDE REFERENTIE ALS STAMBOOMMANAGER**
+        this.hondenService = window.hondenService;
+        this.fotoService = window.fotoService;
     }
     
     async showFuturePuppyPedigree(selectedTeef, selectedReu) {
@@ -405,21 +410,17 @@ class ReuTeefStamboom {
                 <div class="rtc-pedigree-popup-container" id="rtcPedigreePopupContainer"></div>
             </div>
             
-            <!-- GROTE FOTO OVERLAY VOOR REU/TEEF STAMBOOM -->
+            <!-- GROTE FOTO OVERLAY VOOR REU/TEEF STAMBOOM - IDENTIEK AAN STAMBOOMMANAGER -->
             <div class="photo-large-overlay" id="rtcPhotoLargeOverlay" style="display: none;">
                 <div class="photo-large-container" id="rtcPhotoLargeContainer">
                     <div class="photo-large-header">
                         <h5 class="modal-title mb-0 text-white">
-                            <i class="bi bi-image me-2"></i> <span id="rtcPhotoDogName">${this.t('fullSizePhoto')}</span>
+                            <i class="bi bi-image me-2"></i> <span id="rtcPhotoDogName"></span>
                         </h5>
                         <button type="button" class="btn-close btn-close-white photo-large-close" aria-label="${this.t('closePhoto')}"></button>
                     </div>
                     <div class="photo-large-content" id="rtcPhotoLargeContent">
-                        <img src="" 
-                             alt="${this.t('fullSizePhoto')}" 
-                             class="photo-large-img"
-                             id="rtcLargePhotoImg"
-                             onload="window.currentRTCPhotoManager && window.currentRTCPhotoManager.adjustPhotoSize(this)">
+                        <img id="rtcLargePhotoImg" class="photo-large-img" src="" alt="${this.t('fullSizePhoto')}">
                     </div>
                     <div class="photo-large-footer">
                         <button type="button" class="btn btn-secondary photo-large-close-btn">
@@ -1191,7 +1192,7 @@ class ReuTeefStamboom {
                     .rtc-pedigree-card-compact.horizontal.gen2 .rtc-dog-pedigree-compact,
                     .rtc-pedigree-card-compact.horizontal.gen0 .rtc-dog-breed-compact,
                     .rtc-pedigree-card-compact.horizontal.gen1 .rtc-dog-breed-compact,
-                    .rtc-pedigree-card-compact.horizontal.gen2 .rtc-dog-breed-compact {
+                    .rtc-pedigree-card.compact.horizontal.gen2 .rtc-dog-breed-compact {
                         font-size: 0.7rem;
                     }
                     
@@ -1493,7 +1494,7 @@ class ReuTeefStamboom {
                 }
                 
                 /* THUMBNAILS SECTIE IN POPUP - IDENTIEK AAN STAMBOOMMANAGER */
-                .rtc-photos-grid {
+                .photos-grid {
                     display: grid;
                     grid-template-columns: repeat(3, 1fr);
                     gap: 6px;
@@ -1503,7 +1504,7 @@ class ReuTeefStamboom {
                     margin-right: auto;
                 }
                 
-                .rtc-photo-thumbnail {
+                .photo-thumbnail {
                     position: relative;
                     aspect-ratio: 1 / 1;
                     border-radius: 4px;
@@ -1513,18 +1514,18 @@ class ReuTeefStamboom {
                     transition: all 0.2s;
                 }
                 
-                .rtc-photo-thumbnail:hover {
+                .photo-thumbnail:hover {
                     border-color: #0d6efd;
                     transform: scale(1.05);
                 }
                 
-                .rtc-thumbnail-img {
+                .thumbnail-img {
                     width: 100%;
                     height: 100%;
                     object-fit: cover;
                 }
                 
-                .rtc-photo-hover {
+                .photo-hover {
                     position: absolute;
                     top: 0;
                     left: 0;
@@ -1538,16 +1539,16 @@ class ReuTeefStamboom {
                     transition: opacity 0.2s;
                 }
                 
-                .rtc-photo-thumbnail:hover .rtc-photo-hover {
+                .photo-thumbnail:hover .photo-hover {
                     opacity: 1;
                 }
                 
-                .rtc-photo-hover i {
+                .photo-hover i {
                     color: white;
                     font-size: 1.2rem;
                 }
                 
-                .rtc-photo-hint {
+                .photo-hint {
                     text-align: center;
                     margin-bottom: 15px;
                     font-size: 0.85rem;
@@ -1605,6 +1606,11 @@ class ReuTeefStamboom {
                     align-items: center;
                 }
                 
+                .photo-large-header .modal-title {
+                    margin: 0;
+                    font-size: 1.1rem;
+                }
+                
                 .photo-large-close {
                     background: none;
                     border: none;
@@ -1654,12 +1660,6 @@ class ReuTeefStamboom {
                 .photo-large-close-btn {
                     min-width: 120px;
                     padding: 8px 20px;
-                }
-                
-                .photo-large-close-btn:hover {
-                    background: #5a6268;     /* <-- TOEVOEGEN */
-                    border-color: #545b62;   /* <-- TOEVOEGEN */
-                    color: white;            /* <-- TOEVOEGEN */
                 }
                 
                 /* Print styles */
@@ -1792,6 +1792,9 @@ class ReuTeefStamboom {
         
         // Render de stamboom
         await this.renderFuturePuppyPedigree(futurePuppy, selectedTeef, selectedReu, coiResult, healthAnalysis);
+        
+        // **EXACT DEZELFDE GLOBAL EVENT LISTENERS ALS STAMBOOMMANAGER**
+        this.setupPhotoEventListeners();
     }
     
     setupFuturePuppyModalEvents() {
@@ -1803,6 +1806,285 @@ class ReuTeefStamboom {
             printBtn.addEventListener('click', () => {
                 window.print();
             });
+        }
+    }
+    
+    // **EXACT DEZELFDE METHODE ALS STAMBOOMMANAGER: Setup photo event listeners**
+    setupPhotoEventListeners() {
+        const thumbnailClickHandler = (e) => {
+            const thumbnail = e.target.closest('.photo-thumbnail');
+            if (thumbnail) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const photoSrc = thumbnail.getAttribute('data-photo-src');
+                const dogName = thumbnail.getAttribute('data-dog-name') || '';
+                
+                console.log('ReuTeefStamboom: Foto geklikt, src:', photoSrc ? photoSrc.substring(0, 100) + '...' : 'geen src');
+                
+                if (photoSrc && photoSrc.trim() !== '') {
+                    this.showLargePhoto(photoSrc, dogName);
+                } else {
+                    console.error('ReuTeefStamboom: Geen geldige foto src gevonden in attribuut');
+                    // Probeer img src als fallback
+                    const imgElement = thumbnail.querySelector('img');
+                    if (imgElement && imgElement.src) {
+                        console.log('ReuTeefStamboom: Gebruik img src als fallback:', imgElement.src.substring(0, 100) + '...');
+                        this.showLargePhoto(imgElement.src, dogName);
+                    }
+                }
+            }
+        };
+        
+        const photoCloseHandler = (e) => {
+            if (e.target.classList.contains('photo-large-close') || 
+                e.target.classList.contains('photo-large-close-btn') ||
+                e.target.closest('.photo-large-close') ||
+                e.target.closest('.photo-large-close-btn')) {
+                this.closePhotoOverlay();
+            }
+            
+            // Klik buiten de grote foto om te sluiten
+            if (e.target.id === 'rtcPhotoLargeOverlay') {
+                this.closePhotoOverlay();
+            }
+        };
+        
+        // Alleen listeners toevoegen voor onze eigen elementen
+        document.addEventListener('click', thumbnailClickHandler);
+        document.addEventListener('click', photoCloseHandler);
+        
+        // Escape key handler voor onze eigen overlay
+        const escapeKeyHandler = (e) => {
+            if (e.key === 'Escape') {
+                const photoOverlay = document.getElementById('rtcPhotoLargeOverlay');
+                if (photoOverlay && photoOverlay.style.display !== 'none') {
+                    this.closePhotoOverlay();
+                }
+                
+                const popupOverlay = document.getElementById('rtcPedigreePopupOverlay');
+                if (popupOverlay && popupOverlay.style.display !== 'none') {
+                    popupOverlay.style.display = 'none';
+                }
+            }
+        };
+        
+        document.addEventListener('keydown', escapeKeyHandler);
+    }
+    
+    // **EXACT DEZELFDE METHODE ALS STAMBOOMMANAGER: Toon grote foto**
+    showLargePhoto(photoData, dogName = '') {
+        console.log('ReuTeefStamboom: Toon grote foto:', photoData ? 'data gevonden' : 'geen data');
+        
+        // Verwijder bestaande overlay
+        const existingOverlay = document.getElementById('rtcPhotoLargeOverlay');
+        if (existingOverlay) {
+            existingOverlay.remove();
+        }
+        
+        // Maak nieuwe overlay - ZELFDE HTML ALS STAMBOOMMANAGER
+        const overlayHTML = `
+            <div class="photo-large-overlay" id="rtcPhotoLargeOverlay" style="display: flex;">
+                <div class="photo-large-container" id="rtcPhotoLargeContainer">
+                    <div class="photo-large-header">
+                        <h5 class="modal-title mb-0 text-white">
+                            <i class="bi bi-image me-2"></i> ${dogName || 'Foto'}
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white photo-large-close" aria-label="${this.t('closePhoto')}"></button>
+                    </div>
+                    <div class="photo-large-content" id="rtcPhotoLargeContent">
+                        <img src="${photoData}" 
+                             alt="${dogName || 'Foto'}" 
+                             class="photo-large-img"
+                             id="rtcLargePhotoImg"
+                             onload="window.currentRTCPhotoManager && window.currentRTCPhotoManager.adjustPhotoSize(this)">
+                    </div>
+                    <div class="photo-large-footer">
+                        <button type="button" class="btn btn-secondary photo-large-close-btn">
+                            <i class="bi bi-x-lg me-1"></i> ${this.t('closePhoto')}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', overlayHTML);
+        
+        // Zet een referentie naar deze manager zodat de onload functie hem kan vinden
+        window.currentRTCPhotoManager = this;
+        
+        // Als de foto al geladen is (cached), pas dan direct de grootte aan
+        const img = document.getElementById('rtcLargePhotoImg');
+        if (img && img.complete) {
+            this.adjustPhotoSize(img);
+        }
+        
+        // Event listeners voor sluiten - ZELFDE LOGICA ALS STAMBOOMMANAGER
+        this.setupPhotoOverlayEvents();
+    }
+    
+    // **EXACT DEZELFDE METHODE ALS STAMBOOMMANAGER: Pas foto grootte aan**
+    adjustPhotoSize(imgElement) {
+        if (!imgElement) return;
+        
+        const container = document.getElementById('rtcPhotoLargeContainer');
+        const content = document.getElementById('rtcPhotoLargeContent');
+        if (!container || !content) return;
+        
+        // Haal originele afmetingen op
+        const naturalWidth = imgElement.naturalWidth;
+        const naturalHeight = imgElement.naturalHeight;
+        
+        if (!naturalWidth || !naturalHeight) {
+            console.warn('ReuTeefStamboom: Kan foto afmetingen niet bepalen');
+            return;
+        }
+        
+        console.log(`ReuTeefStamboom: Foto afmetingen: ${naturalWidth}x${naturalHeight}`);
+        
+        // Bereken beschikbare ruimte (met veilige marge)
+        const maxContainerWidth = window.innerWidth * 0.95;
+        const maxContainerHeight = window.innerHeight * 0.95;
+        const safeMargin = 60; // Ruimte voor header/footer
+        
+        const availableWidth = maxContainerWidth;
+        const availableHeight = maxContainerHeight - safeMargin;
+        
+        // Bereken optimale grootte
+        let optimalWidth = naturalWidth;
+        let optimalHeight = naturalHeight;
+        
+        // Als foto breder is dan beschikbaar
+        if (optimalWidth > availableWidth) {
+            const ratio = availableWidth / optimalWidth;
+            optimalWidth = availableWidth;
+            optimalHeight = optimalHeight * ratio;
+        }
+        
+        // Als foto nu te hoog is
+        if (optimalHeight > availableHeight) {
+            const ratio = availableHeight / optimalHeight;
+            optimalHeight = availableHeight;
+            optimalWidth = optimalWidth * ratio;
+        }
+        
+        // Als de foto erg klein is (thumbnail), vergroot hem dan een beetje
+        const minSize = 300; // Minimale grootte voor leesbaarheid
+        if (optimalWidth < minSize && optimalHeight < minSize) {
+            // Vergroot proportioneel tot minSize
+            const scale = minSize / Math.max(optimalWidth, optimalHeight);
+            optimalWidth *= scale;
+            optimalHeight *= scale;
+            
+            // Zorg dat we niet buiten het scherm gaan
+            if (optimalWidth > availableWidth) {
+                optimalWidth = availableWidth;
+                optimalHeight = (optimalHeight / optimalWidth) * availableWidth;
+            }
+            if (optimalHeight > availableHeight) {
+                optimalHeight = availableHeight;
+                optimalWidth = (optimalWidth / optimalHeight) * availableHeight;
+            }
+        }
+        
+        // Pas container grootte aan
+        container.style.width = optimalWidth + 'px';
+        container.style.height = (optimalHeight + safeMargin) + 'px';
+        
+        console.log(`ReuTeefStamboom: Optimale grootte: ${optimalWidth}x${optimalHeight}`);
+        
+        // Centreren
+        container.style.position = 'absolute';
+        container.style.top = '50%';
+        container.style.left = '50%';
+        container.style.transform = 'translate(-50%, -50%)';
+        
+        // Voor portret foto's: iets anders centreren
+        if (optimalHeight > optimalWidth) {
+            // Portret foto's iets hoger plaatsen voor betere balans
+            container.style.transform = 'translate(-50%, -48%)';
+        }
+    }
+    
+    // **EXACT DEZELFDE METHODE ALS STAMBOOMMANAGER: Setup event listeners voor foto overlay**
+    setupPhotoOverlayEvents() {
+        const overlay = document.getElementById('rtcPhotoLargeOverlay');
+        if (!overlay) return;
+        
+        // Sluit met Escape key
+        const closeOnEscape = (e) => {
+            if (e.key === 'Escape') {
+                this.closePhotoOverlay();
+                document.removeEventListener('keydown', closeOnEscape);
+            }
+        };
+        document.addEventListener('keydown', closeOnEscape);
+        
+        // Sluit knop
+        const closeBtn = overlay.querySelector('.photo-large-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                this.closePhotoOverlay();
+            });
+        }
+        
+        // Sluit knop footer
+        const closeBtnFooter = overlay.querySelector('.photo-large-close-btn');
+        if (closeBtnFooter) {
+            closeBtnFooter.addEventListener('click', () => {
+                this.closePhotoOverlay();
+            });
+        }
+        
+        // Klik buiten container om te sluiten
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                this.closePhotoOverlay();
+            }
+        });
+        
+        // Cleanup on animation end
+        overlay.addEventListener('animationend', function handler() {
+            if (overlay.style.display === 'none') {
+                document.removeEventListener('keydown', closeOnEscape);
+                overlay.removeEventListener('animationend', handler);
+            }
+        });
+        
+        // Window resize event - pas grootte aan bij resizen
+        const resizeHandler = () => {
+            const img = document.getElementById('rtcLargePhotoImg');
+            if (img && img.complete) {
+                this.adjustPhotoSize(img);
+            }
+        };
+        
+        window.addEventListener('resize', resizeHandler);
+        
+        // Sla resize handler op voor later cleanup
+        overlay.dataset.resizeHandler = 'active';
+        overlay._resizeHandler = resizeHandler;
+    }
+    
+    // **EXACT DEZELFDE METHODE ALS STAMBOOMMANAGER: Sluit foto overlay netjes**
+    closePhotoOverlay() {
+        const overlay = document.getElementById('rtcPhotoLargeOverlay');
+        if (overlay) {
+            // Verwijder resize listener
+            if (overlay._resizeHandler) {
+                window.removeEventListener('resize', overlay._resizeHandler);
+            }
+            
+            overlay.style.opacity = '0';
+            overlay.style.transition = 'opacity 0.2s ease';
+            
+            setTimeout(() => {
+                if (overlay.parentNode) {
+                    overlay.parentNode.removeChild(overlay);
+                }
+                // Cleanup globale referentie
+                window.currentRTCPhotoManager = null;
+            }, 200);
         }
     }
     
@@ -2174,7 +2456,7 @@ class ReuTeefStamboom {
         const mainDogClass = isMainDog ? 'main-dog-compact' : '';
         const headerColor = isMainDog ? 'bg-success' : 'bg-secondary';
         
-        // **EXACT DEZELFDE LOGICA ALS STAMBOOMMANAGER: Check of deze hond foto's heeft**
+        // **EXACT DEZELFDE LOGICA ALS STAMBOOMMANAGER: Check of hond foto's heeft**
         const hasPhotos = dog.id > 0 ? await this.checkDogHasPhotos(dog.id) : false;
         const cameraIcon = hasPhotos ? '<i class="bi bi-camera text-danger ms-1"></i>' : '';
         
@@ -2266,7 +2548,7 @@ class ReuTeefStamboom {
     async getDogPhotos(dogId) {
         if (!dogId || dogId === 0) return [];
         
-        const dog = this.mainModule.getDogById(dogId);
+        const dog = this.allHonden.find(d => d.id === dogId);
         if (!dog || !dog.stamboomnr) return [];
         
         // Check cache
@@ -2340,240 +2622,6 @@ class ReuTeefStamboom {
             container.innerHTML = popupHTML;
             overlay.style.display = 'flex';
             this.setupIsolatedPopupEventListeners();
-            
-            // Setup photo thumbnail click events - ZELFDE LOGICA ALS STAMBOOMMANAGER
-            setTimeout(() => {
-                this.setupPhotoThumbnailClickEvents(dog);
-            }, 100);
-        }
-    }
-    
-    setupPhotoThumbnailClickEvents(dog) {
-        const thumbnails = document.querySelectorAll('.rtc-photo-thumbnail[data-dog-id="' + dog.id + '"]');
-        thumbnails.forEach(thumbnail => {
-            thumbnail.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                
-                const photoSrc = thumbnail.getAttribute('data-photo-src');
-                const dogName = thumbnail.getAttribute('data-dog-name') || dog.naam || '';
-                
-                console.log('ReuTeefStamboom: Foto geklikt, src:', photoSrc ? photoSrc.substring(0, 100) + '...' : 'geen src');
-                
-                if (photoSrc && photoSrc.trim() !== '') {
-                    this.showLargePhoto(photoSrc, dogName);
-                } else {
-                    console.error('ReuTeefStamboom: Geen geldige foto src gevonden in attribuut');
-                    // Probeer img src als fallback - ZELFDE LOGICA ALS STAMBOOMMANAGER
-                    const imgElement = thumbnail.querySelector('img');
-                    if (imgElement && imgElement.src) {
-                        console.log('ReuTeefStamboom: Gebruik img src als fallback:', imgElement.src.substring(0, 100) + '...');
-                        this.showLargePhoto(imgElement.src, dogName);
-                    }
-                }
-            });
-        });
-    }
-    
-    // **EXACT DEZELFDE METHODE ALS STAMBOOMMANAGER: Toon grote foto**
-    showLargePhoto(photoData, dogName = '') {
-        console.log('ReuTeefStamboom: Toon grote foto:', photoData ? 'data gevonden' : 'geen data');
-        
-        const overlay = document.getElementById('rtcPhotoLargeOverlay');
-        const container = document.getElementById('rtcPhotoLargeContainer');
-        const content = document.getElementById('rtcPhotoLargeContent');
-        const photoImg = document.getElementById('rtcLargePhotoImg');
-        const dogNameSpan = document.getElementById('rtcPhotoDogName');
-        
-        if (!overlay || !container || !content || !photoImg) {
-            console.error('ReuTeefStamboom: Foto overlay elementen niet gevonden');
-            return;
-        }
-        
-        // Stel de foto URL en naam in
-        photoImg.src = photoData;
-        photoImg.alt = dogName || this.t('fullSizePhoto');
-        if (dogNameSpan) {
-            dogNameSpan.textContent = dogName || this.t('fullSizePhoto');
-        }
-        
-        // Toon de overlay
-        overlay.style.display = 'flex';
-        
-        // Zet een referentie naar deze manager zodat de onload functie hem kan vinden
-        window.currentRTCPhotoManager = this;
-        
-        // Als de foto al geladen is (cached), pas dan direct de grootte aan
-        if (photoImg.complete) {
-            this.adjustPhotoSize(photoImg);
-        }
-        
-        // **EXACT DEZELFDE EVENT LISTENERS ALS STAMBOOMMANAGER**
-        this.setupPhotoOverlayEvents();
-    }
-    
-    // **EXACT DEZELFDE METHODE ALS STAMBOOMMANAGER: Pas foto grootte aan**
-    adjustPhotoSize(imgElement) {
-        if (!imgElement) return;
-        
-        const container = document.getElementById('rtcPhotoLargeContainer');
-        const content = document.getElementById('rtcPhotoLargeContent');
-        if (!container || !content) return;
-        
-        // Haal originele afmetingen op
-        const naturalWidth = imgElement.naturalWidth;
-        const naturalHeight = imgElement.naturalHeight;
-        
-        if (!naturalWidth || !naturalHeight) {
-            console.warn('ReuTeefStamboom: Kan foto afmetingen niet bepalen');
-            return;
-        }
-        
-        console.log(`ReuTeefStamboom: Foto afmetingen: ${naturalWidth}x${naturalHeight}`);
-        
-        // Bereken beschikbare ruimte (met veilige marge)
-        const maxContainerWidth = window.innerWidth * 0.95;
-        const maxContainerHeight = window.innerHeight * 0.95;
-        const safeMargin = 60; // Ruimte voor header/footer
-        
-        const availableWidth = maxContainerWidth;
-        const availableHeight = maxContainerHeight - safeMargin;
-        
-        // Bereken optimale grootte
-        let optimalWidth = naturalWidth;
-        let optimalHeight = naturalHeight;
-        
-        // Als foto breder is dan beschikbaar
-        if (optimalWidth > availableWidth) {
-            const ratio = availableWidth / optimalWidth;
-            optimalWidth = availableWidth;
-            optimalHeight = optimalHeight * ratio;
-        }
-        
-        // Als foto nu te hoog is
-        if (optimalHeight > availableHeight) {
-            const ratio = availableHeight / optimalHeight;
-            optimalHeight = availableHeight;
-            optimalWidth = optimalWidth * ratio;
-        }
-        
-        // Als de foto erg klein is (thumbnail), vergroot hem dan een beetje
-        const minSize = 300; // Minimale grootte voor leesbaarheid
-        if (optimalWidth < minSize && optimalHeight < minSize) {
-            // Vergroot proportioneel tot minSize
-            const scale = minSize / Math.max(optimalWidth, optimalHeight);
-            optimalWidth *= scale;
-            optimalHeight *= scale;
-            
-            // Zorg dat we niet buiten het scherm gaan
-            if (optimalWidth > availableWidth) {
-                optimalWidth = availableWidth;
-                optimalHeight = (optimalHeight / optimalWidth) * availableWidth;
-            }
-            if (optimalHeight > availableHeight) {
-                optimalHeight = availableHeight;
-                optimalWidth = (optimalWidth / optimalHeight) * availableHeight;
-            }
-        }
-        
-        // Pas container grootte aan
-        container.style.width = optimalWidth + 'px';
-        container.style.height = (optimalHeight + safeMargin) + 'px';
-        
-        console.log(`ReuTeefStamboom: Optimale grootte: ${optimalWidth}x${optimalHeight}`);
-        
-        // Centreren
-        container.style.position = 'absolute';
-        container.style.top = '50%';
-        container.style.left = '50%';
-        container.style.transform = 'translate(-50%, -50%)';
-        
-        // Voor portret foto's: iets anders centreren
-        if (optimalHeight > optimalWidth) {
-            // Portret foto's iets hoger plaatsen voor betere balans
-            container.style.transform = 'translate(-50%, -48%)';
-        }
-    }
-    
-    // **EXACT DEZELFDE METHODE ALS STAMBOOMMANAGER: Setup event listeners voor foto overlay**
-    setupPhotoOverlayEvents() {
-        const overlay = document.getElementById('rtcPhotoLargeOverlay');
-        if (!overlay) return;
-        
-        // Sluit met Escape key
-        const closeOnEscape = (e) => {
-            if (e.key === 'Escape') {
-                this.closePhotoOverlay();
-                document.removeEventListener('keydown', closeOnEscape);
-            }
-        };
-        document.addEventListener('keydown', closeOnEscape);
-        
-        // Sluit knop
-        const closeBtn = overlay.querySelector('.photo-large-close');
-        if (closeBtn) {
-            closeBtn.addEventListener('click', () => {
-                this.closePhotoOverlay();
-            });
-        }
-        
-        // Sluit knop footer
-        const closeBtnFooter = overlay.querySelector('.photo-large-close-btn');
-        if (closeBtnFooter) {
-            closeBtnFooter.addEventListener('click', () => {
-                this.closePhotoOverlay();
-            });
-        }
-        
-        // Klik buiten container om te sluiten
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) {
-                this.closePhotoOverlay();
-            }
-        });
-        
-        // Cleanup on animation end
-        overlay.addEventListener('animationend', function handler() {
-            if (overlay.style.display === 'none') {
-                document.removeEventListener('keydown', closeOnEscape);
-                overlay.removeEventListener('animationend', handler);
-            }
-        });
-        
-        // Window resize event - pas grootte aan bij resizen
-        const resizeHandler = () => {
-            const img = document.getElementById('rtcLargePhotoImg');
-            if (img && img.complete) {
-                this.adjustPhotoSize(img);
-            }
-        };
-        
-        window.addEventListener('resize', resizeHandler);
-        
-        // Sla resize handler op voor later cleanup
-        overlay.dataset.resizeHandler = 'active';
-        overlay._resizeHandler = resizeHandler;
-    }
-    
-    // **EXACT DEZELFDE METHODE ALS STAMBOOMMANAGER: Sluit foto overlay netjes**
-    closePhotoOverlay() {
-        const overlay = document.getElementById('rtcPhotoLargeOverlay');
-        if (overlay) {
-            // Verwijder resize listener
-            if (overlay._resizeHandler) {
-                window.removeEventListener('resize', overlay._resizeHandler);
-            }
-            
-            overlay.style.opacity = '0';
-            overlay.style.transition = 'opacity 0.2s ease';
-            
-            setTimeout(() => {
-                if (overlay.parentNode) {
-                    overlay.parentNode.removeChild(overlay);
-                }
-                // Cleanup globale referentie
-                window.currentRTCPhotoManager = null;
-            }, 200);
         }
     }
     
@@ -2591,7 +2639,7 @@ class ReuTeefStamboom {
         const kinshipValue = this.mainModule.calculateAverageKinship(dog.id, 6);
         coiValues.kinship6Gen = kinshipValue.toFixed(3);
         
-        // **EXACT DEZELFDE LOGICA ALS STAMBOOMMANAGER: Laad foto's**
+        // **EXACT DEZELFDE LOGICA ALS STAMBOOMMANAGER: Foto's ophalen**
         const photos = await this.getDogPhotos(dog.id);
         
         // Maak een gecombineerde naam+kennel string voor de header
@@ -2600,19 +2648,20 @@ class ReuTeefStamboom {
         const kennelSuffix = showKennel ? ` ${dog.kennelnaam}` : '';
         const headerText = combinedName + kennelSuffix;
         
+        // **EXACT DEZELFDE THUMBNAIL HTML ALS STAMBOOMMANAGER**
         let photosHTML = '';
         if (photos.length > 0) {
             photosHTML = `
                 <div class="rtc-info-section mb-3">
                     <h6><i class="bi bi-camera me-1"></i> ${this.t('photos')} (${photos.length})</h6>
-                    <div class="rtc-photos-grid" id="rtcPhotosGrid${dog.id}">
+                    <div class="photos-grid" id="rtcPhotosGrid${dog.id}">
                         ${photos.map((photo, index) => {
-                            // **EXACT DEZELFDE LOGICA ALS STAMBOOMMANAGER**
+                            // **EXACT DEZELFDE LOGICA ALS STAMBOOMMANAGER VOOR THUMBNAILS**
                             let thumbnailUrl = photo.thumbnail || photo.data;
                             let fullSizeUrl = photo.data;
                             
                             return `
-                                <div class="rtc-photo-thumbnail" 
+                                <div class="photo-thumbnail" 
                                      data-photo-id="${photo.id || index}" 
                                      data-dog-id="${dog.id}" 
                                      data-dog-name="${dog.naam || ''}"
@@ -2621,16 +2670,16 @@ class ReuTeefStamboom {
                                      data-thumbnail-src="${thumbnailUrl}">
                                     <img src="${thumbnailUrl}"
                                          alt="${dog.naam || ''} - ${photo.filename || ''}" 
-                                         class="rtc-thumbnail-img"
+                                         class="thumbnail-img"
                                          loading="lazy">
-                                    <div class="rtc-photo-hover">
+                                    <div class="photo-hover">
                                         <i class="bi bi-zoom-in"></i>
                                     </div>
                                 </div>
                             `;
                         }).join('')}
                     </div>
-                    <div class="rtc-photo-hint">
+                    <div class="photo-hint">
                         <small class="text-muted"><i class="bi bi-info-circle me-1"></i> ${this.t('clickToEnlarge')}</small>
                     </div>
                 </div>
@@ -2718,7 +2767,7 @@ class ReuTeefStamboom {
                             
                             ${dog.overlijdensdatum ? `
                             <div class="rtc-info-row">
-                                <div class="rtc-info-item rtc-info-item-full {
+                                <div class="rtc-info-item rtc-info-item-full">
                                     <span class="rtc-info-label">${this.t('deathDate')}:</span>
                                     <span class="rtc-info-value">${this.mainModule.formatDate(dog.overlijdensdatum)}</span>
                                 </div>
@@ -2728,7 +2777,7 @@ class ReuTeefStamboom {
                             <!-- Land en postcode -->
                             ${dog.land ? `
                             <div class="rtc-info-row">
-                                <div class="rtc-info-item rtc-info-item-full {
+                                <div class="rtc-info-item rtc-info-item-full">
                                     <span class="rtc-info-label">${this.t('country')}:</span>
                                     <span class="rtc-info-value">${dog.land}</span>
                                 </div>
@@ -2737,7 +2786,7 @@ class ReuTeefStamboom {
                             
                             ${dog.postcode ? `
                             <div class="rtc-info-row">
-                                <div class="rtc-info-item rtc-info-item-full {
+                                <div class="rtc-info-item rtc-info-item-full">
                                     <span class="rtc-info-label">${this.t('zipCode')}:</span>
                                     <span class="rtc-info-value">${dog.postcode}</span>
                                 </div>
@@ -2751,7 +2800,7 @@ class ReuTeefStamboom {
                         <div class="rtc-info-grid">
                             ${dog.heupdysplasie ? `
                             <div class="rtc-info-row">
-                                <div class="rtc-info-item rtc-info-item-full {
+                                <div class="rtc-info-item rtc-info-item-full">
                                     <span class="rtc-info-label">${this.t('hipDysplasia')}:</span>
                                     <span class="rtc-info-value">${this.mainModule.getHealthBadge(dog.heupdysplasie, 'hip')}</span>
                                 </div>
@@ -2760,7 +2809,7 @@ class ReuTeefStamboom {
                             
                             ${dog.elleboogdysplasie ? `
                             <div class="rtc-info-row">
-                                <div class="rtc-info-item rtc-info-item-full {
+                                <div class="rtc-info-item rtc-info-item-full">
                                     <span class="rtc-info-label">${this.t('elbowDysplasia')}:</span>
                                     <span class="rtc-info-value">${this.mainModule.getHealthBadge(dog.elleboogdysplasie, 'elbow')}</span>
                                 </div>
@@ -2769,7 +2818,7 @@ class ReuTeefStamboom {
                             
                             ${dog.patella ? `
                             <div class="rtc-info-row">
-                                <div class="rtc-info-item rtc-info-item-full {
+                                <div class="rtc-info-item rtc-info-item-full">
                                     <span class="rtc-info-label">${this.t('patellaLuxation')}:</span>
                                     <span class="rtc-info-value">${this.mainModule.getHealthBadge(dog.patella, 'patella')}</span>
                                 </div>
@@ -2778,7 +2827,7 @@ class ReuTeefStamboom {
                             
                             ${dog.ogen ? `
                             <div class="rtc-info-row">
-                                <div class="rtc-info-item rtc-info-item-full {
+                                <div class="rtc-info-item rtc-info-item-full">
                                     <span class="rtc-info-label">${this.t('eyes')}:</span>
                                     <span class="rtc-info-value">${this.mainModule.getHealthBadge(dog.ogen, 'eyes')}</span>
                                 </div>
@@ -2787,7 +2836,7 @@ class ReuTeefStamboom {
                             
                             ${dog.ogenVerklaring ? `
                             <div class="rtc-info-row">
-                                <div class="rtc-info-item rtc-info-item-full {
+                                <div class="rtc-info-item rtc-info-item-full">
                                     <span class="rtc-info-label">${this.t('eyesExplanation')}:</span>
                                     <span class="rtc-info-value">${dog.ogenVerklaring}</span>
                                 </div>
@@ -2796,7 +2845,7 @@ class ReuTeefStamboom {
                             
                             ${dog.dandyWalker ? `
                             <div class="rtc-info-row">
-                                <div class="rtc-info-item rtc-info-item-full {
+                                <div class="rtc-info-item rtc-info-item-full">
                                     <span class="rtc-info-label">${this.t('dandyWalker')}:</span>
                                     <span class="rtc-info-value">${this.mainModule.getHealthBadge(dog.dandyWalker, 'dandy')}</span>
                                 </div>
@@ -2805,7 +2854,7 @@ class ReuTeefStamboom {
                             
                             ${dog.schildklier ? `
                             <div class="rtc-info-row">
-                                <div class="rtc-info-item rtc-info-item-full {
+                                <div class="rtc-info-item rtc-info-item-full">
                                     <span class="rtc-info-label">${this.t('thyroid')}:</span>
                                     <span class="rtc-info-value">${this.mainModule.getHealthBadge(dog.schildklier, 'thyroid')}</span>
                                 </div>
@@ -2814,7 +2863,7 @@ class ReuTeefStamboom {
                             
                             ${dog.schildklierVerklaring ? `
                             <div class="rtc-info-row">
-                                <div class="rtc-info-item rtc-info-item-full {
+                                <div class="rtc-info-item rtc-info-item-full">
                                     <span class="rtc-info-label">${this.t('thyroidExplanation')}:</span>
                                     <span class="rtc-info-value">${dog.schildklierVerklaring}</span>
                                 </div>
@@ -3030,34 +3079,6 @@ class ReuTeefStamboom {
             `;
             document.body.insertAdjacentHTML('beforeend', overlayHTML);
         }
-        
-        if (!document.getElementById('rtcPhotoLargeOverlay')) {
-            const photoOverlayHTML = `
-                <div class="photo-large-overlay" id="rtcPhotoLargeOverlay" style="display: none;">
-                    <div class="photo-large-container" id="rtcPhotoLargeContainer">
-                        <div class="photo-large-header">
-                            <h5 class="modal-title mb-0 text-white">
-                                <i class="bi bi-image me-2"></i> <span id="rtcPhotoDogName">${this.t('fullSizePhoto')}</span>
-                            </h5>
-                            <button type="button" class="btn-close btn-close-white photo-large-close" aria-label="${this.t('closePhoto')}"></button>
-                        </div>
-                        <div class="photo-large-content" id="rtcPhotoLargeContent">
-                            <img src="" 
-                                 alt="${this.t('fullSizePhoto')}" 
-                                 class="photo-large-img"
-                                 id="rtcLargePhotoImg"
-                                 onload="window.currentRTCPhotoManager && window.currentRTCPhotoManager.adjustPhotoSize(this)">
-                        </div>
-                        <div class="photo-large-footer">
-                            <button type="button" class="btn btn-secondary photo-large-close-btn">
-                                <i class="bi bi-x-lg me-1"></i> ${this.t('closePhoto')}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.body.insertAdjacentHTML('beforeend', photoOverlayHTML);
-        }
     }
     
     setupIsolatedPopupEventListeners() {
@@ -3070,36 +3091,20 @@ class ReuTeefStamboom {
         
         const closePopup = () => {
             overlay.style.display = 'none';
-            
-            // Verwijder onze geïsoleerde listeners
-            const overlayClick = this.mainModule.isolatedEventListeners?.get('overlayClick');
-            const escapeKey = this.mainModule.isolatedEventListeners?.get('escapeKey');
-            
-            if (overlayClick) {
-                overlay.removeEventListener('click', overlayClick);
-                this.mainModule.isolatedEventListeners?.delete('overlayClick');
-            }
-            
-            if (escapeKey) {
-                document.removeEventListener('keydown', escapeKey);
-                this.mainModule.isolatedEventListeners?.delete('escapeKey');
-            }
         };
         
         closeButtons.forEach(btn => {
             btn.addEventListener('click', closePopup);
         });
         
-        // Gebruik een geïsoleerde event listener voor overlay click
-        const overlayClickHandler = (e) => {
+        // Klik buiten popup om te sluiten
+        overlay.addEventListener('click', (e) => {
             if (e.target === overlay) {
                 closePopup();
             }
-        };
+        });
         
-        overlay.addEventListener('click', overlayClickHandler);
-        
-        // Gebruik een geïsoleerde escape key listener
+        // Escape key om popup te sluiten
         const escapeKeyHandler = (e) => {
             if (e.key === 'Escape') {
                 closePopup();
@@ -3108,12 +3113,13 @@ class ReuTeefStamboom {
         
         document.addEventListener('keydown', escapeKeyHandler);
         
-        // Sla de listeners op zodat we ze kunnen verwijderen
-        if (!this.mainModule.isolatedEventListeners) {
-            this.mainModule.isolatedEventListeners = new Map();
-        }
-        this.mainModule.isolatedEventListeners.set('overlayClick', overlayClickHandler);
-        this.mainModule.isolatedEventListeners.set('escapeKey', escapeKeyHandler);
+        // Verwijder event listener bij sluiten
+        overlay.addEventListener('animationend', function handler() {
+            if (overlay.style.display === 'none') {
+                document.removeEventListener('keydown', escapeKeyHandler);
+                overlay.removeEventListener('animationend', handler);
+            }
+        });
     }
     
     calculateAverageKinshipForFuturePuppy(tempCOICalculator, dogId, generations = 6) {
@@ -3146,18 +3152,6 @@ class ReuTeefStamboom {
             console.error('Fout bij berekenen kinship voor toekomstige pup:', error);
             return 0;
         }
-    }
-    
-    // CORRECTIE: Verwijder de dubbele COI berekening en gebruik die van StamboomManager
-    calculateCOI(dogId) {
-        // CORRECTIE: Gebruik de StamboomManager's calculateCOI method
-        return this.mainModule.calculateCOI(dogId);
-    }
-    
-    // CORRECTIE: Verwijder de dubbele kinship berekening en gebruik die van StamboomManager
-    calculateAverageKinship(dogId, generations = 6) {
-        // CORRECTIE: Gebruik de StamboomManager's calculateAverageKinship method
-        return this.mainModule.calculateAverageKinship(dogId, generations);
     }
 }
 
