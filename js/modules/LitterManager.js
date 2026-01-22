@@ -372,7 +372,7 @@ class LitterManager {
                 confirmDelete: "Sind Sie sicher, dass Sie diesen Hund löschen möchten?",
                 photoAdded: "Foto hinzugefügt",
                 photoError: "Fehler beim Hochladen des Fotos: ",
-                addedDogs: "Hinzugefügte Hunde:",
+                addedDogs: "Hinzugefügte Hunden:",
                 noDogsAdded: "Noch keine Hunde hinzugefügt",
 
                 // Container Titel
@@ -2207,11 +2207,24 @@ class LitterManager {
             
             console.log('LitterManager: Hond opgeslagen met resultaat:', result);
             
-            // Foto uploaden als er een is geselecteerd
+            // Foto uploaden zoals PhotoManager - EXACT DEZELFDE LOGICA
             const photoInput = document.getElementById('photo');
             if (photoInput && photoInput.files.length > 0) {
-                console.log('LitterManager: Foto uploaden...');
-                await this.uploadPhoto(dogData.stamboomnr, photoInput.files[0]);
+                console.log('LitterManager: Foto uploaden zoals PhotoManager...');
+                const file = photoInput.files[0];
+                
+                if (file.size > 5 * 1024 * 1024) {
+                    this.showError(this.t('fileTooLarge'));
+                    return;
+                }
+                
+                const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                if (!validTypes.includes(file.type)) {
+                    this.showError(this.t('invalidType'));
+                    return;
+                }
+                
+                await this.uploadPhoto(dogData.stamboomnr, file);
             }
             
             // Voeg toe aan de lijst met huidige nest honden met ALLE gezondheidsinformatie
@@ -2244,6 +2257,118 @@ class LitterManager {
             console.error('LitterManager: Error stack:', error.stack);
             this.hideProgress();
             this.showError(`${this.t('addFailed')}${error.message}`);
+        }
+    }
+    
+    async uploadPhoto(pedigreeNumber, file) {
+        try {
+            const reader = new FileReader();
+            
+            return new Promise((resolve, reject) => {
+                reader.onload = async (e) => {
+                    try {
+                        // Haal gebruiker op zoals PhotoManager
+                        const user = window.auth ? window.auth.getCurrentUser() : null;
+                        if (!user || !user.id) {
+                            throw new Error('Niet ingelogd of geen gebruikers-ID beschikbaar');
+                        }
+                        
+                        // Converteer naar Base64 (volledige data met data: prefix) zoals PhotoManager
+                        const base64Data = e.target.result;
+                        
+                        // Maak thumbnail (gereduceerde versie) zoals PhotoManager
+                        let thumbnail = null;
+                        try {
+                            // Maak een kleine thumbnail (max 200px)
+                            const img = new Image();
+                            img.src = base64Data;
+                            
+                            await new Promise((resolve) => {
+                                img.onload = () => {
+                                    const canvas = document.createElement('canvas');
+                                    const ctx = canvas.getContext('2d');
+                                    
+                                    // Bereken nieuwe afmetingen
+                                    const maxSize = 200;
+                                    let width = img.width;
+                                    let height = img.height;
+                                    
+                                    if (width > height) {
+                                        if (width > maxSize) {
+                                            height = (height * maxSize) / width;
+                                            width = maxSize;
+                                        }
+                                    } else {
+                                        if (height > maxSize) {
+                                            width = (width * maxSize) / height;
+                                            height = maxSize;
+                                        }
+                                    }
+                                    
+                                    canvas.width = width;
+                                    canvas.height = height;
+                                    ctx.drawImage(img, 0, 0, width, height);
+                                    
+                                    thumbnail = canvas.toDataURL('image/jpeg', 0.7);
+                                    resolve();
+                                };
+                            });
+                        } catch (thumbError) {
+                            console.warn('Thumbnail maken mislukt:', thumbError);
+                            // Gebruik de originele data als fallback zoals PhotoManager
+                            thumbnail = base64Data;
+                        }
+                        
+                        // Maak foto object voor database (VOLGENS FOTOS TABEL STRUCTUUR) zoals PhotoManager
+                        const fotoData = {
+                            stamboomnr: pedigreeNumber,
+                            data: base64Data, // volledige Base64 data met data: prefix
+                            thumbnail: thumbnail,   // thumbnail als Base64
+                            filename: file.name,
+                            size: file.size,
+                            type: file.type,
+                            uploaded_at: new Date().toISOString(),
+                            geupload_door: user.id
+                        };
+                        
+                        console.log('Foto data voor database:', {
+                            stamboomnr: fotoData.stamboomnr,
+                            filename: fotoData.filename,
+                            size: fotoData.size,
+                            hasData: !!fotoData.data,
+                            hasThumbnail: !!fotoData.thumbnail,
+                            geupload_door: fotoData.geupload_door
+                        });
+                        
+                        // Voeg toe aan database via Supabase zoals PhotoManager
+                        const { data: dbData, error: dbError } = await window.supabase
+                            .from('fotos')
+                            .insert(fotoData)
+                            .select()
+                            .single();
+                        
+                        if (dbError) {
+                            console.error('Database insert error:', dbError);
+                            throw dbError;
+                        }
+                        
+                        console.log('Database insert successful:', dbData);
+                        this.showSuccess(this.t('photoAdded'));
+                        resolve();
+                        
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                
+                reader.onerror = () => {
+                    reject(new Error(this.t('fileReadError')));
+                };
+                
+                reader.readAsDataURL(file);
+            });
+        } catch (error) {
+            this.showError(`${this.t('photoError')}${error.message}`);
         }
     }
     
@@ -2287,51 +2412,6 @@ class LitterManager {
         // Reset de lijst met ingevoerde honden
         this.currentLitterDogs = [];
         this.updateAddedDogsList();
-    }
-    
-    async uploadPhoto(pedigreeNumber, file) {
-        try {
-            const reader = new FileReader();
-            
-            return new Promise((resolve, reject) => {
-                reader.onload = async (e) => {
-                    try {
-                        const photoData = {
-                            stamboomnr: pedigreeNumber,
-                            data: e.target.result,
-                            filename: file.name,
-                            size: file.size,
-                            type: file.type,
-                            uploadedAt: new Date().toISOString()
-                        };
-                        
-                        // GEBRUIK window.hondenService IPV this.db
-                        if (window.hondenService && typeof window.hondenService.voegFotoToe === 'function') {
-                            await window.hondenService.voegFotoToe(photoData);
-                            this.showSuccess(this.t('photoAdded'));
-                            resolve();
-                        } else if (this.db && typeof this.db.voegFotoToe === 'function') {
-                            await this.db.voegFotoToe(photoData);
-                            this.showSuccess(this.t('photoAdded'));
-                            resolve();
-                        } else {
-                            console.warn('voegFotoToe methode niet beschikbaar');
-                            resolve();
-                        }
-                    } catch (error) {
-                        reject(error);
-                    }
-                };
-                
-                reader.onerror = () => {
-                    reject(new Error('Fout bij lezen bestand'));
-                };
-                
-                reader.readAsDataURL(file);
-            });
-        } catch (error) {
-            this.showError(`${this.t('photoError')}${error.message}`);
-        }
     }
     
     showProgress(message) {
