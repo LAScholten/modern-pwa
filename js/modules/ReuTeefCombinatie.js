@@ -6,12 +6,23 @@
 class ReuTeefCombinatie {
     constructor() {
         this.currentLang = localStorage.getItem('appLanguage') || 'nl';
-        this.db = window.hondenService; // VERANDERD: gebruik window object
-        this.auth = window.auth; // VERANDERD: gebruik window object
+        this.db = null;
+        this.auth = null;
         this.selectedTeef = null;
         this.selectedReu = null;
         this.allHonden = [];
         this.hondenCache = new Map();
+        
+        // Foto caches - IDENTIEK AAN STAMBOOMMANAGER
+        this.dogPhotosCache = new Map();
+        this.dogHasPhotosCache = new Map();
+        this.dogThumbnailsCache = new Map();
+        this.fullPhotoCache = new Map();
+        
+        // COI Calculator instance - LAAT INITIALISEREN
+        this.coiCalculator = null;
+        this.coiCalculatorReady = false;
+        this.coiCalculationInProgress = false;
         
         // Unieke ID's voor isolatie
         this.uniquePrefix = 'rtc-'; // ReuTeefCombinatie prefix
@@ -20,7 +31,7 @@ class ReuTeefCombinatie {
         // Stamboom module referentie
         this.stamboomModule = null;
         
-        // Vertalingen
+        // Vertalingen - UITGEBREID MET COI LABELS
         this.translations = {
             nl: {
                 title: "Reu en Teef Combinatie",
@@ -55,7 +66,7 @@ class ReuTeefCombinatie {
                 grandfatherLabel: "Grootvader",
                 grandmotherLabel: "Grootmoeder",
                 greatGrandfatherLabel: "Overgrootvader",
-                greatGrandmotherLabel: "Overgrootmoemer",
+                greatGrandmotherLabel: "Overgrootmoeder",
                 greatGreatGrandfatherLabel: "Over-overgrootvader",
                 greatGreatGrandmotherLabel: "Over-overgrootmoeder",
                 typeToSearch: "Begin met typen om te zoeken",
@@ -66,6 +77,10 @@ class ReuTeefCombinatie {
                 futurePuppyTitle: "Stamboom voor toekomstige pup uit combinatie {reu} × {teef}",
                 predictedPedigree: "Voorspelde stamboom",
                 combinedParents: "Combinatie ouders",
+                // COI labels - EXACT ZOALS STAMBOOMMANAGER
+                coi6Gen: "COI 6 Gen",
+                homozygosity6Gen: "Homozygotie 6 Gen",
+                kinship6Gen: "Kinship 6 Gen",
                 closePopup: "Sluiten",
                 predictedCoi: "Voorspelde Inteeltcoëfficiënt",
                 futurePuppyInfo: "Toekomstige Pup Informatie",
@@ -100,6 +115,7 @@ class ReuTeefCombinatie {
                 thyroidTested: "Schildklier getest",
                 thyroidUnknown: "Schildklier niet bekend",
                 occurrences: "Aantal keer",
+                // STAMBOOMMANAGER VERTALINGEN - IDENTIEK
                 pedigreeTitle: "Stamboom van {name}",
                 pedigree4Gen: "5-generatie stamboom",
                 generatingPedigree: "Stamboom genereren...",
@@ -181,6 +197,10 @@ class ReuTeefCombinatie {
                 futurePuppyTitle: "Pedigree for future puppy from combination {reu} × {teef}",
                 predictedPedigree: "Predicted pedigree",
                 combinedParents: "Combination parents",
+                // COI labels - EXACT ZOALS STAMBOOMMANAGER
+                coi6Gen: "COI 6 Gen",
+                homozygosity6Gen: "Homozygotie 6 Gen",
+                kinship6Gen: "Kinship 6 Gen",
                 closePopup: "Close",
                 predictedCoi: "Predicted Inbreeding Coefficient",
                 futurePuppyInfo: "Future Puppy Information",
@@ -215,6 +235,7 @@ class ReuTeefCombinatie {
                 thyroidTested: "Thyroid tested",
                 thyroidUnknown: "Thyroid unknown",
                 occurrences: "Occurrences",
+                // STAMBOOMMANAGER VERTALINGEN - IDENTIEK
                 pedigreeTitle: "Pedigree of {name}",
                 pedigree4Gen: "5-generation pedigree",
                 generatingPedigree: "Generating pedigree...",
@@ -277,7 +298,7 @@ class ReuTeefCombinatie {
                 color: "Fellfarbe:",
                 searchByName: "Suche nach Name oder Zwingername",
                 dogDetails: "Hund Details",
-                selectDogFirst: "Wählen Sie zuerst einen Rüden en eine Hündin",
+                selectDogFirst: "Wählen Sie zuerst einen Rüden und eine Hündin",
                 loadingPedigree: "Stammbaum wird geladen...",
                 unknownAncestor: "Unbekannt",
                 fatherLabel: "Vater",
@@ -296,6 +317,10 @@ class ReuTeefCombinatie {
                 futurePuppyTitle: "Ahnentafel für zukünftigen Welpen aus Kombination {reu} × {teef}",
                 predictedPedigree: "Vorhergesagter Ahnentafel",
                 combinedParents: "Kombination Eltern",
+                // COI labels - EXACT ZOALS STAMBOOMMANAGER
+                coi6Gen: "COI 6 Gen",
+                homozygosity6Gen: "Homozygotie 6 Gen",
+                kinship6Gen: "Kinship 6 Gen",
                 closePopup: "Schließen",
                 predictedCoi: "Vorhergesagter Inzuchtkoeffizient",
                 futurePuppyInfo: "Zukünftiger Welpen-Informationen",
@@ -330,6 +355,7 @@ class ReuTeefCombinatie {
                 thyroidTested: "Schilddrüse getestet",
                 thyroidUnknown: "Schilddrüse unbekannt",
                 occurrences: "Anzahl Mal",
+                // STAMBOOMMANAGER VERTALINGEN - IDENTIEK
                 pedigreeTitle: "Ahnentafel von {name}",
                 pedigree4Gen: "5-Generationen Ahnentafel",
                 generatingPedigree: "Ahnentafel wird generiert...",
@@ -358,7 +384,7 @@ class ReuTeefCombinatie {
                 zipCode: "Postleitzahl",
                 deathDate: "Sterbedatum",
                 hipDysplasia: "Hüftdysplasie",
-                elbowDysplasie: "Ellbogendysplasie",
+                elbowDysplasia: "Ellbogendysplasie",
                 patellaLuxation: "Patella Luxation",
                 eyes: "Augen",
                 dandyWalker: "Dandy Walker Malformation",
@@ -368,17 +394,263 @@ class ReuTeefCombinatie {
                 name: "Name"
             }
         };
+        
+        // Globale event handlers voor foto's
+        this._eventHandlers = {};
+        this._isActive = true;
+        this.setupGlobalEventListeners();
+    }
+    
+    injectDependencies(db, auth) {
+        this.db = db;
+        this.auth = auth;
     }
     
     t(key, params = {}) {
         let text = this.translations[this.currentLang][key] || key;
         
+        // Vervang parameters in tekst
         Object.keys(params).forEach(param => {
             text = text.replace(`{${param}}`, params[param]);
         });
         
         return text;
     }
+    
+    // ==================== FOTO CACHE METHODES ====================
+    
+    async checkDogHasPhotos(dogId) {
+        if (!dogId || dogId === 0) return false;
+        const dog = this.getDogById(dogId);
+        if (!dog || !dog.stamboomnr) return false;
+        const cacheKey = `has_${dogId}_${dog.stamboomnr}`;
+        if (this.dogHasPhotosCache.has(cacheKey)) {
+            return this.dogHasPhotosCache.get(cacheKey);
+        }
+        try {
+            const hasPhotos = await this.db.checkFotosExist(dog.stamboomnr);
+            this.dogHasPhotosCache.set(cacheKey, hasPhotos);
+            return hasPhotos;
+        } catch (error) {
+            console.error('Fout bij checken foto\'s voor hond:', dogId, error);
+            return false;
+        }
+    }
+    
+    async getDogThumbnails(dogId, limit = 9) {
+        if (!dogId || dogId === 0) return [];
+        const dog = this.getDogById(dogId);
+        if (!dog || !dog.stamboomnr) return [];
+        const cacheKey = `thumbs_${dogId}_${dog.stamboomnr}_${limit}`;
+        if (this.dogThumbnailsCache.has(cacheKey)) {
+            return this.dogThumbnailsCache.get(cacheKey);
+        }
+        try {
+            const thumbnails = await this.db.getFotoThumbnails(dog.stamboomnr, limit);
+            this.dogThumbnailsCache.set(cacheKey, thumbnails || []);
+            return thumbnails || [];
+        } catch (error) {
+            console.error('Fout bij ophalen thumbnails voor hond:', dogId, error);
+            return [];
+        }
+    }
+    
+    async getFullSizeFoto(fotoId) {
+        if (!fotoId) return null;
+        const cacheKey = `full_${fotoId}`;
+        if (this.fullPhotoCache.has(cacheKey)) {
+            return this.fullPhotoCache.get(cacheKey);
+        }
+        try {
+            const foto = await this.db.getFotoById(fotoId);
+            if (foto) {
+                this.fullPhotoCache.set(cacheKey, foto);
+            }
+            return foto;
+        } catch (error) {
+            console.error('Fout bij ophalen volledige foto:', fotoId, error);
+            return null;
+        }
+    }
+    
+    // ==================== GLOBALE EVENT LISTENERS ====================
+    
+    setupGlobalEventListeners() {
+        // Event delegation voor foto thumbnail clicks
+        const thumbnailClickHandler = async (e) => {
+            if (!this._isActive) return;
+            
+            const thumbnail = e.target.closest('.photo-thumbnail');
+            if (thumbnail) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const photoId = thumbnail.getAttribute('data-photo-id');
+                const isThumbnail = thumbnail.getAttribute('data-is-thumbnail') === 'true';
+                
+                if (!photoId) return;
+                
+                try {
+                    // Laad pas de volledige foto als er op geklikt wordt
+                    const fullPhoto = await this.getFullSizeFoto(photoId);
+                    
+                    if (fullPhoto && fullPhoto.data) {
+                        // Haal hondnaam op uit de popup
+                        const popupTitle = document.querySelector('.rtc-popup-title, .popup-title');
+                        let dogName = '';
+                        if (popupTitle) {
+                            dogName = popupTitle.textContent.trim();
+                            dogName = dogName.replace(/^[^a-zA-Z]*/, '').trim();
+                        }
+                        
+                        this.showLargePhoto(fullPhoto.data, dogName);
+                    } else {
+                        console.error('Kon volledige foto niet laden:', photoId);
+                        // Probeer de thumbnail als fallback
+                        const imgElement = thumbnail.querySelector('img');
+                        if (imgElement && imgElement.src) {
+                            this.showLargePhoto(imgElement.src, dogName);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Fout bij laden volledige foto:', error);
+                }
+            }
+        };
+        
+        // Event delegation voor grote foto sluitknoppen
+        const photoCloseHandler = (e) => {
+            if (!this._isActive) return;
+            
+            if (e.target.classList.contains('photo-large-close') || 
+                e.target.classList.contains('photo-large-close-btn') ||
+                e.target.closest('.photo-large-close') ||
+                e.target.closest('.photo-large-close-btn')) {
+                const overlay = document.getElementById('rtcPhotoLargeOverlay');
+                if (overlay) {
+                    overlay.style.display = 'none';
+                    setTimeout(() => {
+                        if (overlay.parentNode) {
+                            overlay.parentNode.removeChild(overlay);
+                        }
+                    }, 300);
+                }
+            }
+            
+            // Klik buiten de grote foto om te sluiten
+            if (e.target.id === 'rtcPhotoLargeOverlay') {
+                const overlay = e.target;
+                overlay.style.display = 'none';
+                setTimeout(() => {
+                    if (overlay.parentNode) {
+                        overlay.parentNode.removeChild(overlay);
+                    }
+                }, 300);
+            }
+        };
+        
+        // Escape key handler voor foto overlays
+        const escapeKeyHandler = (e) => {
+            if (!this._isActive) return;
+            
+            if (e.key === 'Escape') {
+                // Sluit grote foto overlay
+                const photoOverlay = document.getElementById('rtcPhotoLargeOverlay');
+                if (photoOverlay && photoOverlay.style.display !== 'none') {
+                    photoOverlay.style.display = 'none';
+                    setTimeout(() => {
+                        if (photoOverlay.parentNode) {
+                            photoOverlay.parentNode.removeChild(photoOverlay);
+                        }
+                    }, 300);
+                    return;
+                }
+                
+                // Sluit detail popup overlay
+                const popupOverlay = document.getElementById('rtcPedigreePopupOverlay');
+                if (popupOverlay && popupOverlay.style.display !== 'none') {
+                    popupOverlay.style.display = 'none';
+                }
+            }
+        };
+        
+        // Voeg event listeners toe en sla referenties op
+        document.addEventListener('click', thumbnailClickHandler);
+        document.addEventListener('click', photoCloseHandler);
+        document.addEventListener('keydown', escapeKeyHandler);
+        
+        // Sla referenties op voor cleanup
+        this._eventHandlers.thumbnailClick = thumbnailClickHandler;
+        this._eventHandlers.photoClose = photoCloseHandler;
+        this._eventHandlers.escapeKey = escapeKeyHandler;
+    }
+    
+    removeGlobalEventListeners() {
+        // Verwijder alle event listeners die we hebben toegevoegd
+        if (this._eventHandlers.thumbnailClick) {
+            document.removeEventListener('click', this._eventHandlers.thumbnailClick);
+            delete this._eventHandlers.thumbnailClick;
+        }
+        
+        if (this._eventHandlers.photoClose) {
+            document.removeEventListener('click', this._eventHandlers.photoClose);
+            delete this._eventHandlers.photoClose;
+        }
+        
+        if (this._eventHandlers.escapeKey) {
+            document.removeEventListener('keydown', this._eventHandlers.escapeKey);
+            delete this._eventHandlers.escapeKey;
+        }
+    }
+    
+    showLargePhoto(photoData, dogName = '') {
+        if (!this._isActive) return;
+        
+        console.log('Toon grote foto:', photoData.substring(0, 100) + '...');
+        
+        // Verwijder bestaande overlay
+        const existingOverlay = document.getElementById('rtcPhotoLargeOverlay');
+        if (existingOverlay) {
+            existingOverlay.remove();
+        }
+        
+        // Maak nieuwe overlay
+        const overlayHTML = `
+            <div class="photo-large-overlay" id="rtcPhotoLargeOverlay" style="display: flex;">
+                <div class="photo-large-container" id="rtcPhotoLargeContainer">
+                    <div class="photo-large-header">
+                        <button type="button" class="btn-close btn-close-white photo-large-close"></button>
+                    </div>
+                    <div class="photo-large-content">
+                        <img src="${photoData}" 
+                             alt="${dogName || 'Foto'}" 
+                             class="photo-large-img"
+                             id="rtcPhotoLargeImg"
+                             style="max-width: 90vw; max-height: 80vh; object-fit: contain;">
+                    </div>
+                    <div class="photo-large-footer">
+                        <button type="button" class="btn btn-secondary photo-large-close-btn">
+                            <i class="bi bi-x-circle me-1"></i> ${this.t('closePhoto')}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', overlayHTML);
+        
+        // Sluit met Escape key (we gebruiken de globale handler)
+        const overlay = document.getElementById('rtcPhotoLargeOverlay');
+        if (overlay) {
+            overlay.addEventListener('animationend', function handler() {
+                if (overlay.style.display === 'none') {
+                    overlay.removeEventListener('animationend', handler);
+                }
+            });
+        }
+    }
+    
+    // ==================== HOOFDFUNCTIES ====================
     
     async loadContent() {
         const t = this.t.bind(this);
@@ -392,8 +664,13 @@ class ReuTeefCombinatie {
         this.selectedReu = null;
         this.hondenCache.clear();
         
-        // Laad honden data - GEBRUIK GEPAGINEERDE METHODE
-        await this.loadAllHondenPaginated();
+        // Laad honden data
+        await this.loadAllHonden();
+        
+        // NIET hier initialiseren, maar pas bij berekening
+        this.coiCalculator = null;
+        this.coiCalculatorReady = false;
+        this.coiCalculationInProgress = false;
         
         content.innerHTML = `
             <div class="alert alert-info mb-4">
@@ -521,15 +798,15 @@ class ReuTeefCombinatie {
             this.showFuturePuppyPedigree();
         });
         
-        // Setup autocomplete voor teef - ALLEEN TEVEN
+        // Setup autocomplete voor teef
         this.setupAutocomplete('teefSearch', 'teefSearchResults', 'teven', (hond) => {
             this.selectTeef(hond);
-        }, 'female');
+        });
         
-        // Setup autocomplete voor reu - ALLEEN REUEN
+        // Setup autocomplete voor reu
         this.setupAutocomplete('reuSearch', 'reuSearchResults', 'reuen', (hond) => {
             this.selectReu(hond);
-        }, 'male');
+        });
         
         // Update button states
         this.updateButtonStates();
@@ -856,45 +1133,11 @@ class ReuTeefCombinatie {
         }
     }
     
-    async loadAllHondenPaginated() {
+    async loadAllHonden() {
         try {
-            if (window.hondenService && typeof window.hondenService.getHonden === 'function') {
-                let allHonden = [];
-                let currentPage = 1;
-                let hasMorePages = true;
-                const pageSize = 100;
-                const maxHonden = 5000;
-                
-                console.log('📥 Start laden van honden via paginatie...');
-                
-                while (hasMorePages && allHonden.length < maxHonden) {
-                    try {
-                        const result = await window.hondenService.getHonden(currentPage, pageSize);
-                        
-                        if (result && result.honden && result.honden.length > 0) {
-                            allHonden = allHonden.concat(result.honden);
-                            hasMorePages = result.heeftVolgende;
-                            currentPage++;
-                            
-                            console.log(`📄 Pagina ${currentPage-1}: ${result.honden.length} honden (totaal: ${allHonden.length})`);
-                            
-                            // Update UI toon voortgang
-                            if (currentPage % 5 === 0) {
-                                this.updateLoadingMessage(`Laden... ${allHonden.length} honden geladen`);
-                            }
-                        } else {
-                            hasMorePages = false;
-                            console.log('❌ Geen honden meer gevonden of error in result');
-                        }
-                    } catch (pageError) {
-                        console.error(`❌ Fout bij laden pagina ${currentPage}:`, pageError);
-                        hasMorePages = false;
-                        break;
-                    }
-                }
-                
-                this.allHonden = allHonden;
-                console.log(`✅ Succesvol geladen: ${this.allHonden.length} honden uit Supabase`);
+            if (this.db && typeof this.db.getHonden === 'function') {
+                this.allHonden = await this.db.getHonden();
+                console.log(`✅ Geladen: ${this.allHonden.length} honden uit database voor ReuTeefCombinatie`);
                 
                 // Zorg dat alle gezondheidsvelden aanwezig zijn
                 this.allHonden = this.allHonden.map(hond => {
@@ -923,29 +1166,17 @@ class ReuTeefCombinatie {
                         this.hondenCache.set(hond.stamboomnr, hond);
                     }
                 });
-                
-                return allHonden.length;
-                
             } else {
-                console.error('❌ window.hondenService niet beschikbaar of getHonden functie ontbreekt');
+                console.error('❌ Database niet beschikbaar of getHonden functie ontbreekt');
                 this.allHonden = [];
-                return 0;
             }
         } catch (error) {
             console.error('❌ Fout bij laden honden:', error);
             this.allHonden = [];
-            return 0;
         }
     }
     
-    updateLoadingMessage(message) {
-        // Toon voortgang in UI
-        const loadingElement = document.querySelector('.loading-message');
-        if (loadingElement) {
-            loadingElement.textContent = message;
-        }
-    }
-    
+    // NIEUWE METHODE: getDogById - Eenvoudige zoekmethode voor honden
     getDogById(id) {
         // Eerst in cache zoeken
         if (this.hondenCache.has(id)) {
@@ -968,8 +1199,7 @@ class ReuTeefCombinatie {
         }
         
         try {
-            // VERANDERD: Gebruik window.hondenService
-            const hond = await window.hondenService.getHondByStamboomnr(id);
+            const hond = await this.db.getHondById(id);
             if (hond) {
                 const volledigeHond = {
                     ...hond,
@@ -1003,89 +1233,56 @@ class ReuTeefCombinatie {
         }
     }
     
-    async findHondByNameOrPedigree(name, requiredGender = null) {
+    async findHondByNameOrPedigree(name) {
         if (!name || !name.trim()) return null;
         
         const searchName = name.toLowerCase().trim();
-        
-        // Eerst in geladen honden zoeken
         for (const hond of this.allHonden) {
-            // Filter op geslacht als requiredGender is opgegeven
-            if (requiredGender) {
-                if (requiredGender === 'female' && !(hond.geslacht === 'teven' || hond.geslacht === 'vrouwelijk')) {
-                    continue;
-                }
-                if (requiredGender === 'male' && !(hond.geslacht === 'reuen' || hond.geslacht === 'mannelijk')) {
-                    continue;
-                }
-            }
-            
             const hondNaam = hond.naam?.toLowerCase() || '';
             const stamboomnr = hond.stamboomnr?.toLowerCase() || '';
-            const kennelNaam = hond.kennelnaam?.toLowerCase() || '';
-            
-            if (hondNaam.includes(searchName) || 
-                stamboomnr.includes(searchName) || 
-                kennelNaam.includes(searchName)) {
+            if (hondNaam === searchName || stamboomnr === searchName) {
                 return hond;
             }
         }
         
-        // Als niet gevonden, zoek direct in database
         try {
-            // VERANDERD: Gebruik gepagineerde zoek
-            const result = await window.hondenService.zoekHonden({ naam: name }, 1, 50);
-            if (result && result.honden && result.honden.length > 0) {
-                // Filter op geslacht als requiredGender is opgegeven
-                const filteredHonden = result.honden.filter(hond => {
-                    if (!requiredGender) return true;
+            const result = await this.db.zoekHonden({ naam: name });
+            if (result && result.length > 0) {
+                result.forEach(hond => {
+                    const volledigeHond = {
+                        ...hond,
+                        heupdysplasie: hond.heupdysplasie || '',
+                        elleboogdysplasie: hond.elleboogdysplasie || '',
+                        patella: hond.patella || '',
+                        ogen: hond.ogen || '',
+                        ogenVerklaring: hond.ogenVerklaring || '',
+                        dandyWalker: hond.dandyWalker || '',
+                        schildklier: hond.schildklier || '',
+                        schildklierVerklaring: hond.schildklierVerklaring || '',
+                        vachtkleur: hond.vachtkleur || '',
+                        ras: hond.ras || ''
+                    };
                     
-                    if (requiredGender === 'female') {
-                        return hond.geslacht === 'teven' || hond.geslacht === 'vrouwelijk';
-                    } else if (requiredGender === 'male') {
-                        return hond.geslacht === 'reuen' || hond.geslacht === 'mannelijk';
+                    this.hondenCache.set(volledigeHond.id, volledigeHond);
+                    if (volledigeHond.stamboomnr) {
+                        this.hondenCache.set(volledigeHond.stamboomnr, volledigeHond);
                     }
-                    return true;
+                    
+                    const exists = this.allHonden.some(dog => dog.id === volledigeHond.id);
+                    if (!exists) {
+                        this.allHonden.push(volledigeHond);
+                    }
                 });
-                
-                if (filteredHonden.length > 0) {
-                    filteredHonden.forEach(hond => {
-                        const volledigeHond = {
-                            ...hond,
-                            heupdysplasie: hond.heupdysplasie || '',
-                            elleboogdysplasie: hond.elleboogdysplasie || '',
-                            patella: hond.patella || '',
-                            ogen: hond.ogen || '',
-                            ogenVerklaring: hond.ogenVerklaring || '',
-                            dandyWalker: hond.dandyWalker || '',
-                            schildklier: hond.schildklier || '',
-                            schildklierVerklaring: hond.schildklierVerklaring || '',
-                            vachtkleur: hond.vachtkleur || '',
-                            ras: hond.ras || ''
-                        };
-                        
-                        this.hondenCache.set(volledigeHond.id, volledigeHond);
-                        if (volledigeHond.stamboomnr) {
-                            this.hondenCache.set(volledigeHond.stamboomnr, volledigeHond);
-                        }
-                        
-                        const exists = this.allHonden.some(dog => dog.id === volledigeHond.id);
-                        if (!exists) {
-                            this.allHonden.push(volledigeHond);
-                        }
-                    });
-                    return filteredHonden[0];
-                }
+                return result[0];
             }
         } catch (error) {
-            console.error(`❌ Fout bij zoeken hond op naam "${name}":`, error);
+            console.error(`❌ Fout bij zoeken hond op naam ${name}:`, error);
         }
         
-        console.log(`🔍 Geen hond gevonden voor zoekterm: "${name}"`);
         return null;
     }
     
-    setupAutocomplete(inputId, resultsId, geslacht, onSelect, requiredGender = null) {
+    setupAutocomplete(inputId, resultsId, geslacht, onSelect) {
         const input = document.getElementById(inputId);
         const dropdown = document.getElementById(inputId.replace('Search', 'Dropdown'));
         const resultsContainer = document.getElementById(resultsId);
@@ -1168,11 +1365,11 @@ class ReuTeefCombinatie {
         
         input.addEventListener('focus', async () => {
             if (this.allHonden.length === 0) {
-                await this.loadAllHondenPaginated();
+                await this.loadAllHonden();
             }
         });
         
-        input.addEventListener('input', async (e) => {
+        input.addEventListener('input', (e) => {
             const searchTerm = e.target.value.toLowerCase().trim();
             
             if (searchTerm.length === 0) {
@@ -1182,10 +1379,9 @@ class ReuTeefCombinatie {
             }
             
             let filteredHonden = this.allHonden.filter(hond => {
-                // Filter op geslacht op basis van requiredGender
-                if (requiredGender === 'female') {
+                if (geslacht === 'teven') {
                     return hond.geslacht === 'teven' || hond.geslacht === 'vrouwelijk';
-                } else if (requiredGender === 'male') {
+                } else if (geslacht === 'reuen') {
                     return hond.geslacht === 'reuen' || hond.geslacht === 'mannelijk';
                 }
                 return true;
@@ -1195,37 +1391,9 @@ class ReuTeefCombinatie {
                 filteredHonden = filteredHonden.filter(dog => {
                     const naam = dog.naam ? dog.naam.toLowerCase() : '';
                     const kennelnaam = dog.kennelnaam ? dog.kennelnaam.toLowerCase() : '';
-                    const stamboomnr = dog.stamboomnr ? dog.stamboomnr.toLowerCase() : '';
-                    const combined = `${naam} ${kennelnaam} ${stamboomnr}`;
-                    return combined.includes(searchTerm);
+                    const combined = `${naam} ${kennelnaam}`;
+                    return combined.startsWith(searchTerm);
                 });
-            }
-            
-            // Als we minder dan 10 resultaten hebben in lokale cache, zoek in database
-            if (filteredHonden.length < 10 && searchTerm.length >= 2) {
-                try {
-                    const result = await window.hondenService.zoekHonden({ naam: searchTerm }, 1, 50);
-                    if (result && result.honden && result.honden.length > 0) {
-                        // Filter op geslacht
-                        const genderFiltered = result.honden.filter(hond => {
-                            if (requiredGender === 'female') {
-                                return hond.geslacht === 'teven' || hond.geslacht === 'vrouwelijk';
-                            } else if (requiredGender === 'male') {
-                                return hond.geslacht === 'reuen' || hond.geslacht === 'mannelijk';
-                            }
-                            return true;
-                        });
-                        
-                        // Voeg nieuwe honden toe aan cache en filteredHonden
-                        genderFiltered.forEach(hond => {
-                            if (!filteredHonden.some(d => d.id === hond.id)) {
-                                filteredHonden.push(hond);
-                            }
-                        });
-                    }
-                } catch (error) {
-                    console.error('Fout bij extra database zoeken:', error);
-                }
             }
             
             currentResults = filteredHonden;
@@ -1513,13 +1681,13 @@ class ReuTeefCombinatie {
         if (hond.vaderId) {
             result.vader = await this.getHondById(hond.vaderId);
         } else if (hond.vader) {
-            result.vader = await this.findHondByNameOrPedigree(hond.vader, 'male');
+            result.vader = await this.findHondByNameOrPedigree(hond.vader);
         }
         
         if (hond.moederId) {
             result.moeder = await this.getHondById(hond.moederId);
         } else if (hond.moeder) {
-            result.moeder = await this.findHondByNameOrPedigree(hond.moeder, 'female');
+            result.moeder = await this.findHondByNameOrPedigree(hond.moeder);
         }
         
         return result;
@@ -1558,98 +1726,13 @@ class ReuTeefCombinatie {
             return;
         }
         
-        try {
-            // Controleer eerst of ReuTeefStamboom bestaat
-            if (typeof ReuTeefStamboom === 'undefined' && typeof window.ReuTeefStamboom === 'undefined') {
-                console.warn('⚠️ ReuTeefStamboom is niet beschikbaar, laag basis stamboom');
-                await this.showBasicPedigree();
-                return;
-            }
-            
-            // Initialiseer stamboom module als die nog niet bestaat
-            if (!this.stamboomModule) {
-                // Gebruik globale variant als beschikbaar
-                const StamboomClass = typeof ReuTeefStamboom !== 'undefined' ? ReuTeefStamboom : window.ReuTeefStamboom;
-                this.stamboomModule = new StamboomClass(this);
-            }
-            
-            // Laad de stamboom
-            await this.stamboomModule.showFuturePuppyPedigree(this.selectedTeef, this.selectedReu);
-            
-        } catch (error) {
-            console.error('❌ Fout bij tonen stamboom:', error);
-            this.showAlert('Kan stamboom niet tonen. Probeer een eenvoudige versie.', 'warning');
-            await this.showBasicPedigree();
-        }
-    }
-    
-    async showBasicPedigree() {
-        const t = this.t.bind(this);
-        
-        // Simpele stamboom weergave
-        const modal = new bootstrap.Modal(document.getElementById('pedigreeModal') || this.createBasicModal());
-        const title = t('pedigreeTitle', { name: t('futurePuppyName') });
-        const content = `
-            <div class="modal-header">
-                <h5 class="modal-title">${title}</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="alert alert-info">
-                    <i class="bi bi-info-circle"></i>
-                    Basis stamboom weergave voor combinatie ${this.selectedTeef.naam} × ${this.selectedReu.naam}
-                </div>
-                
-                <div class="card mb-3">
-                    <div class="card-header">
-                        <strong>Toekomstige Pup</strong>
-                    </div>
-                    <div class="card-body">
-                        <p>Combinatie van:</p>
-                        <ul>
-                            <li><strong>Vader:</strong> ${this.selectedReu.naam} ${this.selectedReu.stamboomnr ? `(${this.selectedReu.stamboomnr})` : ''}</li>
-                            <li><strong>Moeder:</strong> ${this.selectedTeef.naam} ${this.selectedTeef.stamboomnr ? `(${this.selectedTeef.stamboomnr})` : ''}</li>
-                        </ul>
-                    </div>
-                </div>
-                
-                <div class="card">
-                    <div class="card-header">
-                        <strong>Gezondheidsoverzicht</strong>
-                    </div>
-                    <div class="card-body">
-                        <p>Volledige stamboomfunctionaliteit is momenteel niet beschikbaar.</p>
-                        <p>Controleer of het bestand <code>ReuTeefStamboom.js</code> correct geladen is.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">${t('close')}</button>
-            </div>
-        `;
-        
-        const modalElement = document.getElementById('pedigreeModal') || this.createBasicModal();
-        modalElement.querySelector('.modal-content').innerHTML = content;
-        modal.show();
-    }
-    
-    createBasicModal() {
-        const modalId = 'basicPedigreeModal';
-        let modalElement = document.getElementById(modalId);
-        
-        if (!modalElement) {
-            modalElement = document.createElement('div');
-            modalElement.id = modalId;
-            modalElement.className = 'modal fade';
-            modalElement.innerHTML = `
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content"></div>
-                </div>
-            `;
-            document.body.appendChild(modalElement);
+        // Initialiseer stamboom module als die nog niet bestaat
+        if (!this.stamboomModule) {
+            this.stamboomModule = new ReuTeefStamboom(this);
         }
         
-        return modalElement;
+        // Laad de stamboom via het aparte bestand
+        await this.stamboomModule.showFuturePuppyPedigree(this.selectedTeef, this.selectedReu);
     }
     
     showAlert(message, type = 'info') {
@@ -1677,6 +1760,130 @@ class ReuTeefCombinatie {
                 }
             }, 5000);
         }
+    }
+    
+    calculateCOI(dogId) {
+        console.log('COI berekening voor database ID:', dogId);
+        
+        if (!dogId || dogId === 0) return { coi6Gen: '0.0', homozygosity6Gen: '0.0', kinship6Gen: '0.0' };
+        
+        const dog = this.getDogById(dogId);
+        if (!dog) return { coi6Gen: '0.0', homozygosity6Gen: '0.0', kinship6Gen: '0.0' };
+        
+        // Basisgevallen eerst
+        if (!dog.vaderId || !dog.moederId) {
+            return { coi6Gen: '0.0', homozygosity6Gen: '0.0', kinship6Gen: '0.0' };
+        }
+        
+        if (dog.vaderId === dog.moederId) {
+            return { coi6Gen: '25.0', homozygosity6Gen: '25.0', kinship6Gen: '25.0' };
+        }
+        
+        // GEBRUIK COICalculator.js als beschikbaar
+        if (this.coiCalculator) {
+            try {
+                const result = this.coiCalculator.calculateCOI(dogId);
+                console.log(`COI resultaat via COICalculator:`, result);
+                
+                // Bereken kinship - EXACT ZOALS STAMBOOMMANAGER
+                const kinship = this.calculateAverageKinship(dogId, 6);
+                
+                return {
+                    coi6Gen: result.coi6Gen || '0.0',
+                    homozygosity6Gen: result.coiAllGen || '0.0',
+                    kinship6Gen: kinship.toFixed(3)
+                };
+            } catch (error) {
+                console.error('Fout in COICalculator:', error);
+                // Val terug op eenvoudige berekening
+            }
+        } else {
+            console.warn('COICalculator niet beschikbaar, gebruik eenvoudige berekening');
+        }
+        
+        // Eenvoudige berekening als COICalculator niet werkt
+        const vader = this.getDogById(dog.vaderId);
+        const moeder = this.getDogById(dog.moederId);
+        
+        if (!vader || !moeder) {
+            return { coi6Gen: '0.0', homozygosity6Gen: '0.0', kinship6Gen: '0.0' };
+        }
+        
+
+        // Complexe gevallen - probeer minimaal iets
+        return { coi6Gen: '0.0', homozygosity6Gen: '0.0', kinship6Gen: '0.0' };
+    }
+    
+    calculateAverageKinship(dogId, generations = 6) {
+        if (!this.coiCalculator || !dogId || dogId === 0) return 0;
+        
+        try {
+            const dog = this.getDogById(dogId);
+            if (!dog || !dog.vaderId || !dog.moederId) return 0;
+            
+            const allAncestors = this.coiCalculator._getAllAncestors(dogId, generations);
+            const ancestorIds = Array.from(allAncestors.keys());
+            
+            if (ancestorIds.length <= 1) return 0;
+            
+            let totalKinship = 0;
+            let pairCount = 0;
+            
+            const sampleSize = Math.min(ancestorIds.length, 30);
+            const step = Math.max(1, Math.floor(ancestorIds.length / sampleSize));
+            
+            for (let i = 0; i < ancestorIds.length; i += step) {
+                for (let j = i + step; j < ancestorIds.length; j += step) {
+                    if (i !== j) {
+                        const kinship = this.coiCalculator._calculateKinship(ancestorIds[i], ancestorIds[j], generations);
+                        totalKinship += kinship;
+                        pairCount++;
+                    }
+                }
+            }
+            
+            return pairCount > 0 ? (totalKinship / pairCount) * 100 : 0;
+        } catch (error) {
+            console.error('Fout bij berekenen kinship:', error);
+            return 0;
+        }
+    }
+    
+    getCOIColor(coiValue) {
+        const value = parseFloat(coiValue);
+        if (value < 4.0) return '#28a745';
+        if (value <= 6.0) return '#fd7e14';
+        return '#dc3545';
+    }
+    
+    formatDate(dateString) {
+        if (!dateString) return '';
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString(this.currentLang === 'nl' ? 'nl-NL' : 
+                                          this.currentLang === 'de' ? 'de-DE' : 'en-US');
+        } catch {
+            return dateString;
+        }
+    }
+    
+    getHealthBadge(value, type) {
+        if (!value || value === '') {
+            return `<span class="badge bg-secondary">${this.t('unknown')}</span>`;
+        }
+        
+        let badgeClass = 'badge ';
+        switch(type) {
+            case 'hip': badgeClass += 'badge-hd'; break;
+            case 'elbow': badgeClass += 'badge-ed'; break;
+            case 'patella': badgeClass += 'badge-pl'; break;
+            case 'eyes': badgeClass += 'badge-eyes'; break;
+            case 'dandy': badgeClass += 'badge-dandy'; break;
+            case 'thyroid': badgeClass += 'badge-thyroid'; break;
+            default: badgeClass += 'bg-secondary';
+        }
+        
+        return `<span class="${badgeClass}">${value}</span>`;
     }
 }
 
