@@ -20,6 +20,9 @@ class ReuTeefStamboom {
         
         // Gezondheidsanalyse cache
         this.healthAnalysisCache = new Map();
+        
+        // NIEUW: Directe referentie naar de foto service via window
+        this.fotoService = window.fotoService;
     }
     
     async showFuturePuppyPedigree(selectedTeef, selectedReu) {
@@ -2140,8 +2143,8 @@ class ReuTeefStamboom {
         const mainDogClass = isMainDog ? 'main-dog-compact' : '';
         const headerColor = isMainDog ? 'bg-success' : 'bg-secondary';
         
-        // Check of deze hond foto's heeft (SNELLE CHECK) - IDENTIEK AAN STAMBOOMMANAGER
-        const hasPhotos = dog.id > 0 ? await this.mainModule.checkDogHasPhotos(dog.id) : false;
+        // NIEUW: Check of deze hond foto's heeft via de foto service
+        const hasPhotos = dog.id > 0 ? await this.checkDogHasPhotos(dog.id) : false;
         const cameraIcon = hasPhotos ? '<i class="bi bi-camera text-danger ms-1"></i>' : '';
         
         const combinedName = dog.naam || this.t('unknown');
@@ -2228,6 +2231,66 @@ class ReuTeefStamboom {
         `;
     }
     
+    async checkDogHasPhotos(dogId) {
+        try {
+            if (!dogId || dogId <= 0) return false;
+            
+            // Gebruik de foto service via window object
+            if (this.fotoService && typeof this.fotoService.checkFotosExist === 'function') {
+                // Eerst de hond ophalen om het stamboomnummer te krijgen
+                const dog = this.mainModule.getDogById(dogId);
+                if (!dog || !dog.stamboomnr) return false;
+                
+                // Check of er foto's bestaan voor dit stamboomnummer
+                const hasPhotos = await this.fotoService.checkFotosExist(dog.stamboomnr);
+                return hasPhotos;
+            } else if (window.fotoService && typeof window.fotoService.checkFotosExist === 'function') {
+                // Backup: direct via window object
+                const dog = this.mainModule.getDogById(dogId);
+                if (!dog || !dog.stamboomnr) return false;
+                
+                const hasPhotos = await window.fotoService.checkFotosExist(dog.stamboomnr);
+                return hasPhotos;
+            } else {
+                console.warn('Foto service niet beschikbaar voor hond ID:', dogId);
+                return false;
+            }
+        } catch (error) {
+            console.error('Fout bij checken foto\'s voor hond:', dogId, error);
+            return false;
+        }
+    }
+    
+    async getDogThumbnails(dogId, limit = 9) {
+        try {
+            if (!dogId || dogId <= 0) return [];
+            
+            // Gebruik de foto service via window object
+            if (this.fotoService && typeof this.fotoService.getFotoThumbnails === 'function') {
+                // Eerst de hond ophalen om het stamboomnummer te krijgen
+                const dog = this.mainModule.getDogById(dogId);
+                if (!dog || !dog.stamboomnr) return [];
+                
+                // Haal thumbnails op voor dit stamboomnummer
+                const thumbnails = await this.fotoService.getFotoThumbnails(dog.stamboomnr, limit);
+                return thumbnails;
+            } else if (window.fotoService && typeof window.fotoService.getFotoThumbnails === 'function') {
+                // Backup: direct via window object
+                const dog = this.mainModule.getDogById(dogId);
+                if (!dog || !dog.stamboomnr) return [];
+                
+                const thumbnails = await window.fotoService.getFotoThumbnails(dog.stamboomnr, limit);
+                return thumbnails;
+            } else {
+                console.warn('Foto service niet beschikbaar voor thumbnails hond ID:', dogId);
+                return [];
+            }
+        } catch (error) {
+            console.error('Fout bij ophalen thumbnails voor hond:', dogId, error);
+            return [];
+        }
+    }
+    
     setupCardClickEvents() {
         const cards = document.querySelectorAll('.rtc-pedigree-card-compact.horizontal:not(.empty)');
         cards.forEach(card => {
@@ -2280,8 +2343,8 @@ class ReuTeefStamboom {
         const kinshipValue = this.mainModule.calculateAverageKinship(dog.id, 6);
         coiValues.kinship6Gen = kinshipValue.toFixed(3);
         
-        // Laad alleen thumbnails - IDENTIEK AAN STAMBOOMMANAGER
-        const thumbnails = dog.id > 0 ? await this.mainModule.getDogThumbnails(dog.id, 9) : [];
+        // NIEUW: Laad thumbnails via onze eigen foto service methode
+        const thumbnails = dog.id > 0 ? await this.getDogThumbnails(dog.id, 9) : [];
         
         // Maak een gecombineerde naam+kennel string voor de header
         const combinedName = dog.naam || this.t('unknown');
