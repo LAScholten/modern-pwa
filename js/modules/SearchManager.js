@@ -401,14 +401,23 @@ class SearchManager extends BaseModule {
                 const photoSrc = thumbnail.getAttribute('data-photo-src');
                 console.log('Foto geklikt, src:', photoSrc);
                 
-                if (photoSrc && photoSrc.trim() !== '') {
+                // Verkrijg de hondnaam van het dichtstbijzijnde parent element met hondnaam data
+                let dogName = '';
+                const dogInfoElement = thumbnail.closest('[data-dog-name]');
+                if (dogInfoElement) {
+                    dogName = dogInfoElement.getAttribute('data-dog-name') || '';
+                }
+                
+                // Fallback: zoek in het hele document
+                if (!dogName) {
                     const popupTitle = document.querySelector('.popup-title');
-                    let dogName = '';
                     if (popupTitle) {
                         dogName = popupTitle.textContent.trim();
                         dogName = dogName.replace(/^[^a-zA-Z]*/, '').trim();
                     }
-                    
+                }
+                
+                if (photoSrc && photoSrc.trim() !== '') {
                     this.showLargePhoto(photoSrc, dogName);
                 } else {
                     console.error('Geen geldige foto src gevonden:', photoSrc);
@@ -463,9 +472,8 @@ class SearchManager extends BaseModule {
             }
             
             // Sluit nakomelingen modal
-            if (e.target.classList.contains('.offspring-modal-close') || 
-                e.target.closest('.offspring-modal-close') ||
-                e.target.id === 'offspringModalOverlay') {
+            const closeOffspringBtn = e.target.closest('.offspring-modal-close');
+            if (closeOffspringBtn || e.target.id === 'offspringModalOverlay') {
                 const overlay = document.getElementById('offspringModalOverlay');
                 if (overlay) {
                     overlay.style.display = 'none';
@@ -496,7 +504,9 @@ class SearchManager extends BaseModule {
             // Gebruik de juiste functie van het tweede bestand: getFotosVoorStamboomnr
             let photos = [];
             
-            if (this.db && typeof this.db.getFotosVoorStamboomnr === 'function') {
+            if (window.fotoService && typeof window.fotoService.getFotoThumbnails === 'function') {
+                photos = await window.fotoService.getFotoThumbnails(dog.stamboomnr);
+            } else if (this.db && typeof this.db.getFotosVoorStamboomnr === 'function') {
                 photos = await this.db.getFotosVoorStamboomnr(dog.stamboomnr);
             } else {
                 console.warn('Geen geschikte foto functie gevonden in db service');
@@ -543,8 +553,8 @@ class SearchManager extends BaseModule {
             
             // Voeg ouder informatie toe aan elk nakomeling
             const offspringWithParents = offspring.map(puppy => {
-                let fatherInfo = { naam: this.t('parentsUnknown'), stamboomnr: '' };
-                let motherInfo = { naam: this.t('parentsUnknown'), stamboomnr: '' };
+                let fatherInfo = { naam: this.t('parentsUnknown'), stamboomnr: '', kennelnaam: '' };
+                let motherInfo = { naam: this.t('parentsUnknown'), stamboomnr: '', kennelnaam: '' };
                 
                 // Haal vader info op - gebruik vader_id zoals in database
                 if (puppy.vader_id) {
@@ -2426,16 +2436,9 @@ class SearchManager extends BaseModule {
         // Haal aantal nakomelingen op
         const offspringCount = await this.getOffspringCount(dog.id);
         
-        // DEBUG: Log de gebruikte velden
-        console.log(`Toon details voor hond ${dog.id} (${dog.naam}):`);
-        console.log('- vader_id:', dog.vader_id);
-        console.log('- moeder_id:', dog.moeder_id);
-        console.log('- ogenverklaring:', dog.ogenverklaring);
-        console.log('- schildklierverklaring:', dog.schildklierverklaring);
-        
         const html = `
             <div class="p-3">
-                <div class="details-card">
+                <div class="details-card" data-dog-name="${dog.naam || ''}">
                     ${isParentView ? `
                     <div class="details-header">
                         <div class="d-flex justify-content-between align-items-center">
@@ -2732,6 +2735,9 @@ class SearchManager extends BaseModule {
                         cleanData = cleanData.split(',')[1];
                     }
                     photoUrl = `data:${mimeType};base64,${cleanData}`;
+                } else if (photo.thumbnail) {
+                    // Gebruik thumbnail als die er is
+                    photoUrl = photo.thumbnail;
                 } else if (photo.url) {
                     photoUrl = photo.url;
                 } else if (photo.filePath) {
@@ -2741,10 +2747,11 @@ class SearchManager extends BaseModule {
                 if (photoUrl) {
                     photosHTML += `
                         <div class="photo-thumbnail" 
-                             data-photo-id="${photo.id}" 
+                             data-photo-id="${photo.id || index}" 
                              data-dog-id="${dog.id}" 
                              data-photo-index="${index}"
-                             data-photo-src="${photoUrl}">
+                             data-photo-src="${photoUrl}"
+                             data-dog-name="${dog.naam || ''}">
                             <img src="${photoUrl}" 
                                  alt="${dog.naam || ''} - ${photo.filename || ''}" 
                                  class="thumbnail-img"
