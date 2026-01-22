@@ -1,14 +1,12 @@
-/**
+ /**
  * Stamboom Manager Module
- * Beheert 5-generatie stambomen voor honden - COMPLEET GECORRIGEERDE VERSIE
- * Werkt samen met Supabase services via window object
+ * Beheert 5-generatie stambomen voor honden
  */
 
 class StamboomManager extends BaseModule {
     constructor(hondenService, currentLang = 'nl') {
         super();
-        this.hondenService = window.hondenService || hondenService;
-        this.fotoService = window.fotoService;
+        this.hondenService = hondenService;
         this.currentLang = currentLang;
         this.allDogs = [];
         this.coiCalculator = null;
@@ -75,10 +73,7 @@ class StamboomManager extends BaseModule {
                 photos: "Foto's",
                 noPhotos: "Geen foto's beschikbaar",
                 clickToEnlarge: "Klik om te vergroten",
-                closePhoto: "Sluiten",
-                loadFailed: "Fout bij laden: ",
-                waitingData: "Wachten op data...",
-                dataLoaded: "Data geladen"
+                closePhoto: "Sluiten"
             },
             en: {
                 pedigreeTitle: "Pedigree of {name}",
@@ -136,10 +131,7 @@ class StamboomManager extends BaseModule {
                 photos: "Photos",
                 noPhotos: "No photos available",
                 clickToEnlarge: "Click to enlarge",
-                closePhoto: "Close",
-                loadFailed: "Loading failed: ",
-                waitingData: "Waiting for data...",
-                dataLoaded: "Data loaded"
+                closePhoto: "Close"
             },
             de: {
                 pedigreeTitle: "Ahnentafel von {name}",
@@ -197,16 +189,12 @@ class StamboomManager extends BaseModule {
                 photos: "Fotos",
                 noPhotos: "Keine Fotos verfügbar",
                 clickToEnlarge: "Klicken zum Vergrößern",
-                closePhoto: "Schließen",
-                loadFailed: "Fehler beim Laden: ",
-                waitingData: "Warten auf Daten...",
-                dataLoaded: "Daten geladen"
+                closePhoto: "Schließen"
             }
         };
         
         this._eventHandlers = {};
         this._isActive = false;
-        this._isInitialized = false;
         
         this.setupGlobalEventListeners();
     }
@@ -217,24 +205,8 @@ class StamboomManager extends BaseModule {
     
     async initialize() {
         try {
-            if (this._isInitialized) {
-                console.log('StamboomManager is al geïnitialiseerd');
-                return;
-            }
-            
             console.log('StamboomManager: Initialiseren...');
             this.showProgress(this.t('loadingAllDogs').replace('{loaded}', '0'));
-            
-            // Wacht even om te zorgen dat het laadscherm zichtbaar is
-            await new Promise(resolve => setTimeout(resolve, 100));
-            
-            // Controleer of services beschikbaar zijn
-            if (!this.hondenService) {
-                console.error('Honden service niet beschikbaar');
-                this.showError('Honden service niet beschikbaar');
-                this.hideProgress();
-                return;
-            }
             
             // Gebruik paginatie om ALLE honden te laden
             this.allDogs = await this.loadAllDogsWithPagination();
@@ -245,26 +217,79 @@ class StamboomManager extends BaseModule {
                 this.coiCalculator = new COICalculator(this.allDogs);
                 console.log('COI Calculator geïnitialiseerd vanuit extern bestand');
             } else {
-                console.warn('COICalculator klasse niet gevonden, COI berekeningen beperkt');
+                console.error('COICalculator klasse niet gevonden!');
                 this.coiCalculator = null;
             }
             
             this._isActive = true;
-            this._isInitialized = true;
             
-            console.log('StamboomManager: Initialisatie voltooid');
-            this.showSuccess(this.t('dataLoaded'));
-            
-            // Verberg het laadscherm na 500ms zodat de success message zichtbaar is
-            setTimeout(() => {
-                this.hideProgress();
-            }, 500);
+            // DIRECT het laadscherm verbergen
+            console.log('StamboomManager: Initialisatie voltooid, verberg voortgangsindicator...');
+            this.forceHideProgress();
             
         } catch (error) {
             console.error('Fout bij initialiseren StamboomManager:', error);
             this.showError('Kon stamboommanager niet initialiseren: ' + error.message);
-            this.hideProgress();
+            
+            // Zorg dat het laadscherm ook bij fouten wordt verborgen
+            this.forceHideProgress();
         }
+    }
+    
+    // Nieuwe methode om het laadscherm zeker te verbergen
+    forceHideProgress() {
+        console.log('forceHideProgress aangeroepen');
+        
+        // Methode 1: Roep de parent hideProgress aan
+        if (typeof super.hideProgress === 'function') {
+            super.hideProgress();
+            console.log('Parent hideProgress aangeroepen');
+        }
+        
+        // Methode 2: Direct DOM manipulatie om zeker te zijn
+        setTimeout(() => {
+            const progressOverlay = document.querySelector('.progress-overlay, .loading-overlay, .spinner-overlay');
+            const progressModal = document.querySelector('.modal.progress-modal, .loading-modal');
+            const loadingElements = document.querySelectorAll('.spinner-border, .progress, .loading-indicator');
+            
+            console.log('DOM cleanup:');
+            console.log('- Progress overlay gevonden:', !!progressOverlay);
+            console.log('- Progress modal gevonden:', !!progressModal);
+            console.log('- Loading elements gevonden:', loadingElements.length);
+            
+            // Verberg alle mogelijke laadelementen
+            if (progressOverlay) {
+                progressOverlay.style.display = 'none';
+                console.log('Progress overlay verborgen');
+            }
+            
+            if (progressModal) {
+                progressModal.style.display = 'none';
+                console.log('Progress modal verborgen');
+            }
+            
+            loadingElements.forEach(element => {
+                if (element && element.parentNode) {
+                    element.parentNode.style.display = 'none';
+                    console.log('Loading element verborgen');
+                }
+            });
+            
+            // Verberg ook Bootstrap modals die laadschermen kunnen zijn
+            const bootstrapModals = document.querySelectorAll('.modal.show');
+            bootstrapModals.forEach(modal => {
+                if (modal.id.includes('progress') || modal.id.includes('loading') || 
+                    modal.classList.contains('progress') || modal.classList.contains('loading')) {
+                    modal.style.display = 'none';
+                    const backdrop = document.querySelector('.modal-backdrop');
+                    if (backdrop) {
+                        backdrop.remove();
+                    }
+                    console.log('Bootstrap modal verborgen');
+                }
+            });
+            
+        }, 100);
     }
     
     async loadAllDogsWithPagination() {
@@ -309,7 +334,7 @@ class StamboomManager extends BaseModule {
                 }
                 
                 // Kleine pauze om de server niet te overbelasten
-                await new Promise(resolve => setTimeout(resolve, 50));
+                await new Promise(resolve => setTimeout(resolve, 100));
             }
             
             // Sorteer op naam
@@ -331,127 +356,12 @@ class StamboomManager extends BaseModule {
     
     cleanup() {
         this._isActive = false;
-        this._isInitialized = false;
         this.removeGlobalEventListeners();
         
         this.dogPhotosCache.clear();
         this.dogHasPhotosCache.clear();
         this.dogThumbnailsCache.clear();
         this.fullPhotoCache.clear();
-    }
-    
-    setupGlobalEventListeners() {
-        console.log('StamboomManager: Setup globale event listeners');
-        
-        const thumbnailClickHandler = async (e) => {
-            if (!this._isActive) return;
-            
-            const thumbnail = e.target.closest('.photo-thumbnail');
-            if (thumbnail) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                const photoId = thumbnail.getAttribute('data-photo-id');
-                const dogId = thumbnail.getAttribute('data-dog-id');
-                const dogName = thumbnail.getAttribute('data-dog-name') || 'Hond';
-                
-                if (!photoId) {
-                    console.warn('Geen photo-id gevonden');
-                    return;
-                }
-                
-                try {
-                    // Zoek eerst naar een directe img tag in de thumbnail
-                    const imgElement = thumbnail.querySelector('img');
-                    let photoSrc = null;
-                    
-                    if (imgElement && imgElement.src) {
-                        photoSrc = imgElement.src;
-                    }
-                    
-                    // Als er geen img src is, probeer dan via de service
-                    if (!photoSrc && this.fotoService && typeof this.fotoService.getFotoById === 'function') {
-                        const fullPhoto = await this.fotoService.getFotoById(photoId);
-                        if (fullPhoto && fullPhoto.data) {
-                            photoSrc = fullPhoto.data;
-                        }
-                    }
-                    
-                    if (photoSrc) {
-                        this.showLargePhoto(photoSrc, dogName);
-                    } else {
-                        console.error('Kon foto niet laden, geen geldige src gevonden');
-                        this.showError('Kon foto niet laden');
-                    }
-                } catch (error) {
-                    console.error('Fout bij laden volledige foto:', error);
-                    this.showError('Fout bij laden foto: ' + error.message);
-                }
-            }
-        };
-        
-        const photoCloseHandler = (e) => {
-            if (!this._isActive) return;
-            
-            if (e.target.classList.contains('photo-large-close') || 
-                e.target.classList.contains('photo-large-close-btn') ||
-                e.target.closest('.photo-large-close') ||
-                e.target.closest('.photo-large-close-btn')) {
-                const overlay = document.getElementById('photoLargeOverlay');
-                if (overlay) {
-                    overlay.style.display = 'none';
-                    setTimeout(() => {
-                        if (overlay.parentNode) {
-                            overlay.parentNode.removeChild(overlay);
-                        }
-                    }, 300);
-                }
-            }
-            
-            if (e.target.id === 'photoLargeOverlay') {
-                const overlay = e.target;
-                overlay.style.display = 'none';
-                setTimeout(() => {
-                    if (overlay.parentNode) {
-                        overlay.parentNode.removeChild(overlay);
-                    }
-                }, 300);
-            }
-        };
-        
-        const escapeKeyHandler = (e) => {
-            if (!this._isActive) return;
-            
-            if (e.key === 'Escape') {
-                const photoOverlay = document.getElementById('photoLargeOverlay');
-                if (photoOverlay && photoOverlay.style.display !== 'none') {
-                    photoOverlay.style.display = 'none';
-                    setTimeout(() => {
-                        if (photoOverlay.parentNode) {
-                            photoOverlay.parentNode.removeChild(photoOverlay);
-                        }
-                    }, 300);
-                    return;
-                }
-                
-                const popupOverlay = document.getElementById('pedigreePopupOverlay');
-                if (popupOverlay && popupOverlay.style.display !== 'none') {
-                    popupOverlay.style.display = 'none';
-                }
-            }
-        };
-        
-        // Verwijder eerst eventuele bestaande listeners
-        this.removeGlobalEventListeners();
-        
-        // Voeg nieuwe listeners toe
-        document.addEventListener('click', thumbnailClickHandler);
-        document.addEventListener('click', photoCloseHandler);
-        document.addEventListener('keydown', escapeKeyHandler);
-        
-        this._eventHandlers.thumbnailClick = thumbnailClickHandler;
-        this._eventHandlers.photoClose = photoCloseHandler;
-        this._eventHandlers.escapeKey = escapeKeyHandler;
     }
     
     removeGlobalEventListeners() {
@@ -469,33 +379,41 @@ class StamboomManager extends BaseModule {
             document.removeEventListener('keydown', this._eventHandlers.escapeKey);
             delete this._eventHandlers.escapeKey;
         }
+        
+        const overlays = [
+            document.getElementById('pedigreeModal'),
+            document.getElementById('pedigreePopupOverlay'),
+            document.getElementById('photoLargeOverlay')
+        ];
+        
+        overlays.forEach(overlay => {
+            if (overlay && overlay.parentNode) {
+                overlay.parentNode.removeChild(overlay);
+            }
+        });
     }
     
     getDogById(id) {
-        if (!id || id === 0) return null;
         return this.allDogs.find(dog => dog.id === id);
     }
     
     async checkDogHasPhotos(dogId) {
         if (!dogId || dogId === 0) return false;
-        
         const dog = this.getDogById(dogId);
         if (!dog || !dog.stamboomnr) return false;
-        
         const cacheKey = `has_${dogId}_${dog.stamboomnr}`;
         if (this.dogHasPhotosCache.has(cacheKey)) {
             return this.dogHasPhotosCache.get(cacheKey);
         }
-        
         try {
             // Controleer of de functie bestaat in de service
-            if (this.fotoService && typeof this.fotoService.checkFotosExist === 'function') {
-                const hasPhotos = await this.fotoService.checkFotosExist(dog.stamboomnr);
+            if (typeof this.hondenService.checkFotosExist === 'function') {
+                const hasPhotos = await this.hondenService.checkFotosExist(dog.stamboomnr);
                 this.dogHasPhotosCache.set(cacheKey, hasPhotos);
                 return hasPhotos;
             } else {
                 // Als de functie niet bestaat, retourneer false
-                console.warn('checkFotosExist functie niet beschikbaar in fotoService');
+                console.warn('checkFotosExist functie niet beschikbaar in hondenService');
                 this.dogHasPhotosCache.set(cacheKey, false);
                 return false;
             }
@@ -508,30 +426,21 @@ class StamboomManager extends BaseModule {
     
     async getDogThumbnails(dogId, limit = 9) {
         if (!dogId || dogId === 0) return [];
-        
         const dog = this.getDogById(dogId);
         if (!dog || !dog.stamboomnr) return [];
-        
         const cacheKey = `thumbs_${dogId}_${dog.stamboomnr}_${limit}`;
         if (this.dogThumbnailsCache.has(cacheKey)) {
             return this.dogThumbnailsCache.get(cacheKey);
         }
-        
         try {
             // Controleer of de functie bestaat in de service
-            if (this.fotoService && typeof this.fotoService.getFotoThumbnails === 'function') {
-                const thumbnails = await this.fotoService.getFotoThumbnails(dog.stamboomnr, limit);
-                
-                // Filter lege thumbnails eruit
-                const validThumbnails = (thumbnails || []).filter(thumb => 
-                    thumb && thumb.thumbnail && thumb.thumbnail.trim() !== ''
-                );
-                
-                this.dogThumbnailsCache.set(cacheKey, validThumbnails);
-                return validThumbnails;
+            if (typeof this.hondenService.getFotoThumbnails === 'function') {
+                const thumbnails = await this.hondenService.getFotoThumbnails(dog.stamboomnr, limit);
+                this.dogThumbnailsCache.set(cacheKey, thumbnails || []);
+                return thumbnails || [];
             } else {
                 // Als de functie niet bestaat, retourneer lege array
-                console.warn('getFotoThumbnails functie niet beschikbaar in fotoService');
+                console.warn('getFotoThumbnails functie niet beschikbaar in hondenService');
                 this.dogThumbnailsCache.set(cacheKey, []);
                 return [];
             }
@@ -549,15 +458,15 @@ class StamboomManager extends BaseModule {
         }
         try {
             // Controleer of de functie bestaat in de service
-            if (this.fotoService && typeof this.fotoService.getFotoById === 'function') {
-                const foto = await this.fotoService.getFotoById(fotoId);
+            if (typeof this.hondenService.getFotoById === 'function') {
+                const foto = await this.hondenService.getFotoById(fotoId);
                 if (foto) {
                     this.fullPhotoCache.set(cacheKey, foto);
                 }
                 return foto;
             } else {
                 // Als de functie niet bestaat, retourneer null
-                console.warn('getFotoById functie niet beschikbaar in fotoService');
+                console.warn('getFotoById functie niet beschikbaar in hondenService');
                 return null;
             }
         } catch (error) {
@@ -572,14 +481,11 @@ class StamboomManager extends BaseModule {
         const dog = this.getDogById(dogId);
         if (!dog) return { coi6Gen: '0.0', homozygosity6Gen: '0.0', kinship6Gen: '0.0' };
         
-        const vaderId = dog.vader_id || dog.vaderId;
-        const moederId = dog.moeder_id || dog.moederId;
-        
-        if (!vaderId || !moederId) {
+        if (!dog.vaderId || !dog.moederId) {
             return { coi6Gen: '0.0', homozygosity6Gen: '0.0', kinship6Gen: '0.0' };
         }
         
-        if (vaderId === moederId) {
+        if (dog.vaderId === dog.moederId) {
             return { coi6Gen: '25.0', homozygosity6Gen: '25.0', kinship6Gen: '25.0' };
         }
         
@@ -589,8 +495,8 @@ class StamboomManager extends BaseModule {
                 const kinship = this.calculateAverageKinship(dogId, 6);
                 
                 return {
-                    coi6Gen: (result.coi6Gen || '0.0'),
-                    homozygosity6Gen: (result.coiAllGen || '0.0'),
+                    coi6Gen: result.coi6Gen || '0.0',
+                    homozygosity6Gen: result.coiAllGen || '0.0',
                     kinship6Gen: kinship.toFixed(3)
                 };
             } catch (error) {
@@ -606,12 +512,7 @@ class StamboomManager extends BaseModule {
         
         try {
             const dog = this.getDogById(dogId);
-            if (!dog) return 0;
-            
-            const vaderId = dog.vader_id || dog.vaderId;
-            const moederId = dog.moeder_id || dog.moederId;
-            
-            if (!vaderId || !moederId) return 0;
+            if (!dog || !dog.vaderId || !dog.moederId) return 0;
             
             const allAncestors = this.coiCalculator._getAllAncestors(dogId, generations);
             const ancestorIds = Array.from(allAncestors.keys());
@@ -689,20 +590,20 @@ class StamboomManager extends BaseModule {
         pedigreeTree.mainDog = mainDog;
         
         // Ouders - gebruik de juiste veldnamen
-        if (mainDog.vader_id || mainDog.vaderId) {
-            const vaderId = mainDog.vader_id || mainDog.vaderId;
+        if (mainDog.vaderId || mainDog.vader_id) {
+            const vaderId = mainDog.vaderId || mainDog.vader_id;
             pedigreeTree.father = this.getDogById(vaderId);
         }
         
-        if (mainDog.moeder_id || mainDog.moederId) {
-            const moederId = mainDog.moeder_id || mainDog.moederId;
+        if (mainDog.moederId || mainDog.moeder_id) {
+            const moederId = mainDog.moederId || mainDog.moeder_id;
             pedigreeTree.mother = this.getDogById(moederId);
         }
         
         // Grootouders
         if (pedigreeTree.father) {
-            const vaderId = pedigreeTree.father.vader_id || pedigreeTree.father.vaderId;
-            const moederId = pedigreeTree.father.moeder_id || pedigreeTree.father.moederId;
+            const vaderId = pedigreeTree.father.vaderId || pedigreeTree.father.vader_id;
+            const moederId = pedigreeTree.father.moederId || pedigreeTree.father.moeder_id;
             
             if (vaderId) {
                 pedigreeTree.paternalGrandfather = this.getDogById(vaderId);
@@ -714,8 +615,8 @@ class StamboomManager extends BaseModule {
         }
         
         if (pedigreeTree.mother) {
-            const vaderId = pedigreeTree.mother.vader_id || pedigreeTree.mother.vaderId;
-            const moederId = pedigreeTree.mother.moeder_id || pedigreeTree.mother.moederId;
+            const vaderId = pedigreeTree.mother.vaderId || pedigreeTree.mother.vader_id;
+            const moederId = pedigreeTree.mother.moederId || pedigreeTree.mother.moeder_id;
             
             if (vaderId) {
                 pedigreeTree.maternalGrandfather = this.getDogById(vaderId);
@@ -728,8 +629,8 @@ class StamboomManager extends BaseModule {
         
         // Overgrootouders
         if (pedigreeTree.paternalGrandfather) {
-            const vaderId = pedigreeTree.paternalGrandfather.vader_id || pedigreeTree.paternalGrandfather.vaderId;
-            const moederId = pedigreeTree.paternalGrandfather.moeder_id || pedigreeTree.paternalGrandfather.moederId;
+            const vaderId = pedigreeTree.paternalGrandfather.vaderId || pedigreeTree.paternalGrandfather.vader_id;
+            const moederId = pedigreeTree.paternalGrandfather.moederId || pedigreeTree.paternalGrandfather.moeder_id;
             
             if (vaderId) {
                 pedigreeTree.paternalGreatGrandfather1 = this.getDogById(vaderId);
@@ -741,8 +642,8 @@ class StamboomManager extends BaseModule {
         }
         
         if (pedigreeTree.paternalGrandmother) {
-            const vaderId = pedigreeTree.paternalGrandmother.vader_id || pedigreeTree.paternalGrandmother.vaderId;
-            const moederId = pedigreeTree.paternalGrandmother.moeder_id || pedigreeTree.paternalGrandmother.moederId;
+            const vaderId = pedigreeTree.paternalGrandmother.vaderId || pedigreeTree.paternalGrandmother.vader_id;
+            const moederId = pedigreeTree.paternalGrandmother.moederId || pedigreeTree.paternalGrandmother.moeder_id;
             
             if (vaderId) {
                 pedigreeTree.paternalGreatGrandfather2 = this.getDogById(vaderId);
@@ -754,8 +655,8 @@ class StamboomManager extends BaseModule {
         }
         
         if (pedigreeTree.maternalGrandfather) {
-            const vaderId = pedigreeTree.maternalGrandfather.vader_id || pedigreeTree.maternalGrandfather.vaderId;
-            const moederId = pedigreeTree.maternalGrandfather.moeder_id || pedigreeTree.maternalGrandfather.moederId;
+            const vaderId = pedigreeTree.maternalGrandfather.vaderId || pedigreeTree.maternalGrandfather.vader_id;
+            const moederId = pedigreeTree.maternalGrandfather.moederId || pedigreeTree.maternalGrandfather.moeder_id;
             
             if (vaderId) {
                 pedigreeTree.maternalGreatGrandfather1 = this.getDogById(vaderId);
@@ -767,8 +668,8 @@ class StamboomManager extends BaseModule {
         }
         
         if (pedigreeTree.maternalGrandmother) {
-            const vaderId = pedigreeTree.maternalGrandmother.vader_id || pedigreeTree.maternalGrandmother.vaderId;
-            const moederId = pedigreeTree.maternalGrandmother.moeder_id || pedigreeTree.maternalGrandmother.moederId;
+            const vaderId = pedigreeTree.maternalGrandmother.vaderId || pedigreeTree.maternalGrandmother.vader_id;
+            const moederId = pedigreeTree.maternalGrandmother.moederId || pedigreeTree.maternalGrandmother.moeder_id;
             
             if (vaderId) {
                 pedigreeTree.maternalGreatGrandfather2 = this.getDogById(vaderId);
@@ -781,8 +682,8 @@ class StamboomManager extends BaseModule {
         
         // Overovergrootouders
         if (pedigreeTree.paternalGreatGrandfather1) {
-            const vaderId = pedigreeTree.paternalGreatGrandfather1.vader_id || pedigreeTree.paternalGreatGrandfather1.vaderId;
-            const moederId = pedigreeTree.paternalGreatGrandfather1.moeder_id || pedigreeTree.paternalGreatGrandfather1.moederId;
+            const vaderId = pedigreeTree.paternalGreatGrandfather1.vaderId || pedigreeTree.paternalGreatGrandfather1.vader_id;
+            const moederId = pedigreeTree.paternalGreatGrandfather1.moederId || pedigreeTree.paternalGreatGrandfather1.moeder_id;
             
             if (vaderId) {
                 pedigreeTree.paternalGreatGreatGrandfather1 = this.getDogById(vaderId);
@@ -794,8 +695,8 @@ class StamboomManager extends BaseModule {
         }
         
         if (pedigreeTree.paternalGreatGrandmother1) {
-            const vaderId = pedigreeTree.paternalGreatGrandmother1.vader_id || pedigreeTree.paternalGreatGrandmother1.vaderId;
-            const moederId = pedigreeTree.paternalGreatGrandmother1.moeder_id || pedigreeTree.paternalGreatGrandmother1.moederId;
+            const vaderId = pedigreeTree.paternalGreatGrandmother1.vaderId || pedigreeTree.paternalGreatGrandmother1.vader_id;
+            const moederId = pedigreeTree.paternalGreatGrandmother1.moederId || pedigreeTree.paternalGreatGrandmother1.moeder_id;
             
             if (vaderId) {
                 pedigreeTree.paternalGreatGreatGrandfather2 = this.getDogById(vaderId);
@@ -807,8 +708,8 @@ class StamboomManager extends BaseModule {
         }
         
         if (pedigreeTree.paternalGreatGrandfather2) {
-            const vaderId = pedigreeTree.paternalGreatGrandfather2.vader_id || pedigreeTree.paternalGreatGrandfather2.vaderId;
-            const moederId = pedigreeTree.paternalGreatGrandfather2.moeder_id || pedigreeTree.paternalGreatGrandfather2.moederId;
+            const vaderId = pedigreeTree.paternalGreatGrandfather2.vaderId || pedigreeTree.paternalGreatGrandfather2.vader_id;
+            const moederId = pedigreeTree.paternalGreatGrandfather2.moederId || pedigreeTree.paternalGreatGrandfather2.moeder_id;
             
             if (vaderId) {
                 pedigreeTree.paternalGreatGreatGrandfather3 = this.getDogById(vaderId);
@@ -820,8 +721,8 @@ class StamboomManager extends BaseModule {
         }
         
         if (pedigreeTree.paternalGreatGrandmother2) {
-            const vaderId = pedigreeTree.paternalGreatGrandmother2.vader_id || pedigreeTree.paternalGreatGrandmother2.vaderId;
-            const moederId = pedigreeTree.paternalGreatGrandmother2.moeder_id || pedigreeTree.paternalGreatGrandmother2.moederId;
+            const vaderId = pedigreeTree.paternalGreatGrandmother2.vaderId || pedigreeTree.paternalGreatGrandmother2.vader_id;
+            const moederId = pedigreeTree.paternalGreatGrandmother2.moederId || pedigreeTree.paternalGreatGrandmother2.moeder_id;
             
             if (vaderId) {
                 pedigreeTree.paternalGreatGreatGrandfather4 = this.getDogById(vaderId);
@@ -833,8 +734,8 @@ class StamboomManager extends BaseModule {
         }
         
         if (pedigreeTree.maternalGreatGrandfather1) {
-            const vaderId = pedigreeTree.maternalGreatGrandfather1.vader_id || pedigreeTree.maternalGreatGrandfather1.vaderId;
-            const moederId = pedigreeTree.maternalGreatGrandfather1.moeder_id || pedigreeTree.maternalGreatGrandfather1.moederId;
+            const vaderId = pedigreeTree.maternalGreatGrandfather1.vaderId || pedigreeTree.maternalGreatGrandfather1.vader_id;
+            const moederId = pedigreeTree.maternalGreatGrandfather1.moederId || pedigreeTree.maternalGreatGrandfather1.moeder_id;
             
             if (vaderId) {
                 pedigreeTree.maternalGreatGreatGrandfather1 = this.getDogById(vaderId);
@@ -846,8 +747,8 @@ class StamboomManager extends BaseModule {
         }
         
         if (pedigreeTree.maternalGreatGrandmother1) {
-            const vaderId = pedigreeTree.maternalGreatGrandmother1.vader_id || pedigreeTree.maternalGreatGrandmother1.vaderId;
-            const moederId = pedigreeTree.maternalGreatGrandmother1.moeder_id || pedigreeTree.maternalGreatGrandmother1.moederId;
+            const vaderId = pedigreeTree.maternalGreatGrandmother1.vaderId || pedigreeTree.maternalGreatGrandmother1.vader_id;
+            const moederId = pedigreeTree.maternalGreatGrandmother1.moederId || pedigreeTree.maternalGreatGrandmother1.moeder_id;
             
             if (vaderId) {
                 pedigreeTree.maternalGreatGreatGrandfather2 = this.getDogById(vaderId);
@@ -859,8 +760,8 @@ class StamboomManager extends BaseModule {
         }
         
         if (pedigreeTree.maternalGreatGrandfather2) {
-            const vaderId = pedigreeTree.maternalGreatGrandfather2.vader_id || pedigreeTree.maternalGreatGrandfather2.vaderId;
-            const moederId = pedigreeTree.maternalGreatGrandfather2.moeder_id || pedigreeTree.maternalGreatGrandfather2.moederId;
+            const vaderId = pedigreeTree.maternalGreatGrandfather2.vaderId || pedigreeTree.maternalGreatGrandfather2.vader_id;
+            const moederId = pedigreeTree.maternalGreatGrandfather2.moederId || pedigreeTree.maternalGreatGrandfather2.moeder_id;
             
             if (vaderId) {
                 pedigreeTree.maternalGreatGreatGrandfather3 = this.getDogById(vaderId);
@@ -872,8 +773,8 @@ class StamboomManager extends BaseModule {
         }
         
         if (pedigreeTree.maternalGreatGrandmother2) {
-            const vaderId = pedigreeTree.maternalGreatGrandmother2.vader_id || pedigreeTree.maternalGreatGrandmother2.vaderId;
-            const moederId = pedigreeTree.maternalGreatGrandmother2.moeder_id || pedigreeTree.maternalGreatGrandmother2.moederId;
+            const vaderId = pedigreeTree.maternalGreatGrandmother2.vaderId || pedigreeTree.maternalGreatGrandmother2.vader_id;
+            const moederId = pedigreeTree.maternalGreatGrandmother2.moederId || pedigreeTree.maternalGreatGrandmother2.moeder_id;
             
             if (vaderId) {
                 pedigreeTree.maternalGreatGreatGrandfather4 = this.getDogById(vaderId);
@@ -1023,6 +924,7 @@ class StamboomManager extends BaseModule {
         `;
     }
     
+    // NAAST ELKAAR - DRIE WAARDES IN ÉÉN RIJ
     async getDogDetailPopupHTML(dog, relation = '') {
         if (!dog) return '';
         
@@ -1039,36 +941,6 @@ class StamboomManager extends BaseModule {
         const kennelSuffix = showKennel ? ` ${dog.kennelnaam}` : '';
         const headerText = combinedName + kennelSuffix;
         
-        let photosHTML = '';
-        if (thumbnails.length > 0) {
-            photosHTML = `
-                <div class="info-section mb-3">
-                    <h6><i class="bi bi-camera me-1"></i> ${this.t('photos')} (${thumbnails.length})</h6>
-                    <div class="photos-grid" id="photosGrid${dog.id}">
-                        ${thumbnails.map((thumb, index) => `
-                            <div class="photo-thumbnail" 
-                                 data-photo-id="${thumb.id}" 
-                                 data-dog-id="${dog.id}" 
-                                 data-dog-name="${dog.naam || ''}"
-                                 data-photo-index="${index}"
-                                 data-is-thumbnail="true">
-                                <img src="${thumb.thumbnail || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNlZWVlZWUiLz48cGF0aCBkPSJNMzUgNDBDMzUgMzUuNTgyIDM4LjU4MiAzMiA0MyAzMkM0Ny40MTggMzIgNTEgMzUuNTgyIDUxIDQwQzUxIDQ0LjQxOCA0Ny40MTggNDggNDMgNDhDMzguNTgyIDQ4IDM1IDQ0LjQxOCAzNSA0MFpNNzUgMTBDNzUgNS41ODIgNzguNTgyIDIgODMgMkM4Ny40MTggMiA5MSA1LjU4MiA5MSAxMEM5MSAxNC40MTggODcuNDE4IDE4IDgzIDE4Qzc4LjU4MiAxOCA3NSAxNC40MTggNzUgMTBaTTE2IDg0TDQwIDYwTDYwIDgwTDg0IDU2TDg0IDg0SDE2WiIgZmlsbD0iIzk5OTk5OSIvPjwvc3ZnPg=='}" 
-                                     alt="${dog.naam || ''} - ${thumb.filename || ''}" 
-                                     class="thumbnail-img"
-                                     loading="lazy">
-                                <div class="photo-hover">
-                                    <i class="bi bi-zoom-in"></i>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <div class="photo-hint">
-                        <small class="text-muted"><i class="bi bi-info-circle me-1"></i> ${this.t('clickToEnlarge')}</small>
-                    </div>
-                </div>
-            `;
-        }
-        
         return `
             <div class="dog-detail-popup">
                 <div class="popup-header">
@@ -1079,7 +951,31 @@ class StamboomManager extends BaseModule {
                     <button type="button" class="btn-close btn-close-white" aria-label="Sluiten"></button>
                 </div>
                 <div class="popup-body">
-                    ${photosHTML}
+                    ${thumbnails.length > 0 ? `
+                    <div class="info-section mb-3">
+                        <h6><i class="bi bi-camera me-1"></i> ${this.t('photos')} (${thumbnails.length})</h6>
+                        <div class="photos-grid" id="photosGrid${dog.id}">
+                            ${thumbnails.map((thumb, index) => `
+                                <div class="photo-thumbnail" 
+                                     data-photo-id="${thumb.id}" 
+                                     data-dog-id="${dog.id}" 
+                                     data-photo-index="${index}"
+                                     data-is-thumbnail="true">
+                                    <img src="${thumb.thumbnail}" 
+                                         alt="${dog.naam || ''} - ${thumb.filename || ''}" 
+                                         class="thumbnail-img"
+                                         loading="lazy">
+                                    <div class="photo-hover">
+                                        <i class="bi bi-zoom-in"></i>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="photo-hint">
+                            <small class="text-muted"><i class="bi bi-info-circle me-1"></i> ${this.t('clickToEnlarge')}</small>
+                        </div>
+                    </div>
+                    ` : ''}
                     
                     <div class="info-section mb-2">
                         <h6><i class="bi bi-card-text me-1"></i> Basisgegevens</h6>
@@ -1178,7 +1074,7 @@ class StamboomManager extends BaseModule {
                         <div class="info-grid">
                             ${dog.heupdysplasie ? `
                             <div class="info-row">
-                                <div class="info-item info-item-full">
+                                <div class="info-item info-item-full {
                                     <span class="info-label">${this.t('hipDysplasia')}:</span>
                                     <span class="info-value">${this.getHealthBadge(dog.heupdysplasie, 'hip')}</span>
                                 </div>
@@ -1187,7 +1083,7 @@ class StamboomManager extends BaseModule {
                             
                             ${dog.elleboogdysplasie ? `
                             <div class="info-row">
-                                <div class="info-item info-item-full">
+                                <div class="info-item info-item-full {
                                     <span class="info-label">${this.t('elbowDysplasia')}:</span>
                                     <span class="info-value">${this.getHealthBadge(dog.elleboogdysplasie, 'elbow')}</span>
                                 </div>
@@ -1196,7 +1092,7 @@ class StamboomManager extends BaseModule {
                             
                             ${dog.patella ? `
                             <div class="info-row">
-                                <div class="info-item info-item-full">
+                                <div class="info-item info-item-full {
                                     <span class="info-label">${this.t('patellaLuxation')}:</span>
                                     <span class="info-value">${this.getHealthBadge(dog.patella, 'patella')}</span>
                                 </div>
@@ -1205,18 +1101,18 @@ class StamboomManager extends BaseModule {
                             
                             ${dog.ogen ? `
                             <div class="info-row">
-                                <div class="info-item info-item-full">
+                                <div class="info-item info-item-full {
                                     <span class="info-label">${this.t('eyes')}:</span>
                                     <span class="info-value">${this.getHealthBadge(dog.ogen, 'eyes')}</span>
                                 </div>
                             </div>
                             ` : ''}
                             
-                            ${dog.ogenverklaring ? `
+                            ${dog.ogenVerklaring ? `
                             <div class="info-row">
                                 <div class="info-item info-item-full {
                                     <span class="info-label">${this.t('eyesExplanation')}:</span>
-                                    <span class="info-value">${dog.ogenverklaring}</span>
+                                    <span class="info-value">${dog.ogenVerklaring}</span>
                                 </div>
                             </div>
                             ` : ''}
@@ -1239,11 +1135,11 @@ class StamboomManager extends BaseModule {
                             </div>
                             ` : ''}
                             
-                            ${dog.schildklierverklaring ? `
+                            ${dog.schildklierVerklaring ? `
                             <div class="info-row">
                                 <div class="info-item info-item-full {
                                     <span class="info-label">${this.t('thyroidExplanation')}:</span>
-                                    <span class="info-value">${dog.schildklierverklaring}</span>
+                                    <span class="info-value">${dog.schildklierVerklaring}</span>
                                 </div>
                             </div>
                             ` : ''}
@@ -1273,29 +1169,121 @@ class StamboomManager extends BaseModule {
         `;
     }
     
+    setupGlobalEventListeners() {
+        const thumbnailClickHandler = async (e) => {
+            if (!this._isActive) return;
+            
+            const thumbnail = e.target.closest('.photo-thumbnail');
+            if (thumbnail) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const photoId = thumbnail.getAttribute('data-photo-id');
+                const isThumbnail = thumbnail.getAttribute('data-is-thumbnail') === 'true';
+                
+                if (!photoId) return;
+                
+                try {
+                    const fullPhoto = await this.getFullSizeFoto(photoId);
+                    
+                    if (fullPhoto && fullPhoto.data) {
+                        const popupTitle = document.querySelector('.popup-title');
+                        let dogName = '';
+                        if (popupTitle) {
+                            dogName = popupTitle.textContent.trim();
+                            dogName = dogName.replace(/^[^a-zA-Z]*/, '').trim();
+                        }
+                        
+                        this.showLargePhoto(fullPhoto.data, dogName);
+                    } else {
+                        console.error('Kon volledige foto niet laden:', photoId);
+                        const imgElement = thumbnail.querySelector('img');
+                        if (imgElement && imgElement.src) {
+                            this.showLargePhoto(imgElement.src, dogName);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Fout bij laden volledige foto:', error);
+                }
+            }
+        };
+        
+        const photoCloseHandler = (e) => {
+            if (!this._isActive) return;
+            
+            if (e.target.classList.contains('photo-large-close') || 
+                e.target.classList.contains('photo-large-close-btn') ||
+                e.target.closest('.photo-large-close') ||
+                e.target.closest('.photo-large-close-btn')) {
+                const overlay = document.getElementById('photoLargeOverlay');
+                if (overlay) {
+                    overlay.style.display = 'none';
+                    setTimeout(() => {
+                        if (overlay.parentNode) {
+                            overlay.parentNode.removeChild(overlay);
+                        }
+                    }, 300);
+                }
+            }
+            
+            if (e.target.id === 'photoLargeOverlay') {
+                const overlay = e.target;
+                overlay.style.display = 'none';
+                setTimeout(() => {
+                    if (overlay.parentNode) {
+                        overlay.parentNode.removeChild(overlay);
+                    }
+                }, 300);
+            }
+        };
+        
+        const escapeKeyHandler = (e) => {
+            if (!this._isActive) return;
+            
+            if (e.key === 'Escape') {
+                const photoOverlay = document.getElementById('photoLargeOverlay');
+                if (photoOverlay && photoOverlay.style.display !== 'none') {
+                    photoOverlay.style.display = 'none';
+                    setTimeout(() => {
+                        if (photoOverlay.parentNode) {
+                            photoOverlay.parentNode.removeChild(photoOverlay);
+                        }
+                    }, 300);
+                    return;
+                }
+                
+                const popupOverlay = document.getElementById('pedigreePopupOverlay');
+                if (popupOverlay && popupOverlay.style.display !== 'none') {
+                    popupOverlay.style.display = 'none';
+                }
+            }
+        };
+        
+        document.addEventListener('click', thumbnailClickHandler);
+        document.addEventListener('click', photoCloseHandler);
+        document.addEventListener('keydown', escapeKeyHandler);
+        
+        this._eventHandlers.thumbnailClick = thumbnailClickHandler;
+        this._eventHandlers.photoClose = photoCloseHandler;
+        this._eventHandlers.escapeKey = escapeKeyHandler;
+    }
+    
     showLargePhoto(photoData, dogName = '') {
         if (!this._isActive) return;
         
-        // Verwijder bestaande overlay
         const existingOverlay = document.getElementById('photoLargeOverlay');
         if (existingOverlay) {
             existingOverlay.remove();
-        }
-        
-        // Maak een placeholder als photoData niet geldig is
-        let actualPhotoData = photoData;
-        if (!photoData || photoData === 'null' || photoData === 'undefined') {
-            actualPhotoData = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAwIiBoZWlnaHQ9IjUwMCIgdmlld0JveD0iMCAwIDUwMCA1MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjUwMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiNlZWVlZWUiLz48cGF0aCBkPSJNMjAwIDIwMEMyMDAgMTY1LjkyNSAyMjYuOTI1IDE0OSAyNjUgMTQ5QzMwMy4wNzUgMTQ5IDMzMCAxNjUuOTI1IDMzMCAyMDBDMzMwIDIzNC4wNzUgMzAzLjA3NSAyNTEgMjY1IDI1MUMyMjYuOTI1IDI1MSAyMDAgMjM0LjA3NSAyMDAgMjAwWk00MjAgMTAwQzQyMCA2NS45MjUgNDQ2LjkyNSA0OSA0ODUgNDlDNTIzLjA3NSA0OSA1NTAgNjUuOTI1IDU1MCAxMDBDNTUwIDEzNC4wNzUgNTIzLjA3NSAxNTEgNDg1IDE1MUM0NDYuOTI1IDE1MSA0MjAgMTM0LjA3NSA0MjAgMTAwWk0xMDAgNDQwTDIwMCAzMDVMMzAwIDQwNUw0MjAgMjgxTDQyMCA0NDBIMTAwWiIgZmlsbD0iIzk5OTk5OSIvPjx0ZXh0IHg9IjI1MCIgeT0iNDIwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NjY2NjYiPkdlZW4gZm90byBiZXNjaWtiYWFyPC90ZXh0Pjwvc3ZnPg==';
         }
         
         const overlayHTML = `
             <div class="photo-large-overlay" id="photoLargeOverlay" style="display: flex;">
                 <div class="photo-large-container" id="photoLargeContainer">
                     <div class="photo-large-header">
-                        <button type="button" class="btn-close btn-close-white photo-large-close" aria-label="Sluiten"></button>
+                        <button type="button" class="btn-close btn-close-white photo-large-close"></button>
                     </div>
                     <div class="photo-large-content">
-                        <img src="${actualPhotoData}" 
+                        <img src="${photoData}" 
                              alt="${dogName || 'Foto'}" 
                              class="photo-large-img"
                              id="photoLargeImg"
@@ -1312,138 +1300,62 @@ class StamboomManager extends BaseModule {
         
         document.body.insertAdjacentHTML('beforeend', overlayHTML);
         
-        // Voeg event listener toe voor sluiten
         const overlay = document.getElementById('photoLargeOverlay');
-        const closeBtn = overlay.querySelector('.photo-large-close');
-        const closeBtn2 = overlay.querySelector('.photo-large-close-btn');
-        
-        if (closeBtn) {
-            closeBtn.addEventListener('click', () => {
-                overlay.style.display = 'none';
-                setTimeout(() => {
-                    if (overlay.parentNode) {
-                        overlay.parentNode.removeChild(overlay);
-                    }
-                }, 300);
+        if (overlay) {
+            overlay.addEventListener('animationend', function handler() {
+                if (overlay.style.display === 'none') {
+                    overlay.removeEventListener('animationend', handler);
+                }
             });
         }
-        
-        if (closeBtn2) {
-            closeBtn2.addEventListener('click', () => {
-                overlay.style.display = 'none';
-                setTimeout(() => {
-                    if (overlay.parentNode) {
-                        overlay.parentNode.removeChild(overlay);
-                    }
-                }, 300);
-            });
-        }
-        
-        // Sluit bij klik op overlay achtergrond
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) {
-                overlay.style.display = 'none';
-                setTimeout(() => {
-                    if (overlay.parentNode) {
-                        overlay.parentNode.removeChild(overlay);
-                    }
-                }, 300);
-            }
-        });
-        
-        // Sluit met Escape key
-        const escapeHandler = (e) => {
-            if (e.key === 'Escape') {
-                overlay.style.display = 'none';
-                setTimeout(() => {
-                    if (overlay.parentNode) {
-                        overlay.parentNode.removeChild(overlay);
-                    }
-                }, 300);
-                document.removeEventListener('keydown', escapeHandler);
-            }
-        };
-        document.addEventListener('keydown', escapeHandler);
     }
     
     async showPedigree(dog) {
-        if (!this._isActive || !this._isInitialized) {
-            console.warn('StamboomManager niet geïnitialiseerd, initialiseer eerst');
-            this.showError('Stamboom manager niet geladen. Probeer het opnieuw.');
+        if (!this._isActive) return;
+        
+        // Verberg eerst eventuele voortgangsindicatoren die nog zichtbaar zijn
+        this.forceHideProgress();
+        
+        if (!document.getElementById('pedigreeModal')) {
+            this.createPedigreeModal();
+        }
+        
+        const pedigreeTree = this.buildPedigreeTree(dog.id);
+        if (!pedigreeTree) {
+            this.showError("Kon stamboom niet genereren");
             return;
         }
         
-        if (!dog || !dog.id) {
-            console.error('Geen geldige hond om stamboom te tonen');
-            this.showError('Geen geldige hond geselecteerd');
-            return;
-        }
+        const title = this.t('pedigreeTitle').replace('{name}', dog.naam || this.t('unknown'));
+        document.getElementById('pedigreeModalLabel').textContent = title;
         
-        console.log('Toon stamboom voor hond:', dog.naam, 'ID:', dog.id);
+        await this.renderCompactPedigree(pedigreeTree);
         
-        // Toon laadscherm
-        this.showProgress(this.t('generatingPedigree'));
+        const modal = new bootstrap.Modal(document.getElementById('pedigreeModal'));
+        modal.show();
         
-        try {
-            // Maak modal aan als deze nog niet bestaat
-            if (!document.getElementById('pedigreeModal')) {
-                this.createPedigreeModal();
-            }
-            
-            const pedigreeTree = this.buildPedigreeTree(dog.id);
-            if (!pedigreeTree) {
-                this.showError("Kon stamboom niet genereren");
-                this.hideProgress();
-                return;
-            }
-            
-            const title = this.t('pedigreeTitle').replace('{name}', dog.naam || this.t('unknown'));
-            document.getElementById('pedigreeModalLabel').textContent = title;
-            
-            await this.renderCompactPedigree(pedigreeTree);
-            
-            // Verberg laadscherm
-            this.hideProgress();
-            
-            // Toon modal
-            const modalElement = document.getElementById('pedigreeModal');
-            if (modalElement) {
-                const modal = new bootstrap.Modal(modalElement);
-                modal.show();
+        const modalElement = document.getElementById('pedigreeModal');
+        if (modalElement) {
+            modalElement.addEventListener('hidden.bs.modal', () => {
+                const popupOverlay = document.getElementById('pedigreePopupOverlay');
+                if (popupOverlay) {
+                    popupOverlay.style.display = 'none';
+                }
                 
-                // Cleanup bij sluiten modal
-                modalElement.addEventListener('hidden.bs.modal', () => {
-                    const popupOverlay = document.getElementById('pedigreePopupOverlay');
-                    if (popupOverlay) {
-                        popupOverlay.style.display = 'none';
-                    }
-                    
-                    const photoOverlay = document.getElementById('photoLargeOverlay');
-                    if (photoOverlay) {
-                        photoOverlay.style.display = 'none';
-                        setTimeout(() => {
-                            if (photoOverlay.parentNode) {
-                                photoOverlay.parentNode.removeChild(photoOverlay);
-                            }
-                        }, 300);
-                    }
-                });
-            }
-            
-        } catch (error) {
-            console.error('Fout bij tonen stamboom:', error);
-            this.showError('Fout bij genereren stamboom: ' + error.message);
-            this.hideProgress();
+                const photoOverlay = document.getElementById('photoLargeOverlay');
+                if (photoOverlay) {
+                    photoOverlay.style.display = 'none';
+                    setTimeout(() => {
+                        if (photoOverlay.parentNode) {
+                            photoOverlay.parentNode.removeChild(photoOverlay);
+                        }
+                    }, 300);
+                }
+            });
         }
     }
     
     createPedigreeModal() {
-        // Verwijder bestaande modal als die er is
-        const existingModal = document.getElementById('pedigreeModal');
-        if (existingModal) {
-            existingModal.remove();
-        }
-        
         const modalHTML = `
             <div class="modal fade" id="pedigreeModal" tabindex="-1" aria-labelledby="pedigreeModalLabel" aria-hidden="true">
                 <div class="modal-dialog modal-fullscreen">
@@ -1479,6 +1391,1291 @@ class StamboomManager extends BaseModule {
                 <div class="pedigree-popup-container" id="pedigreePopupContainer">
                 </div>
             </div>
+            
+            <style>
+                /* DRIE WAARDES NAAST ELKAAR */
+                .three-values-row {
+                    display: flex !important;
+                    flex-direction: row !important;
+                    justify-content: space-between !important;
+                    align-items: stretch !important;
+                    gap: 8px !important;
+                    margin: 10px 0 !important;
+                    width: 100% !important;
+                }
+                
+                .value-box {
+                    flex: 1 !important;
+                    display: flex !important;
+                    flex-direction: column !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    text-align: center !important;
+                    padding: 8px 4px !important;
+                    background: #f8f9fa !important;
+                    border-radius: 6px !important;
+                    border: 1px solid #dee2e6 !important;
+                    min-height: 60px !important;
+                    min-width: 0 !important;
+                }
+                
+                .value-label {
+                    font-size: 0.68rem !important;
+                    font-weight: 600 !important;
+                    color: #495057 !important;
+                    margin-bottom: 4px !important;
+                    line-height: 1.2 !important;
+                    white-space: normal !important;
+                    word-break: break-word !important;
+                    overflow-wrap: break-word !important;
+                    hyphens: auto !important;
+                    width: 100% !important;
+                    display: block !important;
+                }
+                
+                .value-number {
+                    font-size: 0.85rem !important;
+                    font-weight: bold !important;
+                    line-height: 1.2 !important;
+                    color: #212529 !important;
+                }
+                
+                .coi-value {
+                    font-weight: bold !important;
+                }
+                
+                /* Rest van de CSS blijft hetzelfde */
+                .pedigree-mobile-wrapper {
+                    width: 100%;
+                    display: flex;
+                    flex-direction: column;
+                    background: #f8f9fa;
+                    position: relative;
+                    border-radius: 12px;
+                }
+                
+                .pedigree-container-compact {
+                    padding: 15px !important;
+                    margin: 0 !important;
+                    width: 100% !important;
+                    background: #f8f9fa;
+                    overflow-x: auto !important;
+                    overflow-y: auto !important;
+                    position: relative;
+                    min-height: 0 !important;
+                    box-sizing: border-box !important;
+                    border-radius: inherit;
+                }
+                
+                .pedigree-grid-compact {
+                    display: flex;
+                    flex-direction: row;
+                    height: auto;
+                    min-width: fit-content;
+                    padding: 10px 15px !important;
+                    gap: 20px;
+                    align-items: flex-start;
+                    box-sizing: border-box !important;
+                    margin: 0 auto;
+                }
+                
+                .pedigree-generation-col {
+                    display: flex;
+                    flex-direction: column;
+                    height: auto;
+                    justify-content: flex-start;
+                    min-width: 0;
+                }
+                
+                .pedigree-generation-col.gen0,
+                .pedigree-generation-col.gen1,
+                .pedigree-generation-col.gen2,
+                .pedigree-generation-col.gen3,
+                .pedigree-generation-col.gen4 {
+                    gap: 4px !important;
+                }
+                
+                .pedigree-card-compact.horizontal {
+                    background: white;
+                    border-radius: 6px;
+                    border: 1px solid #dee2e6;
+                    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    display: flex;
+                    flex-direction: column;
+                    overflow: hidden;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    flex-shrink: 0;
+                }
+                
+                .pedigree-card-compact.horizontal.gen0,
+                .pedigree-card-compact.horizontal.gen1,
+                .pedigree-card-compact.horizontal.gen2 {
+                    width: 160px !important;
+                    height: 140px !important;
+                }
+                
+                .pedigree-card-compact.horizontal.gen3 {
+                    width: 160px !important;
+                    height: 70px !important;
+                }
+                
+                .pedigree-card-compact.horizontal.gen4 {
+                    width: 160px !important;
+                    height: 35px !important;
+                }
+                
+                .pedigree-card-compact.horizontal.main-dog-compact {
+                    border: 2px solid #0d6efd !important;
+                    background: #f0f7ff;
+                    width: 170px !important;
+                    height: 140px !important;
+                }
+                
+                .pedigree-card-compact.horizontal.male {
+                    border-left: 4px solid #0d6efd !important;
+                }
+                
+                .pedigree-card-compact.horizontal.female {
+                    border-left: 4px solid #dc3545 !important;
+                }
+                
+                .pedigree-card-compact.horizontal:hover {
+                    box-shadow: 0 2px 5px rgba(0,0,0,0.12);
+                    transform: translateY(-1px);
+                    z-index: 1;
+                    position: relative;
+                }
+                
+                .pedigree-card-compact.horizontal.empty {
+                    background: #f8f9fa;
+                    cursor: default;
+                    opacity: 0.6;
+                }
+                
+                .pedigree-card-compact.horizontal.empty:hover {
+                    transform: none !important;
+                    box-shadow: 0 1px 2px rgba(0,0,0,0.08) !important;
+                }
+                
+                .pedigree-card-header-compact.horizontal {
+                    color: white;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    overflow: hidden;
+                    flex-shrink: 0;
+                }
+                
+                .pedigree-card-compact.horizontal.gen0 .pedigree-card-header-compact.horizontal,
+                .pedigree-card-compact.horizontal.gen1 .pedigree-card-header-compact.horizontal,
+                .pedigree-card-compact.horizontal.gen2 .pedigree-card-header-compact.horizontal {
+                    padding: 5px 8px;
+                    font-size: 0.7rem;
+                    min-height: 22px;
+                }
+                
+                .pedigree-card-compact.horizontal.gen3 .pedigree-card-header-compact.horizontal {
+                    padding: 3px 6px;
+                    font-size: 0.56rem;
+                    min-height: 16px;
+                }
+                
+                .pedigree-card-compact.horizontal.gen4 .pedigree-card-header-compact.horizontal {
+                    padding: 1px 4px;
+                    font-size: 0.45rem;
+                    min-height: 12px;
+                }
+                
+                .pedigree-card-header-compact.horizontal.bg-primary {
+                    background: #0d6efd !important;
+                }
+                
+                .pedigree-card-header-compact.horizontal.bg-secondary {
+                    background: #6c757d !important;
+                }
+                
+                .relation-compact {
+                    display: flex;
+                    align-items: center;
+                    gap: 3px;
+                    font-weight: 600;
+                    overflow: hidden;
+                    flex: 1;
+                }
+                
+                .relation-text {
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+                
+                .main-dot {
+                    color: #ffc107;
+                    font-size: 0.7rem;
+                    flex-shrink: 0;
+                }
+                
+                .gender-icon-compact {
+                    flex-shrink: 0;
+                    margin-left: 4px;
+                }
+                
+                .pedigree-card-body-compact.horizontal {
+                    display: flex;
+                    flex-direction: column;
+                    overflow: hidden;
+                    flex: 1;
+                }
+                
+                .pedigree-card-compact.horizontal.gen0 .pedigree-card-body-compact.horizontal,
+                .pedigree-card-compact.horizontal.gen1 .pedigree-card-body-compact.horizontal,
+                .pedigree-card-compact.horizontal.gen2 .pedigree-card-body-compact.horizontal {
+                    padding: 6px 8px;
+                }
+                
+                .pedigree-card-compact.horizontal.gen3 .pedigree-card-body-compact.horizontal {
+                    padding: 4px 6px;
+                }
+                
+                .pedigree-card-compact.horizontal.gen4 .pedigree-card-body-compact.horizontal {
+                    padding: 2px 4px;
+                }
+                
+                .card-row {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    gap: 4px;
+                    overflow: hidden;
+                }
+                
+                .card-row-1-only {
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    height: 100% !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                }
+                
+                .dog-name-kennel-only {
+                    font-weight: 600;
+                    color: #0d6efd;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    line-height: 1;
+                    width: 100%;
+                    font-size: 0.5rem;
+                    text-align: center;
+                }
+                
+                .card-row-1 {
+                    margin-bottom: 2px;
+                }
+                
+                .card-row-2 {
+                    margin-bottom: 2px;
+                }
+                
+                .card-row-3 {
+                    margin-top: auto;
+                }
+                
+                .dog-name-kennel-compact {
+                    font-weight: 600;
+                    color: #0d6efd;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    line-height: 1.1;
+                    width: 100%;
+                }
+                
+                .pedigree-card-compact.horizontal.gen0 .dog-name-kennel-compact,
+                .pedigree-card-compact.horizontal.gen1 .dog-name-kennel-compact,
+                .pedigree-card-compact.horizontal.gen2 .dog-name-kennel-compact {
+                    font-size: 0.75rem;
+                }
+                
+                .pedigree-card-compact.horizontal.gen0 .dog-pedigree-compact,
+                .pedigree-card-compact.horizontal.gen1 .dog-pedigree-compact,
+                .pedigree-card-compact.horizontal.gen2 .dog-pedigree-compact,
+                .pedigree-card-compact.horizontal.gen0 .dog-breed-compact,
+                .pedigree-card-compact.horizontal.gen1 .dog-breed-compact,
+                .pedigree-card-compact.horizontal.gen2 .dog-breed-compact {
+                    font-size: 0.65rem;
+                }
+                
+                .pedigree-card-compact.horizontal.gen0 .click-hint-compact,
+                .pedigree-card-compact.horizontal.gen1 .click-hint-compact,
+                .pedigree-card-compact.horizontal.gen2 .click-hint-compact {
+                    font-size: 0.55rem;
+                }
+                
+                .pedigree-card-compact.horizontal.gen3 .dog-name-kennel-compact {
+                    font-size: 0.6rem;
+                }
+                
+                .pedigree-card-compact.horizontal.gen3 .dog-pedigree-compact,
+                .pedigree-card-compact.horizontal.gen3 .dog-breed-compact {
+                    font-size: 0.52rem;
+                }
+                
+                .pedigree-card-compact.horizontal.gen3 .click-hint-compact {
+                    font-size: 0.44rem;
+                }
+                
+                .dog-pedigree-compact {
+                    font-weight: 600;
+                    color: #495057;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    line-height: 1.1;
+                    flex: 1;
+                }
+                
+                .dog-breed-compact {
+                    color: #28a745;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    line-height: 1.1;
+                    flex: 1;
+                    text-align: right;
+                }
+                
+                .no-data-text {
+                    color: #6c757d;
+                    font-style: italic;
+                    line-height: 1.3;
+                    font-size: 0.7rem;
+                }
+                
+                .click-hint-compact {
+                    color: #6c757d;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 3px;
+                    line-height: 1;
+                    width: 100%;
+                    padding-top: 2px;
+                    border-top: 1px dashed #dee2e6;
+                    font-size: 0.55rem;
+                }
+                
+                .pedigree-card-compact.horizontal.gen4 .click-hint-compact {
+                    display: none !important;
+                }
+                
+                .click-hint-compact .bi-camera {
+                    color: #1a15f4;
+                    font-size: 0.7rem;
+                }
+                
+                @media (max-width: 767px) {
+                    #pedigreeModal.modal.fade .modal-dialog {
+                        max-width: 100%;
+                        margin: 0.5rem auto;
+                        height: auto;
+                    }
+                    
+                    #pedigreeModal.modal.fade .modal-content {
+                        width: 100%;
+                        height: auto;
+                        margin: 0;
+                        border-radius: 12px;
+                        display: flex;
+                        flex-direction: column;
+                    }
+                    
+                    #pedigreeModal.modal.fade .modal-header {
+                        margin: 0;
+                        padding: 0.75rem 1rem;
+                        border: none;
+                        width: 100%;
+                        flex-shrink: 0;
+                        min-height: auto;
+                        z-index: 1;
+                        border-radius: 12px 12px 0 0;
+                    }
+                    
+                    #pedigreeModal.modal.fade .modal-body {
+                        width: 100%;
+                        padding: 0;
+                        margin: 0;
+                        flex: 1 1 auto;
+                        overflow: hidden;
+                        min-height: 0;
+                        max-height: 640px;
+                        border-radius: 0 0 12px 12px;
+                    }
+                    
+                    .pedigree-mobile-wrapper {
+                        width: 100%;
+                        height: 100%;
+                        display: flex;
+                        flex-direction: column;
+                        background: #f8f9fa;
+                        border-radius: 0 0 12px 12px;
+                    }
+                    
+                    .pedigree-container-compact {
+                        height: 640px !important;
+                        overflow-x: auto !important;
+                        overflow-y: hidden !important;
+                        padding: 10px !important;
+                        -webkit-overflow-scrolling: touch;
+                        display: flex;
+                        flex-direction: column;
+                        border-radius: 0 0 12px 12px;
+                    }
+                    
+                    .pedigree-grid-compact {
+                        display: flex !important;
+                        flex-direction: row !important;
+                        flex-wrap: nowrap !important;
+                        height: 100% !important;
+                        min-width: max-content !important;
+                        padding: 10px 15px !important;
+                        gap: 15px !important;
+                        margin: 0 !important;
+                        align-items: stretch !important;
+                        box-sizing: border-box !important;
+                        width: auto !important;
+                    }
+                    
+                    .pedigree-generation-col {
+                        display: flex !important;
+                        flex-direction: column !important;
+                        height: 100% !important;
+                        flex-shrink: 0 !important;
+                        padding: 0 !important;
+                        margin: 0 !important;
+                        position: relative;
+                        justify-content: center !important;
+                        align-items: flex-start !important;
+                    }
+                    
+                    .pedigree-generation-col.gen0 {
+                        justify-content: center !important;
+                        align-items: flex-start !important;
+                        min-width: 200px !important;
+                        width: 200px !important;
+                        gap: 4px !important;
+                    }
+                    
+                    .pedigree-generation-col.gen1 {
+                        justify-content: center !important;
+                        align-items: flex-start !important;
+                        min-width: 200px !important;
+                        width: 200px !important;
+                        gap: 4px !important;
+                    }
+                    
+                    .pedigree-generation-col.gen1 > .pedigree-card-compact.horizontal:nth-child(2) {
+                        margin-top: -2px !important;
+                    }
+                    
+                    .pedigree-generation-col.gen1 > .pedigree-card-compact.horizontal:nth-child(3) {
+                        margin-top: 2px !important;
+                    }
+                    
+                    .pedigree-generation-col.gen2 {
+                        justify-content: center !important;
+                        align-items: flex-start !important;
+                        min-width: 200px !important;
+                        width: 200px !important;
+                        gap: 4px !important;
+                    }
+                    
+                    .pedigree-generation-col.gen2 > .pedigree-card-compact.horizontal:nth-child(2),
+                    .pedigree-generation-col.gen2 > .pedigree-card-compact.horizontal:nth-child(3) {
+                        margin-top: -4px !important;
+                    }
+                    
+                    .pedigree-generation-col.gen2 > .pedigree-card-compact.horizontal:nth-child(4),
+                    .pedigree-generation-col.gen2 > .pedigree-card-compact.horizontal:nth-child(5) {
+                        margin-top: 4px !important;
+                    }
+                    
+                    .pedigree-generation-col.gen3 {
+                        justify-content: center !important;
+                        align-items: flex-start !important;
+                        min-width: 200px !important;
+                        width: 200px !important;
+                        gap: 4px !important;
+                    }
+                    
+                    .pedigree-generation-col.gen3 > .pedigree-card-compact.horizontal:nth-child(2),
+                    .pedigree-generation-col.gen3 > .pedigree-card-compact.horizontal:nth-child(3) {
+                        margin-top: -8px !important;
+                    }
+                    
+                    .pedigree-generation-col.gen3 > .pedigree-card-compact.horizontal:nth-child(4),
+                    .pedigree-generation-col.gen3 > .pedigree-card-compact.horizontal:nth-child(5) {
+                        margin-top: -4px !important;
+                    }
+                    
+                    .pedigree-generation-col.gen3 > .pedigree-card-compact.horizontal:nth-child(6),
+                    .pedigree-generation-col.gen3 > .pedigree-card-compact.horizontal:nth-child(7) {
+                        margin-top: 0px !important;
+                    }
+                    
+                    .pedigree-generation-col.gen3 > .pedigree-card-compact.horizontal:nth-child(8),
+                    .pedigree-generation-col.gen3 > .pedigree-card-compact.horizontal:nth-child(9) {
+                        margin-top: 4px !important;
+                    }
+                    
+                    .pedigree-generation-col.gen4 {
+                        justify-content: center !important;
+                        align-items: flex-start !important;
+                        min-width: 200px !important;
+                        width: 200px !important;
+                        gap: 4px !important;
+                    }
+                    
+                    .pedigree-card-compact.horizontal.gen0,
+                    .pedigree-card-compact.horizontal.gen1,
+                    .pedigree-card-compact.horizontal.gen2 {
+                        width: 200px !important;
+                        height: 150px !important;
+                        margin: 0 !important;
+                        flex-shrink: 0 !important;
+                    }
+                    
+                    .pedigree-card-compact.horizontal.gen3 {
+                        width: 200px !important;
+                        height: 75px !important;
+                        margin: 0 !important;
+                        flex-shrink: 0 !important;
+                    }
+                    
+                    .pedigree-card-compact.horizontal.gen4 {
+                        width: 200px !important;
+                        height: 34px !important;
+                        margin: 0 !important;
+                        flex-shrink: 0 !important;
+                    }
+                    
+                    .pedigree-card-compact.horizontal.main-dog-compact {
+                        width: 200px !important;
+                        height: 150px !important;
+                        margin: 0 !important;
+                        flex-shrink: 0 !important;
+                    }
+                    
+                    .pedigree-generation-col > * {
+                        width: 100% !important;
+                    }
+                    
+                    /* DRIE WAARDES NAAST ELKAAR OP MOBIEL */
+                    .three-values-row {
+                        gap: 4px !important;
+                        margin: 8px 0 !important;
+                    }
+                    
+                    .value-box {
+                        padding: 6px 3px !important;
+                        min-height: 55px !important;
+                    }
+                    
+                    .value-label {
+                        font-size: 0.61rem !important;
+                    }
+                    
+                    .value-number {
+                        font-size: 0.8rem !important;
+                    }
+                }
+                
+                @media (max-width: 480px) {
+                    .pedigree-container-compact {
+                        height: 640px !important;
+                        padding: 8px !important;
+                    }
+                    
+                    .pedigree-grid-compact {
+                        padding: 8px 12px !important;
+                        gap: 4px !important;
+                    }
+                    
+                    .pedigree-card-compact.horizontal.gen0,
+                    .pedigree-card-compact.horizontal.gen1,
+                    .pedigree-card-compact.horizontal.gen2 {
+                        width: 200px !important;
+                        height: 150px !important;
+                    }
+                    
+                    .pedigree-card-compact.horizontal.gen3 {
+                        width: 200px !important;
+                        height: 75px !important;
+                    }
+                    
+                    .pedigree-card-compact.horizontal.gen4 {
+                        width: 200px !important;
+                        height: 34px !important;
+                    }
+                    
+                    .pedigree-card-compact.horizontal.main-dog-compact {
+                        width: 200px !important;
+                        height: 150px !important;
+                    }
+                    
+                    .pedigree-generation-col {
+                        min-width: 200px !important;
+                        width: 200px !important;
+                    }
+                    
+                    .pedigree-generation-col.gen0,
+                    .pedigree-generation-col.gen1,
+                    .pedigree-generation-col.gen2,
+                    .pedigree-generation-col.gen3,
+                    .pedigree-generation-col.gen4 {
+                        min-width: 200px !important;
+                        width: 200px !important;
+                    }
+                    
+                    .three-values-row {
+                        gap: 3px !important;
+                    }
+                    
+                    .value-box {
+                        padding: 5px 2px !important;
+                        min-height: 50px !important;
+                    }
+                    
+                    .value-label {
+                        font-size: 0.58rem !important;
+                    }
+                    
+                    .value-number {
+                        font-size: 0.75rem !important;
+                    }
+                }
+                
+                @media (min-width: 768px) {
+                    #pedigreeModal.modal.fade .modal-dialog.modal-fullscreen {
+                        width: 100vw !important;
+                        height: 100vh !important;
+                        margin: 0 !important;
+                        max-width: none !important;
+                        padding: 0 !important;
+                    }
+                    
+                    #pedigreeModal.modal.fade .modal-content {
+                        width: 100% !important;
+                        height: 100vh !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        border: none !important;
+                        border-radius: 0 !important;
+                        display: flex !important;
+                        flex-direction: column !important;
+                    }
+                    
+                    #pedigreeModal.modal.fade .modal-header {
+                        margin: 0 !important;
+                        padding: 0.75rem 1rem !important;
+                        border: none !important;
+                        width: 100% !important;
+                        flex-shrink: 0 !important;
+                        min-height: auto !important;
+                        z-index: 1;
+                    }
+                    
+                    #pedigreeModal.modal.fade .modal-body {
+                        width: 100% !important;
+                        padding: 0 !important;
+                        margin: 0 !important;
+                        flex: 1 1 auto !important;
+                        overflow: hidden !important;
+                        min-height: 0 !important;
+                    }
+                    
+                    .pedigree-mobile-wrapper {
+                        height: 100%;
+                        border-radius: 0;
+                    }
+                    
+                    .pedigree-container-compact {
+                        height: calc(100vh - 60px) !important;
+                        overflow-x: auto !important;
+                        overflow-y: hidden !important;
+                        align-items: center;
+                        padding: 0 !important;
+                        display: flex;
+                        border-radius: 0;
+                    }
+                    
+                    .pedigree-grid-compact {
+                        flex-direction: row;
+                        height: 100%;
+                        min-width: fit-content;
+                        padding: 0 20px !important;
+                        gap: 25px;
+                        align-items: center;
+                        box-sizing: border-box !important;
+                        margin: 0 auto;
+                    }
+                    
+                    .pedigree-generation-col {
+                        display: flex;
+                        flex-direction: column;
+                        height: 100%;
+                        justify-content: center;
+                        min-width: 0;
+                    }
+                    
+                    .pedigree-generation-col.gen0 {
+                        gap: 4px !important;
+                    }
+                    
+                    .pedigree-generation-col.gen1 {
+                        gap: 4px !important;
+                    }
+                    
+                    .pedigree-generation-col.gen2 {
+                        gap: 4px !important;
+                    }
+                    
+                    .pedigree-generation-col.gen3 {
+                        gap: 4px !important;
+                        justify-content: center;
+                    }
+                    
+                    .pedigree-generation-col.gen4 {
+                        gap: 4px !important;
+                        justify-content: center;
+                    }
+                    
+                    .pedigree-card-compact.horizontal.gen0,
+                    .pedigree-card-compact.horizontal.gen1,
+                    .pedigree-card-compact.horizontal.gen2 {
+                        width: 200px !important;
+                        height: 140px !important;
+                    }
+                    
+                    .pedigree-card-compact.horizontal.gen3 {
+                        width: 200px !important;
+                        height: 70px !important;
+                    }
+                    
+                    .pedigree-card-compact.horizontal.gen4 {
+                        width: 200px !important;
+                        height: 35px !important;
+                    }
+                    
+                    .pedigree-card-compact.horizontal.main-dog-compact {
+                        width: 200px !important;
+                        height: 140px !important;
+                    }
+                    
+                    .pedigree-card-compact.horizontal.gen0 .dog-name-kennel-compact,
+                    .pedigree-card-compact.horizontal.gen1 .dog-name-kennel-compact,
+                    .pedigree-card-compact.horizontal.gen2 .dog-name-kennel-compact {
+                        font-size: 0.8rem;
+                    }
+                    
+                    .pedigree-card-compact.horizontal.gen0 .dog-pedigree-compact,
+                    .pedigree-card-compact.horizontal.gen1 .dog-pedigree-compact,
+                    .pedigree-card-compact.horizontal.gen2 .dog-pedigree-compact,
+                    .pedigree-card-compact.horizontal.gen0 .dog-breed-compact,
+                    .pedigree-card-compact.horizontal.gen1 .dog-breed-compact,
+                    .pedigree-card-compact.horizontal.gen2 .dog-breed-compact {
+                        font-size: 0.7rem;
+                    }
+                    
+                    .pedigree-card-compact.horizontal.gen0 .click-hint-compact,
+                    .pedigree-card-compact.horizontal.gen1 .click-hint-compact,
+                    .pedigree-card-compact.horizontal.gen2 .click-hint-compact {
+                        font-size: 0.6rem;
+                    }
+                    
+                    .pedigree-card-compact.horizontal.gen3 .dog-name-kennel-compact {
+                        font-size: 0.64rem;
+                    }
+                    
+                    .pedigree-card-compact.horizontal.gen3 .dog-pedigree-compact,
+                    .pedigree-card-compact.horizontal.gen3 .dog-breed-compact {
+                        font-size: 0.56rem;
+                    }
+                    
+                    .pedigree-card-compact.horizontal.gen3 .click-hint-compact {
+                        font-size: 0.48rem;
+                    }
+                    
+                    .pedigree-card-compact.horizontal.gen4 .dog-name-kennel-only {
+                        font-size: 0.54rem;
+                    }
+                }
+                
+                @media (min-width: 1024px) and (max-width: 1365px) {
+                    .pedigree-container-compact {
+                        height: calc(100vh - 60px) !important;
+                    }
+                    
+                    .pedigree-grid-compact {
+                        gap: 15px;
+                        padding: 0 12px !important;
+                    }
+                    
+                    .pedigree-card-compact.horizontal.gen0,
+                    .pedigree-card-compact.horizontal.gen1,
+                    .pedigree-card-compact.horizontal.gen2 {
+                        width: 200px !important;
+                        height: 150px !important;
+                    }
+                    
+                    .pedigree-card-compact.horizontal.gen3 {
+                        width: 200px !important;
+                        height: 75px !important;
+                    }
+                    
+                    .pedigree-card-compact.horizontal.gen4 {
+                        width: 200px !important;
+                        height: 35px !important;
+                    }
+                    
+                    .pedigree-card-compact.horizontal.main-dog-compact {
+                        width: 200px !important;
+                        height: 150px !important;
+                    }
+                }
+                
+                .pedigree-popup-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0, 0, 0, 0.7);
+                    z-index: 1060;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    animation: fadeIn 0.3s;
+                    overflow-y: auto;
+                }
+                
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                
+                .pedigree-popup-container {
+                    background: white;
+                    border-radius: 12px;
+                    max-width: 400px;
+                    max-height: 80vh;
+                    overflow-y: auto;
+                    animation: slideUp 0.3s;
+                    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+                    width: calc(100% - 20px);
+                    margin: 10px;
+                }
+                
+                @keyframes slideUp {
+                    from { 
+                        opacity: 0;
+                        transform: translateY(30px);
+                    }
+                    to { 
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+                
+                .dog-detail-popup {
+                    display: flex;
+                    flex-direction: column;
+                    height: 100%;
+                }
+                
+                .popup-header {
+                    background: #0d6efd;
+                    color: white;
+                    padding: 12px 16px;
+                    border-radius: 12px 12px 0 0;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    position: sticky;
+                    top: 0;
+                    z-index: 1;
+                }
+                
+                .popup-title {
+                    margin: 0;
+                    font-size: 1.1rem;
+                    display: flex;
+                    align-items: center;
+                    flex: 1;
+                }
+                
+                .popup-header .btn-close {
+                    display: inline-block;
+                    width: 24px;
+                    height: 24px;
+                    background: transparent;
+                    border: none;
+                    position: relative;
+                    cursor: pointer;
+                    opacity: 0.8;
+                    z-index: 2;
+                    filter: invert(1) grayscale(100%) brightness(200%) !important;
+                }
+                
+                .popup-header .btn-close::before,
+                .popup-header .btn-close::after {
+                    content: '';
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    width: 18px;
+                    height: 2px;
+                    background: #000 !important;
+                    transform-origin: center;
+                }
+                
+                .popup-header .btn-close::before {
+                    transform: translate(-50%, -50%) rotate(45deg);
+                }
+                
+                .popup-header .btn-close::after {
+                    transform: translate(-50%, -50%) rotate(-45deg);
+                }
+                
+                .popup-header .btn-close:hover {
+                    opacity: 1;
+                }
+                
+                .popup-body {
+                    padding: 15px;
+                    flex: 1;
+                    overflow-y: auto;
+                    -webkit-overflow-scrolling: touch;
+                }
+                
+                .info-section {
+                    margin-bottom: 20px;
+                }
+                
+                .info-section h6 {
+                    color: #495057;
+                    margin-bottom: 10px;
+                    padding-bottom: 6px;
+                    border-bottom: 2px solid #e9ecef;
+                    display: flex;
+                    align-items: center;
+                    font-size: 1rem;
+                }
+                
+                .info-grid {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                }
+                
+                .info-row {
+                    display: grid !important;
+                    grid-template-columns: 1fr 1fr !important;
+                    gap: 8px !important;
+                    margin-bottom: 0 !important;
+                    width: 100% !important;
+                }
+                
+                .info-item {
+                    display: flex;
+                    flex-direction: column;
+                    width: 100% !important;
+                    min-width: 0 !important;
+                }
+                
+                .info-item-half {
+                    grid-column: span 1 !important;
+                    width: 100% !important;
+                }
+                
+                .info-item-full {
+                    grid-column: 1 / -1 !important;
+                    width: 100% !important;
+                    margin-bottom: 4px;
+                }
+                
+                .info-label {
+                    font-weight: 600;
+                    color: #495057;
+                    font-size: 0.9rem;
+                    margin-bottom: 2px;
+                    line-height: 1.2;
+                }
+                
+                .info-value {
+                    color: #212529;
+                    font-size: 0.95rem;
+                    line-height: 1.3;
+                    word-break: break-word;
+                }
+                
+                .remarks-box {
+                    background: #f8f9fa;
+                    border: 1px solid #dee2e6;
+                    padding: 12px;
+                    border-radius: 6px;
+                    font-style: italic;
+                    color: #495057;
+                    font-size: 0.95rem;
+                    line-height: 1.5;
+                }
+                
+                .photos-grid {
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 6px;
+                    margin-bottom: 10px;
+                    max-width: 240px;
+                    margin-left: auto;
+                    margin-right: auto;
+                }
+                
+                .photo-thumbnail {
+                    position: relative;
+                    aspect-ratio: 1 / 1;
+                    border-radius: 4px;
+                    overflow: hidden;
+                    cursor: pointer;
+                    border: 2px solid transparent;
+                    transition: all 0.2s;
+                }
+                
+                .photo-thumbnail:hover {
+                    border-color: #0d6efd;
+                    transform: scale(1.05);
+                }
+                
+                .thumbnail-img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                }
+                
+                .photo-hover {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0, 0, 0, 0.3);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    opacity: 0;
+                    transition: opacity 0.2s;
+                }
+                
+                .photo-thumbnail:hover .photo-hover {
+                    opacity: 1;
+                }
+                
+                .photo-hover i {
+                    color: white;
+                    font-size: 1.2rem;
+                }
+                
+                .photo-hint {
+                    text-align: center;
+                    margin-bottom: 15px;
+                    font-size: 0.85rem;
+                }
+                
+                .popup-footer {
+                    padding: 16px 20px;
+                    border-top: 1px solid #dee2e6;
+                    display: flex;
+                    justify-content: center;
+                    background: #f8f9fa;
+                    border-radius: 0 0 12px 12px;
+                }
+                
+                .popup-close-btn {
+                    min-width: 130px;
+                    padding: 10px 25px;
+                    font-size: 1rem;
+                }
+                
+                .photo-large-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0, 0, 0, 0.85);
+                    z-index: 1070;
+                    display: none;
+                    align-items: center;
+                    justify-content: center;
+                    animation: fadeIn 0.3s;
+                }
+                
+                .photo-large-container {
+                    background: white;
+                    border-radius: 12px;
+                    overflow: hidden;
+                    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+                    display: flex;
+                    flex-direction: column;
+                    max-height: 95vh;
+                    animation: slideUp 0.3s;
+                }
+                
+                .photo-large-header {
+                    padding: 12px 16px;
+                    background: #0d6efd;
+                    color: white;
+                    display: flex;
+                    justify-content: flex-end;
+                }
+                
+                .photo-large-close {
+                    background: none;
+                    border: none;
+                    color: white;
+                    opacity: 0.8;
+                    font-size: 1.3rem;
+                    cursor: pointer;
+                    width: 32px;
+                    height: 32px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border-radius: 50%;
+                    transition: all 0.2s;
+                }
+                
+                .photo-large-close:hover {
+                    opacity: 1;
+                    background: rgba(255, 255, 255, 0.2);
+                }
+                
+                .photo-large-content {
+                    padding: 20px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    overflow: hidden;
+                    flex: 1;
+                    min-height: 300px;
+                }
+                
+                .photo-large-img {
+                    max-width: 100%;
+                    max-height: 100%;
+                    object-fit: contain;
+                    border-radius: 4px;
+                }
+                
+                .photo-large-footer {
+                    padding: 16px;
+                    border-top: 1px solid #dee2e6;
+                    display: flex;
+                    justify-content: center;
+                    background: #f8f9fa;
+                }
+                
+                .photo-large-close-btn {
+                    min-width: 120px;
+                    padding: 8px 20px;
+                }
+                
+                @media print {
+                    .modal-dialog {
+                        max-width: none;
+                        margin: 0;
+                    }
+                    
+                    .modal-header {
+                        display: none !important;
+                    }
+                    
+                    .pedigree-container-compact {
+                        padding: 0;
+                        background: white;
+                        height: auto !important;
+                        overflow-x: visible !important;
+                        height: 100vh !important;
+                    }
+                    
+                    .pedigree-grid-compact {
+                        flex-direction: row !important;
+                        height: auto;
+                        padding: 20px !important;
+                        gap: 15px;
+                    }
+                    
+                    .pedigree-generation-col {
+                        flex-direction: column;
+                        gap: 10px;
+                    }
+                    
+                    .pedigree-card-compact.horizontal {
+                        break-inside: avoid;
+                        box-shadow: none;
+                        border: 1px solid #ccc !important;
+                        margin-bottom: 10px;
+                    }
+                    
+                    .main-dog-compact {
+                        border: 2px solid #000 !important;
+                    }
+                    
+                    .pedigree-popup-overlay,
+                    .photo-large-overlay {
+                        display: none !important;
+                    }
+                }
+                
+                .pedigree-card-compact.horizontal.empty {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                
+                .pedigree-generation-col {
+                    position: relative;
+                }
+                
+                .pedigree-generation-col:not(:first-child)::before {
+                    content: '';
+                    position: absolute;
+                    left: -10px;
+                    top: 50%;
+                    width: 10px;
+                    height: 1px;
+                    background: #adb5bd;
+                    opacity: 0.5;
+                }
+                
+                .pedigree-card-compact.horizontal.gen3 {
+                    opacity: 0.9;
+                }
+                
+                .pedigree-card-compact.horizontal.gen3:hover {
+                    opacity: 1;
+                }
+                
+                .pedigree-card-compact.horizontal.gen4 {
+                    opacity: 0.8;
+                }
+                
+                .pedigree-card-compact.horizontal.gen4:hover {
+                    opacity: 1;
+                }
+            </style>
         `;
         
         document.body.insertAdjacentHTML('beforeend', modalHTML);
@@ -1495,128 +2692,118 @@ class StamboomManager extends BaseModule {
                 window.print();
             });
         }
+        
+        modal.addEventListener('hidden.bs.modal', () => {
+            if (!this._isActive) return;
+            
+            const popupOverlay = document.getElementById('pedigreePopupOverlay');
+            if (popupOverlay) {
+                popupOverlay.style.display = 'none';
+            }
+            
+            const photoOverlay = document.getElementById('photoLargeOverlay');
+            if (photoOverlay) {
+                photoOverlay.style.display = 'none';
+                setTimeout(() => {
+                    if (photoOverlay.parentNode) {
+                        photoOverlay.parentNode.removeChild(photoOverlay);
+                    }
+                }, 300);
+            }
+        });
     }
     
     async renderCompactPedigree(pedigreeTree) {
         const container = document.getElementById('pedigreeContainer');
-        if (!container) {
-            console.error('Pedigree container niet gevonden');
-            return;
-        }
+        if (!container) return;
         
-        // Toon laadindicator
-        container.innerHTML = `
-            <div class="text-center py-5">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">${this.t('generatingPedigree')}</span>
+        const mainDogCard = await this.getDogCompactCardHTML(pedigreeTree.mainDog, this.t('mainDog'), true, 0);
+        const fatherCard = await this.getDogCompactCardHTML(pedigreeTree.father, this.t('father'), false, 1);
+        const motherCard = await this.getDogCompactCardHTML(pedigreeTree.mother, this.t('mother'), false, 1);
+        const paternalGrandfatherCard = await this.getDogCompactCardHTML(pedigreeTree.paternalGrandfather, this.t('grandfather'), false, 2);
+        const paternalGrandmotherCard = await this.getDogCompactCardHTML(pedigreeTree.paternalGrandmother, this.t('grandmother'), false, 2);
+        const maternalGrandfatherCard = await this.getDogCompactCardHTML(pedigreeTree.maternalGrandfather, this.t('grandfather'), false, 2);
+        const maternalGrandmotherCard = await this.getDogCompactCardHTML(pedigreeTree.maternalGrandmother, this.t('grandmother'), false, 2);
+        
+        const paternalGreatGrandfather1Card = await this.getDogCompactCardHTML(pedigreeTree.paternalGreatGrandfather1, this.t('greatGrandfather'), false, 3);
+        const paternalGreatGrandmother1Card = await this.getDogCompactCardHTML(pedigreeTree.paternalGreatGrandmother1, this.t('greatGrandmother'), false, 3);
+        const paternalGreatGrandfather2Card = await this.getDogCompactCardHTML(pedigreeTree.paternalGreatGrandfather2, this.t('greatGrandfather'), false, 3);
+        const paternalGreatGrandmother2Card = await this.getDogCompactCardHTML(pedigreeTree.paternalGreatGrandmother2, this.t('greatGrandmother'), false, 3);
+        const maternalGreatGrandfather1Card = await this.getDogCompactCardHTML(pedigreeTree.maternalGreatGrandfather1, this.t('greatGrandfather'), false, 3);
+        const maternalGreatGrandmother1Card = await this.getDogCompactCardHTML(pedigreeTree.maternalGreatGrandmother1, this.t('greatGrandmother'), false, 3);
+        const maternalGreatGrandfather2Card = await this.getDogCompactCardHTML(pedigreeTree.maternalGreatGrandfather2, this.t('greatGrandfather'), false, 3);
+        const maternalGreatGrandmother2Card = await this.getDogCompactCardHTML(pedigreeTree.maternalGreatGrandmother2, this.t('greatGrandmother'), false, 3);
+        
+        const paternalGreatGreatGrandfather1Card = await this.getDogCompactCardHTML(pedigreeTree.paternalGreatGreatGrandfather1, this.t('greatGreatGrandfather'), false, 4);
+        const paternalGreatGreatGrandmother1Card = await this.getDogCompactCardHTML(pedigreeTree.paternalGreatGreatGrandmother1, this.t('greatGreatGrandmother'), false, 4);
+        const paternalGreatGreatGrandfather2Card = await this.getDogCompactCardHTML(pedigreeTree.paternalGreatGreatGrandfather2, this.t('greatGreatGrandfather'), false, 4);
+        const paternalGreatGreatGrandmother2Card = await this.getDogCompactCardHTML(pedigreeTree.paternalGreatGreatGrandmother2, this.t('greatGreatGrandmother'), false, 4);
+        const paternalGreatGreatGrandfather3Card = await this.getDogCompactCardHTML(pedigreeTree.paternalGreatGreatGrandfather3, this.t('greatGreatGrandfather'), false, 4);
+        const paternalGreatGreatGrandmother3Card = await this.getDogCompactCardHTML(pedigreeTree.paternalGreatGreatGrandmother3, this.t('greatGreatGrandmother'), false, 4);
+        const paternalGreatGreatGrandfather4Card = await this.getDogCompactCardHTML(pedigreeTree.paternalGreatGreatGrandfather4, this.t('greatGreatGrandfather'), false, 4);
+        const paternalGreatGreatGrandmother4Card = await this.getDogCompactCardHTML(pedigreeTree.paternalGreatGreatGrandmother4, this.t('greatGreatGrandmother'), false, 4);
+        const maternalGreatGreatGrandfather1Card = await this.getDogCompactCardHTML(pedigreeTree.maternalGreatGreatGrandfather1, this.t('greatGreatGrandfather'), false, 4);
+        const maternalGreatGreatGrandmother1Card = await this.getDogCompactCardHTML(pedigreeTree.maternalGreatGreatGrandmother1, this.t('greatGreatGrandmother'), false, 4);
+        const maternalGreatGreatGrandfather2Card = await this.getDogCompactCardHTML(pedigreeTree.maternalGreatGreatGrandfather2, this.t('greatGreatGrandfather'), false, 4);
+        const maternalGreatGreatGrandmother2Card = await this.getDogCompactCardHTML(pedigreeTree.maternalGreatGreatGrandmother2, this.t('greatGreatGrandmother'), false, 4);
+        const maternalGreatGreatGrandfather3Card = await this.getDogCompactCardHTML(pedigreeTree.maternalGreatGreatGrandfather3, this.t('greatGreatGrandfather'), false, 4);
+        const maternalGreatGreatGrandmother3Card = await this.getDogCompactCardHTML(pedigreeTree.maternalGreatGreatGrandmother3, this.t('greatGreatGrandmother'), false, 4);
+        const maternalGreatGreatGrandfather4Card = await this.getDogCompactCardHTML(pedigreeTree.maternalGreatGreatGrandfather4, this.t('greatGreatGrandfather'), false, 4);
+        const maternalGreatGreatGrandmother4Card = await this.getDogCompactCardHTML(pedigreeTree.maternalGreatGreatGrandmother4, this.t('greatGreatGrandmother'), false, 4);
+        
+        const gridHTML = `
+            <div class="pedigree-grid-compact">
+                <div class="pedigree-generation-col gen0">
+                    ${mainDogCard}
                 </div>
-                <p class="mt-3">${this.t('generatingPedigree')}</p>
+                
+                <div class="pedigree-generation-col gen1">
+                    ${fatherCard}
+                    ${motherCard}
+                </div>
+                
+                <div class="pedigree-generation-col gen2">
+                    ${paternalGrandfatherCard}
+                    ${paternalGrandmotherCard}
+                    ${maternalGrandfatherCard}
+                    ${maternalGrandmotherCard}
+                </div>
+                
+                <div class="pedigree-generation-col gen3">
+                    ${paternalGreatGrandfather1Card}
+                    ${paternalGreatGrandmother1Card}
+                    ${paternalGreatGrandfather2Card}
+                    ${paternalGreatGrandmother2Card}
+                    ${maternalGreatGrandfather1Card}
+                    ${maternalGreatGrandmother1Card}
+                    ${maternalGreatGrandfather2Card}
+                    ${maternalGreatGrandmother2Card}
+                </div>
+                
+                <div class="pedigree-generation-col gen4">
+                    ${paternalGreatGreatGrandfather1Card}
+                    ${paternalGreatGreatGrandmother1Card}
+                    ${paternalGreatGreatGrandfather2Card}
+                    ${paternalGreatGreatGrandmother2Card}
+                    ${paternalGreatGreatGrandfather3Card}
+                    ${paternalGreatGreatGrandmother3Card}
+                    ${paternalGreatGreatGrandfather4Card}
+                    ${paternalGreatGreatGrandmother4Card}
+                    ${maternalGreatGreatGrandfather1Card}
+                    ${maternalGreatGreatGrandmother1Card}
+                    ${maternalGreatGreatGrandfather2Card}
+                    ${maternalGreatGreatGrandmother2Card}
+                    ${maternalGreatGreatGrandfather3Card}
+                    ${maternalGreatGreatGrandmother3Card}
+                    ${maternalGreatGreatGrandfather4Card}
+                    ${maternalGreatGreatGrandmother4Card}
+                </div>
             </div>
         `;
         
-        try {
-            // Genereer alle cards asynchroon
-            const cards = await Promise.all([
-                this.getDogCompactCardHTML(pedigreeTree.mainDog, this.t('mainDog'), true, 0),
-                this.getDogCompactCardHTML(pedigreeTree.father, this.t('father'), false, 1),
-                this.getDogCompactCardHTML(pedigreeTree.mother, this.t('mother'), false, 1),
-                this.getDogCompactCardHTML(pedigreeTree.paternalGrandfather, this.t('grandfather'), false, 2),
-                this.getDogCompactCardHTML(pedigreeTree.paternalGrandmother, this.t('grandmother'), false, 2),
-                this.getDogCompactCardHTML(pedigreeTree.maternalGrandfather, this.t('grandfather'), false, 2),
-                this.getDogCompactCardHTML(pedigreeTree.maternalGrandmother, this.t('grandmother'), false, 2),
-                this.getDogCompactCardHTML(pedigreeTree.paternalGreatGrandfather1, this.t('greatGrandfather'), false, 3),
-                this.getDogCompactCardHTML(pedigreeTree.paternalGreatGrandmother1, this.t('greatGrandmother'), false, 3),
-                this.getDogCompactCardHTML(pedigreeTree.paternalGreatGrandfather2, this.t('greatGrandfather'), false, 3),
-                this.getDogCompactCardHTML(pedigreeTree.paternalGreatGrandmother2, this.t('greatGrandmother'), false, 3),
-                this.getDogCompactCardHTML(pedigreeTree.maternalGreatGrandfather1, this.t('greatGrandfather'), false, 3),
-                this.getDogCompactCardHTML(pedigreeTree.maternalGreatGrandmother1, this.t('greatGrandmother'), false, 3),
-                this.getDogCompactCardHTML(pedigreeTree.maternalGreatGrandfather2, this.t('greatGrandfather'), false, 3),
-                this.getDogCompactCardHTML(pedigreeTree.maternalGreatGrandmother2, this.t('greatGrandmother'), false, 3),
-                this.getDogCompactCardHTML(pedigreeTree.paternalGreatGreatGrandfather1, this.t('greatGreatGrandfather'), false, 4),
-                this.getDogCompactCardHTML(pedigreeTree.paternalGreatGreatGrandmother1, this.t('greatGreatGrandmother'), false, 4),
-                this.getDogCompactCardHTML(pedigreeTree.paternalGreatGreatGrandfather2, this.t('greatGreatGrandfather'), false, 4),
-                this.getDogCompactCardHTML(pedigreeTree.paternalGreatGreatGrandmother2, this.t('greatGreatGrandmother'), false, 4),
-                this.getDogCompactCardHTML(pedigreeTree.paternalGreatGreatGrandfather3, this.t('greatGreatGrandfather'), false, 4),
-                this.getDogCompactCardHTML(pedigreeTree.paternalGreatGreatGrandmother3, this.t('greatGreatGrandmother'), false, 4),
-                this.getDogCompactCardHTML(pedigreeTree.paternalGreatGreatGrandfather4, this.t('greatGreatGrandfather'), false, 4),
-                this.getDogCompactCardHTML(pedigreeTree.paternalGreatGreatGrandmother4, this.t('greatGreatGrandmother'), false, 4),
-                this.getDogCompactCardHTML(pedigreeTree.maternalGreatGreatGrandfather1, this.t('greatGreatGrandfather'), false, 4),
-                this.getDogCompactCardHTML(pedigreeTree.maternalGreatGreatGrandmother1, this.t('greatGreatGrandmother'), false, 4),
-                this.getDogCompactCardHTML(pedigreeTree.maternalGreatGreatGrandfather2, this.t('greatGreatGrandfather'), false, 4),
-                this.getDogCompactCardHTML(pedigreeTree.maternalGreatGreatGrandmother2, this.t('greatGreatGrandmother'), false, 4),
-                this.getDogCompactCardHTML(pedigreeTree.maternalGreatGreatGrandfather3, this.t('greatGreatGrandfather'), false, 4),
-                this.getDogCompactCardHTML(pedigreeTree.maternalGreatGreatGrandmother3, this.t('greatGreatGrandmother'), false, 4),
-                this.getDogCompactCardHTML(pedigreeTree.maternalGreatGreatGrandfather4, this.t('greatGreatGrandfather'), false, 4),
-                this.getDogCompactCardHTML(pedigreeTree.maternalGreatGreatGrandmother4, this.t('greatGreatGrandmother'), false, 4)
-            ]);
-            
-            const gridHTML = `
-                <div class="pedigree-grid-compact">
-                    <div class="pedigree-generation-col gen0">
-                        ${cards[0]}
-                    </div>
-                    
-                    <div class="pedigree-generation-col gen1">
-                        ${cards[1]}
-                        ${cards[2]}
-                    </div>
-                    
-                    <div class="pedigree-generation-col gen2">
-                        ${cards[3]}
-                        ${cards[4]}
-                        ${cards[5]}
-                        ${cards[6]}
-                    </div>
-                    
-                    <div class="pedigree-generation-col gen3">
-                        ${cards[7]}
-                        ${cards[8]}
-                        ${cards[9]}
-                        ${cards[10]}
-                        ${cards[11]}
-                        ${cards[12]}
-                        ${cards[13]}
-                        ${cards[14]}
-                    </div>
-                    
-                    <div class="pedigree-generation-col gen4">
-                        ${cards[15]}
-                        ${cards[16]}
-                        ${cards[17]}
-                        ${cards[18]}
-                        ${cards[19]}
-                        ${cards[20]}
-                        ${cards[21]}
-                        ${cards[22]}
-                        ${cards[23]}
-                        ${cards[24]}
-                        ${cards[25]}
-                        ${cards[26]}
-                        ${cards[27]}
-                        ${cards[28]}
-                        ${cards[29]}
-                        ${cards[30]}
-                    </div>
-                </div>
-            `;
-            
-            container.innerHTML = gridHTML;
-            this.setupCardClickEvents();
-            
-        } catch (error) {
-            console.error('Fout bij renderen pedigree:', error);
-            container.innerHTML = `
-                <div class="text-center py-5">
-                    <div class="alert alert-danger">
-                        <i class="bi bi-exclamation-triangle me-2"></i>
-                        Fout bij genereren stamboom: ${error.message}
-                    </div>
-                    <button class="btn btn-primary mt-3" onclick="window.location.reload()">
-                        <i class="bi bi-arrow-clockwise me-2"></i> Probeer opnieuw
-                    </button>
-                </div>
-            `;
-        }
+        container.innerHTML = gridHTML;
+        
+        this.setupCardClickEvents();
     }
     
     setupCardClickEvents() {
@@ -1629,10 +2816,7 @@ class StamboomManager extends BaseModule {
                 if (dogId === 0) return;
                 
                 const dog = this.getDogById(dogId);
-                if (!dog) {
-                    console.warn('Hond niet gevonden met ID:', dogId);
-                    return;
-                }
+                if (!dog) return;
                 
                 const relation = card.getAttribute('data-relation') || '';
                 await this.showDogDetailPopup(dog, relation);
@@ -1646,159 +2830,63 @@ class StamboomManager extends BaseModule {
         const overlay = document.getElementById('pedigreePopupOverlay');
         const container = document.getElementById('pedigreePopupContainer');
         
-        if (!overlay || !container) {
-            console.error('Popup overlay of container niet gevonden');
-            return;
-        }
+        if (!overlay || !container) return;
         
-        // Toon laadscherm
+        const popupHTML = await this.getDogDetailPopupHTML(dog, relation);
+        container.innerHTML = popupHTML;
+        
         overlay.style.display = 'flex';
-        container.innerHTML = `
-            <div class="dog-detail-popup">
-                <div class="popup-header">
-                    <h5 class="popup-title">
-                        <i class="bi ${dog.geslacht === 'reuen' ? 'bi-gender-male text-primary' : 'bi-gender-female text-danger'} me-2"></i>
-                        ${dog.naam || this.t('unknown')}
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" aria-label="Sluiten"></button>
-                </div>
-                <div class="popup-body text-center py-5">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Laden...</span>
-                    </div>
-                    <p class="mt-3">Details laden...</p>
-                </div>
-            </div>
-        `;
         
-        try {
-            // Genereer popup content
-            const popupHTML = await this.getDogDetailPopupHTML(dog, relation);
-            container.innerHTML = popupHTML;
-            
-            // Setup close buttons
-            const closeButtons = container.querySelectorAll('.btn-close, .popup-close-btn');
-            closeButtons.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    overlay.style.display = 'none';
-                });
+        const closeButtons = container.querySelectorAll('.btn-close, .popup-close-btn');
+        closeButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                overlay.style.display = 'none';
             });
-            
-            // Close on overlay click
-            overlay.addEventListener('click', (e) => {
-                if (e.target === overlay) {
-                    overlay.style.display = 'none';
-                }
-            });
-            
-            // Close with Escape key
-            const escapeHandler = (e) => {
-                if (e.key === 'Escape') {
-                    overlay.style.display = 'none';
-                    document.removeEventListener('keydown', escapeHandler);
-                }
-            };
-            document.addEventListener('keydown', escapeHandler);
-            
-        } catch (error) {
-            console.error('Fout bij tonen hond details:', error);
-            container.innerHTML = `
-                <div class="dog-detail-popup">
-                    <div class="popup-header">
-                        <h5 class="popup-title">
-                            <i class="bi bi-exclamation-triangle me-2 text-warning"></i>
-                            Fout bij laden
-                        </h5>
-                        <button type="button" class="btn-close btn-close-white" aria-label="Sluiten"></button>
-                    </div>
-                    <div class="popup-body">
-                        <div class="alert alert-danger">
-                            <i class="bi bi-exclamation-triangle me-2"></i>
-                            Kon details niet laden: ${error.message}
-                        </div>
-                        <div class="text-center mt-3">
-                            <button type="button" class="btn btn-secondary popup-close-btn">
-                                <i class="bi bi-x-circle me-1"></i> ${this.t('closePopup')}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            // Setup close button
-            const closeBtn = container.querySelector('.popup-close-btn');
-            if (closeBtn) {
-                closeBtn.addEventListener('click', () => {
-                    overlay.style.display = 'none';
-                });
+        });
+        
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                overlay.style.display = 'none';
             }
-        }
+        });
+        
+        overlay.addEventListener('animationend', function handler() {
+            if (overlay.style.display === 'none') {
+                overlay.removeEventListener('animationend', handler);
+            }
+        });
     }
     
     showProgress(message) {
-        console.log('Progress:', message);
         if (typeof super.showProgress === 'function') {
             super.showProgress(message);
         } else {
-            // Fallback voor als BaseModule.showProgress niet bestaat
-            const existingOverlay = document.getElementById('progressOverlay');
-            if (existingOverlay) {
-                existingOverlay.remove();
-            }
-            
-            const overlayHTML = `
-                <div id="progressOverlay" class="progress-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999; display: flex; align-items: center; justify-content: center;">
-                    <div class="text-center text-white">
-                        <div class="spinner-border" style="width: 3rem; height: 3rem;" role="status">
-                            <span class="visually-hidden">Laden...</span>
-                        </div>
-                        <p class="mt-3">${message}</p>
-                    </div>
-                </div>
-            `;
-            document.body.insertAdjacentHTML('beforeend', overlayHTML);
+            console.log('Progress:', message);
         }
     }
     
     hideProgress() {
-        console.log('Verberg progress');
         if (typeof super.hideProgress === 'function') {
             super.hideProgress();
         } else {
-            // Fallback
-            const overlay = document.getElementById('progressOverlay');
-            if (overlay) {
-                overlay.style.transition = 'opacity 0.3s';
-                overlay.style.opacity = '0';
-                setTimeout(() => {
-                    if (overlay.parentNode) {
-                        overlay.parentNode.removeChild(overlay);
-                    }
-                }, 300);
-            }
+            console.log('Progress hidden');
         }
     }
     
     showError(message) {
-        console.error('Error:', message);
         if (typeof super.showError === 'function') {
             super.showError(message);
         } else {
+            console.error('Error:', message);
             alert(message);
         }
     }
     
     showSuccess(message) {
-        console.log('Success:', message);
         if (typeof super.showSuccess === 'function') {
             super.showSuccess(message);
+        } else {
+            console.log('Success:', message);
         }
     }
-}
-
-// Export de klasse
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = StamboomManager;
-} else if (typeof window !== 'undefined') {
-    window.StamboomManager = StamboomManager;
 }
