@@ -8,6 +8,7 @@
  * Beide kolommen zijn nu scrollbaar
  * SUPABASE VERSIE MET PAGINATIE - FIXED VERSION
  * MET JUISTE DATABASE KOLOM NAMEN
+ * **FOTO PROBLEEM OPGELOST** - Gebruikt nu dezelfde logica als PhotoManager
  */
 
 class SearchManager extends BaseModule {
@@ -340,7 +341,7 @@ class SearchManager extends BaseModule {
                 greatGrandfather: "Urgroßvater",
                 greatGrandmother: "Urgroßmutter",
                 grandfather: "Großvater",
-                grandmother: "Großmutter",
+                grandmother: "Großmoeder",
                 
                 // Foto Übersetzungen
                 photos: "Fotos",
@@ -399,31 +400,18 @@ class SearchManager extends BaseModule {
                 e.stopPropagation();
                 
                 const photoSrc = thumbnail.getAttribute('data-photo-src');
-                console.log('Foto geklikt, src:', photoSrc);
+                const dogName = thumbnail.getAttribute('data-dog-name') || '';
                 
-                // Verkrijg de hondnaam van het dichtstbijzijnde parent element met hondnaam data
-                let dogName = '';
-                const dogInfoElement = thumbnail.closest('[data-dog-name]');
-                if (dogInfoElement) {
-                    dogName = dogInfoElement.getAttribute('data-dog-name') || '';
-                }
-                
-                // Fallback: zoek in het hele document
-                if (!dogName) {
-                    const popupTitle = document.querySelector('.popup-title');
-                    if (popupTitle) {
-                        dogName = popupTitle.textContent.trim();
-                        dogName = dogName.replace(/^[^a-zA-Z]*/, '').trim();
-                    }
-                }
+                console.log('Foto geklikt, src:', photoSrc ? photoSrc.substring(0, 100) + '...' : 'geen src');
                 
                 if (photoSrc && photoSrc.trim() !== '') {
                     this.showLargePhoto(photoSrc, dogName);
                 } else {
-                    console.error('Geen geldige foto src gevonden:', photoSrc);
+                    console.error('Geen geldige foto src gevonden in attribuut');
+                    // Probeer img src als fallback
                     const imgElement = thumbnail.querySelector('img');
                     if (imgElement && imgElement.src) {
-                        console.log('Gebruik img src als fallback:', imgElement.src);
+                        console.log('Gebruik img src als fallback:', imgElement.src.substring(0, 100) + '...');
                         this.showLargePhoto(imgElement.src, dogName);
                     }
                 }
@@ -487,7 +475,7 @@ class SearchManager extends BaseModule {
         });
     }
     
-    // Foto's ophalen voor een hond
+    // **GECORRIGEERDE METHODE: Foto's ophalen voor een hond**
     async getDogPhotos(dogId) {
         if (!dogId || dogId === 0) return [];
         
@@ -501,20 +489,39 @@ class SearchManager extends BaseModule {
         }
         
         try {
-            // Gebruik de juiste functie van het tweede bestand: getFotosVoorStamboomnr
-            let photos = [];
+            // **BELANGRIJK: Gebruik dezelfde query als PhotoManager!**
+            const { data: fotos, error } = await window.supabase
+                .from('fotos')
+                .select('*')
+                .eq('stamboomnr', dog.stamboomnr)
+                .order('uploaded_at', { ascending: false });
             
-            if (window.fotoService && typeof window.fotoService.getFotoThumbnails === 'function') {
-                photos = await window.fotoService.getFotoThumbnails(dog.stamboomnr);
-            } else if (this.db && typeof this.db.getFotosVoorStamboomnr === 'function') {
-                photos = await this.db.getFotosVoorStamboomnr(dog.stamboomnr);
-            } else {
-                console.warn('Geen geschikte foto functie gevonden in db service');
+            if (error) {
+                console.error('Supabase error bij ophalen foto\'s:', error);
                 return [];
             }
             
-            this.dogPhotosCache.set(cacheKey, photos || []);
-            return photos || [];
+            const processedPhotos = (fotos || []).map(foto => {
+                // **Gebruik de thumbnail als die er is, anders de volledige data**
+                return {
+                    id: foto.id,
+                    stamboomnr: foto.stamboomnr,
+                    data: foto.data, // volledige Base64 data
+                    thumbnail: foto.thumbnail, // thumbnail Base64 data
+                    filename: foto.filename,
+                    size: foto.size,
+                    type: foto.type,
+                    uploaded_at: foto.uploaded_at,
+                    geupload_door: foto.geupload_door,
+                    hond_id: foto.hond_id
+                };
+            });
+            
+            console.log(`SearchManager: ${processedPhotos.length} foto's gevonden voor hond ${dogId} (${dog.stamboomnr})`);
+            
+            this.dogPhotosCache.set(cacheKey, processedPhotos);
+            return processedPhotos;
+            
         } catch (error) {
             console.error('Fout bij ophalen foto\'s voor hond:', dogId, error);
             return [];
@@ -614,9 +621,9 @@ class SearchManager extends BaseModule {
         return photos.length > 0;
     }
     
-    // Toon grote foto
+    // **GECORRIGEERDE METHODE: Toon grote foto**
     showLargePhoto(photoData, dogName = '') {
-        console.log('Toon grote foto:', photoData);
+        console.log('Toon grote foto (SearchManager):', photoData ? photoData.substring(0, 100) + '...' : 'geen data');
         
         // Verwijder bestaande overlay
         const existingOverlay = document.getElementById('photoLargeOverlay');
@@ -624,11 +631,14 @@ class SearchManager extends BaseModule {
             existingOverlay.remove();
         }
         
-        // Maak nieuwe overlay
+        // Maak nieuwe overlay - ZELFDE ALS PHOTOMANAGER
         const overlayHTML = `
             <div class="photo-large-overlay" id="photoLargeOverlay" style="display: flex;">
                 <div class="photo-large-container" id="photoLargeContainer">
                     <div class="photo-large-header">
+                        <h5 class="modal-title mb-0 text-white">
+                            <i class="bi bi-image me-2"></i> ${dogName || 'Foto'}
+                        </h5>
                         <button type="button" class="btn-close btn-close-white photo-large-close" aria-label="${this.t('closePhoto')}"></button>
                     </div>
                     <div class="photo-large-content">
@@ -1399,9 +1409,9 @@ class SearchManager extends BaseModule {
                 
                 .photo-thumbnail {
                     position: relative;
-                    width: 36px;
-                    height: 36px;
-                    border-radius: 3px;
+                    width: 48px;
+                    height: 48px;
+                    border-radius: 4px;
                     overflow: hidden;
                     cursor: pointer;
                     border: 1px solid #dee2e6;
@@ -1445,7 +1455,7 @@ class SearchManager extends BaseModule {
                 }
                 
                 /* ============================================= */
-                /* GROTE FOTO OVERLAY STYLES */
+                /* GROTE FOTO OVERLAY STYLES - ZELFDE ALS PHOTOMANAGER */
                 /* ============================================= */
                 .photo-large-overlay {
                     position: fixed;
@@ -1453,9 +1463,9 @@ class SearchManager extends BaseModule {
                     left: 0;
                     right: 0;
                     bottom: 0;
-                    background: rgba(0, 0, 0, 0.85);
+                    background: rgba(0, 0, 0, 0.95);
                     z-index: 1070;
-                    display: none;
+                    display: flex;
                     align-items: center;
                     justify-content: center;
                     animation: fadeIn 0.3s;
@@ -1465,19 +1475,28 @@ class SearchManager extends BaseModule {
                     background: white;
                     border-radius: 12px;
                     overflow: hidden;
-                    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+                    box-shadow: 0 15px 50px rgba(0,0,0,0.8);
                     display: flex;
                     flex-direction: column;
                     max-height: 95vh;
+                    max-width: 95vw;
+                    width: auto;
                     animation: slideUp 0.3s;
                 }
                 
                 .photo-large-header {
-                    padding: 12px 16px;
-                    background: #0d6efd;
+                    padding: 15px 20px;
+                    background: linear-gradient(135deg, #0d6efd, #6f42c1);
                     color: white;
                     display: flex;
-                    justify-content: flex-end;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+                
+                .photo-large-header .modal-title {
+                    margin: 0;
+                    font-size: 1.2rem;
+                    font-weight: 600;
                 }
                 
                 .photo-large-close {
@@ -1485,10 +1504,10 @@ class SearchManager extends BaseModule {
                     border: none;
                     color: white;
                     opacity: 0.8;
-                    font-size: 1.3rem;
+                    font-size: 1.5rem;
                     cursor: pointer;
-                    width: 32px;
-                    height: 32px;
+                    width: 36px;
+                    height: 36px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
@@ -1502,26 +1521,32 @@ class SearchManager extends BaseModule {
                 }
                 
                 .photo-large-content {
-                    padding: 15px;
+                    padding: 20px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     overflow: hidden;
                     flex: 1;
-                    min-height: 200px;
+                    min-height: 300px;
+                    background: #000;
                 }
                 
                 .photo-large-img {
                     max-width: 100%;
-                    max-height: 100%;
+                    max-height: calc(95vh - 120px);
                     object-fit: contain;
                     border-radius: 4px;
                 }
                 
                 .photo-large-footer {
-                    padding: 10px;
+                    padding: 15px 20px;
                     background: #f8f9fa;
                     border-top: 1px solid #dee2e6;
+                    text-align: center;
+                }
+                
+                .photo-large-close-btn {
+                    min-width: 120px;
                 }
                 
                 /* ============================================= */
@@ -1694,8 +1719,8 @@ class SearchManager extends BaseModule {
                     
                     /* Responsive photo adjustments */
                     .photo-thumbnail {
-                        width: 32px;
-                        height: 32px;
+                        width: 40px;
+                        height: 40px;
                     }
                     
                     .photo-large-content {
@@ -1704,7 +1729,7 @@ class SearchManager extends BaseModule {
                     
                     .photo-large-img {
                         max-width: 95vw;
-                        max-height: 65vh;
+                        max-height: 70vh;
                     }
                     
                     /* AANPASSING: Stamboomnummer, ras, geslacht, vachtkleur en nakomelingen iets kleiner op mobiel */
@@ -2430,7 +2455,7 @@ class SearchManager extends BaseModule {
         const genderText = dog.geslacht === 'reuen' ? t('male') : 
                           dog.geslacht === 'teven' ? t('female') : t('unknown');
         
-        // Check of deze hond foto's heeft
+        // **GECORRIGEERD: Check of deze hond foto's heeft**
         const hasPhotos = await this.checkDogHasPhotos(dog.id);
         
         // Haal aantal nakomelingen op
@@ -2661,7 +2686,7 @@ class SearchManager extends BaseModule {
         
         container.insertAdjacentHTML('beforeend', html);
         
-        // Laad foto's asynchroon en voeg ze toe
+        // **GECORRIGEERD: Laad foto's asynchroon en voeg ze toe**
         if (hasPhotos) {
             this.loadAndDisplayPhotos(dog);
         }
@@ -2712,7 +2737,7 @@ class SearchManager extends BaseModule {
         }
     }
     
-    // Foto's laden en tonen
+    // **GECORRIGEERDE METHODE: Foto's laden en tonen**
     async loadAndDisplayPhotos(dog) {
         try {
             const photos = await this.getDogPhotos(dog.id);
@@ -2720,39 +2745,29 @@ class SearchManager extends BaseModule {
             const photosGrid = container.querySelector(`#photosGrid${dog.id}`);
             
             if (!photosGrid || photos.length === 0) {
+                if (photosGrid) {
+                    photosGrid.innerHTML = `
+                        <div class="text-muted small">${this.t('noPhotos')}</div>
+                    `;
+                }
                 return;
             }
             
             let photosHTML = '';
             photos.forEach((photo, index) => {
-                // Maak een geldige foto URL
-                let photoUrl = '';
-                if (photo.data && typeof photo.data === 'string') {
-                    // Base64 encoded data
-                    const mimeType = photo.type || 'image/jpeg';
-                    let cleanData = photo.data;
-                    if (cleanData.startsWith('data:')) {
-                        cleanData = cleanData.split(',')[1];
-                    }
-                    photoUrl = `data:${mimeType};base64,${cleanData}`;
-                } else if (photo.thumbnail) {
-                    // Gebruik thumbnail als die er is
-                    photoUrl = photo.thumbnail;
-                } else if (photo.url) {
-                    photoUrl = photo.url;
-                } else if (photo.filePath) {
-                    photoUrl = photo.filePath;
-                }
+                // **BELANGRIJK: Gebruik thumbnail als die beschikbaar is, anders de volledige data**
+                // Dit is dezelfde logica als in PhotoManager
+                let imageUrl = photo.thumbnail || photo.data;
                 
-                if (photoUrl) {
+                if (imageUrl) {
                     photosHTML += `
                         <div class="photo-thumbnail" 
                              data-photo-id="${photo.id || index}" 
                              data-dog-id="${dog.id}" 
                              data-photo-index="${index}"
-                             data-photo-src="${photoUrl}"
+                             data-photo-src="${imageUrl}"
                              data-dog-name="${dog.naam || ''}">
-                            <img src="${photoUrl}" 
+                            <img src="${imageUrl}" 
                                  alt="${dog.naam || ''} - ${photo.filename || ''}" 
                                  class="thumbnail-img"
                                  loading="lazy">
@@ -2768,6 +2783,14 @@ class SearchManager extends BaseModule {
             
         } catch (error) {
             console.error('Fout bij laden foto\'s:', error);
+            const photosGrid = document.getElementById(`photosGrid${dog.id}`);
+            if (photosGrid) {
+                photosGrid.innerHTML = `
+                    <div class="text-danger small">
+                        <i class="bi bi-exclamation-triangle"></i> Fout bij laden foto's
+                    </div>
+                `;
+            }
         }
     }
     
