@@ -3012,10 +3012,10 @@ class SearchManager extends BaseModule {
                              data-photo-id="${photo.id || index}" 
                              data-dog-id="${dog.id}" 
                              data-photo-index="${index}"
-                             data-photo-src="${fullSizeUrl}" <!-- ORIGINELE FOTO voor grote weergave! -->
-                             data-thumbnail-src="${thumbnailUrl}" <!-- Thumbnail voor grid -->
+                             data-photo-src="${fullSizeUrl}"
+                             data-thumbnail-src="${thumbnailUrl}"
                              data-dog-name="${dog.naam || ''}">
-                            <img src="${thumbnailUrl}" <!-- THUMBNAIL voor grid -->
+                            <img src="${thumbnailUrl}"
                                  alt="${dog.naam || ''} - ${photo.filename || ''}" 
                                  class="thumbnail-img"
                                  loading="lazy">
