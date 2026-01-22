@@ -55,7 +55,7 @@ class ReuTeefCombinatie {
                 grandfatherLabel: "Grootvader",
                 grandmotherLabel: "Grootmoeder",
                 greatGrandfatherLabel: "Overgrootvader",
-                greatGrandmotherLabel: "Overgrootmoeder",
+                greatGrandmotherLabel: "Overgrootmoemer",
                 greatGreatGrandfatherLabel: "Over-overgrootvader",
                 greatGreatGrandmotherLabel: "Over-overgrootmoeder",
                 typeToSearch: "Begin met typen om te zoeken",
@@ -1558,13 +1558,98 @@ class ReuTeefCombinatie {
             return;
         }
         
-        // Initialiseer stamboom module als die nog niet bestaat
-        if (!this.stamboomModule) {
-            this.stamboomModule = new ReuTeefStamboom(this);
+        try {
+            // Controleer eerst of ReuTeefStamboom bestaat
+            if (typeof ReuTeefStamboom === 'undefined' && typeof window.ReuTeefStamboom === 'undefined') {
+                console.warn('⚠️ ReuTeefStamboom is niet beschikbaar, laag basis stamboom');
+                await this.showBasicPedigree();
+                return;
+            }
+            
+            // Initialiseer stamboom module als die nog niet bestaat
+            if (!this.stamboomModule) {
+                // Gebruik globale variant als beschikbaar
+                const StamboomClass = typeof ReuTeefStamboom !== 'undefined' ? ReuTeefStamboom : window.ReuTeefStamboom;
+                this.stamboomModule = new StamboomClass(this);
+            }
+            
+            // Laad de stamboom
+            await this.stamboomModule.showFuturePuppyPedigree(this.selectedTeef, this.selectedReu);
+            
+        } catch (error) {
+            console.error('❌ Fout bij tonen stamboom:', error);
+            this.showAlert('Kan stamboom niet tonen. Probeer een eenvoudige versie.', 'warning');
+            await this.showBasicPedigree();
+        }
+    }
+    
+    async showBasicPedigree() {
+        const t = this.t.bind(this);
+        
+        // Simpele stamboom weergave
+        const modal = new bootstrap.Modal(document.getElementById('pedigreeModal') || this.createBasicModal());
+        const title = t('pedigreeTitle', { name: t('futurePuppyName') });
+        const content = `
+            <div class="modal-header">
+                <h5 class="modal-title">${title}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    Basis stamboom weergave voor combinatie ${this.selectedTeef.naam} × ${this.selectedReu.naam}
+                </div>
+                
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <strong>Toekomstige Pup</strong>
+                    </div>
+                    <div class="card-body">
+                        <p>Combinatie van:</p>
+                        <ul>
+                            <li><strong>Vader:</strong> ${this.selectedReu.naam} ${this.selectedReu.stamboomnr ? `(${this.selectedReu.stamboomnr})` : ''}</li>
+                            <li><strong>Moeder:</strong> ${this.selectedTeef.naam} ${this.selectedTeef.stamboomnr ? `(${this.selectedTeef.stamboomnr})` : ''}</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <strong>Gezondheidsoverzicht</strong>
+                    </div>
+                    <div class="card-body">
+                        <p>Volledige stamboomfunctionaliteit is momenteel niet beschikbaar.</p>
+                        <p>Controleer of het bestand <code>ReuTeefStamboom.js</code> correct geladen is.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">${t('close')}</button>
+            </div>
+        `;
+        
+        const modalElement = document.getElementById('pedigreeModal') || this.createBasicModal();
+        modalElement.querySelector('.modal-content').innerHTML = content;
+        modal.show();
+    }
+    
+    createBasicModal() {
+        const modalId = 'basicPedigreeModal';
+        let modalElement = document.getElementById(modalId);
+        
+        if (!modalElement) {
+            modalElement = document.createElement('div');
+            modalElement.id = modalId;
+            modalElement.className = 'modal fade';
+            modalElement.innerHTML = `
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content"></div>
+                </div>
+            `;
+            document.body.appendChild(modalElement);
         }
         
-        // Laad de stamboom via het aparte bestand
-        await this.stamboomModule.showFuturePuppyPedigree(this.selectedTeef, this.selectedReu);
+        return modalElement;
     }
     
     showAlert(message, type = 'info') {
