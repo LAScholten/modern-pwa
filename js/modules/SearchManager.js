@@ -8,7 +8,7 @@
  * Beide kolommen zijn nu scrollbaar
  * SUPABASE VERSIE MET PAGINATIE - FIXED VERSION
  * MET JUISTE DATABASE KOLOM NAMEN
- * **FOTO PROBLEEM OPGELOST** - Gebruikt nu dezelfde logica als PhotoManager
+ * **FOTO PROBLEEM OPGELOST** - Gebruikt nu EXACT DEZELFDE LOGICA als PhotoManager
  */
 
 class SearchManager extends BaseModule {
@@ -464,7 +464,7 @@ class SearchManager extends BaseModule {
         });
     }
     
-    // **GECORRIGEERDE METHODE: Foto's ophalen voor een hond**
+    // **VERBETERDE METHODE: Foto's ophalen voor een hond - EXACT ZELFDE ALS PHOTOMANAGER**
     async getDogPhotos(dogId) {
         if (!dogId || dogId === 0) return [];
         
@@ -478,7 +478,7 @@ class SearchManager extends BaseModule {
         }
         
         try {
-            // **BELANGRIJK: Gebruik dezelfde query als PhotoManager!**
+            // **EXACT DEZELFDE QUERY ALS PHOTOMANAGER**
             const { data: fotos, error } = await window.supabase
                 .from('fotos')
                 .select('*')
@@ -490,26 +490,10 @@ class SearchManager extends BaseModule {
                 return [];
             }
             
-            const processedPhotos = (fotos || []).map(foto => {
-                // **Gebruik de thumbnail als die er is, anders de volledige data**
-                return {
-                    id: foto.id,
-                    stamboomnr: foto.stamboomnr,
-                    data: foto.data, // volledige Base64 data
-                    thumbnail: foto.thumbnail, // thumbnail Base64 data
-                    filename: foto.filename,
-                    size: foto.size,
-                    type: foto.type,
-                    uploaded_at: foto.uploaded_at,
-                    geupload_door: foto.geupload_door,
-                    hond_id: foto.hond_id
-                };
-            });
+            console.log(`SearchManager: ${fotos?.length || 0} foto's gevonden voor hond ${dogId} (${dog.stamboomnr})`);
             
-            console.log(`SearchManager: ${processedPhotos.length} foto's gevonden voor hond ${dogId} (${dog.stamboomnr})`);
-            
-            this.dogPhotosCache.set(cacheKey, processedPhotos);
-            return processedPhotos;
+            this.dogPhotosCache.set(cacheKey, fotos || []);
+            return fotos || [];
             
         } catch (error) {
             console.error('Fout bij ophalen foto\'s voor hond:', dogId, error);
@@ -3016,19 +3000,22 @@ class SearchManager extends BaseModule {
             
             let photosHTML = '';
             photos.forEach((photo, index) => {
-                // **BELANGRIJK: Gebruik thumbnail als die beschikbaar is, anders de volledige data**
-                // Dit is dezelfde logica als in PhotoManager
-                let imageUrl = photo.thumbnail || photo.data;
+                // **BELANGRIJK: Voor thumbnails gebruik de thumbnail, voor grote weergave gebruik data**
+                // Thumbnail voor het grid
+                let thumbnailUrl = photo.thumbnail || photo.data;
+                // Originele foto voor grote weergave
+                let fullSizeUrl = photo.data;
                 
-                if (imageUrl) {
+                if (thumbnailUrl && fullSizeUrl) {
                     photosHTML += `
                         <div class="photo-thumbnail" 
                              data-photo-id="${photo.id || index}" 
                              data-dog-id="${dog.id}" 
                              data-photo-index="${index}"
-                             data-photo-src="${imageUrl}"
+                             data-photo-src="${fullSizeUrl}" <!-- ORIGINELE FOTO voor grote weergave! -->
+                             data-thumbnail-src="${thumbnailUrl}" <!-- Thumbnail voor grid -->
                              data-dog-name="${dog.naam || ''}">
-                            <img src="${imageUrl}" 
+                            <img src="${thumbnailUrl}" <!-- THUMBNAIL voor grid -->
                                  alt="${dog.naam || ''} - ${photo.filename || ''}" 
                                  class="thumbnail-img"
                                  loading="lazy">
