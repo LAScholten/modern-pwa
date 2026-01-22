@@ -1,478 +1,261 @@
 /**
- * ReuTeefStamboom Module - ZELFSTANDIG BESTAND
- * Toont 5-generatie stambomen voor toekomstige pups met COI berekening
- * Gebruikt exact dezelfde data en methoden als StamboomManager
+ * Reu en Teef Stamboom Module - AFZONDERLIJK BESTAND
+ * Bevat alle stamboom functionaliteit voor toekomstige pup
  */
 
 class ReuTeefStamboom {
-    constructor(hondenService, currentLang = 'nl') {
-        this.hondenService = hondenService;
-        this.currentLang = currentLang;
-        
-        // Exact dezelfde datastructuur als StamboomManager
-        this.allDogs = [];
-        this.coiCalculator = null;
-        
-        // Exact dezelfde caches als StamboomManager
-        this.dogPhotosCache = new Map();
-        this.dogHasPhotosCache = new Map();
-        this.dogThumbnailsCache = new Map();
-        this.fullPhotoCache = new Map();
-        
-        // Exact dezelfde vertalingen als StamboomManager
-        this.translations = {
-            nl: {
-                futurePuppyTitle: "Voorspelde stamboom: {reu} x {teef}",
-                futurePuppyName: "Toekomstige Pup",
-                futurePuppyDescription: "Dit is een voorspelde 5-generatie stamboom voor een toekomstige pup van {reu} en {teef}. De COI-waarden zijn berekend op basis van de gemeenschappelijke voorouders.",
-                combinedParents: "Gecombineerde ouders",
-                loadingPedigree: "Stamboom genereren...",
-                fatherLabel: "Vader",
-                motherLabel: "Moeder",
-                grandfatherLabel: "Grootvader",
-                grandmotherLabel: "Grootmoeder",
-                greatGrandfatherLabel: "Overgrootvader",
-                greatGrandmotherLabel: "Overgrootmoeder",
-                greatGreatGrandfatherLabel: "Overovergrootvader",
-                greatGreatGrandmotherLabel: "Overovergrootmoeder",
-                predictedCoi: "Voorspelde COI-waarden",
-                predictedPedigree: "Voorspelde stamboom",
-                healthInLine: "Gezondheid in lijn",
-                motherLine: "Moederlijn",
-                fatherLine: "Vaderlijn",
-                healthCategory: "Gezondheidscategorie",
-                
-                // Zelfde als StamboomManager
-                pedigreeTitle: "Stamboom van {name}",
-                pedigree4Gen: "5-generatie stamboom",
-                generatingPedigree: "Stamboom genereren...",
-                loadingAllDogs: "Alle honden laden... ({loaded} geladen)",
-                close: "Sluiten",
-                print: "Afdrukken",
-                noData: "Geen gegevens",
-                unknown: "Onbekend",
-                currentDog: "Huidige hond",
-                mainDog: "Hoofdhond",
-                father: "Vader",
-                mother: "Moeder",
-                grandfather: "Grootvader",
-                grandmother: "Grootmoeder",
-                greatGrandfather: "Overgrootvader",
-                greatGrandmother: "Overgrootmoeder",
-                greatGreatGrandfather: "Overovergrootvader",
-                greatGreatGrandmother: "Overovergrootmoeder",
-                name: "Naam",
-                kennel: "Kennel",
-                pedigreeNumber: "Stamboomnummer",
-                breed: "Ras",
-                gender: "Geslacht",
-                birthDate: "Geboortedatum",
-                deathDate: "Overlijdensdatum",
-                coatColor: "Vachtkleur",
-                country: "Land",
-                zipCode: "Postcode",
-                healthInfo: "Gezondheidsinformatie",
-                hipDysplasia: "Heupdysplasie",
-                elbowDysplasia: "Elleboogdysplasie",
-                patellaLuxation: "Patella Luxatie",
-                eyes: "Ogen",
-                dandyWalker: "Dandy Walker Malformation",
-                thyroid: "Schildklier",
-                eyesExplanation: "Verklaring ogen",
-                thyroidExplanation: "Toelichting schildklier",
-                male: "Reu",
-                female: "Teef",
-                paternal: "Paternaal",
-                maternal: "Maternaal",
-                clickForDetails: "Klik voor details",
-                closePopup: "Sluiten",
-                remarks: "Opmerkingen",
-                noRemarks: "Geen opmerkingen",
-                parents: "Ouders",
-                grandparents: "Grootouders",
-                greatGrandparents: "Overgrootouders",
-                greatGreatGrandparents: "Overovergrootouders",
-                coi6Gen: "COI 6 Gen",
-                kinship6Gen: "Kinship 6 Gen",
-                homozygosity6Gen: "Homozygotie 6 Gen",
-                photos: "Foto's",
-                noPhotos: "Geen foto's beschikbaar",
-                clickToEnlarge: "Klik om te vergroten",
-                closePhoto: "Sluiten",
-                
-                // Gezondheid waarden
-                hdA: "HD A",
-                hdB: "HD B",
-                hdC: "HD C",
-                hdD: "HD D",
-                hdE: "HD E",
-                hdUnknown: "HD Onbekend",
-                ed0: "ED 0",
-                ed1: "ED 1",
-                ed2: "ED 2",
-                ed3: "ED 3",
-                edUnknown: "ED Onbekend",
-                pl0: "PL 0",
-                pl1: "PL 1",
-                pl2: "PL 2",
-                pl3: "PL 3",
-                plUnknown: "PL Onbekend",
-                eyesFree: "Ogen Vrij",
-                eyesDist: "Ogen Dist",
-                eyesOther: "Ogen Anders",
-                eyesUnknown: "Ogen Onbekend",
-                dwlmDnaFree: "DWLM DNA Vrij",
-                dwlmParentsFree: "DWLM Ouders Vrij",
-                dwlmUnknown: "DWLM Onbekend",
-                thyroidTested: "Schildklier Getest",
-                thyroidUnknown: "Schildklier Onbekend"
-            },
-            en: {
-                futurePuppyTitle: "Predicted Pedigree: {reu} x {teef}",
-                futurePuppyName: "Future Puppy",
-                futurePuppyDescription: "This is a predicted 5-generation pedigree for a future puppy of {reu} and {teef}. The COI values are calculated based on common ancestors.",
-                combinedParents: "Combined parents",
-                loadingPedigree: "Generating pedigree...",
-                fatherLabel: "Father",
-                motherLabel: "Mother",
-                grandfatherLabel: "Grandfather",
-                grandmotherLabel: "Grandmother",
-                greatGrandfatherLabel: "Great Grandfather",
-                greatGrandmotherLabel: "Great Grandmother",
-                greatGreatGrandfatherLabel: "Great Great Grandfather",
-                greatGreatGrandmotherLabel: "Great Great Grandmother",
-                predictedCoi: "Predicted COI Values",
-                predictedPedigree: "Predicted Pedigree",
-                healthInLine: "Health In Line",
-                motherLine: "Mother Line",
-                fatherLine: "Father Line",
-                healthCategory: "Health Category",
-                
-                // Same as StamboomManager
-                pedigreeTitle: "Pedigree of {name}",
-                pedigree4Gen: "5-generation pedigree",
-                generatingPedigree: "Generating pedigree...",
-                loadingAllDogs: "Loading all dogs... ({loaded} loaded)",
-                close: "Close",
-                print: "Print",
-                noData: "No data",
-                unknown: "Unknown",
-                currentDog: "Current Dog",
-                mainDog: "Main Dog",
-                father: "Father",
-                mother: "Mother",
-                grandfather: "Grandfather",
-                grandmother: "Grandmother",
-                greatGrandfather: "Great Grandfather",
-                greatGrandmother: "Great Grandmother",
-                greatGreatGrandfather: "Great Great Grandfather",
-                greatGreatGrandmother: "Great Great Grandmother",
-                name: "Name",
-                kennel: "Kennel",
-                pedigreeNumber: "Pedigree number",
-                breed: "Breed",
-                gender: "Gender",
-                birthDate: "Birth date",
-                deathDate: "Death date",
-                coatColor: "Coat color",
-                country: "Country",
-                zipCode: "Zip code",
-                healthInfo: "Health Information",
-                hipDysplasia: "Hip Dysplasia",
-                elbowDysplasia: "Elbow Dysplasia",
-                patellaLuxation: "Patella Luxation",
-                eyes: "Eyes",
-                dandyWalker: "Dandy Walker Malformation",
-                thyroid: "Thyroid",
-                eyesExplanation: "Eye explanation",
-                thyroidExplanation: "Thyroid explanation",
-                male: "Male",
-                female: "Female",
-                paternal: "Paternal",
-                maternal: "Maternaal",
-                clickForDetails: "Click for details",
-                closePopup: "Close",
-                remarks: "Remarks",
-                noRemarks: "No remarks",
-                parents: "Parents",
-                grandparents: "Grandparents",
-                greatGrandparents: "Great Grandparents",
-                greatGreatGrandparents: "Great Great Grandparents",
-                coi6Gen: "COI 6 Gen",
-                kinship6Gen: "Kinship 6 Gen",
-                homozygosity6Gen: "Homozygotie 6 Gen",
-                photos: "Photos",
-                noPhotos: "No photos available",
-                clickToEnlarge: "Click to enlarge",
-                closePhoto: "Close",
-                
-                // Health values
-                hdA: "HD A",
-                hdB: "HD B",
-                hdC: "HD C",
-                hdD: "HD D",
-                hdE: "HD E",
-                hdUnknown: "HD Unknown",
-                ed0: "ED 0",
-                ed1: "ED 1",
-                ed2: "ED 2",
-                ed3: "ED 3",
-                edUnknown: "ED Unknown",
-                pl0: "PL 0",
-                pl1: "PL 1",
-                pl2: "PL 2",
-                pl3: "PL 3",
-                plUnknown: "PL Unknown",
-                eyesFree: "Eyes Free",
-                eyesDist: "Eyes Dist",
-                eyesOther: "Eyes Other",
-                eyesUnknown: "Eyes Unknown",
-                dwlmDnaFree: "DWLM DNA Free",
-                dwlmParentsFree: "DWLM Parents Free",
-                dwlmUnknown: "DWLM Unknown",
-                thyroidTested: "Thyroid Tested",
-                thyroidUnknown: "Thyroid Unknown"
-            },
-            de: {
-                futurePuppyTitle: "Vorhergesagte Ahnentafel: {reu} x {teef}",
-                futurePuppyName: "Zukünftiger Welpe",
-                futurePuppyDescription: "Dies ist eine vorhergesagte 5-Generationen-Ahnentafel für einen zukünftigen Welpen von {reu} und {teef}. Die COI-Werte basieren auf gemeinsamen Vorfahren.",
-                combinedParents: "Kombinierte Eltern",
-                loadingPedigree: "Ahnentafel wird generiert...",
-                fatherLabel: "Vater",
-                motherLabel: "Mutter",
-                grandfatherLabel: "Großvater",
-                grandmotherLabel: "Großmutter",
-                greatGrandfatherLabel: "Urgroßvater",
-                greatGrandmotherLabel: "Urgroßmutter",
-                greatGreatGrandfatherLabel: "Ururgroßvater",
-                greatGreatGrandmotherLabel: "Ururgroßmutter",
-                predictedCoi: "Vorhergesagte COI-Werte",
-                predictedPedigree: "Vorhergesagte Ahnentafel",
-                healthInLine: "Gesundheit in der Linie",
-                motherLine: "Mutterlinie",
-                fatherLine: "Vaterlinie",
-                healthCategory: "Gesundheitskategorie",
-                
-                // Same as StamboomManager
-                pedigreeTitle: "Ahnentafel von {name}",
-                pedigree4Gen: "5-Generationen Ahnentafel",
-                generatingPedigree: "Ahnentafel wird generiert...",
-                loadingAllDogs: "Lade alle Hunde... ({loaded} geladen)",
-                close: "Schließen",
-                print: "Drucken",
-                noData: "Keine Daten",
-                unknown: "Unbekannt",
-                currentDog: "Aktueller Hund",
-                mainDog: "Haupt-Hund",
-                father: "Vader",
-                mother: "Mutter",
-                grandfather: "Großvater",
-                grandmother: "Großmutter",
-                greatGrandfather: "Urgroßvader",
-                greatGrandmother: "Urgroßmutter",
-                greatGreatGrandfather: "Ururgroßvater",
-                greatGreatGrandmother: "Ururgroßmutter",
-                name: "Name",
-                kennel: "Kennel",
-                pedigreeNumber: "Stammbaum-Nummer",
-                breed: "Rasse",
-                gender: "Geslacht",
-                birthDate: "Geboortedatum",
-                deathDate: "Sterbedatum",
-                coatColor: "Fellfarbe",
-                country: "Country",
-                zipCode: "Postleitzahl",
-                healthInfo: "Gesundheitsinformationen",
-                hipDysplasia: "Hüftdysplasie",
-                elbowDysplasia: "Ellbogendysplasie",
-                patellaLuxation: "Patella Luxation",
-                eyes: "Augen",
-                dandyWalker: "Dandy Walker Malformation",
-                thyroid: "Schilddrüse",
-                eyesExplanation: "Augenerklärung",
-                thyroidExplanation: "Schilddrüse Erklärung",
-                male: "Rüde",
-                female: "Hündin",
-                paternal: "Väterlich",
-                maternal: "Mütterlich",
-                clickForDetails: "Klicken für Details",
-                closePopup: "Schließen",
-                remarks: "Bemerkungen",
-                noRemarks: "Keine Bemerkungen",
-                parents: "Eltern",
-                grandparents: "Großeltern",
-                greatGrandparents: "Urgroßeltern",
-                greatGreatGrandparents: "Ururgroßeltern",
-                coi6Gen: "COI 6 Gen",
-                kinship6Gen: "Kinship 6 Gen",
-                homozygosity6Gen: "Homozygotie 6 Gen",
-                photos: "Fotos",
-                noPhotos: "Keine Fotos verfügbar",
-                clickToEnlarge: "Klicken zum Vergrößern",
-                closePhoto: "Schließen",
-                
-                // Health values
-                hdA: "HD A",
-                hdB: "HD B",
-                hdC: "HD C",
-                hdD: "HD D",
-                hdE: "HD E",
-                hdUnknown: "HD Unbekannt",
-                ed0: "ED 0",
-                ed1: "ED 1",
-                ed2: "ED 2",
-                ed3: "ED 3",
-                edUnknown: "ED Unbekannt",
-                pl0: "PL 0",
-                pl1: "PL 1",
-                pl2: "PL 2",
-                pl3: "PL 3",
-                plUnknown: "PL Unbekannt",
-                eyesFree: "Augen Frei",
-                eyesDist: "Augen Dist",
-                eyesOther: "Augen Andere",
-                eyesUnknown: "Augen Unbekannt",
-                dwlmDnaFree: "DWLM DNA Frei",
-                dwlmParentsFree: "DWLM Eltern Frei",
-                dwlmUnknown: "DWLM Unbekannt",
-                thyroidTested: "Schilddrüse Getestet",
-                thyroidUnknown: "Schilddrüse Unbekannt"
-            }
-        };
-        
+    constructor(mainModule) {
+        this.mainModule = mainModule;
+        this.t = mainModule.t.bind(mainModule);
+        this.currentLang = mainModule.currentLang;
+        this.db = mainModule.db;
+        this.allHonden = []; // Wordt asynchroon ingeladen
         this.selectedTeef = null;
         this.selectedReu = null;
         
-        // COI Calculator
+        // COI Calculator - wordt LAAT geïnitialiseerd
         this.coiCalculator = null;
         this.coiCalculatorReady = false;
         this.coiCalculationInProgress = false;
         
-        // Gezondheidsanalyse cache
+        // Cache voor gezondheidsanalyse
         this.healthAnalysisCache = new Map();
         
-        // Event handlers
-        this._eventHandlers = {};
-        this._isActive = false;
+        // Initialisatie vlag
+        this.isInitialized = false;
+        this.isInitializing = false;
+        this.initializationError = null;
         
-        // NIEUW: Initialisatie status
-        this._initialized = false;
-        this._initializationPromise = null;
+        // Paginatie configuratie
+        this.pageSize = 500; // Verminderd voor snellere laadtijd
+        this.maxPages = 50; // Maximaal 25,000 honden
         
         console.log('🔄 ReuTeefStamboom geïnitialiseerd als zelfstandig bestand');
+        console.log('📦 HondenService beschikbaar?', !!window.hondenService);
+        console.log('📦 Supabase beschikbaar?', !!window.supabase);
     }
     
-    t(key) {
-        return this.translations[this.currentLang][key] || key;
-    }
-    
-    async initialize() {
+    // NIEUW: Toon loading progress
+    showProgress(message, loaded, total) {
         try {
-            // Voorkom meerdere initialisaties tegelijk
-            if (this._initializationPromise) {
-                return await this._initializationPromise;
+            const progressElement = document.getElementById('rtcStamboomProgress');
+            if (progressElement) {
+                const percentage = total ? Math.round((loaded / total) * 100) : 0;
+                progressElement.innerHTML = `
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" 
+                             style="width: ${percentage}%">
+                            ${percentage}%
+                        </div>
+                    </div>
+                    <small class="text-muted">${message}: ${loaded}${total ? ` / ${total}` : ''}</small>
+                `;
+                progressElement.style.display = 'block';
             }
-            
-            this._initializationPromise = (async () => {
-                console.log('ReuTeefStamboom: Initialiseren...');
-                
-                // Toon voortgang
-                this.showProgress(this.t('loadingAllDogs').replace('{loaded}', '0'));
-                
-                // Exact dezelfde methode als StamboomManager om ALLE honden te laden
-                this.allDogs = await this.loadAllDogsWithPagination();
-                
-                console.log(`${this.allDogs.length} honden geladen voor ReuTeefStamboom`);
-                
-                if (typeof COICalculator !== 'undefined') {
-                    this.coiCalculator = new COICalculator(this.allDogs);
-                    console.log('COI Calculator geïnitialiseerd');
-                } else {
-                    console.error('COICalculator klasse niet gevonden!');
-                    this.coiCalculator = null;
-                }
-                
-                this._isActive = true;
-                this._initialized = true;
-                
-                // Verberg voortgang
-                this.hideProgress();
-                
-                console.log('ReuTeefStamboom: Initialisatie voltooid');
-                
-                return true;
-            })();
-            
-            return await this._initializationPromise;
-            
         } catch (error) {
-            console.error('Fout bij initialiseren ReuTeefStamboom:', error);
-            this.showError('Kon ReuTeefStamboom niet initialiseren: ' + error.message);
-            this._initializationPromise = null;
-            return false;
+            console.error('Fout bij tonen progress:', error);
         }
     }
     
-    async loadAllDogsWithPagination() {
+    // NIEUW: Verberg progress
+    hideProgress() {
         try {
-            let allDogs = [];
-            let currentPage = 1;
-            const pageSize = 1000;
-            let hasMorePages = true;
-            let totalLoaded = 0;
+            const progressElement = document.getElementById('rtcStamboomProgress');
+            if (progressElement) {
+                progressElement.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('Fout bij verbergen progress:', error);
+        }
+    }
+    
+    // NIEUW: Toon error
+    showError(message) {
+        console.error('❌', message);
+        this.mainModule.showAlert(message, 'danger');
+    }
+    
+    // NIEUW: Verbeterde initialisatie
+    async initialize() {
+        if (this.isInitialized) {
+            console.log('✅ ReuTeefStamboom al geïnitialiseerd');
+            return true;
+        }
+        
+        if (this.isInitializing) {
+            console.log('⏳ ReuTeefStamboom is al bezig met initialiseren...');
+            return false;
+        }
+        
+        this.isInitializing = true;
+        console.log('🔄 ReuTeefStamboom: Initialiseren...');
+        
+        try {
+            // Toon progress
+            this.showProgress('Alle honden laden...', 0, 0);
             
-            console.log('ReuTeefStamboom: Laden van alle honden met paginatie...');
+            // Laad alle honden
+            this.allHonden = await this.loadAllDogsWithPagination();
             
-            while (hasMorePages) {
-                console.log(`Laden pagina ${currentPage}...`);
-                
-                const result = await this.hondenService.getHonden(currentPage, pageSize);
-                
-                if (result.honden && result.honden.length > 0) {
-                    allDogs = allDogs.concat(result.honden);
-                    totalLoaded = allDogs.length;
-                    
-                    // Update progress
-                    const progressMessage = this.t('loadingAllDogs').replace('{loaded}', totalLoaded);
-                    this.showProgress(progressMessage);
-                    
-                    console.log(`Pagina ${currentPage} geladen: ${result.honden.length} honden`);
-                    
-                    hasMorePages = result.heeftVolgende;
-                    currentPage++;
-                    
-                    if (currentPage > 100) {
-                        console.warn('Veiligheidslimiet bereikt: te veel pagina\'s geladen');
-                        break;
-                    }
-                } else {
-                    hasMorePages = false;
-                }
-                
-                await new Promise(resolve => setTimeout(resolve, 100));
+            if (this.allHonden.length === 0) {
+                console.warn('⚠️ Geen honden gevonden in database');
+                this.showError('Kon geen honden laden uit de database');
+                return false;
             }
             
-            allDogs.sort((a, b) => {
-                const naamA = a.naam || '';
-                const naamB = b.naam || '';
-                return naamA.localeCompare(naamB);
-            });
+            console.log(`✅ ${this.allHonden.length} honden geladen voor ReuTeefStamboom`);
             
-            console.log(`ReuTeefStamboom: TOTAAL ${allDogs.length} honden geladen`);
+            // Initialiseer COICalculator (maar gebruik hem nog niet)
+            if (typeof COICalculator !== 'undefined') {
+                this.coiCalculator = new COICalculator(this.allHonden);
+                this.coiCalculatorReady = true;
+                console.log('✅ COI Calculator geïnitialiseerd');
+            } else {
+                console.warn('⚠️ COICalculator niet beschikbaar');
+            }
+            
+            this.isInitialized = true;
+            console.log('✅ ReuTeefStamboom: Initialisatie voltooid');
+            return true;
+            
+        } catch (error) {
+            console.error('❌ Fout bij initialisatie ReuTeefStamboom:', error);
+            this.showError(`Fout bij initialiseren: ${error.message}`);
+            return false;
+        } finally {
+            this.isInitializing = false;
+            this.hideProgress();
+        }
+    }
+    
+    // NIEUW: Verbeterde methode voor laden honden
+    async loadAllDogsWithPagination() {
+        console.log('🔄 ReuTeefStamboom: Laden van alle honden met paginatie...');
+        
+        try {
+            const allDogs = [];
+            let currentPage = 1;
+            let totalLoaded = 0;
+            let hasMorePages = true;
+            let totalDogs = null;
+            
+            // BELANGRIJK: Controleer of window.hondenService bestaat
+            if (!window.hondenService) {
+                throw new Error('window.hondenService is niet beschikbaar');
+            }
+            
+            if (typeof window.hondenService.getHonden !== 'function') {
+                throw new Error('window.hondenService.getHonden is geen functie');
+            }
+            
+            while (hasMorePages && currentPage <= this.maxPages) {
+                try {
+                    console.log(`📄 Laden pagina ${currentPage}...`);
+                    
+                    // GEBRUIK WINDOW.HONDENSERVICE DIRECT - BELANGRIJK!
+                    const result = await window.hondenService.getHonden(currentPage, this.pageSize);
+                    
+                    if (!result || !result.honden) {
+                        console.error('❌ Ongeldig resultaat van hondenService:', result);
+                        break;
+                    }
+                    
+                    const pageDogs = result.honden || [];
+                    console.log(`✅ Pagina ${currentPage}: ${pageDogs.length} honden`);
+                    
+                    if (pageDogs.length > 0) {
+                        // Transformeer Supabase honden naar ons formaat
+                        const transformedDogs = pageDogs.map(dog => this.transformSupabaseDog(dog));
+                        allDogs.push(...transformedDogs);
+                        totalLoaded += pageDogs.length;
+                    }
+                    
+                    // Update totale telling
+                    if (result.totaal !== undefined && result.totaal !== null) {
+                        totalDogs = result.totaal;
+                    }
+                    
+                    // Update progress
+                    this.showProgress('Honden laden...', totalLoaded, totalDogs);
+                    
+                    // Controleer of er meer pagina's zijn
+                    hasMorePages = result.heeftVolgende && pageDogs.length === this.pageSize;
+                    
+                    currentPage++;
+                    
+                    // Kleine pauze om server niet te overloaden
+                    if (hasMorePages) {
+                        await new Promise(resolve => setTimeout(resolve, 50));
+                    }
+                    
+                } catch (pageError) {
+                    console.error(`❌ Fout bij laden pagina ${currentPage}:`, pageError);
+                    
+                    // Probeer nog 1 keer
+                    try {
+                        console.log(`🔄 Opnieuw proberen pagina ${currentPage}...`);
+                        const retryResult = await window.hondenService.getHonden(currentPage, this.pageSize);
+                        
+                        if (retryResult && retryResult.honden && retryResult.honden.length > 0) {
+                            const transformedDogs = retryResult.honden.map(dog => this.transformSupabaseDog(dog));
+                            allDogs.push(...transformedDogs);
+                            totalLoaded += retryResult.honden.length;
+                            hasMorePages = retryResult.heeftVolgende;
+                            currentPage++;
+                        } else {
+                            hasMorePages = false;
+                        }
+                    } catch (retryError) {
+                        console.error(`❌ Retry mislukt voor pagina ${currentPage}:`, retryError);
+                        hasMorePages = false;
+                    }
+                }
+            }
+            
+            console.log(`✅ Succesvol geladen: ${allDogs.length} honden uit Supabase`);
             return allDogs;
             
         } catch (error) {
-            console.error('Fout bij laden honden voor ReuTeefStamboom:', error);
-            this.showError('Kon honden niet laden: ' + error.message);
+            console.error('❌ Fout bij laden honden voor ReuTeefStamboom:', error);
+            this.showError(`Kon honden niet laden: ${error.message}`);
             return [];
         }
     }
     
-    // NIEUW: Zorg ervoor dat de module geïnitialiseerd is voor gebruik
+    // NIEUW: Transformeer Supabase hond naar ons formaat
+    transformSupabaseDog(supabaseDog) {
+        return {
+            id: supabaseDog.id,
+            naam: supabaseDog.naam || '',
+            geslacht: supabaseDog.geslacht || 'onbekend',
+            vaderId: supabaseDog.vader_id || null,
+            moederId: supabaseDog.moeder_id || null,
+            vader: supabaseDog.vader || '',
+            moeder: supabaseDog.moeder || '',
+            kennelnaam: supabaseDog.kennelnaam || '',
+            stamboomnr: supabaseDog.stamboomnr || '',
+            ras: supabaseDog.ras || '',
+            vachtkleur: supabaseDog.vachtkleur || '',
+            geboortedatum: supabaseDog.geboortedatum || null,
+            overlijdensdatum: supabaseDog.overlijdensdatum || null,
+            heupdysplasie: supabaseDog.heupdysplasie || null,
+            elleboogdysplasie: supabaseDog.elleboogdysplasie || null,
+            patella: supabaseDog.patella || null,
+            ogen: supabaseDog.ogen || null,
+            ogenVerklaring: supabaseDog.ogenverklaring || null,
+            dandyWalker: supabaseDog.dandywalker || supabaseDog.dandyWalker || null,
+            schildklier: supabaseDog.schildklier || null,
+            schildklierVerklaring: supabaseDog.schildklierverklaring || null,
+            land: supabaseDog.land || null,
+            postcode: supabaseDog.postcode || null,
+            opmerkingen: supabaseDog.opmerkingen || null
+        };
+    }
+    
     async ensureInitialized() {
-        if (!this._initialized) {
-            console.log('ReuTeefStamboom nog niet geïnitialiseerd, initialiseer nu...');
+        if (!this.isInitialized) {
+            console.log('🔄 ReuTeefStamboom nog niet geïnitialiseerd, initialiseer nu...');
             const success = await this.initialize();
             if (!success) {
                 throw new Error('Kon ReuTeefStamboom niet initialiseren');
@@ -481,358 +264,663 @@ class ReuTeefStamboom {
         return true;
     }
     
-    cleanup() {
-        this._isActive = false;
-        this._initialized = false;
-        this.removeEventListeners();
-        
-        this.dogPhotosCache.clear();
-        this.dogHasPhotosCache.clear();
-        this.dogThumbnailsCache.clear();
-        this.fullPhotoCache.clear();
-        this.healthAnalysisCache.clear();
-    }
-    
-    removeEventListeners() {
-        if (this._eventHandlers.thumbnailClick) {
-            document.removeEventListener('click', this._eventHandlers.thumbnailClick);
-            delete this._eventHandlers.thumbnailClick;
-        }
-        
-        if (this._eventHandlers.photoClose) {
-            document.removeEventListener('click', this._eventHandlers.photoClose);
-            delete this._eventHandlers.photoClose;
-        }
-        
-        if (this._eventHandlers.escapeKey) {
-            document.removeEventListener('keydown', this._eventHandlers.escapeKey);
-            delete this._eventHandlers.escapeKey;
-        }
-        
-        const overlays = [
-            document.getElementById('rtc-futurePuppyModal'),
-            document.getElementById('rtcPedigreePopupOverlay'),
-            document.getElementById('rtcPhotoLargeOverlay')
-        ];
-        
-        overlays.forEach(overlay => {
-            if (overlay && overlay.parentNode) {
-                overlay.parentNode.removeChild(overlay);
-            }
+    async showFuturePuppyPedigree(selectedTeef, selectedReu) {
+        console.log('🔍 Toekomstige pup stamboom voor:', {
+            teef: selectedTeef?.naam,
+            reu: selectedReu?.naam
         });
-    }
-    
-    // Exact dezelfde getDogById methode als StamboomManager
-    getDogById(id) {
-        if (!id || id === 0) return null;
-        return this.allDogs.find(dog => dog.id === id);
-    }
-    
-    // Exact dezelfde checkDogHasPhotos methode als StamboomManager
-    async checkDogHasPhotos(dogId) {
-        if (!dogId || dogId === 0) return false;
-        const dog = this.getDogById(dogId);
-        if (!dog || !dog.stamboomnr) return false;
-        const cacheKey = `has_${dogId}_${dog.stamboomnr}`;
-        if (this.dogHasPhotosCache.has(cacheKey)) {
-            return this.dogHasPhotosCache.get(cacheKey);
+        
+        // Bewaar de geselecteerde honden
+        this.selectedTeef = selectedTeef;
+        this.selectedReu = selectedReu;
+        
+        // VOORKOM MEERDERE GELIJKTIJDIGE BEREKENINGEN
+        if (this.coiCalculationInProgress) {
+            console.log('⚠️ COI berekening al bezig, wacht...');
+            this.mainModule.showAlert('COI berekening is al bezig, even wachten...', 'info');
+            return;
         }
+        
+        this.coiCalculationInProgress = true;
+        
         try {
-            if (typeof this.hondenService.checkFotosExist === 'function') {
-                const hasPhotos = await this.hondenService.checkFotosExist(dog.stamboomnr);
-                this.dogHasPhotosCache.set(cacheKey, hasPhotos);
-                return hasPhotos;
-            } else {
-                console.warn('checkFotosExist functie niet beschikbaar in hondenService');
-                this.dogHasPhotosCache.set(cacheKey, false);
-                return false;
+            // STAP 1: Zorg dat alles geïnitialiseerd is
+            await this.ensureInitialized();
+            
+            if (!this.allHonden || this.allHonden.length === 0) {
+                console.error('❌ allDogs array is leeg! Probeer opnieuw te initialiseren...');
+                this.showError('Hondengegevens niet geladen. Probeer opnieuw.');
+                return;
             }
+            
+            console.log(`✅ Database bevat ${this.allHonden.length} honden`);
+            
+            // STAP 2: Maak een virtuele toekomstige pup
+            const futurePuppy = this.createVirtualPuppy(selectedTeef, selectedReu);
+            console.log('✅ Virtuele pup aangemaakt:', futurePuppy);
+            
+            // STAP 3: Toon de stamboom ZONDER COI berekeningen
+            await this.createFuturePuppyModal(futurePuppy, selectedTeef, selectedReu);
+            
         } catch (error) {
-            console.error('Fout bij checken foto\'s voor hond:', dogId, error);
-            this.dogHasPhotosCache.set(cacheKey, false);
+            console.error('❌ Fout bij tonen toekomstige pup stamboom:', error);
+            this.mainModule.showAlert(`Kon stamboom niet genereren: ${error.message}`, 'danger');
+        } finally {
+            this.coiCalculationInProgress = false;
+        }
+    }
+    
+    createVirtualPuppy(selectedTeef, selectedReu) {
+        return {
+            id: -999999,
+            naam: this.t('futurePuppyName'),
+            geslacht: 'onbekend',
+            vaderId: selectedReu.id,
+            moederId: selectedTeef.id,
+            vader: selectedReu.naam,
+            moeder: selectedTeef.naam,
+            kennelnaam: this.t('combinedParents'),
+            stamboomnr: 'VOORSPELD',
+            geboortedatum: new Date().toISOString().split('T')[0],
+            vachtkleur: `${selectedReu.vachtkleur || ''}/${selectedTeef.vachtkleur || ''}`.trim(),
+            heupdysplasie: null,
+            elleboogdysplasie: null,
+            patella: null,
+            ogen: null,
+            ogenVerklaring: null,
+            dandyWalker: null,
+            schildklier: null,
+            schildklierVerklaring: null,
+            land: null,
+            postcode: null,
+            opmerkingen: null,
+            isVirtual: true
+        };
+    }
+    
+    async createFuturePuppyModal(futurePuppy, selectedTeef, selectedReu) {
+        const modalId = 'rtc-futurePuppyModal';
+        
+        // Verwijder bestaande modal
+        const existingModal = document.getElementById(modalId);
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        const title = this.t('futurePuppyTitle', { 
+            reu: selectedReu.naam || '?', 
+            teef: selectedTeef.naam || '?' 
+        });
+        
+        const modalHTML = `
+            <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="rtcFuturePuppyModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-fullscreen">
+                    <div class="modal-content">
+                        <div class="modal-header bg-success text-white">
+                            <h5 class="modal-title" id="rtcFuturePuppyModalLabel">
+                                <i class="bi bi-diagram-3 me-2"></i> ${title}
+                            </h5>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-sm btn-light btn-print">
+                                    <i class="bi bi-printer me-1"></i> ${this.t('print')}
+                                </button>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="${this.t('close')}"></button>
+                            </div>
+                        </div>
+                        <div class="modal-body p-0" style="overflow: hidden;">
+                            <div id="rtcStamboomProgress" class="p-3 bg-light border-bottom" style="display: none;"></div>
+                            <div class="rtc-pedigree-mobile-wrapper" id="rtcFuturePuppyMobileWrapper">
+                                <div class="rtc-pedigree-container-compact" id="rtcFuturePuppyContainer">
+                                    <div class="text-center py-5">
+                                        <div class="spinner-border text-success" role="status">
+                                            <span class="visually-hidden">${this.t('loadingPedigree')}</span>
+                                        </div>
+                                        <p class="mt-3">${this.t('loadingPedigree')}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- GEÏSOLEERDE Popup overlay -->
+            <div class="rtc-pedigree-popup-overlay" id="rtcPedigreePopupOverlay" style="display: none;">
+                <div class="rtc-pedigree-popup-container" id="rtcPedigreePopupContainer"></div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        const modal = new bootstrap.Modal(document.getElementById(modalId));
+        modal.show();
+        
+        this.setupFuturePuppyModalEvents();
+        
+        // Render de stamboom
+        await this.renderFuturePuppyPedigree(futurePuppy, selectedTeef, selectedReu);
+    }
+    
+    setupFuturePuppyModalEvents() {
+        const modal = document.getElementById('rtc-futurePuppyModal');
+        if (!modal) return;
+        
+        const printBtn = modal.querySelector('.btn-print');
+        if (printBtn) {
+            printBtn.addEventListener('click', () => {
+                window.print();
+            });
+        }
+        
+        // Voeg progress element toe aan modal
+        if (!document.getElementById('rtcStamboomProgress')) {
+            const progressHTML = `
+                <div id="rtcStamboomProgress" class="p-3 bg-light border-bottom" style="display: none;"></div>
+            `;
+            const modalBody = modal.querySelector('.modal-body');
+            if (modalBody) {
+                modalBody.insertAdjacentHTML('afterbegin', progressHTML);
+            }
+        }
+    }
+    
+    async renderFuturePuppyPedigree(futurePuppy, selectedTeef, selectedReu) {
+        const container = document.getElementById('rtcFuturePuppyContainer');
+        if (!container) return;
+        
+        try {
+            // Toon loading
+            container.innerHTML = `
+                <div class="text-center py-5">
+                    <div class="spinner-border text-success" role="status">
+                        <span class="visually-hidden">Stamboom bouwen...</span>
+                    </div>
+                    <p class="mt-3">Stamboom bouwen...</p>
+                </div>
+            `;
+            
+            // Bouw de stamboom structuur
+            const pedigreeTree = await this.buildFuturePuppyPedigreeTree(futurePuppy, selectedTeef, selectedReu);
+            
+            // Genereer alle cards
+            const mainDogCard = await this.generateDogCard(futurePuppy, this.t('mainDog'), true, 0);
+            const fatherCard = await this.generateDogCard(selectedReu, this.t('fatherLabel'), false, 1);
+            const motherCard = await this.generateDogCard(selectedTeef, this.t('motherLabel'), false, 1);
+            
+            const paternalGrandfatherCard = await this.generateDogCard(pedigreeTree.paternalGrandfather, this.t('grandfatherLabel'), false, 2);
+            const paternalGrandmotherCard = await this.generateDogCard(pedigreeTree.paternalGrandmother, this.t('grandmotherLabel'), false, 2);
+            const maternalGrandfatherCard = await this.generateDogCard(pedigreeTree.maternalGrandfather, this.t('grandfatherLabel'), false, 2);
+            const maternalGrandmotherCard = await this.generateDogCard(pedigreeTree.maternalGrandmother, this.t('grandmotherLabel'), false, 2);
+            
+            const paternalGreatGrandfather1Card = await this.generateDogCard(pedigreeTree.paternalGreatGrandfather1, this.t('greatGrandfatherLabel'), false, 3);
+            const paternalGreatGrandmother1Card = await this.generateDogCard(pedigreeTree.paternalGreatGrandmother1, this.t('greatGrandmotherLabel'), false, 3);
+            const paternalGreatGrandfather2Card = await this.generateDogCard(pedigreeTree.paternalGreatGrandfather2, this.t('greatGrandfatherLabel'), false, 3);
+            const paternalGreatGrandmother2Card = await this.generateDogCard(pedigreeTree.paternalGreatGrandmother2, this.t('greatGrandmotherLabel'), false, 3);
+            const maternalGreatGrandfather1Card = await this.generateDogCard(pedigreeTree.maternalGreatGrandfather1, this.t('greatGrandfatherLabel'), false, 3);
+            const maternalGreatGrandmother1Card = await this.generateDogCard(pedigreeTree.maternalGreatGrandmother1, this.t('greatGrandmotherLabel'), false, 3);
+            const maternalGreatGrandfather2Card = await this.generateDogCard(pedigreeTree.maternalGreatGrandfather2, this.t('greatGrandfatherLabel'), false, 3);
+            const maternalGreatGrandmother2Card = await this.generateDogCard(pedigreeTree.maternalGreatGrandmother2, this.t('greatGrandmotherLabel'), false, 3);
+            
+            // Over-overgrootouders
+            const paternalGreatGreatGrandfather1Card = await this.generateDogCard(pedigreeTree.paternalGreatGreatGrandfather1, this.t('greatGreatGrandfatherLabel'), false, 4);
+            const paternalGreatGreatGrandmother1Card = await this.generateDogCard(pedigreeTree.paternalGreatGreatGrandmother1, this.t('greatGreatGrandmotherLabel'), false, 4);
+            const paternalGreatGreatGrandfather2Card = await this.generateDogCard(pedigreeTree.paternalGreatGreatGrandfather2, this.t('greatGreatGrandfatherLabel'), false, 4);
+            const paternalGreatGreatGrandmother2Card = await this.generateDogCard(pedigreeTree.paternalGreatGreatGrandmother2, this.t('greatGreatGrandmotherLabel'), false, 4);
+            const paternalGreatGreatGrandfather3Card = await this.generateDogCard(pedigreeTree.paternalGreatGreatGrandfather3, this.t('greatGreatGrandfatherLabel'), false, 4);
+            const paternalGreatGreatGrandmother3Card = await this.generateDogCard(pedigreeTree.paternalGreatGreatGrandmother3, this.t('greatGreatGrandmotherLabel'), false, 4);
+            const paternalGreatGreatGrandfather4Card = await this.generateDogCard(pedigreeTree.paternalGreatGreatGrandfather4, this.t('greatGreatGrandfatherLabel'), false, 4);
+            const paternalGreatGreatGrandmother4Card = await this.generateDogCard(pedigreeTree.paternalGreatGreatGrandmother4, this.t('greatGreatGrandmotherLabel'), false, 4);
+            const maternalGreatGreatGrandfather1Card = await this.generateDogCard(pedigreeTree.maternalGreatGreatGrandfather1, this.t('greatGreatGrandfatherLabel'), false, 4);
+            const maternalGreatGreatGrandmother1Card = await this.generateDogCard(pedigreeTree.maternalGreatGreatGrandmother1, this.t('greatGreatGrandmotherLabel'), false, 4);
+            const maternalGreatGreatGrandfather2Card = await this.generateDogCard(pedigreeTree.maternalGreatGreatGrandfather2, this.t('greatGreatGrandfatherLabel'), false, 4);
+            const maternalGreatGreatGrandmother2Card = await this.generateDogCard(pedigreeTree.maternalGreatGreatGrandmother2, this.t('greatGreatGrandmotherLabel'), false, 4);
+            const maternalGreatGreatGrandfather3Card = await this.generateDogCard(pedigreeTree.maternalGreatGreatGrandfather3, this.t('greatGreatGrandfatherLabel'), false, 4);
+            const maternalGreatGreatGrandmother3Card = await this.generateDogCard(pedigreeTree.maternalGreatGreatGrandmother3, this.t('greatGreatGrandmotherLabel'), false, 4);
+            const maternalGreatGreatGrandfather4Card = await this.generateDogCard(pedigreeTree.maternalGreatGreatGrandfather4, this.t('greatGreatGrandfatherLabel'), false, 4);
+            const maternalGreatGreatGrandmother4Card = await this.generateDogCard(pedigreeTree.maternalGreatGreatGrandmother4, this.t('greatGreatGrandmotherLabel'), false, 4);
+            
+            const gridHTML = `
+                <div class="rtc-pedigree-grid-compact">
+                    <!-- Generatie 0: Toekomstige Pup -->
+                    <div class="rtc-pedigree-generation-col gen0">
+                        ${mainDogCard}
+                    </div>
+                    
+                    <!-- Generatie 1: Ouders -->
+                    <div class="rtc-pedigree-generation-col gen1">
+                        ${fatherCard}
+                        ${motherCard}
+                    </div>
+                    
+                    <!-- Generatie 2: Grootouders -->
+                    <div class="rtc-pedigree-generation-col gen2">
+                        ${paternalGrandfatherCard}
+                        ${paternalGrandmotherCard}
+                        ${maternalGrandfatherCard}
+                        ${maternalGrandmotherCard}
+                    </div>
+                    
+                    <!-- Generatie 3: Overgrootouders -->
+                    <div class="rtc-pedigree-generation-col gen3">
+                        ${paternalGreatGrandfather1Card}
+                        ${paternalGreatGrandmother1Card}
+                        ${paternalGreatGrandfather2Card}
+                        ${paternalGreatGrandmother2Card}
+                        ${maternalGreatGrandfather1Card}
+                        ${maternalGreatGrandmother1Card}
+                        ${maternalGreatGrandfather2Card}
+                        ${maternalGreatGrandmother2Card}
+                    </div>
+                    
+                    <!-- Generatie 4: Over-overgrootouders -->
+                    <div class="rtc-pedigree-generation-col gen4">
+                        ${paternalGreatGreatGrandfather1Card}
+                        ${paternalGreatGreatGrandmother1Card}
+                        ${paternalGreatGreatGrandfather2Card}
+                        ${paternalGreatGreatGrandmother2Card}
+                        ${paternalGreatGreatGrandfather3Card}
+                        ${paternalGreatGreatGrandmother3Card}
+                        ${paternalGreatGreatGrandfather4Card}
+                        ${paternalGreatGreatGrandmother4Card}
+                        ${maternalGreatGreatGrandfather1Card}
+                        ${maternalGreatGreatGrandmother1Card}
+                        ${maternalGreatGreatGrandfather2Card}
+                        ${maternalGreatGreatGrandmother2Card}
+                        ${maternalGreatGreatGrandfather3Card}
+                        ${maternalGreatGreatGrandmother3Card}
+                        ${maternalGreatGreatGrandfather4Card}
+                        ${maternalGreatGreatGrandmother4Card}
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = gridHTML;
+            
+            // Voeg click events toe
+            this.setupCardClickEvents();
+            
+            // Voeg speciale handler toe voor virtuele pup
+            setTimeout(() => {
+                this.addFuturePuppyClickHandler(futurePuppy);
+            }, 100);
+            
+        } catch (error) {
+            console.error('❌ Fout bij renderen stamboom:', error);
+            container.innerHTML = `
+                <div class="text-center py-5">
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        Fout bij laden stamboom: ${error.message}
+                    </div>
+                    <button class="btn btn-primary mt-3" onclick="location.reload()">
+                        <i class="bi bi-arrow-clockwise me-2"></i>
+                        Opnieuw proberen
+                    </button>
+                </div>
+            `;
+        }
+    }
+    
+    async buildFuturePuppyPedigreeTree(futurePuppy, selectedTeef, selectedReu) {
+        const pedigreeTree = {
+            mainDog: futurePuppy,
+            father: selectedReu,
+            mother: selectedTeef,
+            paternalGrandfather: null,
+            paternalGrandmother: null,
+            maternalGrandfather: null,
+            maternalGrandmother: null,
+            paternalGreatGrandfather1: null,
+            paternalGreatGrandmother1: null,
+            paternalGreatGrandfather2: null,
+            paternalGreatGrandmother2: null,
+            maternalGreatGrandfather1: null,
+            maternalGreatGrandmother1: null,
+            maternalGreatGrandfather2: null,
+            maternalGrandmother2: null,
+            // Over-overgrootouders
+            paternalGreatGreatGrandfather1: null,
+            paternalGreatGreatGrandmother1: null,
+            paternalGreatGreatGrandfather2: null,
+            paternalGreatGreatGrandmother2: null,
+            paternalGreatGreatGrandfather3: null,
+            paternalGreatGreatGrandmother3: null,
+            paternalGreatGreatGrandfather4: null,
+            paternalGreatGreatGrandmother4: null,
+            maternalGreatGreatGrandfather1: null,
+            maternalGreatGreatGrandmother1: null,
+            maternalGreatGreatGrandfather2: null,
+            maternalGreatGreatGrandmother2: null,
+            maternalGreatGreatGrandfather3: null,
+            maternalGreatGreatGrandmother3: null,
+            maternalGreatGreatGrandfather4: null,
+            maternalGreatGreatGrandmother4: null
+        };
+        
+        // Helper: haal hond op
+        const getDogById = async (id) => {
+            if (!id) return null;
+            
+            // Eerst in cache zoeken
+            const cached = this.allHonden.find(h => h.id === id);
+            if (cached) {
+                return cached;
+            }
+            
+            // Anders uit Supabase halen
+            try {
+                console.log(`🔄 Hond ${id} niet in cache, haal uit Supabase...`);
+                const hond = await window.hondenService.getHondById(id);
+                if (hond) {
+                    const transformed = this.transformSupabaseDog(hond);
+                    this.allHonden.push(transformed); // Toevoegen aan cache
+                    return transformed;
+                }
+            } catch (error) {
+                console.error(`Fout bij ophalen hond ${id}:`, error);
+            }
+            
+            return null;
+        };
+        
+        // Vul de stamboom
+        if (selectedReu && selectedReu.vaderId) {
+            pedigreeTree.paternalGrandfather = await getDogById(selectedReu.vaderId);
+        }
+        
+        if (selectedReu && selectedReu.moederId) {
+            pedigreeTree.paternalGrandmother = await getDogById(selectedReu.moederId);
+        }
+        
+        if (selectedTeef && selectedTeef.vaderId) {
+            pedigreeTree.maternalGrandfather = await getDogById(selectedTeef.vaderId);
+        }
+        
+        if (selectedTeef && selectedTeef.moederId) {
+            pedigreeTree.maternalGrandmother = await getDogById(selectedTeef.moederId);
+        }
+        
+        // Overgrootouders
+        if (pedigreeTree.paternalGrandfather) {
+            pedigreeTree.paternalGreatGrandfather1 = await getDogById(pedigreeTree.paternalGrandfather.vaderId);
+            pedigreeTree.paternalGreatGrandmother1 = await getDogById(pedigreeTree.paternalGrandfather.moederId);
+        }
+        
+        if (pedigreeTree.paternalGrandmother) {
+            pedigreeTree.paternalGreatGrandfather2 = await getDogById(pedigreeTree.paternalGrandmother.vaderId);
+            pedigreeTree.paternalGreatGrandmother2 = await getDogById(pedigreeTree.paternalGrandmother.moederId);
+        }
+        
+        if (pedigreeTree.maternalGrandfather) {
+            pedigreeTree.maternalGreatGrandfather1 = await getDogById(pedigreeTree.maternalGrandfather.vaderId);
+            pedigreeTree.maternalGreatGrandmother1 = await getDogById(pedigreeTree.maternalGrandfather.moederId);
+        }
+        
+        if (pedigreeTree.maternalGrandmother) {
+            pedigreeTree.maternalGreatGrandfather2 = await getDogById(pedigreeTree.maternalGrandmother.vaderId);
+            pedigreeTree.maternalGreatGrandmother2 = await getDogById(pedigreeTree.maternalGrandmother.moederId);
+        }
+        
+        // Over-overgrootouders
+        if (pedigreeTree.paternalGreatGrandfather1) {
+            pedigreeTree.paternalGreatGreatGrandfather1 = await getDogById(pedigreeTree.paternalGreatGrandfather1.vaderId);
+            pedigreeTree.paternalGreatGreatGrandmother1 = await getDogById(pedigreeTree.paternalGreatGrandfather1.moederId);
+        }
+        
+        if (pedigreeTree.paternalGreatGrandmother1) {
+            pedigreeTree.paternalGreatGreatGrandfather2 = await getDogById(pedigreeTree.paternalGreatGrandmother1.vaderId);
+            pedigreeTree.paternalGreatGreatGrandmother2 = await getDogById(pedigreeTree.paternalGreatGrandmother1.moederId);
+        }
+        
+        if (pedigreeTree.paternalGreatGrandfather2) {
+            pedigreeTree.paternalGreatGreatGrandfather3 = await getDogById(pedigreeTree.paternalGreatGrandfather2.vaderId);
+            pedigreeTree.paternalGreatGreatGrandmother3 = await getDogById(pedigreeTree.paternalGreatGrandfather2.moederId);
+        }
+        
+        if (pedigreeTree.paternalGreatGrandmother2) {
+            pedigreeTree.paternalGreatGreatGrandfather4 = await getDogById(pedigreeTree.paternalGreatGrandmother2.vaderId);
+            pedigreeTree.paternalGreatGreatGrandmother4 = await getDogById(pedigreeTree.paternalGreatGrandmother2.moederId);
+        }
+        
+        if (pedigreeTree.maternalGreatGrandfather1) {
+            pedigreeTree.maternalGreatGreatGrandfather1 = await getDogById(pedigreeTree.maternalGreatGrandfather1.vaderId);
+            pedigreeTree.maternalGreatGreatGrandmother1 = await getDogById(pedigreeTree.maternalGreatGrandfather1.moederId);
+        }
+        
+        if (pedigreeTree.maternalGreatGrandmother1) {
+            pedigreeTree.maternalGreatGreatGrandfather2 = await getDogById(pedigreeTree.maternalGreatGrandmother1.vaderId);
+            pedigreeTree.maternalGreatGreatGrandmother2 = await getDogById(pedigreeTree.maternalGreatGrandmother1.moederId);
+        }
+        
+        if (pedigreeTree.maternalGreatGrandfather2) {
+            pedigreeTree.maternalGreatGreatGrandfather3 = await getDogById(pedigreeTree.maternalGreatGrandfather2.vaderId);
+            pedigreeTree.maternalGreatGreatGrandmother3 = await getDogById(pedigreeTree.maternalGreatGrandfather2.moederId);
+        }
+        
+        if (pedigreeTree.maternalGreatGrandmother2) {
+            pedigreeTree.maternalGreatGreatGrandfather4 = await getDogById(pedigreeTree.maternalGreatGrandmother2.vaderId);
+            pedigreeTree.maternalGreatGreatGrandmother4 = await getDogById(pedigreeTree.maternalGreatGrandmother2.moederId);
+        }
+        
+        return pedigreeTree;
+    }
+    
+    async generateDogCard(dog, relation, isMainDog = false, generation = 0) {
+        if (!dog) {
+            return `
+                <div class="rtc-pedigree-card-compact horizontal empty gen${generation}" data-dog-id="0">
+                    <div class="rtc-pedigree-card-header-compact horizontal">
+                        <div class="rtc-relation-compact">${relation}</div>
+                    </div>
+                    <div class="rtc-pedigree-card-body-compact horizontal text-center py-3">
+                        <div class="rtc-no-data-text">${this.t('noData')}</div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        const genderIcon = dog.geslacht === 'reuen' ? 'bi-gender-male text-primary' : 
+                          dog.geslacht === 'teven' ? 'bi-gender-female text-danger' : 'bi-question-circle text-secondary';
+        
+        const mainDogClass = isMainDog ? 'main-dog-compact' : '';
+        const headerColor = isMainDog ? 'bg-success' : 'bg-secondary';
+        
+        // Check foto's voor echte honden
+        const hasPhotos = dog.id > 0 && dog.stamboomnr ? 
+                         await this.checkDogHasPhotos(dog.stamboomnr) : false;
+        const cameraIcon = hasPhotos ? '<i class="bi bi-camera text-danger ms-1"></i>' : '';
+        
+        const combinedName = dog.naam || this.t('unknown');
+        const showKennel = dog.kennelnaam && dog.kennelnaam.trim() !== '';
+        const fullDisplayText = combinedName + (showKennel ? ` ${dog.kennelnaam}` : '');
+        
+        // Voor overovergrootouders (gen4): alleen naam
+        if (generation === 4) {
+            return `
+                <div class="rtc-pedigree-card-compact horizontal ${dog.geslacht === 'reuen' ? 'male' : 'female'} ${mainDogClass} gen${generation}" 
+                     data-dog-id="${dog.id}" 
+                     data-dog-name="${dog.naam || ''}"
+                     data-relation="${relation}"
+                     data-generation="${generation}"
+                     data-has-photos="${hasPhotos}"
+                     data-is-virtual="${dog.isVirtual || false}">
+                    <div class="rtc-pedigree-card-header-compact horizontal ${headerColor}">
+                        <div class="rtc-relation-compact">
+                            <span class="rtc-relation-text">${relation}</span>
+                            ${isMainDog ? '<span class="rtc-main-dot">★</span>' : ''}
+                        </div>
+                        <div class="rtc-gender-icon-compact">
+                            <i class="bi ${genderIcon}"></i>
+                        </div>
+                    </div>
+                    <div class="rtc-pedigree-card-body-compact horizontal">
+                        <div class="rtc-card-row rtc-card-row-1-only">
+                            <div class="rtc-dog-name-kennel-compact" title="${fullDisplayText}">
+                                ${fullDisplayText}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Voor andere generaties: volledige layout
+        const breedText = dog.ras && dog.id !== -999999 ? 
+                         `<div class="rtc-dog-breed-compact" title="${dog.ras}">${dog.ras}</div>` : '';
+        
+        return `
+            <div class="rtc-pedigree-card-compact horizontal ${dog.geslacht === 'reuen' ? 'male' : 'female'} ${mainDogClass} gen${generation}" 
+                 data-dog-id="${dog.id}" 
+                 data-dog-name="${dog.naam || ''}"
+                 data-relation="${relation}"
+                 data-generation="${generation}"
+                 data-has-photos="${hasPhotos}"
+                 data-is-virtual="${dog.isVirtual || false}">
+                <div class="rtc-pedigree-card-header-compact horizontal ${headerColor}">
+                    <div class="rtc-relation-compact">
+                        <span class="rtc-relation-text">${relation}</span>
+                        ${isMainDog ? '<span class="rtc-main-dot">★</span>' : ''}
+                    </div>
+                    <div class="rtc-gender-icon-compact">
+                        <i class="bi ${genderIcon}"></i>
+                    </div>
+                </div>
+                <div class="rtc-pedigree-card-body-compact horizontal">
+                    <div class="rtc-card-row rtc-card-row-1">
+                        <div class="rtc-dog-name-kennel-compact" title="${fullDisplayText}">
+                            ${fullDisplayText}
+                        </div>
+                    </div>
+                    
+                    <div class="rtc-card-row rtc-card-row-2">
+                        ${dog.stamboomnr ? `
+                        <div class="rtc-dog-pedigree-compact" title="${dog.stamboomnr}">
+                            ${dog.stamboomnr}
+                        </div>
+                        ` : ''}
+                        
+                        ${breedText}
+                    </div>
+                    
+                    <div class="rtc-card-row rtc-card-row-3">
+                        <div class="rtc-click-hint-compact">
+                            <i class="bi bi-info-circle"></i> ${this.t('clickForDetails')}${cameraIcon}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    async checkDogHasPhotos(stamboomnr) {
+        if (!stamboomnr || !window.fotoService) return false;
+        
+        try {
+            return await window.fotoService.checkFotosExist(stamboomnr);
+        } catch (error) {
+            console.error('Fout bij check foto\'s:', error);
             return false;
         }
     }
     
-    // Exact dezelfde getDogThumbnails methode als StamboomManager
-    async getDogThumbnails(dogId, limit = 9) {
-        if (!dogId || dogId === 0) return [];
-        const dog = this.getDogById(dogId);
-        if (!dog || !dog.stamboomnr) return [];
-        const cacheKey = `thumbs_${dogId}_${dog.stamboomnr}_${limit}`;
-        if (this.dogThumbnailsCache.has(cacheKey)) {
-            return this.dogThumbnailsCache.get(cacheKey);
-        }
-        try {
-            if (typeof this.hondenService.getFotoThumbnails === 'function') {
-                const thumbnails = await this.hondenService.getFotoThumbnails(dog.stamboomnr, limit);
-                this.dogThumbnailsCache.set(cacheKey, thumbnails || []);
-                return thumbnails || [];
-            } else {
-                console.warn('getFotoThumbnails functie niet beschikbaar in hondenService');
-                this.dogThumbnailsCache.set(cacheKey, []);
-                return [];
-            }
-        } catch (error) {
-            console.error('Fout bij ophalen thumbnails voor hond:', dogId, error);
-            return [];
-        }
-    }
-    
-    // Exact dezelfde getFullSizeFoto methode als StamboomManager
-    async getFullSizeFoto(fotoId) {
-        if (!fotoId) return null;
-        const cacheKey = `full_${fotoId}`;
-        if (this.fullPhotoCache.has(cacheKey)) {
-            return this.fullPhotoCache.get(cacheKey);
-        }
-        try {
-            if (typeof this.hondenService.getFotoById === 'function') {
-                const foto = await this.hondenService.getFotoById(fotoId);
-                if (foto) {
-                    this.fullPhotoCache.set(cacheKey, foto);
-                }
-                return foto;
-            } else {
-                console.warn('getFotoById functie niet beschikbaar in hondenService');
-                return null;
-            }
-        } catch (error) {
-            console.error('Fout bij ophalen volledige foto:', fotoId, error);
-            return null;
-        }
-    }
-    
-    // Exact dezelfde calculateCOI methode als StamboomManager
-    calculateCOI(dogId) {
-        if (!dogId || dogId === 0) return { coi6Gen: '0.0', homozygosity6Gen: '0.0', kinship6Gen: '0.0' };
-        
-        const dog = this.getDogById(dogId);
-        if (!dog) return { coi6Gen: '0.0', homozygosity6Gen: '0.0', kinship6Gen: '0.0' };
-        
-        if (!dog.vaderId || !dog.moederId) {
-            return { coi6Gen: '0.0', homozygosity6Gen: '0.0', kinship6Gen: '0.0' };
-        }
-        
-        if (dog.vaderId === dog.moederId) {
-            return { coi6Gen: '25.0', homozygosity6Gen: '25.0', kinship6Gen: '25.0' };
-        }
-        
-        if (this.coiCalculator) {
-            try {
-                const result = this.coiCalculator.calculateCOI(dogId);
-                const kinship = this.calculateAverageKinship(dogId, 6);
+    setupCardClickEvents() {
+        const cards = document.querySelectorAll('.rtc-pedigree-card-compact.horizontal:not(.empty)');
+        cards.forEach(card => {
+            card.addEventListener('click', async (e) => {
+                const dogId = parseInt(card.getAttribute('data-dog-id'));
+                if (dogId === 0) return;
                 
-                return {
-                    coi6Gen: result.coi6Gen || '0.0',
-                    homozygosity6Gen: result.coiAllGen || '0.0',
-                    kinship6Gen: kinship.toFixed(3)
-                };
-            } catch (error) {
-                console.error('Fout in COICalculator:', error);
-            }
-        }
-        
-        return { coi6Gen: '0.0', homozygosity6Gen: '0.0', kinship6Gen: '0.0' };
-    }
-    
-    // Exact dezelfde calculateAverageKinship methode als StamboomManager
-    calculateAverageKinship(dogId, generations = 6) {
-        if (!this.coiCalculator || !dogId || dogId === 0) return 0;
-        
-        try {
-            const dog = this.getDogById(dogId);
-            if (!dog || !dog.vaderId || !dog.moederId) return 0;
-            
-            const allAncestors = this.coiCalculator._getAllAncestors(dogId, generations);
-            const ancestorIds = Array.from(allAncestors.keys());
-            
-            if (ancestorIds.length <= 1) return 0;
-            
-            let totalKinship = 0;
-            let pairCount = 0;
-            
-            const sampleSize = Math.min(ancestorIds.length, 30);
-            const step = Math.max(1, Math.floor(ancestorIds.length / sampleSize));
-            
-            for (let i = 0; i < ancestorIds.length; i += step) {
-                for (let j = i + step; j < ancestorIds.length; j += step) {
-                    if (i !== j) {
-                        const kinship = this.coiCalculator._calculateKinship(ancestorIds[i], ancestorIds[j], generations);
-                        totalKinship += kinship;
-                        pairCount++;
-                    }
-                }
-            }
-            
-            return pairCount > 0 ? (totalKinship / pairCount) * 100 : 0;
-        } catch (error) {
-            console.error('Fout bij berekenen kinship:', error);
-            return 0;
-        }
-    }
-    
-    // Exact dezelfde getCOIColor methode als StamboomManager
-    getCOIColor(value) {
-        const numValue = parseFloat(value);
-        if (numValue < 4.0) return '#28a745';
-        if (numValue <= 6.0) return '#fd7e14';
-        return '#dc3545';
-    }
-    
-    // Exact dezelfde formatDate methode als StamboomManager
-    formatDate(dateString) {
-        if (!dateString) return '';
-        try {
-            const date = new Date(dateString);
-            return date.toLocaleDateString(this.currentLang === 'nl' ? 'nl-NL' : 
-                                          this.currentLang === 'de' ? 'de-DE' : 'en-US');
-        } catch {
-            return dateString;
-        }
-    }
-    
-    // Exact dezelfde getHealthBadge methode als StamboomManager
-    getHealthBadge(value, type) {
-        if (!value || value === '') {
-            return `<span class="badge bg-secondary">${this.t('unknown')}</span>`;
-        }
-        
-        let badgeClass = 'badge ';
-        switch(type) {
-            case 'hip': badgeClass += 'badge-hd'; break;
-            case 'elbow': badgeClass += 'badge-ed'; break;
-            case 'patella': badgeClass += 'badge-pl'; break;
-            case 'eyes': badgeClass += 'badge-eyes'; break;
-            case 'dandy': badgeClass += 'badge-dandy'; break;
-            case 'thyroid': badgeClass += 'badge-thyroid'; break;
-            default: badgeClass += 'bg-secondary';
-        }
-        
-        return `<span class="${badgeClass}">${value}</span>`;
-    }
-    
-    // HOOFDFUNCTIE: Toon toekomstige pup stamboom
-    async showFuturePuppyPedigree(selectedTeef, selectedReu) {
-        try {
-            // NIEUW: Zorg eerst dat de module geïnitialiseerd is
-            await this.ensureInitialized();
-            
-            this.selectedTeef = selectedTeef;
-            this.selectedReu = selectedReu;
-            
-            // Controleer of allDogs geladen is
-            if (this.allDogs.length === 0) {
-                console.error('❌ allDogs array is leeg! Probeer opnieuw te initialiseren...');
+                const isVirtual = card.getAttribute('data-is-virtual') === 'true';
+                const dogName = card.getAttribute('data-dog-name') || '';
+                const relation = card.getAttribute('data-relation') || '';
                 
-                // Probeer opnieuw te initialiseren
-                const reinitSuccess = await this.initialize();
-                if (!reinitSuccess || this.allDogs.length === 0) {
-                    this.showError('Hondengegevens niet geladen. Probeer opnieuw.');
-                    return;
-                }
-            }
-            
-            console.log(`🔍 Toekomstige pup van: ${selectedTeef.naam} + ${selectedReu.naam}`);
-            console.log(`📁 Aantal honden in allDogs: ${this.allDogs.length}`);
-            
-            if (this.coiCalculationInProgress) {
-                console.log('⚠️ COI berekening al bezig, wacht...');
-                this.showError('COI berekening is al bezig, even wachten...');
-                return;
-            }
-            
-            this.coiCalculationInProgress = true;
-            
-            try {
-                if (!this.coiCalculator || !this.coiCalculatorReady) {
-                    console.log('🔄 COICalculator nog niet geïnitialiseerd, initialiseer nu...');
-                    this.coiCalculator = new COICalculator(this.allDogs);
-                    this.coiCalculatorReady = true;
-                    console.log('✅ COICalculator succesvol geïnitialiseerd');
-                }
-                
-                if (!this.coiCalculator) {
-                    console.error('❌ COICalculator niet beschikbaar');
-                    this.showError('COI berekening niet beschikbaar');
+                // Virtuele pup: bereken COI pas NU
+                if (dogId === -999999 || isVirtual) {
+                    await this.showFuturePuppyPopupWithCOI(dogName, relation);
                     return;
                 }
                 
-                const futurePuppy = {
-                    id: -999999,
-                    naam: this.t('futurePuppyName'),
-                    geslacht: 'onbekend',
-                    vader_id: selectedReu.id,
-                    moeder_id: selectedTeef.id,
-                    vader: selectedReu.naam,
-                    moeder: selectedTeef.naam,
-                    kennelnaam: this.t('combinedParents'),
-                    stamboomnr: 'VOORSPELD',
-                    geboortedatum: new Date().toISOString().split('T')[0],
-                    vachtkleur: `${selectedReu.vachtkleur || ''}/${selectedTeef.vachtkleur || ''}`.trim(),
-                    heupdysplasie: null,
-                    elleboogdysplasie: null,
-                    patella: null,
-                    ogen: null,
-                    ogenVerklaring: null,
-                    dandyWalker: null,
-                    schildklier: null,
-                    schildklierVerklaring: null,
-                    land: null,
-                    postcode: null,
-                    opmerkingen: null
-                };
+                // Echte hond: toon details
+                const dog = await this.getDogById(dogId);
+                if (!dog) return;
                 
-                console.log('🔍 Toekomstige pup aangemaakt voor COI berekening:', futurePuppy);
+                await this.showDogDetailPopup(dog, relation);
+            });
+        });
+    }
+    
+    async getDogById(id) {
+        // Zoek eerst in cache
+        const cached = this.allHonden.find(h => h.id === id);
+        if (cached) return cached;
+        
+        // Haal uit Supabase
+        try {
+            const hond = await window.hondenService.getHondById(id);
+            if (hond) {
+                const transformed = this.transformSupabaseDog(hond);
+                this.allHonden.push(transformed);
+                return transformed;
+            }
+        } catch (error) {
+            console.error(`Fout bij ophalen hond ${id}:`, error);
+        }
+        
+        return null;
+    }
+    
+    async showFuturePuppyPopupWithCOI(dogName, relation) {
+        console.log('🔄 COI berekening gestart voor toekomstige pup...');
+        
+        try {
+            // Initialiseer COICalculator als nodig
+            if (!this.coiCalculator || !this.coiCalculatorReady) {
+                console.log('🔄 Initialiseer COICalculator...');
                 
-                let tempCOICalculator = null;
-                let coiResult = null;
+                // Maak virtuele pup voor berekening
+                const virtualPuppy = this.createVirtualPuppy(this.selectedTeef, this.selectedReu);
                 
-                try {
-                    console.log('🔄 Maak tijdelijke COICalculator voor toekomstige pup...');
-                    tempCOICalculator = new COICalculator([...this.allDogs, futurePuppy]);
-                    
-                    coiResult = tempCOICalculator.calculateCOI(futurePuppy.id);
-                    console.log('✅ COI resultaat via tijdelijke COICalculator:', coiResult);
-                    
-                    let kinshipValue = 0;
-                    if (tempCOICalculator && coiResult) {
-                        try {
-                            kinshipValue = this.calculateAverageKinshipForFuturePuppy(tempCOICalculator, futurePuppy.id, 6);
-                            console.log('✅ Kinship berekend voor toekomstige pup:', kinshipValue);
-                        } catch (kinshipError) {
-                            console.error('❌ Fout bij berekenen kinship voor toekomstige pup:', kinshipError);
-                        }
-                    }
-                    
-                    coiResult.kinship6Gen = kinshipValue.toFixed(3);
-                    
-                    const healthAnalysis = await this.analyzeHealthInLine(futurePuppy, selectedTeef, selectedReu);
-                    console.log('✅ Gezondheidsanalyse resultaat:', healthAnalysis);
-                    
-                    await this.createFuturePuppyModal(futurePuppy, selectedTeef, selectedReu, coiResult, healthAnalysis);
-                    
-                } catch (calcError) {
-                    console.error('❌ Fout bij COI berekening:', calcError);
-                    this.showError('Kon COI niet berekenen. Probeer opnieuw.');
-                } finally {
-                    tempCOICalculator = null;
+                // Voeg toe aan alle honden voor berekening
+                const allHondenForCOI = [...this.allHonden, virtualPuppy];
+                
+                if (typeof COICalculator === 'undefined') {
+                    throw new Error('COICalculator klasse niet gevonden');
                 }
                 
-            } catch (error) {
-                console.error('❌ Fout bij tonen toekomstige pup stamboom:', error);
-                this.showError('Kon stamboom niet genereren. Probeer opnieuw.');
-            } finally {
-                this.coiCalculationInProgress = false;
+                this.coiCalculator = new COICalculator(allHondenForCOI);
+                this.coiCalculatorReady = true;
+                console.log('✅ COICalculator geïnitialiseerd');
             }
             
-        } catch (initError) {
-            console.error('❌ Initialisatiefout bij tonen toekomstige pup:', initError);
-            this.showError('Kon stamboom niet initialiseren. Probeer opnieuw.');
+            // Bereken COI
+            let coiResult = null;
+            let kinshipValue = 0;
+            
+            try {
+                coiResult = this.coiCalculator.calculateCOI(-999999);
+                console.log('✅ COI resultaat:', coiResult);
+                
+                // Bereken kinship
+                kinshipValue = this.calculateAverageKinshipForFuturePuppy(-999999, 6);
+                console.log('✅ Kinship berekend:', kinshipValue);
+            } catch (calcError) {
+                console.error('❌ Fout bij COI berekening:', calcError);
+                coiResult = { coi6Gen: '0.0', coiAllGen: '0.0' };
+            }
+            
+            // Bereken gezondheidsanalyse
+            const healthAnalysis = await this.analyzeHealthInLine();
+            
+            // Toon popup
+            this.showFuturePuppyPopup(dogName, relation, coiResult, kinshipValue, healthAnalysis);
+            
+        } catch (error) {
+            console.error('❌ Fout bij COI berekening:', error);
+            this.mainModule.showAlert('Kon COI niet berekenen. Probeer opnieuw.', 'danger');
         }
     }
     
-    async analyzeHealthInLine(futurePuppy, selectedTeef, selectedReu) {
+    async analyzeHealthInLine() {
         const analysis = {
             motherLine: { total: 0, counts: {} },
             fatherLine: { total: 0, counts: {} }
@@ -876,10 +964,8 @@ class ReuTeefStamboom {
             analysis.fatherLine.counts[item.key] = 0;
         });
         
-        const motherAncestors = await this.collectAncestorsFromParent(selectedTeef, 6);
-        const fatherAncestors = await this.collectAncestorsFromParent(selectedReu, 6);
-        
-        console.log(`📊 Moederlijn voorouders: ${motherAncestors.length}, Vaderlijn voorouders: ${fatherAncestors.length}`);
+        const motherAncestors = await this.collectAncestorsFromParent(this.selectedTeef, 6);
+        const fatherAncestors = await this.collectAncestorsFromParent(this.selectedReu, 6);
         
         for (const ancestor of motherAncestors) {
             analysis.motherLine.total++;
@@ -908,25 +994,23 @@ class ReuTeefStamboom {
             
             visited.add(currentDog.id);
             
+            // Haal volledige hond op
             let fullDog = currentDog;
             if (!currentDog.heupdysplasie && currentDog.heupdysplasie === undefined) {
-                fullDog = this.getDogById(currentDog.id) || currentDog;
+                fullDog = await this.getDogById(currentDog.id) || currentDog;
             }
             
             ancestors.push(fullDog);
             
-            const vaderId = fullDog.vaderId || fullDog.vader_id;
-            const moederId = fullDog.moederId || fullDog.moeder_id;
-            
-            if (vaderId) {
-                const father = this.getDogById(vaderId);
+            if (fullDog.vaderId) {
+                const father = await this.getDogById(fullDog.vaderId);
                 if (father) {
                     queue.push({ dog: father, generation: generation + 1 });
                 }
             }
             
-            if (moederId) {
-                const mother = this.getDogById(moederId);
+            if (fullDog.moederId) {
+                const mother = await this.getDogById(fullDog.moederId);
                 if (mother) {
                     queue.push({ dog: mother, generation: generation + 1 });
                 }
@@ -1031,11 +1115,178 @@ class ReuTeefStamboom {
         return null;
     }
     
-    calculateAverageKinshipForFuturePuppy(tempCOICalculator, dogId, generations = 6) {
-        if (!tempCOICalculator || !dogId || dogId === 0) return 0;
+    addFuturePuppyClickHandler(futurePuppy) {
+        const futurePuppyCard = document.querySelector('.rtc-pedigree-card-compact.horizontal.main-dog-compact.gen0');
+        if (futurePuppyCard) {
+            futurePuppyCard.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.showFuturePuppyPopupWithCOI(futurePuppy.naam, this.t('mainDog'));
+            });
+            
+            futurePuppyCard.style.cursor = 'pointer';
+            
+            const clickHint = futurePuppyCard.querySelector('.rtc-click-hint-compact');
+            if (clickHint) {
+                clickHint.innerHTML = '<i class="bi bi-info-circle"></i> ' + this.t('clickForDetails');
+            }
+        }
+    }
+    
+    showFuturePuppyPopup(dogName, relation, coiResult, kinshipValue, healthAnalysis) {
+        const coi6Color = this.mainModule.getCOIColor(coiResult.coi6Gen);
+        const coiAllColor = this.mainModule.getCOIColor(coiResult.coiAllGen);
+        
+        const healthAnalysisHTML = this.generateHealthAnalysisHTML(healthAnalysis);
+        
+        const popupHTML = `
+            <div class="rtc-dog-detail-popup">
+                <div class="rtc-popup-header">
+                    <h5 class="rtc-popup-title">
+                        <i class="bi bi-stars me-2" style="color: #ffc107;"></i>
+                        ${dogName}
+                    </h5>
+                    <button type="button" class="rtc-btn-close" aria-label="${this.t('close')}"></button>
+                </div>
+                <div class="rtc-popup-body">
+                    <div class="rtc-info-section mb-4">
+                        <h6><i class="bi bi-calculator me-1"></i> ${this.t('predictedCoi')}</h6>
+                        <div class="rtc-info-grid">
+                            <div class="rtc-three-values-row">
+                                <div class="rtc-value-box">
+                                    <div class="rtc-value-label">${this.t('coi6Gen')}</div>
+                                    <div class="rtc-value-number rtc-coi-value" style="color: ${coi6Color} !important;">${coiResult.coi6Gen || '0.0'}%</div>
+                                </div>
+                                
+                                <div class="rtc-value-box">
+                                    <div class="rtc-value-label">${this.t('homozygosity6Gen')}</div>
+                                    <div class="rtc-value-number">${coiResult.coiAllGen || '0.0'}%</div>
+                                </div>
+                                
+                                <div class="rtc-value-box">
+                                    <div class="rtc-value-label">${this.t('kinship6Gen')}</div>
+                                    <div class="rtc-value-number">${kinshipValue.toFixed(3)}%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="rtc-info-section mb-4">
+                        <h6><i class="bi bi-heart-pulse me-1"></i> ${this.t('healthInLine')}</h6>
+                        ${healthAnalysisHTML}
+                    </div>
+                    
+                    <div class="rtc-info-section mb-2">
+                        <div class="alert alert-info mb-0">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>${this.t('predictedPedigree')}</strong><br>
+                            ${this.t('futurePuppyDescription', { 
+                                reu: this.selectedReu.naam || '?', 
+                                teef: this.selectedTeef.naam || '?' 
+                            })}
+                        </div>
+                    </div>
+                </div>
+                <div class="rtc-popup-footer">
+                    <button type="button" class="btn btn-secondary rtc-popup-close-btn">
+                        <i class="bi bi-x-circle me-1"></i> ${this.t('closePopup')}
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        this.ensurePopupContainer();
+        
+        const overlay = document.getElementById('rtcPedigreePopupOverlay');
+        const container = document.getElementById('rtcPedigreePopupContainer');
+        
+        if (container) {
+            container.innerHTML = popupHTML;
+            overlay.style.display = 'flex';
+            this.setupIsolatedPopupEventListeners();
+        }
+    }
+    
+    generateHealthAnalysisHTML(analysis) {
+        const t = this.t.bind(this);
+        
+        const healthItems = [
+            { key: 'hd_a', label: t('hdA') },
+            { key: 'hd_b', label: t('hdB') },
+            { key: 'hd_c', label: t('hdC') },
+            { key: 'hd_d', label: t('hdD') },
+            { key: 'hd_e', label: t('hdE') },
+            { key: 'hd_unknown', label: t('hdUnknown') },
+            
+            { key: 'ed_0', label: t('ed0') },
+            { key: 'ed_1', label: t('ed1') },
+            { key: 'ed_2', label: t('ed2') },
+            { key: 'ed_3', label: t('ed3') },
+            { key: 'ed_unknown', label: t('edUnknown') },
+            
+            { key: 'pl_0', label: t('pl0') },
+            { key: 'pl_1', label: t('pl1') },
+            { key: 'pl_2', label: t('pl2') },
+            { key: 'pl_3', label: t('pl3') },
+            { key: 'pl_unknown', label: t('plUnknown') },
+            
+            { key: 'eyes_free', label: t('eyesFree') },
+            { key: 'eyes_dist', label: t('eyesDist') },
+            { key: 'eyes_other', label: t('eyesOther') },
+            { key: 'eyes_unknown', label: t('eyesUnknown') },
+            
+            { key: 'dwlm_dna_free', label: t('dwlmDnaFree') },
+            { key: 'dwlm_parents_free', label: t('dwlmParentsFree') },
+            { key: 'dwlm_unknown', label: t('dwlmUnknown') },
+            
+            { key: 'thyroid_tested', label: t('thyroidTested') },
+            { key: 'thyroid_unknown', label: t('thyroidUnknown') }
+        ];
+        
+        let tableRows = '';
+        healthItems.forEach(item => {
+            const motherCount = analysis.motherLine.counts[item.key] || 0;
+            const fatherCount = analysis.fatherLine.counts[item.key] || 0;
+            
+            tableRows += `
+                <tr>
+                    <td class="health-category">${item.label}</td>
+                    <td class="mother-count">${motherCount}</td>
+                    <td class="father-count">${fatherCount}</td>
+                </tr>
+            `;
+        });
+        
+        tableRows += `
+            <tr style="border-top: 2px solid #dee2e6;">
+                <td class="health-category"><strong>Totaal voorouders:</strong></td>
+                <td class="mother-count"><strong>${analysis.motherLine.total}</strong></td>
+                <td class="father-count"><strong>${analysis.fatherLine.total}</strong></td>
+            </tr>
+        `;
+        
+        return `
+            <div class="mb-3">
+                <table class="health-analysis-table">
+                    <thead>
+                        <tr>
+                            <th>${t('healthCategory')}</th>
+                            <th>${t('motherLine')}</th>
+                            <th>${t('fatherLine')}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tableRows}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+    
+    calculateAverageKinshipForFuturePuppy(dogId, generations = 6) {
+        if (!this.coiCalculator || !dogId || dogId === 0) return 0;
         
         try {
-            const allAncestors = tempCOICalculator._getAllAncestors(dogId, generations);
+            const allAncestors = this.coiCalculator._getAllAncestors(dogId, generations);
             const ancestorIds = Array.from(allAncestors.keys());
             
             if (ancestorIds.length <= 1) return 0;
@@ -1049,7 +1300,7 @@ class ReuTeefStamboom {
             for (let i = 0; i < ancestorIds.length; i += step) {
                 for (let j = i + step; j < ancestorIds.length; j += step) {
                     if (i !== j) {
-                        const kinship = tempCOICalculator._calculateKinship(ancestorIds[i], ancestorIds[j], generations);
+                        const kinship = this.coiCalculator._calculateKinship(ancestorIds[i], ancestorIds[j], generations);
                         totalKinship += kinship;
                         pairCount++;
                     }
@@ -1063,537 +1314,48 @@ class ReuTeefStamboom {
         }
     }
     
-    buildPedigreeTree(dogId) {
-        const pedigreeTree = {
-            mainDog: null,
-            father: null,
-            mother: null,
-            paternalGrandfather: null,
-            paternalGrandmother: null,
-            maternalGrandfather: null,
-            maternalGrandmother: null,
-            paternalGreatGrandfather1: null,
-            paternalGreatGrandmother1: null,
-            paternalGreatGrandfather2: null,
-            paternalGreatGrandmother2: null,
-            maternalGreatGrandfather1: null,
-            maternalGreatGrandmother1: null,
-            maternalGreatGrandfather2: null,
-            maternalGreatGrandmother2: null,
-            paternalGreatGreatGrandfather1: null,
-            paternalGreatGreatGrandmother1: null,
-            paternalGreatGreatGrandfather2: null,
-            paternalGreatGreatGrandmother2: null,
-            paternalGreatGreatGrandfather3: null,
-            paternalGreatGreatGrandmother3: null,
-            paternalGreatGreatGrandfather4: null,
-            paternalGreatGreatGrandmother4: null,
-            maternalGreatGreatGrandfather1: null,
-            maternalGreatGreatGrandmother1: null,
-            maternalGreatGreatGrandfather2: null,
-            maternalGreatGreatGrandmother2: null,
-            maternalGreatGreatGrandfather3: null,
-            maternalGreatGreatGrandmother3: null,
-            maternalGreatGreatGrandfather4: null,
-            maternalGreatGreatGrandmother4: null
-        };
+    async showDogDetailPopup(dog, relation) {
+        // Bereken COI pas NU als op een echte hond wordt geklikt
+        let coiValues = { coi6Gen: '0.0', coiAllGen: '0.0', kinship6Gen: '0.0' };
         
-        const mainDog = this.getDogById(dogId);
-        if (!mainDog) return null;
-        
-        pedigreeTree.mainDog = mainDog;
-        
-        if (mainDog.vaderId || mainDog.vader_id) {
-            const vaderId = mainDog.vaderId || mainDog.vader_id;
-            pedigreeTree.father = this.getDogById(vaderId);
-        }
-        
-        if (mainDog.moederId || mainDog.moeder_id) {
-            const moederId = mainDog.moederId || mainDog.moeder_id;
-            pedigreeTree.mother = this.getDogById(moederId);
-        }
-        
-        if (pedigreeTree.father) {
-            const vaderId = pedigreeTree.father.vaderId || pedigreeTree.father.vader_id;
-            const moederId = pedigreeTree.father.moederId || pedigreeTree.father.moeder_id;
-            
-            if (vaderId) {
-                pedigreeTree.paternalGrandfather = this.getDogById(vaderId);
-            }
-            
-            if (moederId) {
-                pedigreeTree.paternalGrandmother = this.getDogById(moederId);
+        if (this.coiCalculator && this.coiCalculatorReady) {
+            try {
+                const coiResult = this.coiCalculator.calculateCOI(dog.id);
+                coiValues.coi6Gen = coiResult.coi6Gen || '0.0';
+                coiValues.coiAllGen = coiResult.coiAllGen || '0.0';
+                
+                // Bereken kinship
+                const kinshipValue = this.calculateAverageKinship(dog.id, 6);
+                coiValues.kinship6Gen = kinshipValue.toFixed(3);
+            } catch (error) {
+                console.error('Fout bij COI berekening voor hond', dog.id, ':', error);
             }
         }
         
-        if (pedigreeTree.mother) {
-            const vaderId = pedigreeTree.mother.vaderId || pedigreeTree.mother.vader_id;
-            const moederId = pedigreeTree.mother.moederId || pedigreeTree.mother.moeder_id;
-            
-            if (vaderId) {
-                pedigreeTree.maternalGrandfather = this.getDogById(vaderId);
-            }
-            
-            if (moederId) {
-                pedigreeTree.maternalGrandmother = this.getDogById(moederId);
-            }
-        }
+        const popupHTML = await this.getDogDetailPopupHTML(dog, relation, coiValues);
         
-        if (pedigreeTree.paternalGrandfather) {
-            const vaderId = pedigreeTree.paternalGrandfather.vaderId || pedigreeTree.paternalGrandfather.vader_id;
-            const moederId = pedigreeTree.paternalGrandfather.moederId || pedigreeTree.paternalGrandfather.moeder_id;
-            
-            if (vaderId) {
-                pedigreeTree.paternalGreatGrandfather1 = this.getDogById(vaderId);
-            }
-            
-            if (moederId) {
-                pedigreeTree.paternalGreatGrandmother1 = this.getDogById(moederId);
-            }
-        }
+        this.ensurePopupContainer();
         
-        if (pedigreeTree.paternalGrandmother) {
-            const vaderId = pedigreeTree.paternalGrandmother.vaderId || pedigreeTree.paternalGrandmother.vader_id;
-            const moederId = pedigreeTree.paternalGrandmother.moederId || pedigreeTree.paternalGrandmother.moeder_id;
-            
-            if (vaderId) {
-                pedigreeTree.paternalGreatGrandfather2 = this.getDogById(vaderId);
-            }
-            
-            if (moederId) {
-                pedigreeTree.paternalGreatGrandmother2 = this.getDogById(moederId);
-            }
-        }
+        const overlay = document.getElementById('rtcPedigreePopupOverlay');
+        const container = document.getElementById('rtcPedigreePopupContainer');
         
-        if (pedigreeTree.maternalGrandfather) {
-            const vaderId = pedigreeTree.maternalGrandfather.vaderId || pedigreeTree.maternalGrandfather.vader_id;
-            const moederId = pedigreeTree.maternalGrandfather.moederId || pedigreeTree.maternalGrandfather.moeder_id;
-            
-            if (vaderId) {
-                pedigreeTree.maternalGreatGrandfather1 = this.getDogById(vaderId);
-            }
-            
-            if (moederId) {
-                pedigreeTree.maternalGreatGrandmother1 = this.getDogById(moederId);
-            }
+        if (container) {
+            container.innerHTML = popupHTML;
+            overlay.style.display = 'flex';
+            this.setupIsolatedPopupEventListeners();
         }
-        
-        if (pedigreeTree.maternalGrandmother) {
-            const vaderId = pedigreeTree.maternalGrandmother.vaderId || pedigreeTree.maternalGrandmother.vader_id;
-            const moederId = pedigreeTree.maternalGrandmother.moederId || pedigreeTree.maternalGrandmother.moeder_id;
-            
-            if (vaderId) {
-                pedigreeTree.maternalGreatGrandfather2 = this.getDogById(vaderId);
-            }
-            
-            if (moederId) {
-                pedigreeTree.maternalGreatGrandmother2 = this.getDogById(moederId);
-            }
-        }
-        
-        if (pedigreeTree.paternalGreatGrandfather1) {
-            const vaderId = pedigreeTree.paternalGreatGrandfather1.vaderId || pedigreeTree.paternalGreatGrandfather1.vader_id;
-            const moederId = pedigreeTree.paternalGreatGrandfather1.moederId || pedigreeTree.paternalGreatGrandfather1.moeder_id;
-            
-            if (vaderId) {
-                pedigreeTree.paternalGreatGreatGrandfather1 = this.getDogById(vaderId);
-            }
-            
-            if (moederId) {
-                pedigreeTree.paternalGreatGreatGrandmother1 = this.getDogById(moederId);
-            }
-        }
-        
-        if (pedigreeTree.paternalGreatGrandmother1) {
-            const vaderId = pedigreeTree.paternalGreatGrandmother1.vaderId || pedigreeTree.paternalGreatGrandmother1.vader_id;
-            const moederId = pedigreeTree.paternalGreatGrandmother1.moederId || pedigreeTree.paternalGreatGrandmother1.moeder_id;
-            
-            if (vaderId) {
-                pedigreeTree.paternalGreatGreatGrandfather2 = this.getDogById(vaderId);
-            }
-            
-            if (moederId) {
-                pedigreeTree.paternalGreatGreatGrandmother2 = this.getDogById(moederId);
-            }
-        }
-        
-        if (pedigreeTree.paternalGreatGrandfather2) {
-            const vaderId = pedigreeTree.paternalGreatGrandfather2.vaderId || pedigreeTree.paternalGreatGrandfather2.vader_id;
-            const moederId = pedigreeTree.paternalGreatGrandfather2.moederId || pedigreeTree.paternalGreatGrandfather2.moeder_id;
-            
-            if (vaderId) {
-                pedigreeTree.paternalGreatGreatGrandfather3 = this.getDogById(vaderId);
-            }
-            
-            if (moederId) {
-                pedigreeTree.paternalGreatGreatGrandmother3 = this.getDogById(moederId);
-            }
-        }
-        
-        if (pedigreeTree.paternalGreatGrandmother2) {
-            const vaderId = pedigreeTree.paternalGreatGrandmother2.vaderId || pedigreeTree.paternalGreatGrandmother2.vader_id;
-            const moederId = pedigreeTree.paternalGreatGrandmother2.moederId || pedigreeTree.paternalGreatGrandmother2.moeder_id;
-            
-            if (vaderId) {
-                pedigreeTree.paternalGreatGreatGrandfather4 = this.getDogById(vaderId);
-            }
-            
-            if (moederId) {
-                pedigreeTree.paternalGreatGreatGrandmother4 = this.getDogById(moederId);
-            }
-        }
-        
-        if (pedigreeTree.maternalGreatGrandfather1) {
-            const vaderId = pedigreeTree.maternalGreatGrandfather1.vaderId || pedigreeTree.maternalGreatGrandfather1.vader_id;
-            const moederId = pedigreeTree.maternalGreatGrandfather1.moederId || pedigreeTree.maternalGreatGrandfather1.moeder_id;
-            
-            if (vaderId) {
-                pedigreeTree.maternalGreatGreatGrandfather1 = this.getDogById(vaderId);
-            }
-            
-            if (moederId) {
-                pedigreeTree.maternalGreatGreatGrandmother1 = this.getDogById(moederId);
-            }
-        }
-        
-        if (pedigreeTree.maternalGreatGrandmother1) {
-            const vaderId = pedigreeTree.maternalGreatGrandmother1.vaderId || pedigreeTree.maternalGreatGrandmother1.vader_id;
-            const moederId = pedigreeTree.maternalGreatGrandmother1.moederId || pedigreeTree.maternalGreatGrandmother1.moeder_id;
-            
-            if (vaderId) {
-                pedigreeTree.maternalGreatGreatGrandfather2 = this.getDogById(vaderId);
-            }
-            
-            if (moederId) {
-                pedigreeTree.maternalGreatGreatGrandmother2 = this.getDogById(moederId);
-            }
-        }
-        
-        if (pedigreeTree.maternalGreatGrandfather2) {
-            const vaderId = pedigreeTree.maternalGreatGrandfather2.vaderId || pedigreeTree.maternalGreatGrandfather2.vader_id;
-            const moederId = pedigreeTree.maternalGreatGrandfather2.moederId || pedigreeTree.maternalGreatGrandfather2.moeder_id;
-            
-            if (vaderId) {
-                pedigreeTree.maternalGreatGreatGrandfather3 = this.getDogById(vaderId);
-            }
-            
-            if (moederId) {
-                pedigreeTree.maternalGreatGreatGrandmother3 = this.getDogById(moederId);
-            }
-        }
-        
-        if (pedigreeTree.maternalGreatGrandmother2) {
-            const vaderId = pedigreeTree.maternalGreatGrandmother2.vaderId || pedigreeTree.maternalGreatGrandmother2.vader_id;
-            const moederId = pedigreeTree.maternalGreatGrandmother2.moederId || pedigreeTree.maternalGreatGrandmother2.moeder_id;
-            
-            if (vaderId) {
-                pedigreeTree.maternalGreatGreatGrandfather4 = this.getDogById(vaderId);
-            }
-            
-            if (moederId) {
-                pedigreeTree.maternalGreatGreatGrandmother4 = this.getDogById(moederId);
-            }
-        }
-        
-        return pedigreeTree;
     }
     
-    buildFuturePuppyPedigreeTree(futurePuppy, selectedTeef, selectedReu) {
-        const pedigreeTree = {
-            mainDog: futurePuppy,
-            father: selectedReu,
-            mother: selectedTeef,
-            paternalGrandfather: null,
-            paternalGrandmother: null,
-            maternalGrandfather: null,
-            maternalGrandmother: null,
-            paternalGreatGrandfather1: null,
-            paternalGreatGrandmother1: null,
-            paternalGreatGrandfather2: null,
-            paternalGreatGrandmother2: null,
-            maternalGreatGrandfather1: null,
-            maternalGreatGrandmother1: null,
-            maternalGreatGrandfather2: null,
-            maternalGreatGrandmother2: null,
-            paternalGreatGreatGrandfather1: null,
-            paternalGreatGreatGrandmother1: null,
-            paternalGreatGreatGrandfather2: null,
-            paternalGreatGreatGrandmother2: null,
-            paternalGreatGreatGrandfather3: null,
-            paternalGreatGreatGrandmother3: null,
-            paternalGreatGreatGrandfather4: null,
-            paternalGreatGreatGrandmother4: null,
-            maternalGreatGreatGrandfather1: null,
-            maternalGreatGreatGrandmother1: null,
-            maternalGreatGreatGrandfather2: null,
-            maternalGreatGreatGrandmother2: null,
-            maternalGreatGreatGrandfather3: null,
-            maternalGreatGreatGrandmother3: null,
-            maternalGreatGreatGrandfather4: null,
-            maternalGreatGreatGrandmother4: null
-        };
-        
-        console.log('🔍 Bouw stamboom voor toekomstige pup...');
-        
-        const reuVaderId = selectedReu.vaderId || selectedReu.vader_id;
-        if (reuVaderId) {
-            pedigreeTree.paternalGrandfather = this.getDogById(reuVaderId);
-            console.log(`✅ Reu vader gevonden (ID: ${reuVaderId}):`, pedigreeTree.paternalGrandfather?.naam);
-        } else {
-            console.log('❌ Reu heeft geen vader_id');
-        }
-        
-        const reuMoederId = selectedReu.moederId || selectedReu.moeder_id;
-        if (reuMoederId) {
-            pedigreeTree.paternalGrandmother = this.getDogById(reuMoederId);
-            console.log(`✅ Reu moeder gevonden (ID: ${reuMoederId}):`, pedigreeTree.paternalGrandmother?.naam);
-        } else {
-            console.log('❌ Reu heeft geen moeder_id');
-        }
-        
-        const teefVaderId = selectedTeef.vaderId || selectedTeef.vader_id;
-        if (teefVaderId) {
-            pedigreeTree.maternalGrandfather = this.getDogById(teefVaderId);
-            console.log(`✅ Teef vader gevonden (ID: ${teefVaderId}):`, pedigreeTree.maternalGrandfather?.naam);
-        } else {
-            console.log('❌ Teef heeft geen vader_id');
-        }
-        
-        const teefMoederId = selectedTeef.moederId || selectedTeef.moeder_id;
-        if (teefMoederId) {
-            pedigreeTree.maternalGrandmother = this.getDogById(teefMoederId);
-            console.log(`✅ Teef moeder gevonden (ID: ${teefMoederId}):`, pedigreeTree.maternalGrandmother?.naam);
-        } else {
-            console.log('❌ Teef heeft geen moeder_id');
-        }
-        
-        if (pedigreeTree.paternalGrandfather) {
-            const vaderId = pedigreeTree.paternalGrandfather.vaderId || pedigreeTree.paternalGrandfather.vader_id;
-            const moederId = pedigreeTree.paternalGrandfather.moederId || pedigreeTree.paternalGrandfather.moeder_id;
-            
-            if (vaderId) pedigreeTree.paternalGreatGrandfather1 = this.getDogById(vaderId);
-            if (moederId) pedigreeTree.paternalGreatGrandmother1 = this.getDogById(moederId);
-        }
-        
-        if (pedigreeTree.paternalGrandmother) {
-            const vaderId = pedigreeTree.paternalGrandmother.vaderId || pedigreeTree.paternalGrandmother.vader_id;
-            const moederId = pedigreeTree.paternalGrandmother.moederId || pedigreeTree.paternalGrandmother.moeder_id;
-            
-            if (vaderId) pedigreeTree.paternalGreatGrandfather2 = this.getDogById(vaderId);
-            if (moederId) pedigreeTree.paternalGreatGrandmother2 = this.getDogById(moederId);
-        }
-        
-        if (pedigreeTree.maternalGrandfather) {
-            const vaderId = pedigreeTree.maternalGrandfather.vaderId || pedigreeTree.maternalGrandfather.vader_id;
-            const moederId = pedigreeTree.maternalGrandfather.moederId || pedigreeTree.maternalGrandfather.moeder_id;
-            
-            if (vaderId) pedigreeTree.maternalGreatGrandfather1 = this.getDogById(vaderId);
-            if (moederId) pedigreeTree.maternalGreatGrandmother1 = this.getDogById(moederId);
-        }
-        
-        if (pedigreeTree.maternalGrandmother) {
-            const vaderId = pedigreeTree.maternalGrandmother.vaderId || pedigreeTree.maternalGrandmother.vader_id;
-            const moederId = pedigreeTree.maternalGrandmother.moederId || pedigreeTree.maternalGrandmother.moeder_id;
-            
-            if (vaderId) pedigreeTree.maternalGreatGrandfather2 = this.getDogById(vaderId);
-            if (moederId) pedigreeTree.maternalGreatGrandmother2 = this.getDogById(moederId);
-        }
-        
-        if (pedigreeTree.paternalGreatGrandfather1) {
-            const vaderId = pedigreeTree.paternalGreatGrandfather1.vaderId || pedigreeTree.paternalGreatGrandfather1.vader_id;
-            const moederId = pedigreeTree.paternalGreatGrandfather1.moederId || pedigreeTree.paternalGreatGrandfather1.moeder_id;
-            
-            if (vaderId) pedigreeTree.paternalGreatGreatGrandfather1 = this.getDogById(vaderId);
-            if (moederId) pedigreeTree.paternalGreatGreatGrandmother1 = this.getDogById(moederId);
-        }
-        
-        if (pedigreeTree.paternalGreatGrandmother1) {
-            const vaderId = pedigreeTree.paternalGreatGrandmother1.vaderId || pedigreeTree.paternalGreatGrandmother1.vader_id;
-            const moederId = pedigreeTree.paternalGreatGrandmother1.moederId || pedigreeTree.paternalGreatGrandmother1.moeder_id;
-            
-            if (vaderId) pedigreeTree.paternalGreatGreatGrandfather2 = this.getDogById(vaderId);
-            if (moederId) pedigreeTree.paternalGreatGreatGrandmother2 = this.getDogById(moederId);
-        }
-        
-        if (pedigreeTree.paternalGreatGrandfather2) {
-            const vaderId = pedigreeTree.paternalGreatGrandfather2.vaderId || pedigreeTree.paternalGreatGrandfather2.vader_id;
-            const moederId = pedigreeTree.paternalGreatGrandfather2.moederId || pedigreeTree.paternalGreatGrandfather2.moeder_id;
-            
-            if (vaderId) pedigreeTree.paternalGreatGreatGrandfather3 = this.getDogById(vaderId);
-            if (moederId) pedigreeTree.paternalGreatGreatGrandmother3 = this.getDogById(moederId);
-        }
-        
-        if (pedigreeTree.paternalGreatGrandmother2) {
-            const vaderId = pedigreeTree.paternalGreatGrandmother2.vaderId || pedigreeTree.paternalGreatGrandmother2.vader_id;
-            const moederId = pedigreeTree.paternalGreatGrandmother2.moederId || pedigreeTree.paternalGreatGrandmother2.moeder_id;
-            
-            if (vaderId) pedigreeTree.paternalGreatGreatGrandfather4 = this.getDogById(vaderId);
-            if (moederId) pedigreeTree.paternalGreatGreatGrandmother4 = this.getDogById(moederId);
-        }
-        
-        if (pedigreeTree.maternalGreatGrandfather1) {
-            const vaderId = pedigreeTree.maternalGreatGrandfather1.vaderId || pedigreeTree.maternalGreatGrandfather1.vader_id;
-            const moederId = pedigreeTree.maternalGreatGrandfather1.moederId || pedigreeTree.maternalGreatGrandfather1.moeder_id;
-            
-            if (vaderId) pedigreeTree.maternalGreatGreatGrandfather1 = this.getDogById(vaderId);
-            if (moederId) pedigreeTree.maternalGreatGreatGrandmother1 = this.getDogById(moederId);
-        }
-        
-        if (pedigreeTree.maternalGreatGrandmother1) {
-            const vaderId = pedigreeTree.maternalGreatGrandmother1.vaderId || pedigreeTree.maternalGreatGrandmother1.vader_id;
-            const moederId = pedigreeTree.maternalGreatGrandmother1.moederId || pedigreeTree.maternalGreatGrandmother1.moeder_id;
-            
-            if (vaderId) pedigreeTree.maternalGreatGreatGrandfather2 = this.getDogById(vaderId);
-            if (moederId) pedigreeTree.maternalGreatGreatGrandmother2 = this.getDogById(moederId);
-        }
-        
-        if (pedigreeTree.maternalGreatGrandfather2) {
-            const vaderId = pedigreeTree.maternalGreatGrandfather2.vaderId || pedigreeTree.maternalGreatGrandfather2.vader_id;
-            const moederId = pedigreeTree.maternalGreatGrandfather2.moederId || pedigreeTree.maternalGreatGrandfather2.moeder_id;
-            
-            if (vaderId) pedigreeTree.maternalGreatGreatGrandfather3 = this.getDogById(vaderId);
-            if (moederId) pedigreeTree.maternalGreatGreatGrandmother3 = this.getDogById(moederId);
-        }
-        
-        if (pedigreeTree.maternalGreatGrandmother2) {
-            const vaderId = pedigreeTree.maternalGreatGrandmother2.vaderId || pedigreeTree.maternalGreatGrandmother2.vader_id;
-            const moederId = pedigreeTree.maternalGreatGrandmother2.moederId || pedigreeTree.maternalGreatGrandmother2.moeder_id;
-            
-            if (vaderId) pedigreeTree.maternalGreatGreatGrandfather4 = this.getDogById(vaderId);
-            if (moederId) pedigreeTree.maternalGreatGreatGrandmother4 = this.getDogById(moederId);
-        }
-        
-        console.log('✅ Stamboom opgebouwd:', {
-            ouders: `${selectedReu.naam} + ${selectedTeef.naam}`,
-            grootouders: {
-                reuVader: pedigreeTree.paternalGrandfather?.naam,
-                reuMoeder: pedigreeTree.paternalGrandmother?.naam,
-                teefVader: pedigreeTree.maternalGrandfather?.naam,
-                teefMoeder: pedigreeTree.maternalGrandmother?.naam
-            }
-        });
-        
-        return pedigreeTree;
-    }
-    
-    // Exact dezelfde getDogCompactCardHTML methode als StamboomManager
-    async getDogCompactCardHTML(dog, relation = '', isMainDog = false, generation = 0) {
-        if (!dog) {
-            return `
-                <div class="rtc-pedigree-card-compact horizontal empty gen${generation}" data-dog-id="0">
-                    <div class="rtc-pedigree-card-header-compact horizontal">
-                        <div class="rtc-relation-compact">${relation}</div>
-                    </div>
-                    <div class="rtc-pedigree-card-body-compact horizontal text-center py-3">
-                        <div class="rtc-no-data-text">${this.t('noData')}</div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        const genderIcon = dog.geslacht === 'reuen' ? 'bi-gender-male text-primary' : 
-                          dog.geslacht === 'teven' ? 'bi-gender-female text-danger' : 'bi-question-circle text-secondary';
-        
-        const mainDogClass = isMainDog ? 'main-dog-compact' : '';
-        const headerColor = isMainDog ? 'bg-success' : 'bg-secondary';
-        
-        const hasPhotos = await this.checkDogHasPhotos(dog.id);
-        const cameraIcon = hasPhotos ? '<i class="bi bi-camera text-danger ms-1"></i>' : '';
-
-        if (generation === 4) {
-            const combinedName = dog.naam || this.t('unknown');
-            const showKennel = dog.kennelnaam && dog.kennelnaam.trim() !== '';
-            const fullDisplayText = combinedName + (showKennel ? ` ${dog.kennelnaam}` : '');
-            
-            return `
-                <div class="rtc-pedigree-card-compact horizontal ${dog.geslacht === 'reuen' ? 'male' : 'female'} ${mainDogClass} gen${generation}" 
-                     data-dog-id="${dog.id}" 
-                     data-dog-name="${dog.naam || ''}"
-                     data-relation="${relation}"
-                     data-generation="${generation}"
-                     data-has-photos="${hasPhotos}">
-                    <div class="rtc-pedigree-card-header-compact horizontal ${headerColor}">
-                        <div class="rtc-relation-compact">
-                            <span class="rtc-relation-text">${relation}</span>
-                            ${isMainDog ? '<span class="rtc-main-dot">★</span>' : ''}
-                        </div>
-                        <div class="rtc-gender-icon-compact">
-                            <i class="bi ${genderIcon}"></i>
-                        </div>
-                    </div>
-                    <div class="rtc-pedigree-card-body-compact horizontal">
-                        <div class="rtc-card-row rtc-card-row-1-only">
-                            <div class="rtc-dog-name-kennel-only" title="${fullDisplayText}">
-                                ${fullDisplayText}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        const combinedName = dog.naam || this.t('unknown');
-        const showKennel = dog.kennelnaam && dog.kennelnaam.trim() !== '';
-        const fullDisplayText = combinedName + (showKennel ? ` ${dog.kennelnaam}` : '');
-        
-        return `
-            <div class="rtc-pedigree-card-compact horizontal ${dog.geslacht === 'reuen' ? 'male' : 'female'} ${mainDogClass} gen${generation}" 
-                 data-dog-id="${dog.id}" 
-                 data-dog-name="${dog.naam || ''}"
-                 data-relation="${relation}"
-                 data-generation="${generation}"
-                 data-has-photos="${hasPhotos}">
-                <div class="rtc-pedigree-card-header-compact horizontal ${headerColor}">
-                    <div class="rtc-relation-compact">
-                        <span class="rtc-relation-text">${relation}</span>
-                        ${isMainDog ? '<span class="rtc-main-dot">★</span>' : ''}
-                    </div>
-                    <div class="rtc-gender-icon-compact">
-                        <i class="bi ${genderIcon}"></i>
-                    </div>
-                </div>
-                <div class="rtc-pedigree-card-body-compact horizontal">
-                    <div class="rtc-card-row rtc-card-row-1">
-                        <div class="rtc-dog-name-kennel-compact" title="${fullDisplayText}">
-                            ${fullDisplayText}
-                        </div>
-                    </div>
-                    
-                    <div class="rtc-card-row rtc-card-row-2">
-                        ${dog.stamboomnr ? `
-                        <div class="rtc-dog-pedigree-compact" title="${dog.stamboomnr}">
-                            ${dog.stamboomnr}
-                        </div>
-                        ` : ''}
-                        
-                        ${dog.ras ? `
-                        <div class="rtc-dog-breed-compact" title="${dog.ras}">
-                            ${dog.ras}
-                        </div>
-                        ` : ''}
-                    </div>
-                    
-                    <div class="rtc-card-row rtc-card-row-3">
-                        <div class="rtc-click-hint-compact">
-                            <i class="bi bi-info-circle"></i> ${this.t('clickForDetails')}${cameraIcon}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-    
-    // Exact dezelfde getDogDetailPopupHTML methode als StamboomManager
-    async getDogDetailPopupHTML(dog, relation = '') {
-        if (!dog) return '';
-        
+    async getDogDetailPopupHTML(dog, relation = '', coiValues = { coi6Gen: '0.0', coiAllGen: '0.0', kinship6Gen: '0.0' }) {
         const genderText = dog.geslacht === 'reuen' ? this.t('male') : 
                           dog.geslacht === 'teven' ? this.t('female') : this.t('unknown');
         
-        const coiValues = this.calculateCOI(dog.id);
-        const coiColor = this.getCOIColor(coiValues.coi6Gen);
+        const coi6Color = this.mainModule.getCOIColor(coiValues.coi6Gen);
+        const coiAllColor = this.mainModule.getCOIColor(coiValues.coiAllGen);
         
-        const thumbnails = await this.getDogThumbnails(dog.id, 9);
+        // Laad thumbnails voor echte honden
+        const thumbnails = dog.id > 0 && window.fotoService ? 
+                         await window.fotoService.getFotoThumbnails(dog.stamboomnr || '', 9) : [];
         
         const combinedName = dog.naam || this.t('unknown');
         const showKennel = dog.kennelnaam && dog.kennelnaam.trim() !== '';
@@ -1607,7 +1369,7 @@ class ReuTeefStamboom {
                         <i class="bi ${dog.geslacht === 'reuen' ? 'bi-gender-male text-primary' : 'bi-gender-female text-danger'} me-2"></i>
                         ${headerText}
                     </h5>
-                    <button type="button" class="rtc-btn-close rtc-btn-close-white" aria-label="Sluiten"></button>
+                    <button type="button" class="rtc-btn-close" aria-label="${this.t('close')}"></button>
                 </div>
                 <div class="rtc-popup-body">
                     ${thumbnails.length > 0 ? `
@@ -1669,21 +1431,17 @@ class ReuTeefStamboom {
                                 ` : ''}
                             </div>
                             
-                            <!-- DRIE WAARDES NAAST ELKAAR -->
                             <div class="rtc-three-values-row">
-                                <!-- COI 6 Gen -->
                                 <div class="rtc-value-box">
                                     <div class="rtc-value-label">${this.t('coi6Gen')}</div>
-                                    <div class="rtc-value-number rtc-coi-value" style="color: ${coiColor} !important;">${coiValues.coi6Gen}%</div>
+                                    <div class="rtc-value-number rtc-coi-value" style="color: ${coi6Color} !important;">${coiValues.coi6Gen}%</div>
                                 </div>
                                 
-                                <!-- Homozygotie 6 Gen -->
                                 <div class="rtc-value-box">
                                     <div class="rtc-value-label">${this.t('homozygosity6Gen')}</div>
-                                    <div class="rtc-value-number">${coiValues.homozygosity6Gen}%</div>
+                                    <div class="rtc-value-number">${coiValues.coiAllGen}%</div>
                                 </div>
                                 
-                                <!-- Kinship 6 Gen -->
                                 <div class="rtc-value-box">
                                     <div class="rtc-value-label">${this.t('kinship6Gen')}</div>
                                     <div class="rtc-value-number">${coiValues.kinship6Gen}%</div>
@@ -1694,7 +1452,7 @@ class ReuTeefStamboom {
                             <div class="rtc-info-row">
                                 <div class="rtc-info-item rtc-info-item-full">
                                     <span class="rtc-info-label">${this.t('birthDate')}:</span>
-                                    <span class="rtc-info-value">${this.formatDate(dog.geboortedatum)}</span>
+                                    <span class="rtc-info-value">${this.mainModule.formatDate(dog.geboortedatum)}</span>
                                 </div>
                             </div>
                             ` : ''}
@@ -1703,7 +1461,7 @@ class ReuTeefStamboom {
                             <div class="rtc-info-row">
                                 <div class="rtc-info-item rtc-info-item-full">
                                     <span class="rtc-info-label">${this.t('deathDate')}:</span>
-                                    <span class="rtc-info-value">${this.formatDate(dog.overlijdensdatum)}</span>
+                                    <span class="rtc-info-value">${this.mainModule.formatDate(dog.overlijdensdatum)}</span>
                                 </div>
                             </div>
                             ` : ''}
@@ -1735,7 +1493,7 @@ class ReuTeefStamboom {
                             <div class="rtc-info-row">
                                 <div class="rtc-info-item rtc-info-item-full">
                                     <span class="rtc-info-label">${this.t('hipDysplasia')}:</span>
-                                    <span class="rtc-info-value">${this.getHealthBadge(dog.heupdysplasie, 'hip')}</span>
+                                    <span class="rtc-info-value">${this.mainModule.getHealthBadge(dog.heupdysplasie, 'hip')}</span>
                                 </div>
                             </div>
                             ` : ''}
@@ -1744,32 +1502,32 @@ class ReuTeefStamboom {
                             <div class="rtc-info-row">
                                 <div class="rtc-info-item rtc-info-item-full">
                                     <span class="rtc-info-label">${this.t('elbowDysplasia')}:</span>
-                                    <span class="rtc-info-value">${this.getHealthBadge(dog.elleboogdysplasie, 'elbow')}</span>
+                                    <span class="rtc-info-value">${this.mainModule.getHealthBadge(dog.elleboogdysplasie, 'elbow')}</span>
                                 </div>
                             </div>
                             ` : ''}
                             
                             ${dog.patella ? `
                             <div class="rtc-info-row">
-                                <div class="rtc-info-item rtc-info-item-full {
+                                <div class="rtc-info-item rtc-info-item-full">
                                     <span class="rtc-info-label">${this.t('patellaLuxation')}:</span>
-                                    <span class="rtc-info-value">${this.getHealthBadge(dog.patella, 'patella')}</span>
+                                    <span class="rtc-info-value">${this.mainModule.getHealthBadge(dog.patella, 'patella')}</span>
                                 </div>
                             </div>
                             ` : ''}
                             
                             ${dog.ogen ? `
                             <div class="rtc-info-row">
-                                <div class="rtc-info-item rtc-info-item-full {
+                                <div class="rtc-info-item rtc-info-item-full">
                                     <span class="rtc-info-label">${this.t('eyes')}:</span>
-                                    <span class="rtc-info-value">${this.getHealthBadge(dog.ogen, 'eyes')}</span>
+                                    <span class="rtc-info-value">${this.mainModule.getHealthBadge(dog.ogen, 'eyes')}</span>
                                 </div>
                             </div>
                             ` : ''}
                             
                             ${dog.ogenVerklaring ? `
                             <div class="rtc-info-row">
-                                <div class="rtc-info-item rtc-info-item-full {
+                                <div class="rtc-info-item rtc-info-item-full">
                                     <span class="rtc-info-label">${this.t('eyesExplanation')}:</span>
                                     <span class="rtc-info-value">${dog.ogenVerklaring}</span>
                                 </div>
@@ -1778,25 +1536,25 @@ class ReuTeefStamboom {
                             
                             ${dog.dandyWalker ? `
                             <div class="rtc-info-row">
-                                <div class="rtc-info-item rtc-info-item-full {
+                                <div class="rtc-info-item rtc-info-item-full">
                                     <span class="rtc-info-label">${this.t('dandyWalker')}:</span>
-                                    <span class="rtc-info-value">${this.getHealthBadge(dog.dandyWalker, 'dandy')}</span>
+                                    <span class="rtc-info-value">${this.mainModule.getHealthBadge(dog.dandyWalker, 'dandy')}</span>
                                 </div>
                             </div>
                             ` : ''}
                             
                             ${dog.schildklier ? `
                             <div class="rtc-info-row">
-                                <div class="rtc-info-item rtc-info-item-full {
+                                <div class="rtc-info-item rtc-info-item-full">
                                     <span class="rtc-info-label">${this.t('thyroid')}:</span>
-                                    <span class="rtc-info-value">${this.getHealthBadge(dog.schildklier, 'thyroid')}</span>
+                                    <span class="rtc-info-value">${this.mainModule.getHealthBadge(dog.schildklier, 'thyroid')}</span>
                                 </div>
                             </div>
                             ` : ''}
                             
                             ${dog.schildklierVerklaring ? `
                             <div class="rtc-info-row">
-                                <div class="rtc-info-item rtc-info-item-full {
+                                <div class="rtc-info-item rtc-info-item-full">
                                     <span class="rtc-info-label">${this.t('thyroidExplanation')}:</span>
                                     <span class="rtc-info-value">${dog.schildklierVerklaring}</span>
                                 </div>
@@ -1828,1887 +1586,82 @@ class ReuTeefStamboom {
         `;
     }
     
-    // Eigen versie van generateDogCard die dezelfde HTML genereert
-    async generateDogCard(dog, relation, isMainDog = false, generation = 0) {
-        return await this.getDogCompactCardHTML(dog, relation, isMainDog, generation);
-    }
-    
-    async createFuturePuppyModal(futurePuppy, selectedTeef, selectedReu, coiResult, healthAnalysis) {
-        const modalId = 'rtc-futurePuppyModal';
+    calculateAverageKinship(dogId, generations = 6) {
+        if (!this.coiCalculator || !dogId || dogId === 0) return 0;
         
-        const existingModal = document.getElementById(modalId);
-        if (existingModal) {
-            existingModal.remove();
-        }
-        
-        const title = this.t('futurePuppyTitle', { 
-            reu: selectedReu.naam || '?', 
-            teef: selectedTeef.naam || '?' 
-        });
-        
-        const modalHTML = `
-            <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="rtcFuturePuppyModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-fullscreen">
-                    <div class="modal-content">
-                        <div class="modal-header bg-success text-white">
-                            <h5 class="modal-title" id="rtcFuturePuppyModalLabel">
-                                <i class="bi bi-diagram-3 me-2"></i> ${title}
-                            </h5>
-                            <div class="d-flex gap-2">
-                                <button class="btn btn-sm btn-light btn-print">
-                                    <i class="bi bi-printer me-1"></i> ${this.t('print')}
-                                </button>
-                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="${this.t('close')}"></button>
-                            </div>
-                        </div>
-                        <div class="modal-body p-0" style="overflow: hidden;">
-                            <div class="rtc-pedigree-mobile-wrapper" id="rtcFuturePuppyMobileWrapper">
-                                <div class="rtc-pedigree-container-compact" id="rtcFuturePuppyContainer">
-                                    <div class="text-center py-5">
-                                        <div class="spinner-border text-success" role="status">
-                                            <span class="visually-hidden">${this.t('loadingPedigree')}</span>
-                                        </div>
-                                        <p class="mt-3">${this.t('loadingPedigree')}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        try {
+            const allAncestors = this.coiCalculator._getAllAncestors(dogId, generations);
+            const ancestorIds = Array.from(allAncestors.keys());
             
-            <div class="rtc-pedigree-popup-overlay" id="rtcPedigreePopupOverlay" style="display: none;">
-                <div class="rtc-pedigree-popup-container" id="rtcPedigreePopupContainer"></div>
-            </div>
+            if (ancestorIds.length <= 1) return 0;
             
-            <style>
-                /* DRIE WAARDES NAAST ELKAAR - ZELFDE ALS STAMBOOMMANAGER */
-                .rtc-three-values-row {
-                    display: flex !important;
-                    flex-direction: row !important;
-                    justify-content: space-between !important;
-                    align-items: stretch !important;
-                    gap: 8px !important;
-                    margin: 10px 0 !important;
-                    width: 100% !important;
-                }
-                
-                .rtc-value-box {
-                    flex: 1 !important;
-                    display: flex !important;
-                    flex-direction: column !important;
-                    align-items: center !important;
-                    justify-content: center !important;
-                    text-align: center !important;
-                    padding: 8px 4px !important;
-                    background: #f8f9fa !important;
-                    border-radius: 6px !important;
-                    border: 1px solid #dee2e6 !important;
-                    min-height: 60px !important;
-                    min-width: 0 !important;
-                }
-                
-                .rtc-value-label {
-                    font-size: 0.68rem !important;
-                    font-weight: 600 !important;
-                    color: #495057 !important;
-                    margin-bottom: 4px !important;
-                    line-height: 1.2 !important;
-                    white-space: normal !important;
-                    word-break: break-word !important;
-                    overflow-wrap: break-word !important;
-                    hyphens: auto !important;
-                    width: 100% !important;
-                    display: block !important;
-                }
-                
-                .rtc-value-number {
-                    font-size: 0.85rem !important;
-                    font-weight: bold !important;
-                    line-height: 1.2 !important;
-                    color: #212529 !important;
-                }
-                
-                .rtc-coi-value {
-                    font-weight: bold !important;
-                }
-                
-                /* Rest van de CSS blijft hetzelfde */
-                .rtc-pedigree-mobile-wrapper {
-                    width: 100%;
-                    display: flex;
-                    flex-direction: column;
-                    background: #f8f9fa;
-                    position: relative;
-                    border-radius: 12px;
-                }
-                
-                .rtc-pedigree-container-compact {
-                    padding: 15px !important;
-                    margin: 0 !important;
-                    width: 100% !important;
-                    background: #f8f9fa;
-                    overflow-x: auto !important;
-                    overflow-y: auto !important;
-                    position: relative;
-                    min-height: 0 !important;
-                    box-sizing: border-box !important;
-                    border-radius: inherit;
-                    display: flex !important;
-                    justify-content: center !important;
-                }
-                
-                .rtc-pedigree-grid-compact {
-                    display: flex;
-                    flex-direction: row;
-                    height: auto;
-                    min-width: fit-content;
-                    padding: 10px 15px !important;
-                    gap: 20px;
-                    align-items: flex-start;
-                    box-sizing: border-box !important;
-                    margin: 0 auto !important;
-                }
-                
-                .rtc-pedigree-generation-col {
-                    display: flex;
-                    flex-direction: column;
-                    height: auto;
-                    justify-content: flex-start;
-                    min-width: 0;
-                }
-                
-                .rtc-pedigree-generation-col.gen0,
-                .rtc-pedigree-generation-col.gen1,
-                .rtc-pedigree-generation-col.gen2,
-                .rtc-pedigree-generation-col.gen3,
-                .rtc-pedigree-generation-col.gen4 {
-                    gap: 4px !important;
-                }
-                
-                .rtc-pedigree-card-compact.horizontal {
-                    background: white;
-                    border-radius: 6px;
-                    border: 1px solid #dee2e6;
-                    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
-                    cursor: pointer;
-                    transition: all 0.2s;
-                    display: flex;
-                    flex-direction: column;
-                    overflow: hidden;
-                    margin: 0 !important;
-                    padding: 0 !important;
-                    flex-shrink: 0;
-                }
-                
-                .rtc-pedigree-card-compact.horizontal.gen0,
-                .rtc-pedigree-card-compact.horizontal.gen1,
-                .rtc-pedigree-card-compact.horizontal.gen2 {
-                    width: 160px !important;
-                    height: 140px !important;
-                }
-                
-                .rtc-pedigree-card-compact.horizontal.gen3 {
-                    width: 160px !important;
-                    height: 70px !important;
-                }
-                
-                .rtc-pedigree-card-compact.horizontal.gen4 {
-                    width: 160px !important;
-                    height: 35px !important;
-                }
-                
-                .rtc-pedigree-card-compact.horizontal.main-dog-compact {
-                    border: 2px solid #198754 !important;
-                    background: #f0fff4;
-                    width: 170px !important;
-                    height: 140px !important;
-                }
-                
-                .rtc-pedigree-card-compact.horizontal.male {
-                    border-left: 4px solid #0d6efd !important;
-                }
-                
-                .rtc-pedigree-card-compact.horizontal.female {
-                    border-left: 4px solid #dc3545 !important;
-                }
-                
-                .rtc-pedigree-card-compact.horizontal:hover {
-                    box-shadow: 0 2px 5px rgba(0,0,0,0.12);
-                    transform: translateY(-1px);
-                    z-index: 1;
-                    position: relative;
-                }
-                
-                .rtc-pedigree-card-compact.horizontal.empty {
-                    background: #f8f9fa;
-                    cursor: default;
-                    opacity: 0.6;
-                }
-                
-                .rtc-pedigree-card-compact.horizontal.empty:hover {
-                    transform: none !important;
-                    box-shadow: 0 1px 2px rgba(0,0,0,0.08) !important;
-                }
-                
-                .rtc-pedigree-card-header-compact.horizontal {
-                    color: white;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    overflow: hidden;
-                    flex-shrink: 0;
-                }
-                
-                .rtc-pedigree-card-compact.horizontal.gen0 .rtc-pedigree-card-header-compact.horizontal,
-                .rtc-pedigree-card-compact.horizontal.gen1 .rtc-pedigree-card-header-compact.horizontal,
-                .rtc-pedigree-card-compact.horizontal.gen2 .rtc-pedigree-card-header-compact.horizontal {
-                    padding: 5px 8px;
-                    font-size: 0.7rem;
-                    min-height: 22px;
-                }
-                
-                .rtc-pedigree-card-compact.horizontal.gen3 .rtc-pedigree-card-header-compact.horizontal {
-                    padding: 3px 6px;
-                    font-size: 0.56rem;
-                    min-height: 16px;
-                }
-                
-                .rtc-pedigree-card-compact.horizontal.gen4 .rtc-pedigree-card-header-compact.horizontal {
-                    padding: 1px 4px;
-                    font-size: 0.45rem;
-                    min-height: 12px;
-                }
-                
-                .rtc-pedigree-card-header-compact.horizontal.bg-success {
-                    background: #198754 !important;
-                }
-                
-                .rtc-pedigree-card-header-compact.horizontal.bg-primary {
-                    background: #0d6efd !important;
-                }
-                
-                .rtc-pedigree-card-header-compact.horizontal.bg-secondary {
-                    background: #6c757d !important;
-                }
-                
-                .rtc-relation-compact {
-                    display: flex;
-                    align-items: center;
-                    gap: 3px;
-                    font-weight: 600;
-                    overflow: hidden;
-                    flex: 1;
-                }
-                
-                .rtc-relation-text {
-                    white-space: nowrap;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                }
-                
-                .rtc-main-dot {
-                    color: #ffc107;
-                    font-size: 0.7rem;
-                    flex-shrink: 0;
-                }
-                
-                .rtc-gender-icon-compact {
-                    flex-shrink: 0;
-                    margin-left: 4px;
-                }
-                
-                .rtc-pedigree-card-body-compact.horizontal {
-                    display: flex;
-                    flex-direction: column;
-                    overflow: hidden;
-                    flex: 1;
-                }
-                
-                .rtc-pedigree-card-compact.horizontal.gen0 .rtc-pedigree-card-body-compact.horizontal,
-                .rtc-pedigree-card-compact.horizontal.gen1 .rtc-pedigree-card-body-compact.horizontal,
-                .rtc-pedigree-card-compact.horizontal.gen2 .rtc-pedigree-card-body-compact.horizontal {
-                    padding: 6px 8px;
-                }
-                
-                .rtc-pedigree-card-compact.horizontal.gen3 .rtc-pedigree-card-body-compact.horizontal {
-                    padding: 4px 6px;
-                }
-                
-                .rtc-pedigree-card-compact.horizontal.gen4 .rtc-pedigree-card-body-compact.horizontal {
-                    padding: 2px 4px;
-                }
-                
-                .rtc-card-row {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    gap: 4px;
-                    overflow: hidden;
-                }
-                
-                .rtc-card-row-1-only {
-                    margin: 0 !important;
-                    padding: 0 !important;
-                    height: 100% !important;
-                    align-items: center !important;
-                    justify-content: center !important;
-                }
-                
-                .rtc-dog-name-kennel-only {
-                    font-weight: 600;
-                    color: #0d6efd;
-                    white-space: nowrap;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    line-height: 1;
-                    width: 100%;
-                    font-size: 0.5rem;
-                    text-align: center;
-                }
-                
-                .rtc-card-row-1 {
-                    margin-bottom: 2px;
-                }
-                
-                .rtc-card-row-2 {
-                    margin-bottom: 2px;
-                }
-                
-                .rtc-card-row-3 {
-                    margin-top: auto;
-                }
-                
-                .rtc-dog-name-kennel-compact {
-                    font-weight: 600;
-                    color: #0d6efd;
-                    white-space: nowrap;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    line-height: 1.1;
-                    width: 100%;
-                }
-                
-                .rtc-pedigree-card-compact.horizontal.gen0 .rtc-dog-name-kennel-compact,
-                .rtc-pedigree-card-compact.horizontal.gen1 .rtc-dog-name-kennel-compact,
-                .rtc-pedigree-card-compact.horizontal.gen2 .rtc-dog-name-kennel-compact {
-                    font-size: 0.75rem;
-                }
-                
-                .rtc-pedigree-card-compact.horizontal.gen0 .rtc-dog-pedigree-compact,
-                .rtc-pedigree-card-compact.horizontal.gen1 .rtc-dog-pedigree-compact,
-                .rtc-pedigree-card-compact.horizontal.gen2 .rtc-dog-pedigree-compact,
-                .rtc-pedigree-card-compact.horizontal.gen0 .rtc-dog-breed-compact,
-                .rtc-pedigree-card-compact.horizontal.gen1 .rtc-dog-breed-compact,
-                .rtc-pedigree-card-compact.horizontal.gen2 .rtc-dog-breed-compact {
-                    font-size: 0.65rem;
-                }
-                
-                .rtc-pedigree-card-compact.horizontal.gen0 .rtc-click-hint-compact,
-                .rtc-pedigree-card-compact.horizontal.gen1 .rtc-click-hint-compact,
-                .rtc-pedigree-card-compact.horizontal.gen2 .rtc-click-hint-compact {
-                    font-size: 0.55rem;
-                }
-                
-                .rtc-pedigree-card-compact.horizontal.gen3 .rtc-dog-name-kennel-compact {
-                    font-size: 0.6rem;
-                }
-                
-                .rtc-pedigree-card-compact.horizontal.gen3 .rtc-dog-pedigree-compact,
-                .rtc-pedigree-card-compact.horizontal.gen3 .rtc-dog-breed-compact {
-                    font-size: 0.52rem;
-                }
-                
-                .rtc-pedigree-card-compact.horizontal.gen3 .rtc-click-hint-compact {
-                    font-size: 0.44rem;
-                }
-                
-                .rtc-dog-pedigree-compact {
-                    font-weight: 600;
-                    color: #495057;
-                    white-space: nowrap;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    line-height: 1.1;
-                    flex: 1;
-                }
-                
-                .rtc-dog-breed-compact {
-                    color: #28a745;
-                    white-space: nowrap;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    line-height: 1.1;
-                    flex: 1;
-                    text-align: right;
-                }
-                
-                .rtc-no-data-text {
-                    color: #6c757d;
-                    font-style: italic;
-                    line-height: 1.3;
-                    font-size: 0.7rem;
-                }
-                
-                .rtc-click-hint-compact {
-                    color: #6c757d;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 3px;
-                    line-height: 1;
-                    width: 100%;
-                    padding-top: 2px;
-                    border-top: 1px dashed #dee2e6;
-                    font-size: 0.55rem;
-                }
-                
-                .rtc-pedigree-card-compact.horizontal.gen4 .rtc-click-hint-compact {
-                    display: none !important;
-                }
-                
-                .rtc-click-hint-compact .bi-camera {
-                    color: #1a15f4;
-                    font-size: 0.7rem;
-                }
-                
-                @media (max-width: 767px) {
-                    #rtc-futurePuppyModal.modal.fade .modal-dialog {
-                        max-width: 100%;
-                        margin: 0.5rem auto;
-                        height: auto;
-                    }
-                    
-                    #rtc-futurePuppyModal.modal.fade .modal-content {
-                        width: 100%;
-                        height: auto;
-                        margin: 0;
-                        border-radius: 12px;
-                        display: flex;
-                        flex-direction: column;
-                    }
-                    
-                    #rtc-futurePuppyModal.modal.fade .modal-header {
-                        margin: 0;
-                        padding: 0.75rem 1rem;
-                        border: none;
-                        width: 100%;
-                        flex-shrink: 0;
-                        min-height: auto;
-                        z-index: 1;
-                        border-radius: 12px 12px 0 0;
-                    }
-                    
-                    #rtc-futurePuppyModal.modal.fade .modal-body {
-                        width: 100%;
-                        padding: 0;
-                        margin: 0;
-                        flex: 1 1 auto;
-                        overflow: hidden;
-                        min-height: 0;
-                        max-height: 640px;
-                        border-radius: 0 0 12px 12px;
-                    }
-                    
-                    .rtc-pedigree-mobile-wrapper {
-                        width: 100%;
-                        height: 100%;
-                        display: flex;
-                        flex-direction: column;
-                        background: #f8f9fa;
-                        border-radius: 0 0 12px 12px;
-                    }
-                    
-                    .rtc-pedigree-container-compact {
-                        height: 640px !important;
-                        overflow-x: auto !important;
-                        overflow-y: hidden !important;
-                        padding: 10px !important;
-                        -webkit-overflow-scrolling: touch;
-                        display: flex;
-                        flex-direction: column;
-                        border-radius: 0 0 12px 12px;
-                    }
-                    
-                    .rtc-pedigree-grid-compact {
-                        display: flex !important;
-                        flex-direction: row !important;
-                        flex-wrap: nowrap !important;
-                        height: 100% !important;
-                        min-width: max-content !important;
-                        padding: 10px 15px !important;
-                        gap: 15px !important;
-                        margin: 0 !important;
-                        align-items: stretch !important;
-                        box-sizing: border-box !important;
-                        width: auto !important;
-                    }
-                    
-                    .rtc-pedigree-generation-col {
-                        display: flex !important;
-                        flex-direction: column !important;
-                        height: 100% !important;
-                        flex-shrink: 0 !important;
-                        padding: 0 !important;
-                        margin: 0 !important;
-                        position: relative;
-                        justify-content: center !important;
-                        align-items: flex-start !important;
-                    }
-                    
-                    .rtc-pedigree-generation-col.gen0 {
-                        justify-content: center !important;
-                        align-items: flex-start !important;
-                        min-width: 200px !important;
-                        width: 200px !important;
-                        gap: 4px !important;
-                    }
-                    
-                    .rtc-pedigree-generation-col.gen1 {
-                        justify-content: center !important;
-                        align-items: flex-start !important;
-                        min-width: 200px !important;
-                        width: 200px !important;
-                        gap: 4px !important;
-                    }
-                    
-                    .rtc-pedigree-generation-col.gen1 > .rtc-pedigree-card-compact.horizontal:nth-child(2) {
-                        margin-top: -2px !important;
-                    }
-                    
-                    .rtc-pedigree-generation-col.gen1 > .rtc-pedigree-card-compact.horizontal:nth-child(3) {
-                        margin-top: 2px !important;
-                    }
-                    
-                    .rtc-pedigree-generation-col.gen2 {
-                        justify-content: center !important;
-                        align-items: flex-start !important;
-                        min-width: 200px !important;
-                        width: 200px !important;
-                        gap: 4px !important;
-                    }
-                    
-                    .rtc-pedigree-generation-col.gen2 > .rtc-pedigree-card-compact.horizontal:nth-child(2),
-                    .rtc-pedigree-generation-col.gen2 > .rtc-pedigree-card-compact.horizontal:nth-child(3) {
-                        margin-top: -4px !important;
-                    }
-                    
-                    .rtc-pedigree-generation-col.gen2 > .rtc-pedigree-card-compact.horizontal:nth-child(4),
-                    .rtc-pedigree-generation-col.gen2 > .rtc-pedigree-card-compact.horizontal:nth-child(5) {
-                        margin-top: 4px !important;
-                    }
-                    
-                    .rtc-pedigree-generation-col.gen3 {
-                        justify-content: center !important;
-                        align-items: flex-start !important;
-                        min-width: 200px !important;
-                        width: 200px !important;
-                        gap: 4px !important;
-                    }
-                    
-                    .rtc-pedigree-generation-col.gen4 {
-                        justify-content: center !important;
-                        align-items: flex-start !important;
-                        min-width: 200px !important;
-                        width: 200px !important;
-                        gap: 4px !important;
-                    }
-                    
-                    .rtc-pedigree-card-compact.horizontal.gen0,
-                    .rtc-pedigree-card-compact.horizontal.gen1,
-                    .rtc-pedigree-card-compact.horizontal.gen2 {
-                        width: 200px !important;
-                        height: 150px !important;
-                        margin: 0 !important;
-                        flex-shrink: 0 !important;
-                    }
-                    
-                    .rtc-pedigree-card-compact.horizontal.gen3 {
-                        width: 200px !important;
-                        height: 75px !important;
-                        margin: 0 !important;
-                        flex-shrink: 0 !important;
-                    }
-                    
-                    .rtc-pedigree-card-compact.horizontal.gen4 {
-                        width: 200px !important;
-                        height: 34px !important;
-                        margin: 0 !important;
-                        flex-shrink: 0 !important;
-                    }
-                    
-                    .rtc-pedigree-card-compact.horizontal.main-dog-compact {
-                        width: 200px !important;
-                        height: 150px !important;
-                        margin: 0 !important;
-                        flex-shrink: 0 !important;
-                    }
-                    
-                    .rtc-pedigree-generation-col > * {
-                        width: 100% !important;
-                    }
-                    
-                    /* DRIE WAARDES NAAST ELKAAR OP MOBIEL */
-                    .rtc-three-values-row {
-                        gap: 4px !important;
-                        margin: 8px 0 !important;
-                    }
-                    
-                    .rtc-value-box {
-                        padding: 6px 3px !important;
-                        min-height: 55px !important;
-                    }
-                    
-                    .rtc-value-label {
-                        font-size: 0.61rem !important;
-                    }
-                    
-                    .rtc-value-number {
-                        font-size: 0.8rem !important;
-                    }
-                }
-                
-                @media (max-width: 480px) {
-                    .rtc-pedigree-container-compact {
-                        height: 640px !important;
-                        padding: 8px !important;
-                    }
-                    
-                    .rtc-pedigree-grid-compact {
-                        padding: 8px 12px !important;
-                        gap: 4px !important;
-                    }
-                    
-                    .rtc-pedigree-card-compact.horizontal.gen0,
-                    .rtc-pedigree-card-compact.horizontal.gen1,
-                    .rtc-pedigree-card-compact.horizontal.gen2 {
-                        width: 200px !important;
-                        height: 150px !important;
-                    }
-                    
-                    .rtc-pedigree-card-compact.horizontal.gen3 {
-                        width: 200px !important;
-                        height: 75px !important;
-                    }
-                    
-                    .rtc-pedigree-card-compact.horizontal.gen4 {
-                        width: 200px !important;
-                        height: 34px !important;
-                    }
-                    
-                    .rtc-pedigree-card-compact.horizontal.main-dog-compact {
-                        width: 200px !important;
-                        height: 150px !important;
-                    }
-                    
-                    .rtc-pedigree-generation-col {
-                        min-width: 200px !important;
-                        width: 200px !important;
-                    }
-                    
-                    .rtc-pedigree-generation-col.gen0,
-                    .rtc-pedigree-generation-col.gen1,
-                    .rtc-pedigree-generation-col.gen2,
-                    .rtc-pedigree-generation-col.gen3,
-                    .rtc-pedigree-generation-col.gen4 {
-                        min-width: 200px !important;
-                        width: 200px !important;
-                    }
-                    
-                    .rtc-three-values-row {
-                        gap: 3px !important;
-                    }
-                    
-                    .rtc-value-box {
-                        padding: 5px 2px !important;
-                        min-height: 50px !important;
-                    }
-                    
-                    .rtc-value-label {
-                        font-size: 0.58rem !important;
-                    }
-                    
-                    .rtc-value-number {
-                        font-size: 0.75rem !important;
-                    }
-                }
-                
-                @media (min-width: 768px) {
-                    #rtc-futurePuppyModal.modal.fade .modal-dialog.modal-fullscreen {
-                        width: 100vw !important;
-                        height: 100vh !important;
-                        margin: 0 !important;
-                        max-width: none !important;
-                        padding: 0 !important;
-                    }
-                    
-                    #rtc-futurePuppyModal.modal.fade .modal-content {
-                        width: 100% !important;
-                        height: 100vh !important;
-                        margin: 0 !important;
-                        padding: 0 !important;
-                        border: none !important;
-                        border-radius: 0 !important;
-                        display: flex !important;
-                        flex-direction: column !important;
-                    }
-                    
-                    #rtc-futurePuppyModal.modal.fade .modal-header {
-                        margin: 0 !important;
-                        padding: 0.75rem 1rem !important;
-                        border: none !important;
-                        width: 100% !important;
-                        flex-shrink: 0 !important;
-                        min-height: auto !important;
-                        z-index: 1;
-                    }
-                    
-                    #rtc-futurePuppyModal.modal.fade .modal-body {
-                        width: 100% !important;
-                        padding: 0 !important;
-                        margin: 0 !important;
-                        flex: 1 1 auto !important;
-                        overflow: hidden !important;
-                        min-height: 0 !important;
-                    }
-                    
-                    .rtc-pedigree-mobile-wrapper {
-                        height: 100%;
-                        border-radius: 0;
-                    }
-                    
-                    .rtc-pedigree-container-compact {
-                        height: calc(100vh - 60px) !important;
-                        overflow-x: auto !important;
-                        overflow-y: hidden !important;
-                        align-items: center;
-                        padding: 0 !important;
-                        display: flex;
-                        border-radius: 0;
-                    }
-                    
-                    .rtc-pedigree-grid-compact {
-                        flex-direction: row;
-                        height: 100%;
-                        min-width: fit-content;
-                        padding: 0 20px !important;
-                        gap: 25px;
-                        align-items: center;
-                        box-sizing: border-box !important;
-                        margin: 0 auto;
-                    }
-                    
-                    .rtc-pedigree-generation-col {
-                        display: flex;
-                        flex-direction: column;
-                        height: 100%;
-                        justify-content: center;
-                        min-width: 0;
-                    }
-                    
-                    .rtc-pedigree-generation-col.gen0 {
-                        gap: 4px !important;
-                    }
-                    
-                    .rtc-pedigree-generation-col.gen1 {
-                        gap: 4px !important;
-                    }
-                    
-                    .rtc-pedigree-generation-col.gen2 {
-                        gap: 4px !important;
-                    }
-                    
-                    .rtc-pedigree-generation-col.gen3 {
-                        gap: 4px !important;
-                        justify-content: center;
-                    }
-                    
-                    .rtc-pedigree-generation-col.gen4 {
-                        gap: 4px !important;
-                        justify-content: center;
-                    }
-                    
-                    .rtc-pedigree-card-compact.horizontal.gen0,
-                    .rtc-pedigree-card-compact.horizontal.gen1,
-                    .rtc-pedigree-card-compact.horizontal.gen2 {
-                        width: 200px !important;
-                        height: 140px !important;
-                    }
-                    
-                    .rtc-pedigree-card-compact.horizontal.gen3 {
-                        width: 200px !important;
-                        height: 70px !important;
-                    }
-                    
-                    .rtc-pedigree-card-compact.horizontal.gen4 {
-                        width: 200px !important;
-                        height: 35px !important;
-                    }
-                    
-                    .rtc-pedigree-card-compact.horizontal.main-dog-compact {
-                        width: 200px !important;
-                        height: 140px !important;
-                    }
-                    
-                    .rtc-pedigree-card-compact.horizontal.gen0 .rtc-dog-name-kennel-compact,
-                    .rtc-pedigree-card-compact.horizontal.gen1 .rtc-dog-name-kennel-compact,
-                    .rtc-pedigree-card-compact.horizontal.gen2 .rtc-dog-name-kennel-compact {
-                        font-size: 0.8rem;
-                    }
-                    
-                    .rtc-pedigree-card-compact.horizontal.gen0 .rtc-dog-pedigree-compact,
-                    .rtc-pedigree-card-compact.horizontal.gen1 .rtc-dog-pedigree-compact,
-                    .rtc-pedigree-card-compact.horizontal.gen2 .rtc-dog-pedigree-compact,
-                    .rtc-pedigree-card-compact.horizontal.gen0 .rtc-dog-breed-compact,
-                    .rtc-pedigree-card-compact.horizontal.gen1 .rtc-dog-breed-compact,
-                    .rtc-pedigree-card-compact.horizontal.gen2 .rtc-dog-breed-compact {
-                        font-size: 0.7rem;
-                    }
-                    
-                    .rtc-pedigree-card-compact.horizontal.gen0 .rtc-click-hint-compact,
-                    .rtc-pedigree-card-compact.horizontal.gen1 .rtc-click-hint-compact,
-                    .rtc-pedigree-card-compact.horizontal.gen2 .rtc-click-hint-compact {
-                        font-size: 0.6rem;
-                    }
-                    
-                    .rtc-pedigree-card-compact.horizontal.gen3 .rtc-dog-name-kennel-compact {
-                        font-size: 0.64rem;
-                    }
-                    
-                    .rtc-pedigree-card-compact.horizontal.gen3 .rtc-dog-pedigree-compact,
-                    .rtc-pedigree-card-compact.horizontal.gen3 .rtc-dog-breed-compact {
-                        font-size: 0.56rem;
-                    }
-                    
-                    .rtc-pedigree-card-compact.horizontal.gen3 .rtc-click-hint-compact {
-                        font-size: 0.48rem;
-                    }
-                    
-                    .rtc-pedigree-card-compact.horizontal.gen4 .rtc-dog-name-kennel-only {
-                        font-size: 0.54rem;
-                    }
-                }
-                
-                @media (min-width: 1024px) and (max-width: 1365px) {
-                    .rtc-pedigree-container-compact {
-                        height: calc(100vh - 60px) !important;
-                    }
-                    
-                    .rtc-pedigree-grid-compact {
-                        gap: 15px;
-                        padding: 0 12px !important;
-                    }
-                    
-                    .rtc-pedigree-card-compact.horizontal.gen0,
-                    .rtc-pedigree-card-compact.horizontal.gen1,
-                    .rtc-pedigree-card-compact.horizontal.gen2 {
-                        width: 200px !important;
-                        height: 150px !important;
-                    }
-                    
-                    .rtc-pedigree-card-compact.horizontal.gen3 {
-                        width: 200px !important;
-                        height: 75px !important;
-                    }
-                    
-                    .rtc-pedigree-card-compact.horizontal.gen4 {
-                        width: 200px !important;
-                        height: 35px !important;
-                    }
-                    
-                    .rtc-pedigree-card-compact.horizontal.main-dog-compact {
-                        width: 200px !important;
-                        height: 150px !important;
-                    }
-                }
-                
-                .rtc-pedigree-popup-overlay {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    background: rgba(0, 0, 0, 0.7);
-                    z-index: 1060;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    animation: rtc-fadeIn 0.3s;
-                    overflow-y: auto;
-                }
-                
-                @keyframes rtc-fadeIn {
-                    from { opacity: 0; }
-                    to { opacity: 1; }
-                }
-                
-                .rtc-pedigree-popup-container {
-                    background: white;
-                    border-radius: 12px;
-                    max-width: 400px;
-                    max-height: 80vh;
-                    overflow-y: auto;
-                    animation: rtc-slideUp 0.3s;
-                    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
-                    width: calc(100% - 20px);
-                    margin: 10px;
-                }
-                
-                @keyframes rtc-slideUp {
-                    from { 
-                        opacity: 0;
-                        transform: translateY(30px);
-                    }
-                    to { 
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
-                }
-                
-                .rtc-dog-detail-popup {
-                    display: flex;
-                    flex-direction: column;
-                    height: 100%;
-                }
-                
-                .rtc-popup-header {
-                    background: #0d6efd;
-                    color: white;
-                    padding: 12px 16px;
-                    border-radius: 12px 12px 0 0;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    position: sticky;
-                    top: 0;
-                    z-index: 1;
-                }
-                
-                .rtc-popup-title {
-                    margin: 0;
-                    font-size: 1.1rem;
-                    display: flex;
-                    align-items: center;
-                    flex: 1;
-                }
-                
-                .rtc-popup-header .rtc-btn-close {
-                    display: inline-block;
-                    width: 24px;
-                    height: 24px;
-                    background: transparent;
-                    border: none;
-                    position: relative;
-                    cursor: pointer;
-                    opacity: 0.8;
-                    z-index: 2;
-                    filter: invert(1) grayscale(100%) brightness(200%) !important;
-                }
-                
-                .rtc-popup-header .rtc-btn-close::before,
-                .rtc-popup-header .rtc-btn-close::after {
-                    content: '';
-                    position: absolute;
-                    top: 50%;
-                    left: 50%;
-                    width: 18px;
-                    height: 2px;
-                    background: #000 !important;
-                    transform-origin: center;
-                }
-                
-                .rtc-popup-header .rtc-btn-close::before {
-                    transform: translate(-50%, -50%) rotate(45deg);
-                }
-                
-                .rtc-popup-header .rtc-btn-close::after {
-                    transform: translate(-50%, -50%) rotate(-45deg);
-                }
-                
-                .rtc-popup-header .rtc-btn-close:hover {
-                    opacity: 1;
-                }
-                
-                .rtc-popup-body {
-                    padding: 15px;
-                    flex: 1;
-                    overflow-y: auto;
-                    -webkit-overflow-scrolling: touch;
-                }
-                
-                .rtc-info-section {
-                    margin-bottom: 20px;
-                }
-                
-                .rtc-info-section h6 {
-                    color: #495057;
-                    margin-bottom: 10px;
-                    padding-bottom: 6px;
-                    border-bottom: 2px solid #e9ecef;
-                    display: flex;
-                    align-items: center;
-                    font-size: 1rem;
-                }
-                
-                .rtc-info-grid {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 8px;
-                }
-                
-                .rtc-info-row {
-                    display: grid !important;
-                    grid-template-columns: 1fr 1fr !important;
-                    gap: 8px !important;
-                    margin-bottom: 0 !important;
-                    width: 100% !important;
-                }
-                
-                .rtc-info-item {
-                    display: flex;
-                    flex-direction: column;
-                    width: 100% !important;
-                    min-width: 0 !important;
-                }
-                
-                .rtc-info-item-half {
-                    grid-column: span 1 !important;
-                    width: 100% !important;
-                }
-                
-                .rtc-info-item-full {
-                    grid-column: 1 / -1 !important;
-                    width: 100% !important;
-                    margin-bottom: 4px;
-                }
-                
-                .rtc-info-label {
-                    font-weight: 600;
-                    color: #495057;
-                    font-size: 0.9rem;
-                    margin-bottom: 2px;
-                    line-height: 1.2;
-                }
-                
-                .rtc-info-value {
-                    color: #212529;
-                    font-size: 0.95rem;
-                    line-height: 1.3;
-                    word-break: break-word;
-                }
-                
-                .rtc-remarks-box {
-                    background: #f8f9fa;
-                    border: 1px solid #dee2e6;
-                    padding: 12px;
-                    border-radius: 6px;
-                    font-style: italic;
-                    color: #495057;
-                    font-size: 0.95rem;
-                    line-height: 1.5;
-                }
-                
-                .photos-grid {
-                    display: grid;
-                    grid-template-columns: repeat(3, 1fr);
-                    gap: 6px;
-                    margin-bottom: 10px;
-                    max-width: 240px;
-                    margin-left: auto;
-                    margin-right: auto;
-                }
-                
-                .photo-thumbnail {
-                    position: relative;
-                    aspect-ratio: 1 / 1;
-                    border-radius: 4px;
-                    overflow: hidden;
-                    cursor: pointer;
-                    border: 2px solid transparent;
-                    transition: all 0.2s;
-                }
-                
-                .photo-thumbnail:hover {
-                    border-color: #0d6efd;
-                    transform: scale(1.05);
-                }
-                
-                .thumbnail-img {
-                    width: 100%;
-                    height: 100%;
-                    object-fit: cover;
-                }
-                
-                .photo-hover {
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    background: rgba(0, 0, 0, 0.3);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    opacity: 0;
-                    transition: opacity 0.2s;
-                }
-                
-                .photo-thumbnail:hover .photo-hover {
-                    opacity: 1;
-                }
-                
-                .photo-hover i {
-                    color: white;
-                    font-size: 1.2rem;
-                }
-                
-                .photo-hint {
-                    text-align: center;
-                    margin-bottom: 15px;
-                    font-size: 0.85rem;
-                }
-                
-                .rtc-popup-footer {
-                    padding: 16px 20px;
-                    border-top: 1px solid #dee2e6;
-                    display: flex;
-                    justify-content: center;
-                    background: #f8f9fa;
-                    border-radius: 0 0 12px 12px;
-                }
-                
-                .rtc-popup-close-btn {
-                    min-width: 130px;
-                    padding: 10px 25px;
-                    font-size: 1rem;
-                }
-                
-                .rtc-photo-large-overlay {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    background: rgba(0, 0, 0, 0.85);
-                    z-index: 1070;
-                    display: none;
-                    align-items: center;
-                    justify-content: center;
-                    animation: rtc-fadeIn 0.3s;
-                }
-                
-                .rtc-photo-large-container {
-                    background: white;
-                    border-radius: 12px;
-                    overflow: hidden;
-                    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-                    display: flex;
-                    flex-direction: column;
-                    max-height: 95vh;
-                    animation: rtc-slideUp 0.3s;
-                }
-                
-                .rtc-photo-large-header {
-                    padding: 12px 16px;
-                    background: #0d6efd;
-                    color: white;
-                    display: flex;
-                    justify-content: flex-end;
-                }
-                
-                .rtc-photo-large-close {
-                    background: none;
-                    border: none;
-                    color: white;
-                    opacity: 0.8;
-                    font-size: 1.3rem;
-                    cursor: pointer;
-                    width: 32px;
-                    height: 32px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    border-radius: 50%;
-                    transition: all 0.2s;
-                }
-                
-                .rtc-photo-large-close:hover {
-                    opacity: 1;
-                    background: rgba(255, 255, 255, 0.2);
-                }
-                
-                .rtc-photo-large-content {
-                    padding: 20px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    overflow: hidden;
-                    flex: 1;
-                    min-height: 300px;
-                }
-                
-                .rtc-photo-large-img {
-                    max-width: 100%;
-                    max-height: 100%;
-                    object-fit: contain;
-                    border-radius: 4px;
-                }
-                
-                .rtc-photo-large-footer {
-                    padding: 16px;
-                    border-top: 1px solid #dee2e6;
-                    display: flex;
-                    justify-content: center;
-                    background: #f8f9fa;
-                }
-                
-                .rtc-photo-large-close-btn {
-                    min-width: 120px;
-                    padding: 8px 20px;
-                }
-                
-                @media print {
-                    .modal-dialog {
-                        max-width: none;
-                        margin: 0;
-                    }
-                    
-                    .modal-header {
-                        display: none !important;
-                    }
-                    
-                    .rtc-pedigree-container-compact {
-                        padding: 0;
-                        background: white;
-                        height: auto !important;
-                        overflow-x: visible !important;
-                        height: 100vh !important;
-                    }
-                    
-                    .rtc-pedigree-grid-compact {
-                        flex-direction: row !important;
-                        height: auto;
-                        padding: 20px !important;
-                        gap: 15px;
-                    }
-                    
-                    .rtc-pedigree-generation-col {
-                        flex-direction: column;
-                        gap: 10px;
-                    }
-                    
-                    .rtc-pedigree-card-compact.horizontal {
-                        break-inside: avoid;
-                        box-shadow: none;
-                        border: 1px solid #ccc !important;
-                        margin-bottom: 10px;
-                    }
-                    
-                    .main-dog-compact {
-                        border: 2px solid #000 !important;
-                    }
-                    
-                    .rtc-pedigree-popup-overlay {
-                        display: none !important;
-                    }
-                }
-                
-                .rtc-pedigree-card-compact.horizontal.empty {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-                
-                .rtc-pedigree-generation-col {
-                    position: relative;
-                }
-                
-                .rtc-pedigree-generation-col:not(:first-child)::before {
-                    content: '';
-                    position: absolute;
-                    left: -10px;
-                    top: 50%;
-                    width: 10px;
-                    height: 1px;
-                    background: #adb5bd;
-                    opacity: 0.5;
-                }
-                
-                .rtc-pedigree-card-compact.horizontal.gen3 {
-                    opacity: 0.9;
-                }
-                
-                .rtc-pedigree-card-compact.horizontal.gen3:hover {
-                    opacity: 1;
-                }
-                
-                .rtc-pedigree-card-compact.horizontal.gen4 {
-                    opacity: 0.8;
-                }
-                
-                .rtc-pedigree-card-compact.horizontal.gen4:hover {
-                    opacity: 1;
-                }
-                
-                /* HEALTH BADGES */
-                .badge-hd {
-                    background-color: #dc3545 !important;
-                    color: white !important;
-                }
-                
-                .badge-ed {
-                    background-color: #fd7e14 !important;
-                    color: white !important;
-                }
-                
-                .badge-pl {
-                    background-color: #6f42c1 !important;
-                    color: white !important;
-                }
-                
-                .badge-eyes {
-                    background-color: #20c997 !important;
-                    color: white !important;
-                }
-                
-                .badge-dandy {
-                    background-color: #6610f2 !important;
-                    color: white !important;
-                }
-                
-                .badge-thyroid {
-                    background-color: #e83e8c !important;
-                    color: white !important;
-                }
-                
-                /* HEALTH ANALYSIS TABLE */
-                .health-analysis-table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    font-size: 0.85rem;
-                }
-                
-                .health-analysis-table th,
-                .health-analysis-table td {
-                    padding: 6px 8px;
-                    border: 1px solid #dee2e6;
-                    text-align: center;
-                }
-                
-                .health-analysis-table th {
-                    background-color: #f8f9fa;
-                    font-weight: 600;
-                }
-                
-                .health-analysis-table .health-category {
-                    text-align: left;
-                    font-weight: 500;
-                }
-                
-                .health-analysis-table .mother-count,
-                .health-analysis-table .father-count {
-                    font-weight: 600;
-                }
-                
-                .health-analysis-table .count-good {
-                    color: #28a745;
-                }
-                
-                .health-analysis-table .count-high {
-                    color: #dc3545;
-                }
-            </style>
-        `;
-        
-        document.body.insertAdjacentHTML('beforeend', modalHTML);
-        
-        const modal = new bootstrap.Modal(document.getElementById(modalId));
-        modal.show();
-        
-        this.setupFuturePuppyModalEvents();
-        
-        await this.renderFuturePuppyPedigree(futurePuppy, selectedTeef, selectedReu, coiResult, healthAnalysis);
-    }
-    
-    setupFuturePuppyModalEvents() {
-        const modal = document.getElementById('rtc-futurePuppyModal');
-        if (!modal) return;
-        
-        const printBtn = modal.querySelector('.btn-print');
-        if (printBtn) {
-            printBtn.addEventListener('click', () => {
-                window.print();
-            });
-        }
-        
-        modal.addEventListener('hidden.bs.modal', () => {
-            if (!this._isActive) return;
+            let totalKinship = 0;
+            let pairCount = 0;
             
-            const popupOverlay = document.getElementById('rtcPedigreePopupOverlay');
-            if (popupOverlay) {
-                popupOverlay.style.display = 'none';
+            const sampleSize = Math.min(ancestorIds.length, 30);
+            const step = Math.max(1, Math.floor(ancestorIds.length / sampleSize));
+            
+            for (let i = 0; i < ancestorIds.length; i += step) {
+                for (let j = i + step; j < ancestorIds.length; j += step) {
+                    if (i !== j) {
+                        const kinship = this.coiCalculator._calculateKinship(ancestorIds[i], ancestorIds[j], generations);
+                        totalKinship += kinship;
+                        pairCount++;
+                    }
+                }
             }
             
-            const photoOverlay = document.querySelector('.rtc-photo-large-overlay');
-            if (photoOverlay) {
-                photoOverlay.style.display = 'none';
-                setTimeout(() => {
-                    if (photoOverlay.parentNode) {
-                        photoOverlay.parentNode.removeChild(photoOverlay);
-                    }
-                }, 300);
-            }
-        });
+            return pairCount > 0 ? (totalKinship / pairCount) * 100 : 0;
+        } catch (error) {
+            console.error('Fout bij berekenen kinship:', error);
+            return 0;
+        }
     }
     
-    async renderFuturePuppyPedigree(futurePuppy, selectedTeef, selectedReu, coiResult, healthAnalysis) {
-        const container = document.getElementById('rtcFuturePuppyContainer');
-        if (!container) return;
-        
-        const pedigreeTree = this.buildFuturePuppyPedigreeTree(futurePuppy, selectedTeef, selectedReu);
-        
-        const mainDogCard = await this.generateDogCard(futurePuppy, this.t('mainDog'), true, 0);
-        const fatherCard = await this.generateDogCard(selectedReu, this.t('fatherLabel'), false, 1);
-        const motherCard = await this.generateDogCard(selectedTeef, this.t('motherLabel'), false, 1);
-        
-        const paternalGrandfatherCard = await this.generateDogCard(pedigreeTree.paternalGrandfather, this.t('grandfatherLabel'), false, 2);
-        const paternalGrandmotherCard = await this.generateDogCard(pedigreeTree.paternalGrandmother, this.t('grandmotherLabel'), false, 2);
-        const maternalGrandfatherCard = await this.generateDogCard(pedigreeTree.maternalGrandfather, this.t('grandfatherLabel'), false, 2);
-        const maternalGrandmotherCard = await this.generateDogCard(pedigreeTree.maternalGrandmother, this.t('grandmotherLabel'), false, 2);
-        
-        const paternalGreatGrandfather1Card = await this.generateDogCard(pedigreeTree.paternalGreatGrandfather1, this.t('greatGrandfatherLabel'), false, 3);
-        const paternalGreatGrandmother1Card = await this.generateDogCard(pedigreeTree.paternalGreatGrandmother1, this.t('greatGrandmotherLabel'), false, 3);
-        const paternalGreatGrandfather2Card = await this.generateDogCard(pedigreeTree.paternalGreatGrandfather2, this.t('greatGrandfatherLabel'), false, 3);
-        const paternalGreatGrandmother2Card = await this.generateDogCard(pedigreeTree.paternalGreatGrandmother2, this.t('greatGrandmotherLabel'), false, 3);
-        const maternalGreatGrandfather1Card = await this.generateDogCard(pedigreeTree.maternalGreatGrandfather1, this.t('greatGrandfatherLabel'), false, 3);
-        const maternalGreatGrandmother1Card = await this.generateDogCard(pedigreeTree.maternalGreatGrandmother1, this.t('greatGrandmotherLabel'), false, 3);
-        const maternalGreatGrandfather2Card = await this.generateDogCard(pedigreeTree.maternalGreatGrandfather2, this.t('greatGrandfatherLabel'), false, 3);
-        const maternalGreatGrandmother2Card = await this.generateDogCard(pedigreeTree.maternalGreatGrandmother2, this.t('greatGrandmotherLabel'), false, 3);
-        
-        const paternalGreatGreatGrandfather1Card = await this.generateDogCard(pedigreeTree.paternalGreatGreatGrandfather1, this.t('greatGreatGrandfatherLabel'), false, 4);
-        const paternalGreatGreatGrandmother1Card = await this.generateDogCard(pedigreeTree.paternalGreatGreatGrandmother1, this.t('greatGreatGrandmotherLabel'), false, 4);
-        const paternalGreatGreatGrandfather2Card = await this.generateDogCard(pedigreeTree.paternalGreatGreatGrandfather2, this.t('greatGreatGrandfatherLabel'), false, 4);
-        const paternalGreatGreatGrandmother2Card = await this.generateDogCard(pedigreeTree.paternalGreatGreatGrandmother2, this.t('greatGreatGrandmotherLabel'), false, 4);
-        const paternalGreatGreatGrandfather3Card = await this.generateDogCard(pedigreeTree.paternalGreatGreatGrandfather3, this.t('greatGreatGrandfatherLabel'), false, 4);
-        const paternalGreatGreatGrandmother3Card = await this.generateDogCard(pedigreeTree.paternalGreatGreatGrandmother3, this.t('greatGreatGrandmotherLabel'), false, 4);
-        const paternalGreatGreatGrandfather4Card = await this.generateDogCard(pedigreeTree.paternalGreatGreatGrandfather4, this.t('greatGreatGrandfatherLabel'), false, 4);
-        const paternalGreatGreatGrandmother4Card = await this.generateDogCard(pedigreeTree.paternalGreatGreatGrandmother4, this.t('greatGreatGrandmotherLabel'), false, 4);
-        const maternalGreatGreatGrandfather1Card = await this.generateDogCard(pedigreeTree.maternalGreatGreatGrandfather1, this.t('greatGreatGrandfatherLabel'), false, 4);
-        const maternalGreatGreatGrandmother1Card = await this.generateDogCard(pedigreeTree.maternalGreatGreatGrandmother1, this.t('greatGreatGrandmotherLabel'), false, 4);
-        const maternalGreatGreatGrandfather2Card = await this.generateDogCard(pedigreeTree.maternalGreatGreatGrandfather2, this.t('greatGreatGrandfatherLabel'), false, 4);
-        const maternalGreatGreatGrandmother2Card = await this.generateDogCard(pedigreeTree.maternalGreatGreatGrandmother2, this.t('greatGreatGrandmotherLabel'), false, 4);
-        const maternalGreatGreatGrandfather3Card = await this.generateDogCard(pedigreeTree.maternalGreatGreatGrandfather3, this.t('greatGreatGrandfatherLabel'), false, 4);
-        const maternalGreatGreatGrandmother3Card = await this.generateDogCard(pedigreeTree.maternalGreatGreatGrandmother3, this.t('greatGreatGrandmotherLabel'), false, 4);
-        const maternalGreatGreatGrandfather4Card = await this.generateDogCard(pedigreeTree.maternalGreatGreatGrandfather4, this.t('greatGreatGrandfatherLabel'), false, 4);
-        const maternalGreatGreatGrandmother4Card = await this.generateDogCard(pedigreeTree.maternalGreatGreatGrandmother4, this.t('greatGreatGrandmotherLabel'), false, 4);
-        
-        const gridHTML = `
-            <div class="rtc-pedigree-grid-compact">
-                <div class="rtc-pedigree-generation-col gen0">
-                    ${mainDogCard}
+    ensurePopupContainer() {
+        if (!document.getElementById('rtcPedigreePopupOverlay')) {
+            const overlayHTML = `
+                <div class="rtc-pedigree-popup-overlay" id="rtcPedigreePopupOverlay" style="display: none;">
+                    <div class="rtc-pedigree-popup-container" id="rtcPedigreePopupContainer"></div>
                 </div>
-                
-                <div class="rtc-pedigree-generation-col gen1">
-                    ${fatherCard}
-                    ${motherCard}
-                </div>
-                
-                <div class="rtc-pedigree-generation-col gen2">
-                    ${paternalGrandfatherCard}
-                    ${paternalGrandmotherCard}
-                    ${maternalGrandfatherCard}
-                    ${maternalGrandmotherCard}
-                </div>
-                
-                <div class="rtc-pedigree-generation-col gen3">
-                    ${paternalGreatGrandfather1Card}
-                    ${paternalGreatGrandmother1Card}
-                    ${paternalGreatGrandfather2Card}
-                    ${paternalGreatGrandmother2Card}
-                    ${maternalGreatGrandfather1Card}
-                    ${maternalGreatGrandmother1Card}
-                    ${maternalGreatGrandfather2Card}
-                    ${maternalGreatGrandmother2Card}
-                </div>
-                
-                <div class="rtc-pedigree-generation-col gen4">
-                    ${paternalGreatGreatGrandfather1Card}
-                    ${paternalGreatGreatGrandmother1Card}
-                    ${paternalGreatGreatGrandfather2Card}
-                    ${paternalGreatGreatGrandmother2Card}
-                    ${paternalGreatGreatGrandfather3Card}
-                    ${paternalGreatGreatGrandmother3Card}
-                    ${paternalGreatGreatGrandfather4Card}
-                    ${paternalGreatGreatGrandmother4Card}
-                    ${maternalGreatGreatGrandfather1Card}
-                    ${maternalGreatGreatGrandmother1Card}
-                    ${maternalGreatGreatGrandfather2Card}
-                    ${maternalGreatGreatGrandmother2Card}
-                    ${maternalGreatGreatGrandfather3Card}
-                    ${maternalGreatGreatGrandmother3Card}
-                    ${maternalGreatGreatGrandfather4Card}
-                    ${maternalGreatGreatGrandmother4Card}
-                </div>
-            </div>
-        `;
-        
-        container.innerHTML = gridHTML;
-        
-        this.setupCardClickEvents();
-        
-        setTimeout(() => {
-            this.addFuturePuppyClickHandler(futurePuppy, coiResult, healthAnalysis);
-        }, 100);
+            `;
+            document.body.insertAdjacentHTML('beforeend', overlayHTML);
+        }
     }
     
-    setupCardClickEvents() {
-        const cards = document.querySelectorAll('.rtc-pedigree-card-compact.horizontal:not(.empty)');
-        cards.forEach(card => {
-            card.addEventListener('click', async (e) => {
-                if (!this._isActive) return;
-                
-                const dogId = parseInt(card.getAttribute('data-dog-id'));
-                if (dogId === 0) return;
-                
-                if (dogId === -999999) {
-                    return;
-                }
-                
-                const dog = this.getDogById(dogId);
-                if (!dog) return;
-                
-                const relation = card.getAttribute('data-relation') || '';
-                await this.showDogDetailPopup(dog, relation);
-            });
-        });
-    }
-    
-    async showDogDetailPopup(dog, relation) {
-        if (!this._isActive) return;
-        
+    setupIsolatedPopupEventListeners() {
         const overlay = document.getElementById('rtcPedigreePopupOverlay');
         const container = document.getElementById('rtcPedigreePopupContainer');
         
         if (!overlay || !container) return;
         
-        const popupHTML = await this.getDogDetailPopupHTML(dog, relation);
-        container.innerHTML = popupHTML;
-        
-        overlay.style.display = 'flex';
-        
         const closeButtons = container.querySelectorAll('.rtc-btn-close, .rtc-popup-close-btn');
+        
+        const closePopup = () => {
+            overlay.style.display = 'none';
+        };
+        
         closeButtons.forEach(btn => {
-            btn.addEventListener('click', () => {
-                overlay.style.display = 'none';
-            });
+            btn.addEventListener('click', closePopup);
         });
         
+        // Overlay click handler
         overlay.addEventListener('click', (e) => {
             if (e.target === overlay) {
-                overlay.style.display = 'none';
+                closePopup();
             }
         });
         
-        this.setupThumbnailClickEvents(container);
-    }
-    
-    setupThumbnailClickEvents(container) {
-        const thumbnails = container.querySelectorAll('.photo-thumbnail');
-        thumbnails.forEach(thumbnail => {
-            thumbnail.addEventListener('click', async (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                const photoId = thumbnail.getAttribute('data-photo-id');
-                const isThumbnail = thumbnail.getAttribute('data-is-thumbnail') === 'true';
-                
-                if (!photoId) return;
-                
-                try {
-                    const fullPhoto = await this.getFullSizeFoto(photoId);
-                    
-                    if (fullPhoto && fullPhoto.data) {
-                        const popupTitle = container.querySelector('.rtc-popup-title');
-                        let dogName = '';
-                        if (popupTitle) {
-                            dogName = popupTitle.textContent.trim();
-                            dogName = dogName.replace(/^[^a-zA-Z]*/, '').trim();
-                        }
-                        
-                        this.showLargePhoto(fullPhoto.data, dogName);
-                    } else {
-                        console.error('Kon volledige foto niet laden:', photoId);
-                        const imgElement = thumbnail.querySelector('img');
-                        if (imgElement && imgElement.src) {
-                            this.showLargePhoto(imgElement.src, dogName);
-                        }
-                    }
-                } catch (error) {
-                    console.error('Fout bij laden volledige foto:', error);
-                }
-            });
-        });
-    }
-    
-    showLargePhoto(photoData, dogName = '') {
-        if (!this._isActive) return;
-        
-        const existingOverlay = document.querySelector('.rtc-photo-large-overlay');
-        if (existingOverlay) {
-            existingOverlay.remove();
-        }
-        
-        const overlayHTML = `
-            <div class="rtc-photo-large-overlay" style="display: flex;">
-                <div class="rtc-photo-large-container">
-                    <div class="rtc-photo-large-header">
-                        <button type="button" class="rtc-photo-large-close">
-                            <i class="bi bi-x-lg"></i>
-                        </button>
-                    </div>
-                    <div class="rtc-photo-large-content">
-                        <img src="${photoData}" 
-                             alt="${dogName || 'Foto'}" 
-                             class="rtc-photo-large-img"
-                             style="max-width: 90vw; max-height: 80vh; object-fit: contain;">
-                    </div>
-                    <div class="rtc-photo-large-footer">
-                        <button type="button" class="btn btn-secondary rtc-photo-large-close-btn">
-                            <i class="bi bi-x-circle me-1"></i> ${this.t('closePhoto')}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        document.body.insertAdjacentHTML('beforeend', overlayHTML);
-        
-        const overlay = document.querySelector('.rtc-photo-large-overlay');
-        if (overlay) {
-            const closeButtons = overlay.querySelectorAll('.rtc-photo-large-close, .rtc-photo-large-close-btn');
-            closeButtons.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    overlay.style.display = 'none';
-                    setTimeout(() => {
-                        if (overlay.parentNode) {
-                            overlay.parentNode.removeChild(overlay);
-                        }
-                    }, 300);
-                });
-            });
-            
-            overlay.addEventListener('click', (e) => {
-                if (e.target === overlay) {
-                    overlay.style.display = 'none';
-                    setTimeout(() => {
-                        if (overlay.parentNode) {
-                            overlay.parentNode.removeChild(overlay);
-                        }
-                    }, 300);
-                }
-            });
-        }
-    }
-    
-    addFuturePuppyClickHandler(futurePuppy, coiResult, healthAnalysis) {
-        const futurePuppyCard = document.querySelector('.rtc-pedigree-card-compact.horizontal.main-dog-compact.gen0');
-        if (futurePuppyCard) {
-            futurePuppyCard.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.showFuturePuppyPopup(futurePuppy, coiResult, healthAnalysis);
-            });
-            
-            futurePuppyCard.style.cursor = 'pointer';
-            
-            const clickHint = futurePuppyCard.querySelector('.rtc-click-hint-compact');
-            if (clickHint) {
-                clickHint.innerHTML = '<i class="bi bi-info-circle"></i> ' + this.t('clickForDetails');
+        // Escape key handler
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closePopup();
             }
-        }
-    }
-    
-    showFuturePuppyPopup(futurePuppy, coiResult, healthAnalysis) {
-        const coi6Color = this.getCOIColor(coiResult.coi6Gen);
-        const coiAllColor = this.getCOIColor(coiResult.coiAllGen);
-        
-        const healthAnalysisHTML = this.generateHealthAnalysisHTML(healthAnalysis);
-        
-        const popupHTML = `
-            <div class="rtc-dog-detail-popup">
-                <div class="rtc-popup-header">
-                    <h5 class="rtc-popup-title">
-                        <i class="bi bi-stars me-2" style="color: #ffc107;"></i>
-                        ${this.t('futurePuppyName')}
-                    </h5>
-                    <button type="button" class="rtc-btn-close" aria-label="${this.t('close')}"></button>
-                </div>
-                <div class="rtc-popup-body">
-                    <div class="rtc-info-section mb-4">
-                        <h6><i class="bi bi-calculator me-1"></i> ${this.t('predictedCoi')}</h6>
-                        <div class="rtc-info-grid">
-                            <div class="rtc-three-values-row">
-                                <div class="rtc-value-box">
-                                    <div class="rtc-value-label">${this.t('coi6Gen')}</div>
-                                    <div class="rtc-value-number rtc-coi-value" style="color: ${coi6Color} !important;">${coiResult.coi6Gen || '0.0'}%</div>
-                                </div>
-                                
-                                <div class="rtc-value-box">
-                                    <div class="rtc-value-label">${this.t('homozygosity6Gen')}</div>
-                                    <div class="rtc-value-number">${coiResult.coiAllGen || '0.0'}%</div>
-                                </div>
-                                
-                                <div class="rtc-value-box">
-                                    <div class="rtc-value-label">${this.t('kinship6Gen')}</div>
-                                    <div class="rtc-value-number">${coiResult.kinship6Gen || '0.0'}%</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="rtc-info-section mb-4">
-                        <h6><i class="bi bi-heart-pulse me-1"></i> ${this.t('healthInLine')}</h6>
-                        ${healthAnalysisHTML}
-                    </div>
-                    
-                    <div class="rtc-info-section mb-2">
-                        <div class="alert alert-info mb-0">
-                            <i class="bi bi-info-circle me-2"></i>
-                            <strong>${this.t('predictedPedigree')}</strong><br>
-                            ${this.t('futurePuppyDescription', { 
-                                reu: this.selectedReu.naam || '?', 
-                                teef: this.selectedTeef.naam || '?' 
-                            })}
-                        </div>
-                    </div>
-                </div>
-                <div class="rtc-popup-footer">
-                    <button type="button" class="btn btn-secondary rtc-popup-close-btn">
-                        <i class="bi bi-x-circle me-1"></i> ${this.t('closePopup')}
-                    </button>
-                </div>
-            </div>
-        `;
-        
-        const overlay = document.getElementById('rtcPedigreePopupOverlay');
-        const container = document.getElementById('rtcPedigreePopupContainer');
-        
-        if (container) {
-            container.innerHTML = popupHTML;
-            overlay.style.display = 'flex';
-            
-            const closeButtons = container.querySelectorAll('.rtc-btn-close, .rtc-popup-close-btn');
-            closeButtons.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    overlay.style.display = 'none';
-                });
-            });
-            
-            overlay.addEventListener('click', (e) => {
-                if (e.target === overlay) {
-                    overlay.style.display = 'none';
-                }
-            });
-        }
-    }
-    
-    generateHealthAnalysisHTML(analysis) {
-        const t = this.t.bind(this);
-        
-        const healthItems = [
-            { key: 'hd_a', label: t('hdA') },
-            { key: 'hd_b', label: t('hdB') },
-            { key: 'hd_c', label: t('hdC') },
-            { key: 'hd_d', label: t('hdD') },
-            { key: 'hd_e', label: t('hdE') },
-            { key: 'hd_unknown', label: t('hdUnknown') },
-            
-            { key: 'ed_0', label: t('ed0') },
-            { key: 'ed_1', label: t('ed1') },
-            { key: 'ed_2', label: t('ed2') },
-            { key: 'ed_3', label: t('ed3') },
-            { key: 'ed_unknown', label: t('edUnknown') },
-            
-            { key: 'pl_0', label: t('pl0') },
-            { key: 'pl_1', label: t('pl1') },
-            { key: 'pl_2', label: t('pl2') },
-            { key: 'pl_3', label: t('pl3') },
-            { key: 'pl_unknown', label: t('plUnknown') },
-            
-            { key: 'eyes_free', label: t('eyesFree') },
-            { key: 'eyes_dist', label: t('eyesDist') },
-            { key: 'eyes_other', label: t('eyesOther') },
-            { key: 'eyes_unknown', label: t('eyesUnknown') },
-            
-            { key: 'dwlm_dna_free', label: t('dwlmDnaFree') },
-            { key: 'dwlm_parents_free', label: t('dwlmParentsFree') },
-            { key: 'dwlm_unknown', label: t('dwlmUnknown') },
-            
-            { key: 'thyroid_tested', label: t('thyroidTested') },
-            { key: 'thyroid_unknown', label: t('thyroidUnknown') }
-        ];
-        
-        let tableRows = '';
-        healthItems.forEach(item => {
-            const motherCount = analysis.motherLine.counts[item.key] || 0;
-            const fatherCount = analysis.fatherLine.counts[item.key] || 0;
-            
-            const motherClass = motherCount > 0 ? (motherCount > 2 ? 'count-high' : 'count-good') : '';
-            const fatherClass = fatherCount > 0 ? (fatherCount > 2 ? 'count-high' : 'count-good') : '';
-            
-            tableRows += `
-                <tr>
-                    <td class="health-category">${item.label}</td>
-                    <td class="mother-count ${motherClass}">${motherCount}</td>
-                    <td class="father-count ${fatherClass}">${fatherCount}</td>
-                </tr>
-            `;
         });
-        
-        tableRows += `
-            <tr style="border-top: 2px solid #dee2e6;">
-                <td class="health-category"><strong>Totaal voorouders:</strong></td>
-                <td class="mother-count"><strong>${analysis.motherLine.total}</strong></td>
-                <td class="father-count"><strong>${analysis.fatherLine.total}</strong></td>
-            </tr>
-        `;
-        
-        return `
-            <div class="mb-3">
-                <table class="health-analysis-table">
-                    <thead>
-                        <tr>
-                            <th>${t('healthCategory')}</th>
-                            <th>${t('motherLine')}</th>
-                            <th>${t('fatherLine')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${tableRows}
-                    </tbody>
-                </table>
-            </div>
-        `;
-    }
-    
-    // Hulpfuncties voor gebruikersfeedback
-    showProgress(message) {
-        console.log('Progress:', message);
-    }
-    
-    hideProgress() {
-        console.log('Progress hidden');
-    }
-    
-    showError(message) {
-        console.error('Error:', message);
-        alert(message);
-    }
-    
-    showSuccess(message) {
-        console.log('Success:', message);
     }
 }
 
+// Export voor Node.js
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = ReuTeefStamboom;
 }
