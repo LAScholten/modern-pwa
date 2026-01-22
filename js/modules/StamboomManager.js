@@ -2687,9 +2687,10 @@ class StamboomManager extends BaseModule {
                     transition: all 0.2s;
                 }
                 
-                .photo-large-close:hover {
-                    opacity: 1;
-                    background: rgba(255, 255, 255, 0.2);
+                .photo-large-close-btn:hover {
+                    background: #5a6268;     /* <-- TOEVOEGEN */
+                    border-color: #545b62;   /* <-- TOEVOEGEN */
+                    color: white;            /* <-- TOEVOEGEN */
                 }
                 
                 .photo-large-content {
