@@ -15,8 +15,9 @@ class ReuTeefStamboom {
         this.selectedTeef = null;
         this.selectedReu = null;
         
-        // **GECORRIGEERD: Gebruik exact dezelfde COI Calculator als StamboomManager**
-        this.coiCalculator = mainModule.coiCalculator; // Directe referentie naar dezelfde calculator
+        // **GECORRIGEERD: Gebruik dezelfde COICalculator instantie als StamboomManager**
+        // StamboomManager gebruikt window.coiCalculator of een eigen instance
+        this.coiCalculator = null;
         
         // Gezondheidsanalyse cache
         this.healthAnalysisCache = new Map();
@@ -34,22 +35,22 @@ class ReuTeefStamboom {
         this.selectedTeef = selectedTeef;
         this.selectedReu = selectedReu;
         
-        // **GECORRIGEERD: Gebruik exact dezelfde COI Calculator als StamboomManager**
-        if (!this.coiCalculator) {
-            console.error('❌ COICalculator niet beschikbaar via mainModule');
+        // **BELANGRIJK: Maak een nieuwe COICalculator met dezelfde dataset als StamboomManager**
+        if (typeof COICalculator === 'undefined') {
+            console.error('❌ COICalculator klasse niet gevonden!');
             this.mainModule.showAlert('COI berekening niet beschikbaar', 'danger');
             return;
         }
         
-        console.log('✅ ReuTeefStamboom gebruikt dezelfde COICalculator als StamboomManager');
+        console.log('✅ ReuTeefStamboom maakt eigen COICalculator met dezelfde dataset als StamboomManager');
         
         // Maak een virtuele toekomstige pup
         const futurePuppy = {
             id: -999999,
             naam: this.t('futurePuppyName'),
             geslacht: 'onbekend',
-            vader_id: selectedReu.id, // **GECORRIGEERD: gebruik vader_id zoals StamboomManager**
-            moeder_id: selectedTeef.id, // **GECORRIGEERD: gebruik moeder_id zoals StamboomManager**
+            vader_id: selectedReu.id, // **EXACT ZELFDE ALS STAMBOOMMANAGER: vader_id**
+            moeder_id: selectedTeef.id, // **EXACT ZELFDE ALS STAMBOOMMANAGER: moeder_id**
             vader: selectedReu.naam,
             moeder: selectedTeef.naam,
             kennelnaam: this.t('combinedParents'),
@@ -72,21 +73,15 @@ class ReuTeefStamboom {
         console.log('🔍 Toekomstige pup aangemaakt voor COI berekening:', futurePuppy);
         
         try {
-            // **GECORRIGEERD: Gebruik exact dezelfde COI berekeningslogica als StamboomManager**
-            let coiResult = null;
-            
-            console.log('🔄 Gebruik dezelfde COICalculator als StamboomManager voor toekomstige pup...');
-            
-            // **BELANGRIJK: Maak een tijdelijke COICalculator met ALLE honden + de virtuele pup**
-            // Dit zorgt ervoor dat de virtuele pup correct wordt meegenomen in de berekening
+            // **EXACT DEZELFDE LOGICA ALS STAMBOOMMANAGER: Maak COICalculator met ALLE honden + virtuele pup**
             const tempAllDogs = [...this.allHonden, futurePuppy];
             const tempCOICalculator = new COICalculator(tempAllDogs);
             
             // Bereken COI met dezelfde methode als StamboomManager
-            coiResult = tempCOICalculator.calculateCOI(futurePuppy.id);
+            const coiResult = tempCOICalculator.calculateCOI(futurePuppy.id);
             console.log('✅ COI resultaat via dezelfde logica als StamboomManager:', coiResult);
             
-            // **GECORRIGEERD: Bereken kinship op exact dezelfde manier als StamboomManager**
+            // **EXACT DEZELFDE LOGICA ALS STAMBOOMMANAGER: Bereken kinship**
             let kinshipValue = 0;
             if (tempCOICalculator && coiResult) {
                 try {
@@ -113,7 +108,7 @@ class ReuTeefStamboom {
         }
     }
     
-    // **EXACT DEZELFDE METHODE ALS STAMBOOMMANAGER: Bereken kinship voor toekomstige pup**
+    // **EXACT DEZELFDE METHODE ALS STAMBOOMMANAGER: Bereken kinship**
     calculateAverageKinshipForFuturePuppy(tempCOICalculator, dogId, generations = 6) {
         if (!tempCOICalculator || !dogId || dogId === 0) return 0;
         
@@ -145,7 +140,7 @@ class ReuTeefStamboom {
             return 0;
         }
     }
-    
+  
     async analyzeHealthInLine(futurePuppy, selectedTeef, selectedReu) {
         const analysis = {
             motherLine: { total: 0, counts: {} },
