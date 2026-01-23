@@ -125,68 +125,74 @@ class DataManager extends BaseModule {
         
         // Toon status
         document.getElementById('exportStatus').style.display = 'block';
-        this.showExportText('Bezig met exporteren...');
+        this.showExportText('Start export...');
         
         try {
-            // Honden
+            // 1. Exporteer HONDEN
             this.showExportText('Honden exporteren...');
-            const honden = await this.supabase
+            const { data: honden, error: hondenError } = await this.supabase
                 .from('honden')
-                .select('*')
-                .order('id');
+                .select('*');
             
-            // Foto's
+            if (hondenError) throw hondenError;
+            
+            // 2. Exporteer FOTO'S
             this.showExportText('Foto\'s exporteren...');
-            let fotos = { data: [] };
+            let fotos = [];
             try {
-                fotos = await this.supabase
+                const { data: fotosData, error: fotosError } = await this.supabase
                     .from('fotos')
-                    .select('*')
-                    .order('id');
+                    .select('*');
+                
+                if (!fotosError) fotos = fotosData || [];
             } catch (fotoError) {
-                console.log('Geen foto\'s om te exporteren:', fotoError.message);
+                console.log('Geen foto\'s om te exporteren');
+                fotos = [];
             }
             
-            // Privé info
+            // 3. Exporteer PRIVÉ INFO
             this.showExportText('Privé info exporteren...');
-            let priveinfo = { data: [] };
+            let priveinfo = [];
             try {
-                priveinfo = await this.supabase
+                const { data: priveinfoData, error: priveinfoError } = await this.supabase
                     .from('priveinfo')
-                    .select('*')
-                    .order('id');
+                    .select('*');
+                
+                if (!priveinfoError) priveinfo = priveinfoData || [];
             } catch (priveError) {
-                console.log('Geen privé info om te exporteren:', priveError.message);
+                console.log('Geen privé info om te exporteren');
+                priveinfo = [];
             }
             
-            // Backup maken
+            // 4. Maak backup
             this.showExportText('Backup bestand maken...');
             const backup = {
                 metadata: {
                     exportDate: new Date().toISOString(),
                     version: '2.0',
-                    hondenCount: honden.data?.length || 0,
-                    fotosCount: fotos.data?.length || 0,
-                    priveinfoCount: priveinfo.data?.length || 0,
+                    hondenCount: honden.length,
+                    fotosCount: fotos.length,
+                    priveinfoCount: priveinfo.length,
                     system: 'Supabase complete backup'
                 },
-                honden: honden.data || [],
-                fotos: fotos.data || [],
-                priveinfo: priveinfo.data || []
+                honden: honden || [],
+                fotos: fotos || [],
+                priveinfo: priveinfo || []
             };
             
-            // Download
-            this.showExportText('Download voorbereiden...');
+            // 5. Download
+            this.showExportText('Download starten...');
             this.downloadBackup(backup);
             
-            // KLAAR!
+            // 6. KLAAR
             this.showExportText('Klaar! Download gestart.');
             
-            // Na 2 seconden verbergen
+            // Verberg status na 3 seconden
             setTimeout(() => {
                 document.getElementById('exportStatus').style.display = 'none';
-            }, 2000);
+            }, 3000);
             
+            // Toon succesbericht
             this.showSuccess(`<strong>Backup gemaakt!</strong><br>
                 • ${backup.honden.length} honden<br>
                 • ${backup.fotos.length} foto's<br>
@@ -232,14 +238,15 @@ class DataManager extends BaseModule {
             this.showImportText('Honden importeren...');
             const result = await this.importCompleteBackup(backup);
             
-            // KLAAR!
+            // KLAAR
             this.showImportText('Klaar! Import voltooid.');
             
-            // Na 2 seconden verbergen
+            // Verberg status na 3 seconden
             setTimeout(() => {
                 document.getElementById('importStatus').style.display = 'none';
-            }, 2000);
+            }, 3000);
             
+            // Toon resultaat
             const message = `
                 <strong>Import voltooid!</strong><br><br>
                 <strong>Honden:</strong><br>
@@ -281,17 +288,13 @@ class DataManager extends BaseModule {
                 try {
                     const cleanStamboomnr = String(hond.stamboomnr).trim();
                     
-                    // Haal alle honden op
-                    const { data: allHonden, error: fetchError } = await this.supabase
+                    // Zoek bestaande hond
+                    const { data: existingHonden, error: fetchError } = await this.supabase
                         .from('honden')
-                        .select('id, stamboomnr');
+                        .select('id')
+                        .eq('stamboomnr', cleanStamboomnr);
                     
                     if (fetchError) throw fetchError;
-                    
-                    // Zoek bestaande hond
-                    const existing = allHonden.find(h => 
-                        String(h.stamboomnr).trim() === cleanStamboomnr
-                    );
                     
                     // Bereid import data voor
                     const importData = { ...hond };
@@ -300,21 +303,20 @@ class DataManager extends BaseModule {
                     delete importData.moeder_id;
                     delete importData.created_at;
                     delete importData.updated_at;
-                    
                     importData.stamboomnr = cleanStamboomnr;
                     
-                    if (existing) {
-                        // Update
+                    if (existingHonden && existingHonden.length > 0) {
+                        // Update bestaande
                         const { error } = await this.supabase
                             .from('honden')
                             .update(importData)
-                            .eq('id', existing.id);
+                            .eq('id', existingHonden[0].id);
                         
                         if (error) throw error;
-                        stamboomnrMap.set(cleanStamboomnr, existing.id);
+                        stamboomnrMap.set(cleanStamboomnr, existingHonden[0].id);
                         result.honden.updated++;
                     } else {
-                        // Nieuwe
+                        // Nieuwe toevoegen
                         const { data: newHond, error } = await this.supabase
                             .from('honden')
                             .insert([importData])
@@ -370,30 +372,18 @@ class DataManager extends BaseModule {
                 try {
                     const cleanStamboomnr = String(foto.stamboomnr).trim();
                     
-                    // Controleer of foto al bestaat
-                    const { data: existingFotos, error: fetchError } = await this.supabase
+                    // Bereid import data voor
+                    const importData = { ...foto };
+                    delete importData.id;
+                    delete importData.created_at;
+                    importData.stamboomnr = cleanStamboomnr;
+                    
+                    // Voeg toe
+                    const { error } = await this.supabase
                         .from('fotos')
-                        .select('id, filename')
-                        .eq('stamboomnr', cleanStamboomnr);
+                        .insert([importData]);
                     
-                    if (fetchError) {
-                        console.warn('Error fetching fotos:', fetchError);
-                    }
-                    
-                    const exists = existingFotos?.some(f => f.filename === foto.filename) || false;
-                    
-                    if (!exists) {
-                        const importData = { ...foto };
-                        delete importData.id;
-                        delete importData.created_at;
-                        importData.stamboomnr = cleanStamboomnr;
-                        
-                        const { error } = await this.supabase
-                            .from('fotos')
-                            .insert([importData]);
-                        
-                        if (!error) result.fotos.added++;
-                    }
+                    if (!error) result.fotos.added++;
                     
                 } catch (error) {
                     console.error(`Fout bij foto ${foto.filename}:`, error);
@@ -410,11 +400,13 @@ class DataManager extends BaseModule {
                 try {
                     const cleanStamboomnr = String(prive.stamboomnr).trim();
                     
+                    // Bereid import data voor
                     const importData = { ...prive };
                     delete importData.id;
                     delete importData.created_at;
                     importData.stamboomnr = cleanStamboomnr;
                     
+                    // Upsert op stamboomnr
                     const { error } = await this.supabase
                         .from('priveinfo')
                         .upsert([importData], {
