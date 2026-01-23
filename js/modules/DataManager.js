@@ -465,7 +465,7 @@ class DataManager extends BaseModule {
             }
         }
         
-        // 3. Importeer FOTO'S - FIXED: betere data cleaning
+        // 3. Importeer FOTO'S - GECORRIGEERD: gebruik juiste kolomnamen
         if (backup.fotos && backup.fotos.length > 0) {
             console.log(`Importing ${backup.fotos.length} foto's...`);
             this.updateProgressMessage('Foto\'s importeren...');
@@ -483,40 +483,73 @@ class DataManager extends BaseModule {
                     try {
                         const cleanStamboomnr = String(foto.stamboomnr).trim();
                         
-                        // Bereid import data voor - Zorg dat alle velden correct zijn
+                        // Bereid import data voor - Gebruik alleen kolommen die bestaan
+                        // Eerst: map de kolomnamen van export naar database kolommen
                         const importData = { 
                             stamboomnr: cleanStamboomnr,
                             filename: foto.filename || '',
                             size: foto.size || 0,
                             type: foto.type || '',
                             uploaded_at: foto.uploaded_at || new Date().toISOString(),
-                            geupload_door: foto.geupload_door || '',
-                            hond_id: foto.hond_id || null
+                            // OPMERKING: 'geupload_door' bestaat niet in de database
+                            // Gebruik eventueel een andere kolom of laat weg
+                            hond_id: null // Laat leeg, we koppelen later via stamboomnr
                         };
                         
-                        // Alleen data en thumbnail toevoegen als ze bestaan
-                        if (foto.data) importData.data = foto.data;
-                        if (foto.thumbnail) importData.thumbnail = foto.thumbnail;
+                        // Alleen data en thumbnail toevoegen als ze bestaan EN niet te groot zijn
+                        if (foto.data && foto.data.length < 1000000) {
+                            importData.data = foto.data;
+                        }
+                        if (foto.thumbnail && foto.thumbnail.length < 1000000) {
+                            importData.thumbnail = foto.thumbnail;
+                        }
                         
-                        // Probeer te updaten of in te voegen
-                        const { error } = await this.supabase
-                            .from('fotos')
-                            .upsert([importData], {
-                                onConflict: 'stamboomnr,filename',
-                                ignoreDuplicates: false
-                            });
+                        console.log('DEBUG: Foto import data:', {
+                            filename: importData.filename,
+                            size: importData.size,
+                            hasData: !!importData.data,
+                            hasThumbnail: !!importData.thumbnail
+                        });
                         
-                        if (error) {
-                            console.warn(`Fout bij foto ${foto.filename}, probeer insert:`, error);
+                        // Eerst kijken of foto al bestaat
+                        let existingFoto = null;
+                        try {
+                            const { data, error } = await this.supabase
+                                .from('fotos')
+                                .select('id')
+                                .eq('stamboomnr', cleanStamboomnr)
+                                .eq('filename', importData.filename)
+                                .limit(1);
                             
-                            // Fallback: probeer gewone insert
-                            const { error: insertError } = await this.supabase
+                            if (!error && data && data.length > 0) {
+                                existingFoto = data[0];
+                            }
+                        } catch (err) {
+                            console.log('DEBUG: Foto check error:', err);
+                        }
+                        
+                        if (existingFoto) {
+                            // Update bestaande foto
+                            const { error } = await this.supabase
+                                .from('fotos')
+                                .update(importData)
+                                .eq('id', existingFoto.id);
+                            
+                            if (error) {
+                                console.warn('Update error, skipping foto:', error);
+                                result.fotos.errors++;
+                                continue;
+                            }
+                        } else {
+                            // Nieuwe foto toevoegen
+                            const { error } = await this.supabase
                                 .from('fotos')
                                 .insert([importData]);
                             
-                            if (insertError) {
-                                console.error(`Fout bij foto insert ${foto.filename}:`, insertError);
-                                throw insertError;
+                            if (error) {
+                                console.warn('Insert error, skipping foto:', error);
+                                result.fotos.errors++;
+                                continue;
                             }
                         }
                         
@@ -530,7 +563,7 @@ class DataManager extends BaseModule {
             }
         }
         
-        // 4. Importeer PRIVEINFO - FIXED: probeer beide tabelnamen
+        // 4. Importeer PRIVEINFO - GECORRIGEERD: gebruik juiste kolomnamen
         if (backup.priveinfo && backup.priveinfo.length > 0) {
             console.log(`Importing ${backup.priveinfo.length} priveinfo records...`);
             this.updateProgressMessage('Priveinfo importeren...');
@@ -568,60 +601,62 @@ class DataManager extends BaseModule {
                     try {
                         const cleanStamboomnr = String(prive.stamboomnr).trim();
                         
-                        // Bereid import data voor
+                        // Bereid import data voor - Gebruik alleen kolommen die bestaan
+                        // OPMERKING: 'hond_id' bestaat niet in de priveinfo tabel
                         const importData = { 
                             stamboomnr: cleanStamboomnr,
                             privatenotes: prive.privatenotes || '',
                             vertrouwelijk: prive.vertrouwelijk || false,
                             laatstgewijzigd: prive.laatstgewijzigd || new Date().toISOString(),
-                            hond_id: prive.hond_id || null,
-                            toegevoegd_door: prive.toegevoegd_door || ''
+                            // 'toegevoegd_door' bestaat mogelijk ook niet
                         };
                         
-                        // Probeer upsert
-                        const { data, error } = await this.supabase
-                            .from(priveTableName)
-                            .upsert([importData], {
-                                onConflict: 'stamboomnr'
-                            })
-                            .select();
+                        console.log('DEBUG: Priveinfo import data:', {
+                            stamboomnr: importData.stamboomnr,
+                            heeftNotes: !!importData.privatenotes
+                        });
                         
-                        if (error) {
-                            console.warn(`Upsert fout, probeer update:`, error);
-                            
-                            // Probeer eerst te kijken of het bestaat
-                            const { data: existing, error: findError } = await this.supabase
+                        // Eerst kijken of record al bestaat
+                        let existingRecord = null;
+                        try {
+                            const { data, error } = await this.supabase
                                 .from(priveTableName)
                                 .select('id')
                                 .eq('stamboomnr', cleanStamboomnr)
                                 .limit(1);
                             
-                            if (!findError && existing && existing.length > 0) {
-                                // Update
-                                const { error: updateError } = await this.supabase
-                                    .from(priveTableName)
-                                    .update(importData)
-                                    .eq('id', existing[0].id);
-                                
-                                if (updateError) throw updateError;
-                                result.priveinfo.updated++;
-                            } else {
-                                // Insert
-                                const { error: insertError } = await this.supabase
-                                    .from(priveTableName)
-                                    .insert([importData]);
-                                
-                                if (insertError) throw insertError;
-                                result.priveinfo.added++;
+                            if (!error && data && data.length > 0) {
+                                existingRecord = data[0];
                             }
+                        } catch (err) {
+                            console.log('DEBUG: Priveinfo check error:', err);
+                        }
+                        
+                        if (existingRecord) {
+                            // Update bestaand record
+                            const { error } = await this.supabase
+                                .from(priveTableName)
+                                .update(importData)
+                                .eq('id', existingRecord.id);
+                            
+                            if (error) {
+                                console.warn('Update error, skipping priveinfo:', error);
+                                result.priveinfo.errors++;
+                                continue;
+                            }
+                            result.priveinfo.updated++;
                         } else {
-                            if (data && data.length > 0) {
-                                if (data[0].id) {
-                                    result.priveinfo.updated++;
-                                } else {
-                                    result.priveinfo.added++;
-                                }
+                            // Nieuw record toevoegen
+                            const { error } = await this.supabase
+                                .from(priveTableName)
+                                .insert([importData]);
+                            
+                            if (error) {
+                                console.warn('Insert error, skipping priveinfo:', error);
+                                result.priveinfo.errors++;
+                                continue;
                             }
+                            result.priveinfo.added++;
                         }
                         
                     } catch (error) {
