@@ -290,7 +290,7 @@ class DataManager extends BaseModule {
         };
     
         const stamboomnrMap = new Map();
-        const batchSize = 100;  // Dit is goed
+        const batchSize = 100;
     
         console.log('DEBUG: Supabase client bestaat?', !!this.supabase);
         
@@ -309,13 +309,22 @@ class DataManager extends BaseModule {
                 
                 for (const hond of batch) {
                     try {
-                        // Check of hond bestaat via stamboomnr
-                        const { data: existing } = await this.supabase
-                            .from('honden')
-                            .select('id')
-                            .eq('stamboomnr', hond.stamboomnr.trim())
-                            .single()
-                            .catch(() => ({ data: null }));
+                        // Check of hond bestaat via stamboomnr - CORRECTE VERSIE
+                        let existing = null;
+                        try {
+                            const { data, error } = await this.supabase
+                                .from('honden')
+                                .select('id')
+                                .eq('stamboomnr', hond.stamboomnr.trim())
+                                .single();
+                            
+                            if (!error) {
+                                existing = data;
+                            }
+                        } catch (err) {
+                            // Geen hond gevonden, dat is ok
+                            existing = null;
+                        }
                         
                         // Bereid import data voor
                         const importData = { ...hond };
@@ -408,14 +417,23 @@ class DataManager extends BaseModule {
                 
                 for (const foto of batch) {
                     try {
-                        // Controleer of foto al bestaat
-                        const { data: existing } = await this.supabase
-                            .from('fotos')
-                            .select('id')
-                            .eq('stamboomnr', foto.stamboomnr)
-                            .eq('filename', foto.filename)
-                            .single()
-                            .catch(() => ({ data: null }));
+                        // Controleer of foto al bestaat - OOK CORRIGEREN
+                        let existing = null;
+                        try {
+                            const { data, error } = await this.supabase
+                                .from('fotos')
+                                .select('id')
+                                .eq('stamboomnr', foto.stamboomnr)
+                                .eq('filename', foto.filename)
+                                .single();
+                            
+                            if (!error) {
+                                existing = data;
+                            }
+                        } catch (err) {
+                            // Geen foto gevonden, dat is ok
+                            existing = null;
+                        }
                         
                         // Bereid import data voor
                         const importData = { ...foto };
