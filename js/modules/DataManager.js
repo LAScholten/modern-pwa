@@ -309,20 +309,27 @@ class DataManager extends BaseModule {
                 
                 for (const hond of batch) {
                     try {
-                        // Check of hond bestaat via stamboomnr - CORRECTE VERSIE
+                        // **GECORRIGEERDE CODE: Geen encodeURIComponent gebruiken!**
+                        const cleanStamboomnr = hond.stamboomnr.trim();
+                        console.log('DEBUG: Processing stamboomnr:', cleanStamboomnr);
+                        
+                        // Check of hond bestaat via stamboomnr - GECORRIGEERDE VERSIE
                         let existing = null;
                         try {
+                            // Gebruik eq zonder encoding - Supabase doet dit zelf
                             const { data, error } = await this.supabase
                                 .from('honden')
                                 .select('id')
-                                .eq('stamboomnr', encodeURIComponent(hond.stamboomnr.trim()))
+                                .eq('stamboomnr', cleanStamboomnr)  // ZONDER encodeURIComponent
                                 .single();
                             
                             if (!error) {
                                 existing = data;
+                                console.log('DEBUG: Found existing hond:', existing.id);
                             }
                         } catch (err) {
                             // Geen hond gevonden, dat is ok
+                            console.log('DEBUG: No existing hond found for:', cleanStamboomnr);
                             existing = null;
                         }
                         
@@ -332,6 +339,9 @@ class DataManager extends BaseModule {
                         delete importData.vader_id;
                         delete importData.moeder_id;
                         
+                        // Zorg dat stamboomnr schoon is
+                        importData.stamboomnr = cleanStamboomnr;
+                        
                         if (existing) {
                             // Update bestaande hond
                             const { error } = await this.supabase
@@ -340,7 +350,7 @@ class DataManager extends BaseModule {
                                 .eq('id', existing.id);
                             
                             if (error) throw error;
-                            stamboomnrMap.set(hond.stamboomnr.trim(), existing.id);
+                            stamboomnrMap.set(cleanStamboomnr, existing.id);
                             result.honden.updated++;
                         } else {
                             // Nieuwe hond toevoegen
@@ -351,7 +361,7 @@ class DataManager extends BaseModule {
                                 .single();
                             
                             if (error) throw error;
-                            stamboomnrMap.set(hond.stamboomnr.trim(), newHond.id);
+                            stamboomnrMap.set(cleanStamboomnr, newHond.id);
                             result.honden.added++;
                         }
                         
@@ -374,10 +384,11 @@ class DataManager extends BaseModule {
                 
                 for (const hond of batch) {
                     try {
-                        const hondId = stamboomnrMap.get(hond.stamboomnr);
+                        const cleanStamboomnr = hond.stamboomnr.trim();
+                        const hondId = stamboomnrMap.get(cleanStamboomnr);
                         if (!hondId) continue;
                         
-                        // Zoek parent IDs via stamboomnr
+                        // Zoek parent IDs via stamboomnr (gebruik trimmed versie)
                         const vaderId = hond.vader_stamboomnr ? stamboomnrMap.get(hond.vader_stamboomnr.trim()) : null;
                         const moederId = hond.moeder_stamboomnr ? stamboomnrMap.get(hond.moeder_stamboomnr.trim()) : null;
                         
@@ -417,13 +428,16 @@ class DataManager extends BaseModule {
                 
                 for (const foto of batch) {
                     try {
-                        // Controleer of foto al bestaat - OOK CORRIGEREN
+                        // **Ook hier geen encodeURIComponent!**
+                        const cleanStamboomnr = foto.stamboomnr.trim();
+                        
+                        // Controleer of foto al bestaat
                         let existing = null;
                         try {
                             const { data, error } = await this.supabase
                                 .from('fotos')
                                 .select('id')
-                                .eq('stamboomnr', foto.stamboomnr)
+                                .eq('stamboomnr', cleanStamboomnr)  // ZONDER encodeURIComponent
                                 .eq('filename', foto.filename)
                                 .single();
                             
@@ -431,23 +445,21 @@ class DataManager extends BaseModule {
                                 existing = data;
                             }
                         } catch (err) {
-                            // Geen foto gevonden, dat is ok
                             existing = null;
                         }
                         
                         // Bereid import data voor
                         const importData = { ...foto };
                         delete importData.id;
+                        importData.stamboomnr = cleanStamboomnr;
                         
                         if (!existing) {
-                            // Nieuwe foto toevoegen
                             const { error } = await this.supabase
                                 .from('fotos')
                                 .insert([importData]);
                             
                             if (!error) result.fotos.added++;
                         }
-                        // Bestaande foto's worden overgeslagen (geen update)
                         
                     } catch (error) {
                         console.error(`Fout bij foto ${foto.filename}:`, error);
@@ -473,11 +485,15 @@ class DataManager extends BaseModule {
                 
                 for (const prive of batch) {
                     try {
+                        // **Ook hier geen encodeURIComponent!**
+                        const cleanStamboomnr = prive.stamboomnr.trim();
+                        
                         // Bereid import data voor
                         const importData = { ...prive };
                         delete importData.id;
+                        importData.stamboomnr = cleanStamboomnr;
                         
-                        // Update of insert privé info (upsert)
+                        // Update of insert privé info
                         const { error } = await this.supabase
                             .from('prive_info')
                             .upsert([importData], {
