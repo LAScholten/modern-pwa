@@ -14,8 +14,10 @@ class ReuTeefStamboom {
         this.selectedTeef = null;
         this.selectedReu = null;
         
-        // Gebruik dezelfde COI Calculator als StamboomManager
+        // COI Calculator
         this.coiCalculator = null;
+        this.coiCalculatorReady = false;
+        this.coiCalculationInProgress = false;
         
         // Gezondheidsanalyse cache
         this.healthAnalysisCache = new Map();
@@ -33,17 +35,24 @@ class ReuTeefStamboom {
         this.selectedTeef = selectedTeef;
         this.selectedReu = selectedReu;
         
+        // VOORKOM MEERDERE GELIJKTIJDIGE BEREKENINGEN
+        if (this.coiCalculationInProgress) {
+            console.log('⚠️ COI berekening al bezig, wacht...');
+            this.mainModule.showAlert('COI berekening is al bezig, even wachten...', 'info');
+            return;
+        }
+        
+        this.coiCalculationInProgress = true;
+        
         try {
-            // Gebruik dezelfde COICalculator als StamboomManager
-            // Haal de calculator op uit de mainModule of gebruik window referentie
-            if (this.mainModule.coiCalculator) {
-                this.coiCalculator = this.mainModule.coiCalculator;
-            } else if (window.stamboomManager && window.stamboomManager.coiCalculator) {
-                this.coiCalculator = window.stamboomManager.coiCalculator;
-            } else {
-                console.error('❌ COICalculator niet beschikbaar via mainModule of window');
-                this.mainModule.showAlert('COI berekening niet beschikbaar', 'danger');
-                return;
+            // NIEUW: Initialiseer COICalculator PAS NU, bij het daadwerkelijk berekenen
+            if (!this.coiCalculator || !this.coiCalculatorReady) {
+                console.log('🔄 COICalculator nog niet geïnitialiseerd, initialiseer nu...');
+                const initialized = await this.initializeCOICalculator();
+                if (!initialized) {
+                    this.mainModule.showAlert('Kon COI berekening niet initialiseren', 'danger');
+                    return;
+                }
             }
             
             if (!this.coiCalculator) {
@@ -80,30 +89,23 @@ class ReuTeefStamboom {
             
             console.log('🔍 Toekomstige pup aangemaakt voor COI berekening:', futurePuppy);
             
-            // Bereken COI met dezelfde calculator als StamboomManager
+            // NIEUW: Maak een ECHT tijdelijke COICalculator zonder de hoofdcalculator te beïnvloeden
+            let tempCOICalculator = null;
             let coiResult = null;
             
             try {
-                console.log('🔄 Bereken COI met bestaande COICalculator...');
+                console.log('🔄 Maak tijdelijke COICalculator voor toekomstige pup...');
+                tempCOICalculator = new COICalculator([...this.allHonden, futurePuppy]);
                 
-                // Gebruik exact dezelfde berekeningsmethode als StamboomManager
-                if (selectedReu.vader_id === selectedTeef.vader_id && selectedReu.vader_id) {
-                    // Zelfde vader
-                    coiResult = { coi6Gen: '25.0', homozygosity6Gen: '25.0', kinship6Gen: '25.0' };
-                } else if (this.coiCalculator.calculateCOI) {
-                    // Gebruik dezelfde calculateCOI methode
-                    coiResult = this.coiCalculator.calculateCOI(futurePuppy.id);
-                    console.log('✅ COI resultaat via bestaande COICalculator:', coiResult);
-                } else {
-                    // Fallback berekening
-                    coiResult = { coi6Gen: '0.0', homozygosity6Gen: '0.0', kinship6Gen: '0.0' };
-                }
+                // Bereken COI met tijdelijke calculator
+                coiResult = tempCOICalculator.calculateCOI(futurePuppy.id);
+                console.log('✅ COI resultaat via tijdelijke COICalculator:', coiResult);
                 
-                // BEREKEN KINSHIP VOOR TOEKOMSTIGE PUP met dezelfde methode als StamboomManager
+                // BEREKEN KINSHIP VOOR TOEKOMSTIGE PUP
                 let kinshipValue = 0;
-                if (this.coiCalculator && this.coiCalculator._getAllAncestors && this.coiCalculator._calculateKinship) {
+                if (tempCOICalculator && coiResult) {
                     try {
-                        kinshipValue = this.calculateAverageKinshipForFuturePuppy(this.coiCalculator, futurePuppy.id, 6);
+                        kinshipValue = this.calculateAverageKinshipForFuturePuppy(tempCOICalculator, futurePuppy.id, 6);
                         console.log('✅ Kinship berekend voor toekomstige pup:', kinshipValue);
                     } catch (kinshipError) {
                         console.error('❌ Fout bij berekenen kinship voor toekomstige pup:', kinshipError);
@@ -123,11 +125,38 @@ class ReuTeefStamboom {
             } catch (calcError) {
                 console.error('❌ Fout bij COI berekening:', calcError);
                 this.mainModule.showAlert('Kon COI niet berekenen. Probeer opnieuw.', 'danger');
+            } finally {
+                // Opruimen
+                tempCOICalculator = null;
             }
             
         } catch (error) {
             console.error('❌ Fout bij tonen toekomstige pup stamboom:', error);
             this.mainModule.showAlert('Kon stamboom niet genereren. Probeer opnieuw.', 'danger');
+        } finally {
+            this.coiCalculationInProgress = false;
+        }
+    }
+    
+    async initializeCOICalculator() {
+        try {
+            if (typeof COICalculator === 'undefined') {
+                console.error('❌ COICalculator klasse niet gevonden!');
+                this.coiCalculatorReady = false;
+                return false;
+            }
+            
+            console.log('🔄 Initialiseer COICalculator voor de eerste keer...');
+            this.coiCalculator = new COICalculator(this.allHonden);
+            this.coiCalculatorReady = true;
+            console.log('✅ COICalculator succesvol geïnitialiseerd');
+            return true;
+            
+        } catch (error) {
+            console.error('❌ Fout bij initialiseren COICalculator:', error);
+            this.coiCalculator = null;
+            this.coiCalculatorReady = false;
+            return false;
         }
     }
     
@@ -3093,11 +3122,11 @@ class ReuTeefStamboom {
         });
     }
     
-    calculateAverageKinshipForFuturePuppy(coiCalculator, dogId, generations = 6) {
-        if (!coiCalculator || !dogId || dogId === 0) return 0;
+    calculateAverageKinshipForFuturePuppy(tempCOICalculator, dogId, generations = 6) {
+        if (!tempCOICalculator || !dogId || dogId === 0) return 0;
         
         try {
-            const allAncestors = coiCalculator._getAllAncestors(dogId, generations);
+            const allAncestors = tempCOICalculator._getAllAncestors(dogId, generations);
             const ancestorIds = Array.from(allAncestors.keys());
             
             if (ancestorIds.length <= 1) return 0;
@@ -3111,7 +3140,7 @@ class ReuTeefStamboom {
             for (let i = 0; i < ancestorIds.length; i += step) {
                 for (let j = i + step; j < ancestorIds.length; j += step) {
                     if (i !== j) {
-                        const kinship = coiCalculator._calculateKinship(ancestorIds[i], ancestorIds[j], generations);
+                        const kinship = tempCOICalculator._calculateKinship(ancestorIds[i], ancestorIds[j], generations);
                         totalKinship += kinship;
                         pairCount++;
                     }
