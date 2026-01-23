@@ -136,124 +136,74 @@ class DataManager extends BaseModule {
         document.getElementById('exportProgress').style.display = 'block';
         
         try {
-            // Stap 1: Honden
-            this.showExportProgress(25, 'Honden exporteren...');
-            const honden = await this.getAllHonden();
+            // Stap 1: Honden - 30%
+            this.showExportProgress(30, 'Honden exporteren...');
+            const honden = await this.supabase
+                .from('honden')
+                .select('*')
+                .order('id');
             
-            // Stap 2: Foto's
-            this.showExportProgress(50, 'Foto\'s exporteren...');
-            let fotos = [];
+            // Stap 2: Foto's - 60%
+            this.showExportProgress(60, 'Foto\'s exporteren...');
+            let fotos = { data: [] };
             try {
-                fotos = await this.getAllFotos();
+                fotos = await this.supabase
+                    .from('fotos')
+                    .select('*')
+                    .order('id');
             } catch (fotoError) {
                 console.log('Geen foto\'s om te exporteren:', fotoError.message);
             }
             
-            // Stap 3: Privé info
-            this.showExportProgress(75, 'Privé info exporteren...');
-            let priveinfo = [];
+            // Stap 3: Privé info - 90%
+            this.showExportProgress(90, 'Privé info exporteren...');
+            let priveinfo = { data: [] };
             try {
-                priveinfo = await this.getAllPriveinfo();
+                priveinfo = await this.supabase
+                    .from('priveinfo')
+                    .select('*')
+                    .order('id');
             } catch (priveError) {
                 console.log('Geen privé info om te exporteren:', priveError.message);
             }
             
-            // Stap 4: Backup maken
-            this.showExportProgress(90, 'Backup bestand maken...');
+            // Stap 4: Backup maken - 95%
+            this.showExportProgress(95, 'Backup bestand maken...');
             const backup = {
                 metadata: {
                     exportDate: new Date().toISOString(),
                     version: '2.0',
-                    hondenCount: honden.length,
-                    fotosCount: fotos.length,
-                    priveinfoCount: priveinfo.length,
+                    hondenCount: honden.data?.length || 0,
+                    fotosCount: fotos.data?.length || 0,
+                    priveinfoCount: priveinfo.data?.length || 0,
                     system: 'Supabase complete backup'
                 },
-                honden: honden,
-                fotos: fotos,
-                priveinfo: priveinfo
+                honden: honden.data || [],
+                fotos: fotos.data || [],
+                priveinfo: priveinfo.data || []
             };
             
-            // Stap 5: Download
-            this.showExportProgress(95, 'Download voorbereiden...');
+            // Stap 5: Download - 100%
+            this.showExportProgress(100, 'Download voorbereiden...');
             this.downloadBackup(backup);
             
-            // Voltooid
-            this.showExportProgress(100, 'Export voltooid!');
+            // Even wachten zodat 100% zichtbaar is
+            await new Promise(resolve => setTimeout(resolve, 500));
             
-            setTimeout(() => {
-                document.getElementById('exportProgress').style.display = 'none';
-                this.showExportProgress(0, '');
-            }, 1000);
+            // Verberg progress bar
+            document.getElementById('exportProgress').style.display = 'none';
+            this.showExportProgress(0, '');
             
             this.showSuccess(`<strong>Backup gemaakt!</strong><br>
-                • ${honden.length} honden<br>
-                • ${fotos.length} foto's<br>
-                • ${priveinfo.length} privé records`);
+                • ${backup.honden.length} honden<br>
+                • ${backup.fotos.length} foto's<br>
+                • ${backup.priveinfo.length} privé records`);
             
         } catch (error) {
             document.getElementById('exportProgress').style.display = 'none';
             console.error('Export error:', error);
             this.showError(`Export mislukt: ${error.message}`);
         }
-    }
-    
-    async getAllHonden() {
-        console.log('Start export honden...');
-        const { data, error } = await this.supabase
-            .from('honden')
-            .select('*')
-            .order('id');
-            
-        if (error) {
-            console.error('Error exporting honden:', error);
-            return [];
-        }
-        
-        console.log(`Export honden complete: ${data?.length || 0} records`);
-        return data || [];
-    }
-    
-    async getAllFotos() {
-        console.log('Start export fotos...');
-        const { data, error } = await this.supabase
-            .from('fotos')
-            .select('*')
-            .order('id');
-            
-        if (error) {
-            // Tabel bestaat misschien niet
-            if (error.code === 'PGRST116') {
-                console.log('Tabel fotos bestaat niet, skip export');
-                return [];
-            }
-            console.error('Error exporting fotos:', error);
-            return [];
-        }
-        
-        console.log(`Export fotos complete: ${data?.length || 0} records`);
-        return data || [];
-    }
-    
-    async getAllPriveinfo() {
-        console.log('Start export priveinfo...');
-        const { data, error } = await this.supabase
-            .from('priveinfo')
-            .select('*')
-            .order('id');
-            
-        if (error) {
-            // Tabel bestaat misschien niet
-            if (error.code === 'PGRST116') {
-                console.log('Tabel priveinfo bestaat niet, skip export');
-                return [];
-            }
-            console.error('Error exporting priveinfo:', error);
-            return [];
-        }
-        
-        console.log(`Export priveinfo complete: ${data?.length || 0} records`);
-        return data || [];
     }
     
     async handleImport() {
@@ -291,10 +241,12 @@ class DataManager extends BaseModule {
             
             this.showImportProgress(100, 'Import voltooid!');
             
-            setTimeout(() => {
-                document.getElementById('importProgress').style.display = 'none';
-                this.showImportProgress(0, '');
-            }, 1000);
+            // Even wachten zodat 100% zichtbaar is
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Verberg progress bar
+            document.getElementById('importProgress').style.display = 'none';
+            this.showImportProgress(0, '');
             
             const message = `
                 <strong>Import voltooid!</strong><br><br>
