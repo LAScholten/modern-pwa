@@ -128,12 +128,12 @@ class DataManager extends BaseModule {
                 console.log('Geen foto\'s om te exporteren:', fotoError.message);
             }
             
-            // 3. Exporteer privé info (als de tabel bestaat)
-            let priveInfo = [];
+            // 3. Exporteer priveinfo (als de tabel bestaat)
+            let priveinfo = [];
             try {
-                priveInfo = await this.getAllPriveInfoWithPagination();
+                priveinfo = await this.getAllPriveinfoWithPagination();
             } catch (priveError) {
-                console.log('Geen privé info om te exporteren:', priveError.message);
+                console.log('Geen priveinfo om te exporteren:', priveError.message);
             }
             
             // 4. Maak complete backup
@@ -143,12 +143,12 @@ class DataManager extends BaseModule {
                     version: '2.0',
                     hondenCount: honden.length,
                     fotosCount: fotos.length,
-                    priveInfoCount: priveInfo.length,
+                    priveinfoCount: priveinfo.length,
                     system: 'Supabase complete backup'
                 },
                 honden: honden,
                 fotos: fotos,
-                priveInfo: priveInfo
+                priveinfo: priveinfo
             };
             
             // 5. Download
@@ -158,7 +158,7 @@ class DataManager extends BaseModule {
             this.showSuccess(`Backup gemaakt!<br>
                 - ${honden.length} honden<br>
                 - ${fotos.length} foto's<br>
-                - ${priveInfo.length} privé records`);
+                - ${priveinfo.length} priveinfo records`);
             
         } catch (error) {
             this.hideProgress();
@@ -175,8 +175,8 @@ class DataManager extends BaseModule {
         return this.getTableWithPagination('fotos', 'id');
     }
     
-    async getAllPriveInfoWithPagination() {
-        return this.getTableWithPagination('prive_info', 'id');
+    async getAllPriveinfoWithPagination() {
+        return this.getTableWithPagination('priveinfo', 'id');
     }
     
     async getTableWithPagination(tableName, orderBy) {
@@ -265,9 +265,9 @@ class DataManager extends BaseModule {
                 <strong>Foto's:</strong><br>
                 - ${result.fotos.added} toegevoegd<br>
                 - ${result.fotos.errors} fouten<br><br>
-                <strong>Privé info:</strong><br>
-                - ${result.priveInfo.updated} bijgewerkt<br>
-                - ${result.priveInfo.errors} fouten
+                <strong>Priveinfo:</strong><br>
+                - ${result.priveinfo.updated} bijgewerkt<br>
+                - ${result.priveinfo.errors} fouten
             `;
             
             this.showSuccess(message);
@@ -285,7 +285,7 @@ class DataManager extends BaseModule {
         const result = {
             honden: { added: 0, updated: 0, errors: 0, relaties: 0 },
             fotos: { added: 0, errors: 0 },
-            priveInfo: { updated: 0, errors: 0 }
+            priveinfo: { updated: 0, errors: 0 }
         };
         
         const stamboomnrMap = new Map();
@@ -510,19 +510,19 @@ class DataManager extends BaseModule {
             }
         }
         
-        // 4. Importeer PRIVÉ INFO
-        if (backup.priveInfo && backup.priveInfo.length > 0) {
-            console.log(`Importing ${backup.priveInfo.length} privé records...`);
-            this.updateProgressMessage('Privé info importeren...');
+        // 4. Importeer PRIVEINFO
+        if (backup.priveinfo && backup.priveinfo.length > 0) {
+            console.log(`Importing ${backup.priveinfo.length} priveinfo records...`);
+            this.updateProgressMessage('Priveinfo importeren...');
             
-            const totalBatches = Math.ceil(backup.priveInfo.length / batchSize);
+            const totalBatches = Math.ceil(backup.priveinfo.length / batchSize);
             
             for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
                 const start = batchIndex * batchSize;
-                const end = Math.min(start + batchSize, backup.priveInfo.length);
-                const batch = backup.priveInfo.slice(start, end);
+                const end = Math.min(start + batchSize, backup.priveinfo.length);
+                const batch = backup.priveinfo.slice(start, end);
                 
-                this.updateProgressMessage(`Importing privé info... batch ${batchIndex + 1}/${totalBatches}`);
+                this.updateProgressMessage(`Importing priveinfo... batch ${batchIndex + 1}/${totalBatches}`);
                 
                 for (const prive of batch) {
                     try {
@@ -534,18 +534,18 @@ class DataManager extends BaseModule {
                         delete importData.created_at;
                         importData.stamboomnr = cleanStamboomnr;
                         
-                        // Update of insert privé info
+                        // Update of insert priveinfo
                         const { error } = await this.supabase
-                            .from('prive_info')
+                            .from('priveinfo')
                             .upsert([importData], {
                                 onConflict: 'stamboomnr'
                             });
                         
-                        if (!error) result.priveInfo.updated++;
+                        if (!error) result.priveinfo.updated++;
                         
                     } catch (error) {
-                        console.error(`Fout bij privé info ${prive.stamboomnr}:`, error);
-                        result.priveInfo.errors++;
+                        console.error(`Fout bij priveinfo ${prive.stamboomnr}:`, error);
+                        result.priveinfo.errors++;
                     }
                 }
             }
