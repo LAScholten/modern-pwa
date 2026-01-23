@@ -136,31 +136,29 @@ class DataManager extends BaseModule {
         document.getElementById('exportProgress').style.display = 'block';
         
         try {
-            // 1. Exporteer ALLE honden
-            this.showExportProgress(10, 'Honden exporteren...');
+            // SIMPELE PROGRESS: Stap 1
+            this.showExportProgress(20, 'Honden exporteren...');
             const honden = await this.getAllHondenWithPagination();
             
-            // 2. Exporteer foto's (als de tabel bestaat)
-            this.showExportProgress(40, 'Foto\'s exporteren...');
+            // SIMPELE PROGRESS: Stap 2
+            this.showExportProgress(60, 'Foto\'s exporteren...');
             let fotos = [];
             try {
                 fotos = await this.getAllFotosWithPagination();
             } catch (fotoError) {
                 console.log('Geen foto\'s om te exporteren:', fotoError.message);
-                this.showExportProgress(45, 'Geen foto\'s gevonden...');
             }
             
-            // 3. Exporteer privé info (als de tabel bestaat)
-            this.showExportProgress(70, 'Privé info exporteren...');
+            // SIMPELE PROGRESS: Stap 3
+            this.showExportProgress(80, 'Privé info exporteren...');
             let priveinfo = [];
             try {
                 priveinfo = await this.getAllPriveinfoWithPagination();
             } catch (priveError) {
                 console.log('Geen privé info om te exporteren:', priveError.message);
-                this.showExportProgress(75, 'Geen privé info gevonden...');
             }
             
-            // 4. Maak complete backup
+            // SIMPELE PROGRESS: Stap 4
             this.showExportProgress(90, 'Backup bestand maken...');
             const backup = {
                 metadata: {
@@ -176,10 +174,11 @@ class DataManager extends BaseModule {
                 priveinfo: priveinfo
             };
             
-            // 5. Download
+            // SIMPELE PROGRESS: Stap 5
+            this.showExportProgress(95, 'Download voorbereiden...');
             this.downloadBackup(backup);
             
-            this.showExportProgress(100, 'Export voltooid! Download gestart...');
+            this.showExportProgress(100, 'Export voltooid!');
             
             setTimeout(() => {
                 document.getElementById('exportProgress').style.display = 'none';
@@ -199,21 +198,15 @@ class DataManager extends BaseModule {
     }
     
     async getAllHondenWithPagination() {
-        const data = await this.getTableWithPagination('honden', 'id');
-        this.showExportProgress(33, 'Honden export voltooid!');
-        return data;
+        return await this.getTableWithPagination('honden', 'id');
     }
     
     async getAllFotosWithPagination() {
-        const data = await this.getTableWithPagination('fotos', 'id');
-        this.showExportProgress(66, 'Foto\'s export voltooid!');
-        return data;
+        return await this.getTableWithPagination('fotos', 'id');
     }
     
     async getAllPriveinfoWithPagination() {
-        const data = await this.getTableWithPagination('priveinfo', 'id');
-        this.showExportProgress(99, 'Privé info export voltooid!');
-        return data;
+        return await this.getTableWithPagination('priveinfo', 'id');
     }
     
     async getTableWithPagination(tableName, orderBy) {
@@ -227,16 +220,6 @@ class DataManager extends BaseModule {
         while (hasMore) {
             const from = currentPage * pageSize;
             const to = from + pageSize - 1;
-            
-            // Simpele progress update - niet afhankelijk van count
-            const baseProgress = {
-                'honden': 10,
-                'fotos': 40,
-                'priveinfo': 70
-            }[tableName] || 0;
-            
-            const progress = baseProgress + Math.min(20, currentPage * 5);
-            this.showExportProgress(progress, `${tableName} exporteren... pagina ${currentPage + 1}`);
             
             try {
                 const { data: rows, error } = await this.supabase
