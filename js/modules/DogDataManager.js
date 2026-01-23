@@ -1895,7 +1895,7 @@ class DogDataManager extends BaseModule {
             console.log('[DEBUG] Update succesvol!');
             this.showSuccess(this.t('dogUpdated'));
             
-            // Foto uploaden als er een is geselecteerd
+            // Foto uploaden als er een is geselecteerd - PRECIES zoals PhotoManager doet
             const photoInput = document.getElementById('dogPhoto');
             if (photoInput && photoInput.files.length > 0) {
                 try {
@@ -2011,45 +2011,109 @@ class DogDataManager extends BaseModule {
     }
     
     /**
-     * Upload foto
+     * Upload foto - EXACT zoals PhotoManager doet
      */
     async uploadPhoto(pedigreeNumber, file) {
+        const t = this.t.bind(this);
+        
         try {
+            if (file.size > 5 * 1024 * 1024) {
+                throw new Error(t('fileTooLarge'));
+            }
+            
+            const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            if (!validTypes.includes(file.type)) {
+                throw new Error(t('invalidType'));
+            }
+            
             const reader = new FileReader();
             
             return new Promise((resolve, reject) => {
                 reader.onload = async (e) => {
                     try {
-                        const photoData = {
+                        const user = window.auth ? window.auth.getCurrentUser() : null;
+                        if (!user || !user.id) {
+                            throw new Error('Niet ingelogd of geen gebruikers-ID beschikbaar');
+                        }
+                        
+                        const base64Data = e.target.result;
+                        
+                        let thumbnail = null;
+                        try {
+                            const img = new Image();
+                            img.src = base64Data;
+                            
+                            await new Promise((resolve) => {
+                                img.onload = () => {
+                                    const canvas = document.createElement('canvas');
+                                    const ctx = canvas.getContext('2d');
+                                    
+                                    const maxSize = 200;
+                                    let width = img.width;
+                                    let height = img.height;
+                                    
+                                    if (width > height) {
+                                        if (width > maxSize) {
+                                            height = (height * maxSize) / width;
+                                            width = maxSize;
+                                        }
+                                    } else {
+                                        if (height > maxSize) {
+                                            width = (width * maxSize) / height;
+                                            height = maxSize;
+                                        }
+                                    }
+                                    
+                                    canvas.width = width;
+                                    canvas.height = height;
+                                    ctx.drawImage(img, 0, 0, width, height);
+                                    
+                                    thumbnail = canvas.toDataURL('image/jpeg', 0.7);
+                                    resolve();
+                                };
+                            });
+                        } catch (thumbError) {
+                            console.warn('Thumbnail maken mislukt:', thumbError);
+                            thumbnail = base64Data;
+                        }
+                        
+                        const fotoData = {
                             stamboomnr: pedigreeNumber,
-                            data: e.target.result,
+                            data: base64Data,
+                            thumbnail: thumbnail,
                             filename: file.name,
                             size: file.size,
                             type: file.type,
-                            uploadedAt: new Date().toISOString()
+                            uploaded_at: new Date().toISOString(),
+                            geupload_door: user.id
                         };
                         
-                        if (fotoService && typeof fotoService.voegFotoToe === 'function') {
-                            await fotoService.voegFotoToe(photoData);
-                            this.showSuccess(this.t('photoAdded'));
-                            resolve();
-                        } else {
-                            console.warn('voegFotoToe methode niet beschikbaar in fotoService');
-                            resolve();
+                        const { data: dbData, error: dbError } = await window.supabase
+                            .from('fotos')
+                            .insert(fotoData)
+                            .select()
+                            .single();
+                        
+                        if (dbError) {
+                            throw dbError;
                         }
+                        
+                        this.showSuccess(this.t('photoAdded'));
+                        resolve();
                     } catch (error) {
                         reject(error);
                     }
                 };
                 
                 reader.onerror = () => {
-                    reject(new Error('Fout bij lezen bestand'));
+                    reject(new Error(t('fileReadError')));
                 };
                 
                 reader.readAsDataURL(file);
             });
         } catch (error) {
-            this.showError(`${this.t('photoError')}${error.message}`);
+            this.showError(`${t('photoError')}${error.message}`);
+            throw error;
         }
     }
     
