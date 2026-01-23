@@ -316,7 +316,7 @@ class DogManager extends BaseModule {
                 dateFormatError: "Datum moet in DD-MM-JJJJ formaat zijn",
                 deathBeforeBirthError: "Sterbedatum kan niet voor geboortedatum sein",
                 
-                insufficientPermissions: "Unzureichende Berechtigingen",
+                insufficientPermissions: "Unzureichende Berechtigungen",
                 insufficientPermissionsText: "Sie haben keine Berechtigung, Hunde hinzuzufügen. Nur Administratoren können diese Funktion nutzen.",
                 loggedInAs: "Sie sind eingeloggt als:",
                 user: "Benutzer",
@@ -1556,12 +1556,12 @@ class DogManager extends BaseModule {
             console.log('[DogManager] Toevoegen succesvol!');
             this.showSuccess(this.t('dogAdded'));
             
-            // Foto uploaden als er een is geselecteerd
+            // Foto uploaden als er een is geselecteerd - EXACT ZELFDE LOGICA ALS PhotoManager
             const photoInput = document.getElementById('dogPhoto');
             if (photoInput && photoInput.files.length > 0) {
                 try {
                     console.log('[DogManager] Foto uploaden...');
-                    await this.uploadPhoto(dogData.stamboomnr, photoInput.files[0]);
+                    await this.uploadPhoto(dogData.stamboomnr, photoInput.files[0], dogData.naam);
                     console.log('[DogManager] Foto upload succesvol!');
                 } catch (photoError) {
                     console.warn('[DogManager] Foto upload mislukt:', photoError);
@@ -1600,30 +1600,110 @@ class DogManager extends BaseModule {
         }
     }
     
-    async uploadPhoto(pedigreeNumber, file) {
+    async uploadPhoto(pedigreeNumber, file, dogName = null) {
         try {
+            // EXACT DEZELFDE LOGICA ALS PhotoManager.uploadPhoto()
+            if (file.size > 5 * 1024 * 1024) {
+                this.showError("Bestand is te groot (maximaal 5MB)");
+                return;
+            }
+            
+            const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            if (!validTypes.includes(file.type)) {
+                this.showError("Ongeldig bestandstype. Alleen JPG, PNG, GIF en WebP zijn toegestaan");
+                return;
+            }
+            
             const reader = new FileReader();
             
             return new Promise((resolve, reject) => {
                 reader.onload = async (e) => {
                     try {
-                        const photoData = {
+                        // Haal gebruiker op - EXACT ZELFDE ALS PhotoManager
+                        const user = window.auth ? window.auth.getCurrentUser() : null;
+                        if (!user || !user.id) {
+                            throw new Error('Niet ingelogd of geen gebruikers-ID beschikbaar');
+                        }
+                        
+                        // Maak thumbnail (gereduceerde versie) - EXACT ZELFDE ALS PhotoManager
+                        let thumbnail = null;
+                        try {
+                            const img = new Image();
+                            img.src = e.target.result;
+                            
+                            await new Promise((resolveThumb) => {
+                                img.onload = () => {
+                                    const canvas = document.createElement('canvas');
+                                    const ctx = canvas.getContext('2d');
+                                    
+                                    // Bereken nieuwe afmetingen
+                                    const maxSize = 200;
+                                    let width = img.width;
+                                    let height = img.height;
+                                    
+                                    if (width > height) {
+                                        if (width > maxSize) {
+                                            height = (height * maxSize) / width;
+                                            width = maxSize;
+                                        }
+                                    } else {
+                                        if (height > maxSize) {
+                                            width = (width * maxSize) / height;
+                                            height = maxSize;
+                                        }
+                                    }
+                                    
+                                    canvas.width = width;
+                                    canvas.height = height;
+                                    ctx.drawImage(img, 0, 0, width, height);
+                                    
+                                    thumbnail = canvas.toDataURL('image/jpeg', 0.7);
+                                    resolveThumb();
+                                };
+                            });
+                        } catch (thumbError) {
+                            console.warn('Thumbnail maken mislukt:', thumbError);
+                            thumbnail = e.target.result;
+                        }
+                        
+                        // Maak foto object voor database - EXACT ZELFDE ALS PhotoManager
+                        const fotoData = {
                             stamboomnr: pedigreeNumber,
-                            data: e.target.result,
+                            data: e.target.result, // volledige Base64 data met data: prefix
+                            thumbnail: thumbnail,   // thumbnail als Base64
                             filename: file.name,
                             size: file.size,
                             type: file.type,
-                            uploadedAt: new Date().toISOString()
+                            uploaded_at: new Date().toISOString(),
+                            geupload_door: user.id,
+                            hond_id: null // Wordt later ingevuld als hond is aangemaakt
                         };
                         
-                        if (fotoService && typeof fotoService.voegFotoToe === 'function') {
-                            await fotoService.voegFotoToe(photoData);
-                            this.showSuccess(this.t('photoAdded'));
-                            resolve();
-                        } else {
-                            console.warn('voegFotoToe methode niet beschikbaar in fotoService');
-                            resolve();
+                        console.log('DogManager Foto data voor database:', {
+                            stamboomnr: fotoData.stamboomnr,
+                            filename: fotoData.filename,
+                            size: fotoData.size,
+                            hasData: !!fotoData.data,
+                            hasThumbnail: !!fotoData.thumbnail,
+                            geupload_door: fotoData.geupload_door
+                        });
+                        
+                        // Voeg toe aan database via Supabase - EXACT ZELFDE ALS PhotoManager
+                        const { data: dbData, error: dbError } = await window.supabase
+                            .from('fotos')
+                            .insert(fotoData)
+                            .select()
+                            .single();
+                        
+                        if (dbError) {
+                            console.error('Database insert error:', dbError);
+                            throw dbError;
                         }
+                        
+                        console.log('DogManager Database insert successful:', dbData);
+                        this.showSuccess("Foto toegevoegd");
+                        resolve();
+                        
                     } catch (error) {
                         reject(error);
                     }
@@ -1636,7 +1716,8 @@ class DogManager extends BaseModule {
                 reader.readAsDataURL(file);
             });
         } catch (error) {
-            this.showError(`${this.t('photoError')}${error.message}`);
+            console.error('Error uploading photo:', error);
+            throw error;
         }
     }
     
