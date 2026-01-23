@@ -15,7 +15,7 @@ class ReuTeefStamboom {
         this.selectedTeef = null;
         this.selectedReu = null;
         
-        // **BELANGRIJK: We moeten zelf COICalculator maken voor alle honden, net als StamboomManager**
+        // **BELANGRIJK: Gebruik dezelfde COICalculator als StamboomManager**
         this.allDogs = [...this.allHonden]; // Kopie van alle honden
         this.coiCalculator = null;
         this.initializeCOICalculator();
@@ -32,6 +32,7 @@ class ReuTeefStamboom {
     }
     
     initializeCOICalculator() {
+        // **BELANGRIJK: Gebruik dezelfde COICalculator als StamboomManager**
         if (typeof COICalculator !== 'undefined') {
             this.coiCalculator = new COICalculator(this.allDogs);
             console.log('✅ ReuTeefStamboom: COICalculator geïnitialiseerd met', this.allDogs.length, 'honden');
@@ -2785,18 +2786,9 @@ class ReuTeefStamboom {
                           dog.geslacht === 'teven' ? this.t('female') : this.t('unknown');
         
         // **BELANGRIJK: Gebruik dezelfde COI berekening als StamboomManager**
-        // Voor bestaande honden gebruiken we de mainModule's calculateCOI methode
-        let coiValues = { coi6Gen: '0.0', homozygosity6Gen: '0.0', kinship6Gen: '0.0' };
-        let coi6Color = '#28a745';
-        
-        if (dog.id > 0) { // Alleen voor echte honden, niet voor virtuele pups
-            if (this.mainModule.calculateCOI) {
-                coiValues = this.mainModule.calculateCOI(dog.id);
-                if (this.mainModule.getCOIColor) {
-                    coi6Color = this.mainModule.getCOIColor(coiValues.coi6Gen);
-                }
-            }
-        }
+        // Gebruik onze eigen COI berekening
+        const coiValues = this.calculateCOI(dog.id);
+        const coiColor = this.getCOIColor(coiValues.coi6Gen);
         
         // **EXACT DEZELFDE LOGICA ALS STAMBOOMMANAGER: Foto's ophalen**
         const photos = await this.getDogPhotos(dog.id);
@@ -2898,7 +2890,7 @@ class ReuTeefStamboom {
                                 <!-- COI 6 Gen -->
                                 <div class="rtc-value-box">
                                     <div class="rtc-value-label">${this.t('coi6Gen')}</div>
-                                    <div class="rtc-value-number rtc-coi-value" style="color: ${coi6Color} !important;">${coiValues.coi6Gen}%</div>
+                                    <div class="rtc-value-number rtc-coi-value" style="color: ${coiColor} !important;">${coiValues.coi6Gen}%</div>
                                 </div>
                                 
                                 <!-- Homozygotie 6 Gen -->
@@ -2919,7 +2911,7 @@ class ReuTeefStamboom {
                             <div class="rtc-info-row">
                                 <div class="rtc-info-item rtc-info-item-full">
                                     <span class="rtc-info-label">${this.t('birthDate')}:</span>
-                                    <span class="rtc-info-value">${this.mainModule.formatDate(dog.geboortedatum)}</span>
+                                    <span class="rtc-info-value">${this.formatDate(dog.geboortedatum)}</span>
                                 </div>
                             </div>
                             ` : ''}
@@ -2928,7 +2920,7 @@ class ReuTeefStamboom {
                             <div class="rtc-info-row">
                                 <div class="rtc-info-item rtc-info-item-full">
                                     <span class="rtc-info-label">${this.t('deathDate')}:</span>
-                                    <span class="rtc-info-value">${this.mainModule.formatDate(dog.overlijdensdatum)}</span>
+                                    <span class="rtc-info-value">${this.formatDate(dog.overlijdensdatum)}</span>
                                 </div>
                             </div>
                             ` : ''}
@@ -2961,7 +2953,7 @@ class ReuTeefStamboom {
                             <div class="rtc-info-row">
                                 <div class="rtc-info-item rtc-info-item-full">
                                     <span class="rtc-info-label">${this.t('hipDysplasia')}:</span>
-                                    <span class="rtc-info-value">${this.mainModule.getHealthBadge(dog.heupdysplasie, 'hip')}</span>
+                                    <span class="rtc-info-value">${this.getHealthBadge(dog.heupdysplasie, 'hip')}</span>
                                 </div>
                             </div>
                             ` : ''}
@@ -2970,7 +2962,7 @@ class ReuTeefStamboom {
                             <div class="rtc-info-row">
                                 <div class="rtc-info-item rtc-info-item-full">
                                     <span class="rtc-info-label">${this.t('elbowDysplasia')}:</span>
-                                    <span class="rtc-info-value">${this.mainModule.getHealthBadge(dog.elleboogdysplasie, 'elbow')}</span>
+                                    <span class="rtc-info-value">${this.getHealthBadge(dog.elleboogdysplasie, 'elbow')}</span>
                                 </div>
                             </div>
                             ` : ''}
@@ -2979,7 +2971,7 @@ class ReuTeefStamboom {
                             <div class="rtc-info-row">
                                 <div class="rtc-info-item rtc-info-item-full">
                                     <span class="rtc-info-label">${this.t('patellaLuxation')}:</span>
-                                    <span class="rtc-info-value">${this.mainModule.getHealthBadge(dog.patella, 'patella')}</span>
+                                    <span class="rtc-info-value">${this.getHealthBadge(dog.patella, 'patella')}</span>
                                 </div>
                             </div>
                             ` : ''}
@@ -2988,7 +2980,7 @@ class ReuTeefStamboom {
                             <div class="rtc-info-row">
                                 <div class="rtc-info-item rtc-info-item-full">
                                     <span class="rtc-info-label">${this.t('eyes')}:</span>
-                                    <span class="rtc-info-value">${this.mainModule.getHealthBadge(dog.ogen, 'eyes')}</span>
+                                    <span class="rtc-info-value">${this.getHealthBadge(dog.ogen, 'eyes')}</span>
                                 </div>
                             </div>
                             ` : ''}
@@ -3006,7 +2998,7 @@ class ReuTeefStamboom {
                             <div class="rtc-info-row">
                                 <div class="rtc-info-item rtc-info-item-full">
                                     <span class="rtc-info-label">${this.t('dandyWalker')}:</span>
-                                    <span class="rtc-info-value">${this.mainModule.getHealthBadge(dog.dandyWalker, 'dandy')}</span>
+                                    <span class="rtc-info-value">${this.getHealthBadge(dog.dandyWalker, 'dandy')}</span>
                                 </div>
                             </div>
                             ` : ''}
@@ -3015,7 +3007,7 @@ class ReuTeefStamboom {
                             <div class="rtc-info-row">
                                 <div class="rtc-info-item rtc-info-item-full">
                                     <span class="rtc-info-label">${this.t('thyroid')}:</span>
-                                    <span class="rtc-info-value">${this.mainModule.getHealthBadge(dog.schildklier, 'thyroid')}</span>
+                                    <span class="rtc-info-value">${this.getHealthBadge(dog.schildklier, 'thyroid')}</span>
                                 </div>
                             </div>
                             ` : ''}
@@ -3073,15 +3065,7 @@ class ReuTeefStamboom {
     
     showFuturePuppyPopup(futurePuppy, coiResult, healthAnalysis) {
         // **BELANGRIJK: Gebruik dezelfde kleurlogica als StamboomManager**
-        const getCOIColor = (value) => {
-            const numValue = parseFloat(value);
-            if (numValue < 4.0) return '#28a745';
-            if (numValue <= 6.0) return '#fd7e14';
-            return '#dc3545';
-        };
-        
-        const coi6Color = getCOIColor(coiResult.coi6Gen);
-        const coiAllColor = getCOIColor(coiResult.coiAllGen);
+        const coi6Color = this.getCOIColor(coiResult.coi6Gen);
         
         const healthAnalysisHTML = this.generateHealthAnalysisHTML(healthAnalysis);
         
