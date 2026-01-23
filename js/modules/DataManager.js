@@ -66,11 +66,10 @@ class DataManager extends BaseModule {
                                         <div class="card-body">
                                             <p>${t('exportDescription')}</p>
                                             <div id="exportProgress" class="mb-3" style="display: none;">
-                                                <div class="progress">
-                                                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
-                                                         role="progressbar" style="width: 0%"></div>
+                                                <div class="alert alert-info mb-0">
+                                                    <i class="bi bi-hourglass-split"></i> 
+                                                    <span id="exportStatus">Bezig met exporteren...</span>
                                                 </div>
-                                                <small class="text-muted mt-1 d-block" id="exportStatus">0%</small>
                                             </div>
                                             <button class="btn btn-primary w-100" id="startExportBtn">
                                                 <i class="bi bi-download"></i> ${t('startExport')}
@@ -90,11 +89,10 @@ class DataManager extends BaseModule {
                                                 <input type="file" class="form-control" id="importFile" accept=".json">
                                             </div>
                                             <div id="importProgress" class="mb-3" style="display: none;">
-                                                <div class="progress">
-                                                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
-                                                         role="progressbar" style="width: 0%"></div>
+                                                <div class="alert alert-info mb-0">
+                                                    <i class="bi bi-hourglass-split"></i> 
+                                                    <span id="importStatus">Bezig met importeren...</span>
                                                 </div>
-                                                <small class="text-muted mt-1 d-block" id="importStatus">0%</small>
                                             </div>
                                             <button class="btn btn-success w-100" id="startImportBtn">
                                                 <i class="bi bi-upload"></i> ${t('startImport')}
@@ -131,20 +129,20 @@ class DataManager extends BaseModule {
             return;
         }
         
-        // Reset progress
-        this.showExportProgress(0, 'Start export...');
+        // Simpele indicator: tonen
         document.getElementById('exportProgress').style.display = 'block';
+        this.showExportStatus('Honden exporteren...');
         
         try {
-            // Stap 1: Honden - 30%
-            this.showExportProgress(30, 'Honden exporteren...');
+            // Stap 1: Honden
             const honden = await this.supabase
                 .from('honden')
                 .select('*')
                 .order('id');
             
-            // Stap 2: Foto's - 60%
-            this.showExportProgress(60, 'Foto\'s exporteren...');
+            this.showExportStatus('Foto\'s exporteren...');
+            
+            // Stap 2: Foto's
             let fotos = { data: [] };
             try {
                 fotos = await this.supabase
@@ -155,8 +153,9 @@ class DataManager extends BaseModule {
                 console.log('Geen foto\'s om te exporteren:', fotoError.message);
             }
             
-            // Stap 3: Privé info - 90%
-            this.showExportProgress(90, 'Privé info exporteren...');
+            this.showExportStatus('Privé info exporteren...');
+            
+            // Stap 3: Privé info
             let priveinfo = { data: [] };
             try {
                 priveinfo = await this.supabase
@@ -167,8 +166,9 @@ class DataManager extends BaseModule {
                 console.log('Geen privé info om te exporteren:', priveError.message);
             }
             
-            // Stap 4: Backup maken - 95%
-            this.showExportProgress(95, 'Backup bestand maken...');
+            this.showExportStatus('Backup bestand maken...');
+            
+            // Backup maken
             const backup = {
                 metadata: {
                     exportDate: new Date().toISOString(),
@@ -183,16 +183,13 @@ class DataManager extends BaseModule {
                 priveinfo: priveinfo.data || []
             };
             
-            // Stap 5: Download - 100%
-            this.showExportProgress(100, 'Download voorbereiden...');
+            this.showExportStatus('Download voorbereiden...');
+            
+            // Download
             this.downloadBackup(backup);
             
-            // Even wachten zodat 100% zichtbaar is
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            // Verberg progress bar
+            // Verberg indicator
             document.getElementById('exportProgress').style.display = 'none';
-            this.showExportProgress(0, '');
             
             this.showSuccess(`<strong>Backup gemaakt!</strong><br>
                 • ${backup.honden.length} honden<br>
@@ -223,9 +220,9 @@ class DataManager extends BaseModule {
         const file = fileInput.files[0];
         
         try {
-            // Reset progress
-            this.showImportProgress(0, 'Backup bestand lezen...');
+            // Simpele indicator: tonen
             document.getElementById('importProgress').style.display = 'block';
+            this.showImportStatus('Backup bestand lezen...');
             
             // Lees file
             const text = await this.readFile(file);
@@ -236,17 +233,11 @@ class DataManager extends BaseModule {
             }
             
             // Importeer alles
-            this.showImportProgress(10, 'Start import...');
+            this.showImportStatus('Honden importeren...');
             const result = await this.importCompleteBackup(backup);
             
-            this.showImportProgress(100, 'Import voltooid!');
-            
-            // Even wachten zodat 100% zichtbaar is
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            // Verberg progress bar
+            // Verberg indicator
             document.getElementById('importProgress').style.display = 'none';
-            this.showImportProgress(0, '');
             
             const message = `
                 <strong>Import voltooid!</strong><br><br>
@@ -267,15 +258,12 @@ class DataManager extends BaseModule {
             
         } catch (error) {
             document.getElementById('importProgress').style.display = 'none';
-            this.showImportProgress(0, '');
             console.error('Import error:', error);
             this.showError(`Import mislukt: ${error.message}`);
         }
     }
     
     async importCompleteBackup(backup) {
-        console.log('DEBUG: Start import, aantal honden:', backup.honden?.length);
-        
         const result = {
             honden: { added: 0, updated: 0, errors: 0, relaties: 0 },
             fotos: { added: 0, errors: 0 },
@@ -286,12 +274,12 @@ class DataManager extends BaseModule {
         
         // 1. Importeer HONDEN
         if (backup.honden && backup.honden.length > 0) {
-            const totalHonden = backup.honden.length;
-            
             for (let i = 0; i < backup.honden.length; i++) {
                 const hond = backup.honden[i];
-                const progress = 10 + (i / totalHonden * 40);
-                this.showImportProgress(Math.round(progress), `Honden importeren... ${i+1}/${totalHonden}`);
+                
+                if (i % 10 === 0) {
+                    this.showImportStatus(`Honden importeren... ${i+1}/${backup.honden.length}`);
+                }
                 
                 try {
                     const cleanStamboomnr = String(hond.stamboomnr).trim();
@@ -352,11 +340,10 @@ class DataManager extends BaseModule {
             }
             
             // 2. Herstel HONDEN relaties
-            this.showImportProgress(50, 'Relaties herstellen tussen honden...');
+            this.showImportStatus('Relaties herstellen tussen honden...');
             
             for (let i = 0; i < backup.honden.length; i++) {
                 const hond = backup.honden[i];
-                const progress = 50 + (i / backup.honden.length * 15);
                 
                 try {
                     const cleanStamboomnr = String(hond.stamboomnr).trim();
@@ -383,21 +370,15 @@ class DataManager extends BaseModule {
                 } catch (error) {
                     console.error(`Fout bij relaties ${hond.stamboomnr}:`, error);
                 }
-                
-                if (i % 10 === 0) {
-                    this.showImportProgress(Math.round(progress), `Relaties herstellen... ${i+1}/${backup.honden.length}`);
-                }
             }
         }
         
         // 3. Importeer FOTO'S
         if (backup.fotos && backup.fotos.length > 0) {
-            const totalFotos = backup.fotos.length;
+            this.showImportStatus('Foto\'s importeren...');
             
             for (let i = 0; i < backup.fotos.length; i++) {
                 const foto = backup.fotos[i];
-                const progress = 65 + (i / totalFotos * 15);
-                this.showImportProgress(Math.round(progress), `Foto's importeren... ${i+1}/${totalFotos}`);
                 
                 try {
                     const cleanStamboomnr = String(foto.stamboomnr).trim();
@@ -437,12 +418,10 @@ class DataManager extends BaseModule {
         
         // 4. Importeer PRIVÉ INFO
         if (backup.priveinfo && backup.priveinfo.length > 0) {
-            const totalPriveinfo = backup.priveinfo.length;
+            this.showImportStatus('Privé info importeren...');
             
             for (let i = 0; i < backup.priveinfo.length; i++) {
                 const prive = backup.priveinfo[i];
-                const progress = 80 + (i / totalPriveinfo * 20);
-                this.showImportProgress(Math.round(progress), `Privé info importeren... ${i+1}/${totalPriveinfo}`);
                 
                 try {
                     const cleanStamboomnr = String(prive.stamboomnr).trim();
@@ -469,8 +448,6 @@ class DataManager extends BaseModule {
             }
         }
         
-        this.showImportProgress(100, 'Import voltooid!');
-        console.log('Complete import finished:', result);
         return result;
     }
     
@@ -500,27 +477,17 @@ class DataManager extends BaseModule {
         });
     }
     
-    showExportProgress(percentage, message) {
-        const progressBar = document.querySelector('#exportProgress .progress-bar');
+    showExportStatus(message) {
         const statusText = document.getElementById('exportStatus');
-        
-        if (progressBar) {
-            progressBar.style.width = `${percentage}%`;
-        }
         if (statusText) {
-            statusText.textContent = `${percentage}% - ${message}`;
+            statusText.textContent = message;
         }
     }
     
-    showImportProgress(percentage, message) {
-        const progressBar = document.querySelector('#importProgress .progress-bar');
+    showImportStatus(message) {
         const statusText = document.getElementById('importStatus');
-        
-        if (progressBar) {
-            progressBar.style.width = `${percentage}%`;
-        }
         if (statusText) {
-            statusText.textContent = `${percentage}% - ${message}`;
+            statusText.textContent = message;
         }
     }
     
