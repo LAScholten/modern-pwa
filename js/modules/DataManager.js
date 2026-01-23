@@ -281,18 +281,61 @@ class DataManager extends BaseModule {
     
     async importCompleteBackup(backup) {
         console.log('DEBUG: Start import, aantal honden:', backup.honden?.length);
-        console.log('DEBUG: Eerste hond:', backup.honden[0]);
-    
+        
         const result = {
             honden: { added: 0, updated: 0, errors: 0, relaties: 0 },
             fotos: { added: 0, errors: 0 },
             priveInfo: { updated: 0, errors: 0 }
         };
-    
+        
         const stamboomnrMap = new Map();
         const batchSize = 100;
-    
-        console.log('DEBUG: Supabase client bestaat?', !!this.supabase);
+        
+        // **NIEUW: Helper functie voor veilige stamboomnr matching**
+        const findHondByStamboomnr = async (stamboomnr) => {
+            try {
+                const cleanStamboomnr = String(stamboomnr).trim();
+                
+                // Probeer met ILIKE (case-insensitive, beter voor speciale chars)
+                const { data, error } = await this.supabase
+                    .from('honden')
+                    .select('id')
+                    .ilike('stamboomnr', cleanStamboomnr)
+                    .limit(1);
+                
+                if (error) {
+                    console.warn('ILike query failed, trying direct query:', error);
+                    
+                    // Fallback: Gebruik directe query
+                    const { data: directData, error: directError } = await this.supabase
+                        .from('honden')
+                        .select('id')
+                        .limit(1)
+                        .then(response => {
+                            // Filter lokaal als Supabase het niet doet
+                            if (response.data) {
+                                const found = response.data.find(h => 
+                                    String(h.stamboomnr).trim() === cleanStamboomnr
+                                );
+                                return { data: found ? [found] : [], error: null };
+                            }
+                            return response;
+                        });
+                    
+                    if (directData && directData.length > 0) {
+                        return { data: directData[0], error: null };
+                    }
+                    
+                    return { data: null, error: directError };
+                }
+                
+                return data && data.length > 0 ? { data: data[0], error: null } : { data: null, error: null };
+                
+            } catch (error) {
+                console.error('Error in findHondByStamboomnr:', error);
+                return { data: null, error };
+            }
+        };
         
         // 1. Importeer HONDEN
         if (backup.honden && backup.honden.length > 0) {
@@ -309,28 +352,16 @@ class DataManager extends BaseModule {
                 
                 for (const hond of batch) {
                     try {
-                        // **GECORRIGEERDE CODE: Geen encodeURIComponent gebruiken!**
-                        const cleanStamboomnr = hond.stamboomnr.trim();
+                        const cleanStamboomnr = String(hond.stamboomnr).trim();
                         console.log('DEBUG: Processing stamboomnr:', cleanStamboomnr);
                         
-                        // Check of hond bestaat via stamboomnr - GECORRIGEERDE VERSIE
-                        let existing = null;
-                        try {
-                            // Gebruik eq zonder encoding - Supabase doet dit zelf
-                            const { data, error } = await this.supabase
-                                .from('honden')
-                                .select('id')
-                                .eq('stamboomnr', cleanStamboomnr)  // ZONDER encodeURIComponent
-                                .single();
-                            
-                            if (!error) {
-                                existing = data;
-                                console.log('DEBUG: Found existing hond:', existing.id);
-                            }
-                        } catch (err) {
-                            // Geen hond gevonden, dat is ok
-                            console.log('DEBUG: No existing hond found for:', cleanStamboomnr);
-                            existing = null;
+                        // Gebruik de veilige helper functie
+                        const { data: existing, error: findError } = await findHondByStamboomnr(cleanStamboomnr);
+                        
+                        if (findError) {
+                            console.warn('Find error, skipping hond:', cleanStamboomnr, findError);
+                            result.honden.errors++;
+                            continue;
                         }
                         
                         // Bereid import data voor
@@ -338,6 +369,8 @@ class DataManager extends BaseModule {
                         delete importData.id;
                         delete importData.vader_id;
                         delete importData.moeder_id;
+                        delete importData.created_at;
+                        delete importData.updated_at;
                         
                         // Zorg dat stamboomnr schoon is
                         importData.stamboomnr = cleanStamboomnr;
@@ -349,7 +382,11 @@ class DataManager extends BaseModule {
                                 .update(importData)
                                 .eq('id', existing.id);
                             
-                            if (error) throw error;
+                            if (error) {
+                                console.error('Update error:', error);
+                                throw error;
+                            }
+                            
                             stamboomnrMap.set(cleanStamboomnr, existing.id);
                             result.honden.updated++;
                         } else {
@@ -360,7 +397,11 @@ class DataManager extends BaseModule {
                                 .select('id')
                                 .single();
                             
-                            if (error) throw error;
+                            if (error) {
+                                console.error('Insert error:', error);
+                                throw error;
+                            }
+                            
                             stamboomnrMap.set(cleanStamboomnr, newHond.id);
                             result.honden.added++;
                         }
@@ -384,13 +425,13 @@ class DataManager extends BaseModule {
                 
                 for (const hond of batch) {
                     try {
-                        const cleanStamboomnr = hond.stamboomnr.trim();
+                        const cleanStamboomnr = String(hond.stamboomnr).trim();
                         const hondId = stamboomnrMap.get(cleanStamboomnr);
                         if (!hondId) continue;
                         
-                        // Zoek parent IDs via stamboomnr (gebruik trimmed versie)
-                        const vaderId = hond.vader_stamboomnr ? stamboomnrMap.get(hond.vader_stamboomnr.trim()) : null;
-                        const moederId = hond.moeder_stamboomnr ? stamboomnrMap.get(hond.moeder_stamboomnr.trim()) : null;
+                        // Zoek parent IDs via stamboomnr
+                        const vaderId = hond.vader_stamboomnr ? stamboomnrMap.get(String(hond.vader_stamboomnr).trim()) : null;
+                        const moederId = hond.moeder_stamboomnr ? stamboomnrMap.get(String(hond.moeder_stamboomnr).trim()) : null;
                         
                         // Update relaties
                         if (vaderId !== null || moederId !== null) {
@@ -428,21 +469,20 @@ class DataManager extends BaseModule {
                 
                 for (const foto of batch) {
                     try {
-                        // **Ook hier geen encodeURIComponent!**
-                        const cleanStamboomnr = foto.stamboomnr.trim();
+                        const cleanStamboomnr = String(foto.stamboomnr).trim();
                         
-                        // Controleer of foto al bestaat
+                        // Controleer of foto al bestaat met veilige matching
                         let existing = null;
                         try {
                             const { data, error } = await this.supabase
                                 .from('fotos')
                                 .select('id')
-                                .eq('stamboomnr', cleanStamboomnr)  // ZONDER encodeURIComponent
+                                .ilike('stamboomnr', cleanStamboomnr)
                                 .eq('filename', foto.filename)
-                                .single();
+                                .limit(1);
                             
-                            if (!error) {
-                                existing = data;
+                            if (!error && data && data.length > 0) {
+                                existing = data[0];
                             }
                         } catch (err) {
                             existing = null;
@@ -451,6 +491,7 @@ class DataManager extends BaseModule {
                         // Bereid import data voor
                         const importData = { ...foto };
                         delete importData.id;
+                        delete importData.created_at;
                         importData.stamboomnr = cleanStamboomnr;
                         
                         if (!existing) {
@@ -485,12 +526,12 @@ class DataManager extends BaseModule {
                 
                 for (const prive of batch) {
                     try {
-                        // **Ook hier geen encodeURIComponent!**
-                        const cleanStamboomnr = prive.stamboomnr.trim();
+                        const cleanStamboomnr = String(prive.stamboomnr).trim();
                         
                         // Bereid import data voor
                         const importData = { ...prive };
                         delete importData.id;
+                        delete importData.created_at;
                         importData.stamboomnr = cleanStamboomnr;
                         
                         // Update of insert privé info
