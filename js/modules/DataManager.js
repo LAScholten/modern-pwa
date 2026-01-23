@@ -136,29 +136,29 @@ class DataManager extends BaseModule {
         document.getElementById('exportProgress').style.display = 'block';
         
         try {
-            // SIMPELE PROGRESS: Stap 1
-            this.showExportProgress(20, 'Honden exporteren...');
-            const honden = await this.getAllHondenWithPagination();
+            // Stap 1: Honden
+            this.showExportProgress(25, 'Honden exporteren...');
+            const honden = await this.getAllHonden();
             
-            // SIMPELE PROGRESS: Stap 2
-            this.showExportProgress(60, 'Foto\'s exporteren...');
+            // Stap 2: Foto's
+            this.showExportProgress(50, 'Foto\'s exporteren...');
             let fotos = [];
             try {
-                fotos = await this.getAllFotosWithPagination();
+                fotos = await this.getAllFotos();
             } catch (fotoError) {
                 console.log('Geen foto\'s om te exporteren:', fotoError.message);
             }
             
-            // SIMPELE PROGRESS: Stap 3
-            this.showExportProgress(80, 'Privé info exporteren...');
+            // Stap 3: Privé info
+            this.showExportProgress(75, 'Privé info exporteren...');
             let priveinfo = [];
             try {
-                priveinfo = await this.getAllPriveinfoWithPagination();
+                priveinfo = await this.getAllPriveinfo();
             } catch (priveError) {
                 console.log('Geen privé info om te exporteren:', priveError.message);
             }
             
-            // SIMPELE PROGRESS: Stap 4
+            // Stap 4: Backup maken
             this.showExportProgress(90, 'Backup bestand maken...');
             const backup = {
                 metadata: {
@@ -174,16 +174,17 @@ class DataManager extends BaseModule {
                 priveinfo: priveinfo
             };
             
-            // SIMPELE PROGRESS: Stap 5
+            // Stap 5: Download
             this.showExportProgress(95, 'Download voorbereiden...');
             this.downloadBackup(backup);
             
+            // Voltooid
             this.showExportProgress(100, 'Export voltooid!');
             
             setTimeout(() => {
                 document.getElementById('exportProgress').style.display = 'none';
                 this.showExportProgress(0, '');
-            }, 2000);
+            }, 1000);
             
             this.showSuccess(`<strong>Backup gemaakt!</strong><br>
                 • ${honden.length} honden<br>
@@ -197,68 +198,62 @@ class DataManager extends BaseModule {
         }
     }
     
-    async getAllHondenWithPagination() {
-        return await this.getTableWithPagination('honden', 'id');
-    }
-    
-    async getAllFotosWithPagination() {
-        return await this.getTableWithPagination('fotos', 'id');
-    }
-    
-    async getAllPriveinfoWithPagination() {
-        return await this.getTableWithPagination('priveinfo', 'id');
-    }
-    
-    async getTableWithPagination(tableName, orderBy) {
-        const allData = [];
-        const pageSize = 1000;
-        let currentPage = 0;
-        let hasMore = true;
-        
-        console.log(`Start paginated export for ${tableName}...`);
-        
-        while (hasMore) {
-            const from = currentPage * pageSize;
-            const to = from + pageSize - 1;
+    async getAllHonden() {
+        console.log('Start export honden...');
+        const { data, error } = await this.supabase
+            .from('honden')
+            .select('*')
+            .order('id');
             
-            try {
-                const { data: rows, error } = await this.supabase
-                    .from(tableName)
-                    .select('*')
-                    .order(orderBy)
-                    .range(from, to);
-                    
-                if (error) {
-                    // Tabel bestaat misschien niet
-                    if (error.code === 'PGRST116') {
-                        console.log(`Tabel ${tableName} bestaat niet, skip export`);
-                        return [];
-                    }
-                    throw error;
-                }
-                
-                if (!rows || rows.length === 0) {
-                    hasMore = false;
-                    break;
-                }
-                
-                allData.push(...rows);
-                
-                // Check of er meer zijn
-                if (rows.length < pageSize) {
-                    hasMore = false;
-                } else {
-                    currentPage++;
-                }
-                
-            } catch (error) {
-                console.error(`Fout bij pagina ${currentPage} van ${tableName}:`, error);
-                hasMore = false;
-            }
+        if (error) {
+            console.error('Error exporting honden:', error);
+            return [];
         }
         
-        console.log(`Export ${tableName} complete: ${allData.length} records`);
-        return allData;
+        console.log(`Export honden complete: ${data?.length || 0} records`);
+        return data || [];
+    }
+    
+    async getAllFotos() {
+        console.log('Start export fotos...');
+        const { data, error } = await this.supabase
+            .from('fotos')
+            .select('*')
+            .order('id');
+            
+        if (error) {
+            // Tabel bestaat misschien niet
+            if (error.code === 'PGRST116') {
+                console.log('Tabel fotos bestaat niet, skip export');
+                return [];
+            }
+            console.error('Error exporting fotos:', error);
+            return [];
+        }
+        
+        console.log(`Export fotos complete: ${data?.length || 0} records`);
+        return data || [];
+    }
+    
+    async getAllPriveinfo() {
+        console.log('Start export priveinfo...');
+        const { data, error } = await this.supabase
+            .from('priveinfo')
+            .select('*')
+            .order('id');
+            
+        if (error) {
+            // Tabel bestaat misschien niet
+            if (error.code === 'PGRST116') {
+                console.log('Tabel priveinfo bestaat niet, skip export');
+                return [];
+            }
+            console.error('Error exporting priveinfo:', error);
+            return [];
+        }
+        
+        console.log(`Export priveinfo complete: ${data?.length || 0} records`);
+        return data || [];
     }
     
     async handleImport() {
