@@ -289,10 +289,10 @@ class DataManager extends BaseModule {
             priveInfo: { updated: 0, errors: 0 }
         };
     
-    const stamboomnrMap = new Map();
-    const batchSize = 100;  // Dit is goed
+        const stamboomnrMap = new Map();
+        const batchSize = 100;  // Dit is goed
     
-    console.log('DEBUG: Supabase client bestaat?', !!this.supabase);
+        console.log('DEBUG: Supabase client bestaat?', !!this.supabase);
         
         // 1. Importeer HONDEN
         if (backup.honden && backup.honden.length > 0) {
