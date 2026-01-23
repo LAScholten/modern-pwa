@@ -291,45 +291,30 @@ class DataManager extends BaseModule {
         const stamboomnrMap = new Map();
         const batchSize = 100;
         
-        // **NIEUW: Helper functie voor veilige stamboomnr matching**
+        // **NIEUW: WORKAROUND voor Supabase 406 error met numerieke stamboomnummers**
         const findHondByStamboomnr = async (stamboomnr) => {
             try {
                 const cleanStamboomnr = String(stamboomnr).trim();
                 
-                // Probeer met ILIKE (case-insensitive, beter voor speciale chars)
-                const { data, error } = await this.supabase
+                // WORKAROUND: Haal eerst ALLE honden op en filter lokaal
+                // Dit voorkomt de 406 error met numerieke stamboomnummers
+                const { data: allHonden, error } = await this.supabase
                     .from('honden')
-                    .select('id')
-                    .ilike('stamboomnr', cleanStamboomnr)
-                    .limit(1);
+                    .select('id, stamboomnr')
+                    .limit(10000); // Haal een groot aantal op
                 
                 if (error) {
-                    console.warn('ILike query failed, trying direct query:', error);
-                    
-                    // Fallback: Gebruik directe query
-                    const { data: directData, error: directError } = await this.supabase
-                        .from('honden')
-                        .select('id')
-                        .limit(1)
-                        .then(response => {
-                            // Filter lokaal als Supabase het niet doet
-                            if (response.data) {
-                                const found = response.data.find(h => 
-                                    String(h.stamboomnr).trim() === cleanStamboomnr
-                                );
-                                return { data: found ? [found] : [], error: null };
-                            }
-                            return response;
-                        });
-                    
-                    if (directData && directData.length > 0) {
-                        return { data: directData[0], error: null };
-                    }
-                    
-                    return { data: null, error: directError };
+                    console.error('Error fetching all honden:', error);
+                    return { data: null, error };
                 }
                 
-                return data && data.length > 0 ? { data: data[0], error: null } : { data: null, error: null };
+                // Zoek lokaal
+                const found = allHonden.find(h => {
+                    const dbStamboomnr = String(h.stamboomnr).trim();
+                    return dbStamboomnr === cleanStamboomnr;
+                });
+                
+                return { data: found || null, error: null };
                 
             } catch (error) {
                 console.error('Error in findHondByStamboomnr:', error);
@@ -337,9 +322,33 @@ class DataManager extends BaseModule {
             }
         };
         
+        // Cache voor alle honden (performance optimalisatie)
+        let allHondenCache = null;
+        const getAllHondenFromCache = async () => {
+            if (!allHondenCache) {
+                const { data, error } = await this.supabase
+                    .from('honden')
+                    .select('id, stamboomnr')
+                    .limit(10000);
+                
+                if (error) {
+                    throw error;
+                }
+                allHondenCache = data;
+            }
+            return allHondenCache;
+        };
+        
         // 1. Importeer HONDEN
         if (backup.honden && backup.honden.length > 0) {
             console.log(`Importing ${backup.honden.length} honden...`);
+            
+            // Haal eerst alle bestaande honden op voor caching
+            try {
+                await getAllHondenFromCache();
+            } catch (cacheError) {
+                console.warn('Could not cache honden:', cacheError);
+            }
             
             const totalBatches = Math.ceil(backup.honden.length / batchSize);
             
@@ -355,13 +364,18 @@ class DataManager extends BaseModule {
                         const cleanStamboomnr = String(hond.stamboomnr).trim();
                         console.log('DEBUG: Processing stamboomnr:', cleanStamboomnr);
                         
-                        // Gebruik de veilige helper functie
-                        const { data: existing, error: findError } = await findHondByStamboomnr(cleanStamboomnr);
-                        
-                        if (findError) {
-                            console.warn('Find error, skipping hond:', cleanStamboomnr, findError);
-                            result.honden.errors++;
-                            continue;
+                        // Zoek bestaande hond via cache
+                        let existing = null;
+                        if (allHondenCache) {
+                            existing = allHondenCache.find(h => 
+                                String(h.stamboomnr).trim() === cleanStamboomnr
+                            );
+                        } else {
+                            // Fallback naar query
+                            const { data: found, error: findError } = await findHondByStamboomnr(cleanStamboomnr);
+                            if (!findError && found) {
+                                existing = found;
+                            }
                         }
                         
                         // Bereid import data voor
@@ -372,7 +386,7 @@ class DataManager extends BaseModule {
                         delete importData.created_at;
                         delete importData.updated_at;
                         
-                        // Zorg dat stamboomnr schoon is
+                        // Zorg dat stamboomnr altijd een string is
                         importData.stamboomnr = cleanStamboomnr;
                         
                         if (existing) {
@@ -404,6 +418,11 @@ class DataManager extends BaseModule {
                             
                             stamboomnrMap.set(cleanStamboomnr, newHond.id);
                             result.honden.added++;
+                            
+                            // Update cache
+                            if (allHondenCache) {
+                                allHondenCache.push({ id: newHond.id, stamboomnr: cleanStamboomnr });
+                            }
                         }
                         
                     } catch (error) {
@@ -471,30 +490,25 @@ class DataManager extends BaseModule {
                     try {
                         const cleanStamboomnr = String(foto.stamboomnr).trim();
                         
-                        // Controleer of foto al bestaat met veilige matching
-                        let existing = null;
-                        try {
-                            const { data, error } = await this.supabase
-                                .from('fotos')
-                                .select('id')
-                                .ilike('stamboomnr', cleanStamboomnr)
-                                .eq('filename', foto.filename)
-                                .limit(1);
-                            
-                            if (!error && data && data.length > 0) {
-                                existing = data[0];
-                            }
-                        } catch (err) {
-                            existing = null;
+                        // WORKAROUND: Haal eerst alle foto's van deze stamboomnr op
+                        const { data: existingFotos, error: fetchError } = await this.supabase
+                            .from('fotos')
+                            .select('id, filename')
+                            .eq('stamboomnr', cleanStamboomnr);
+                        
+                        if (fetchError) {
+                            console.warn('Error fetching fotos:', fetchError);
                         }
                         
-                        // Bereid import data voor
-                        const importData = { ...foto };
-                        delete importData.id;
-                        delete importData.created_at;
-                        importData.stamboomnr = cleanStamboomnr;
+                        const exists = existingFotos?.some(f => f.filename === foto.filename) || false;
                         
-                        if (!existing) {
+                        if (!exists) {
+                            // Bereid import data voor
+                            const importData = { ...foto };
+                            delete importData.id;
+                            delete importData.created_at;
+                            importData.stamboomnr = cleanStamboomnr;
+                            
                             const { error } = await this.supabase
                                 .from('fotos')
                                 .insert([importData]);
@@ -534,11 +548,12 @@ class DataManager extends BaseModule {
                         delete importData.created_at;
                         importData.stamboomnr = cleanStamboomnr;
                         
-                        // Update of insert privé info
+                        // WORKAROUND: Gebruik upsert met onConflict
                         const { error } = await this.supabase
                             .from('prive_info')
                             .upsert([importData], {
-                                onConflict: 'stamboomnr'
+                                onConflict: 'stamboomnr',
+                                ignoreDuplicates: false
                             });
                         
                         if (!error) result.priveInfo.updated++;
