@@ -65,11 +65,8 @@ class DataManager extends BaseModule {
                                         </div>
                                         <div class="card-body">
                                             <p>${t('exportDescription')}</p>
-                                            <div id="exportProgress" class="mb-3" style="display: none;">
-                                                <div class="alert alert-info mb-0">
-                                                    <i class="bi bi-hourglass-split"></i> 
-                                                    <span id="exportStatus">Bezig met exporteren...</span>
-                                                </div>
+                                            <div id="exportStatus" class="alert alert-info mb-3" style="display: none;">
+                                                <i class="bi bi-hourglass-split"></i> <span id="exportText">Bezig...</span>
                                             </div>
                                             <button class="btn btn-primary w-100" id="startExportBtn">
                                                 <i class="bi bi-download"></i> ${t('startExport')}
@@ -88,11 +85,8 @@ class DataManager extends BaseModule {
                                             <div class="mb-3">
                                                 <input type="file" class="form-control" id="importFile" accept=".json">
                                             </div>
-                                            <div id="importProgress" class="mb-3" style="display: none;">
-                                                <div class="alert alert-info mb-0">
-                                                    <i class="bi bi-hourglass-split"></i> 
-                                                    <span id="importStatus">Bezig met importeren...</span>
-                                                </div>
+                                            <div id="importStatus" class="alert alert-info mb-3" style="display: none;">
+                                                <i class="bi bi-hourglass-split"></i> <span id="importText">Bezig...</span>
                                             </div>
                                             <button class="btn btn-success w-100" id="startImportBtn">
                                                 <i class="bi bi-upload"></i> ${t('startImport')}
@@ -129,20 +123,20 @@ class DataManager extends BaseModule {
             return;
         }
         
-        // Simpele indicator: tonen
-        document.getElementById('exportProgress').style.display = 'block';
-        this.showExportStatus('Honden exporteren...');
+        // Toon status
+        document.getElementById('exportStatus').style.display = 'block';
+        this.showExportText('Bezig met exporteren...');
         
         try {
-            // Stap 1: Honden
+            // Honden
+            this.showExportText('Honden exporteren...');
             const honden = await this.supabase
                 .from('honden')
                 .select('*')
                 .order('id');
             
-            this.showExportStatus('Foto\'s exporteren...');
-            
-            // Stap 2: Foto's
+            // Foto's
+            this.showExportText('Foto\'s exporteren...');
             let fotos = { data: [] };
             try {
                 fotos = await this.supabase
@@ -153,9 +147,8 @@ class DataManager extends BaseModule {
                 console.log('Geen foto\'s om te exporteren:', fotoError.message);
             }
             
-            this.showExportStatus('Privé info exporteren...');
-            
-            // Stap 3: Privé info
+            // Privé info
+            this.showExportText('Privé info exporteren...');
             let priveinfo = { data: [] };
             try {
                 priveinfo = await this.supabase
@@ -166,9 +159,8 @@ class DataManager extends BaseModule {
                 console.log('Geen privé info om te exporteren:', priveError.message);
             }
             
-            this.showExportStatus('Backup bestand maken...');
-            
             // Backup maken
+            this.showExportText('Backup bestand maken...');
             const backup = {
                 metadata: {
                     exportDate: new Date().toISOString(),
@@ -183,13 +175,17 @@ class DataManager extends BaseModule {
                 priveinfo: priveinfo.data || []
             };
             
-            this.showExportStatus('Download voorbereiden...');
-            
             // Download
+            this.showExportText('Download voorbereiden...');
             this.downloadBackup(backup);
             
-            // Verberg indicator
-            document.getElementById('exportProgress').style.display = 'none';
+            // KLAAR!
+            this.showExportText('Klaar! Download gestart.');
+            
+            // Na 2 seconden verbergen
+            setTimeout(() => {
+                document.getElementById('exportStatus').style.display = 'none';
+            }, 2000);
             
             this.showSuccess(`<strong>Backup gemaakt!</strong><br>
                 • ${backup.honden.length} honden<br>
@@ -197,7 +193,7 @@ class DataManager extends BaseModule {
                 • ${backup.priveinfo.length} privé records`);
             
         } catch (error) {
-            document.getElementById('exportProgress').style.display = 'none';
+            document.getElementById('exportStatus').style.display = 'none';
             console.error('Export error:', error);
             this.showError(`Export mislukt: ${error.message}`);
         }
@@ -220,9 +216,9 @@ class DataManager extends BaseModule {
         const file = fileInput.files[0];
         
         try {
-            // Simpele indicator: tonen
-            document.getElementById('importProgress').style.display = 'block';
-            this.showImportStatus('Backup bestand lezen...');
+            // Toon status
+            document.getElementById('importStatus').style.display = 'block';
+            this.showImportText('Backup bestand lezen...');
             
             // Lees file
             const text = await this.readFile(file);
@@ -233,11 +229,16 @@ class DataManager extends BaseModule {
             }
             
             // Importeer alles
-            this.showImportStatus('Honden importeren...');
+            this.showImportText('Honden importeren...');
             const result = await this.importCompleteBackup(backup);
             
-            // Verberg indicator
-            document.getElementById('importProgress').style.display = 'none';
+            // KLAAR!
+            this.showImportText('Klaar! Import voltooid.');
+            
+            // Na 2 seconden verbergen
+            setTimeout(() => {
+                document.getElementById('importStatus').style.display = 'none';
+            }, 2000);
             
             const message = `
                 <strong>Import voltooid!</strong><br><br>
@@ -257,7 +258,7 @@ class DataManager extends BaseModule {
             this.showSuccess(message);
             
         } catch (error) {
-            document.getElementById('importProgress').style.display = 'none';
+            document.getElementById('importStatus').style.display = 'none';
             console.error('Import error:', error);
             this.showError(`Import mislukt: ${error.message}`);
         }
@@ -277,22 +278,15 @@ class DataManager extends BaseModule {
             for (let i = 0; i < backup.honden.length; i++) {
                 const hond = backup.honden[i];
                 
-                if (i % 10 === 0) {
-                    this.showImportStatus(`Honden importeren... ${i+1}/${backup.honden.length}`);
-                }
-                
                 try {
                     const cleanStamboomnr = String(hond.stamboomnr).trim();
                     
-                    // Haal eerst alle honden op en filter lokaal
+                    // Haal alle honden op
                     const { data: allHonden, error: fetchError } = await this.supabase
                         .from('honden')
                         .select('id, stamboomnr');
                     
-                    if (fetchError) {
-                        console.error('Error fetching honden:', fetchError);
-                        throw fetchError;
-                    }
+                    if (fetchError) throw fetchError;
                     
                     // Zoek bestaande hond
                     const existing = allHonden.find(h => 
@@ -307,11 +301,10 @@ class DataManager extends BaseModule {
                     delete importData.created_at;
                     delete importData.updated_at;
                     
-                    // Zorg dat stamboomnr altijd een string is
                     importData.stamboomnr = cleanStamboomnr;
                     
                     if (existing) {
-                        // Update bestaande hond
+                        // Update
                         const { error } = await this.supabase
                             .from('honden')
                             .update(importData)
@@ -321,7 +314,7 @@ class DataManager extends BaseModule {
                         stamboomnrMap.set(cleanStamboomnr, existing.id);
                         result.honden.updated++;
                     } else {
-                        // Nieuwe hond toevoegen
+                        // Nieuwe
                         const { data: newHond, error } = await this.supabase
                             .from('honden')
                             .insert([importData])
@@ -339,22 +332,18 @@ class DataManager extends BaseModule {
                 }
             }
             
-            // 2. Herstel HONDEN relaties
-            this.showImportStatus('Relaties herstellen tussen honden...');
+            // 2. Herstel relaties
+            this.showImportText('Relaties herstellen...');
             
-            for (let i = 0; i < backup.honden.length; i++) {
-                const hond = backup.honden[i];
-                
+            for (const hond of backup.honden) {
                 try {
                     const cleanStamboomnr = String(hond.stamboomnr).trim();
                     const hondId = stamboomnrMap.get(cleanStamboomnr);
                     if (!hondId) continue;
                     
-                    // Zoek parent IDs via stamboomnr
                     const vaderId = hond.vader_stamboomnr ? stamboomnrMap.get(String(hond.vader_stamboomnr).trim()) : null;
                     const moederId = hond.moeder_stamboomnr ? stamboomnrMap.get(String(hond.moeder_stamboomnr).trim()) : null;
                     
-                    // Update relaties
                     if (vaderId !== null || moederId !== null) {
                         await this.supabase
                             .from('honden')
@@ -375,11 +364,9 @@ class DataManager extends BaseModule {
         
         // 3. Importeer FOTO'S
         if (backup.fotos && backup.fotos.length > 0) {
-            this.showImportStatus('Foto\'s importeren...');
+            this.showImportText('Foto\'s importeren...');
             
-            for (let i = 0; i < backup.fotos.length; i++) {
-                const foto = backup.fotos[i];
-                
+            for (const foto of backup.fotos) {
                 try {
                     const cleanStamboomnr = String(foto.stamboomnr).trim();
                     
@@ -396,7 +383,6 @@ class DataManager extends BaseModule {
                     const exists = existingFotos?.some(f => f.filename === foto.filename) || false;
                     
                     if (!exists) {
-                        // Bereid import data voor
                         const importData = { ...foto };
                         delete importData.id;
                         delete importData.created_at;
@@ -418,21 +404,17 @@ class DataManager extends BaseModule {
         
         // 4. Importeer PRIVÉ INFO
         if (backup.priveinfo && backup.priveinfo.length > 0) {
-            this.showImportStatus('Privé info importeren...');
+            this.showImportText('Privé info importeren...');
             
-            for (let i = 0; i < backup.priveinfo.length; i++) {
-                const prive = backup.priveinfo[i];
-                
+            for (const prive of backup.priveinfo) {
                 try {
                     const cleanStamboomnr = String(prive.stamboomnr).trim();
                     
-                    // Bereid import data voor
                     const importData = { ...prive };
                     delete importData.id;
                     delete importData.created_at;
                     importData.stamboomnr = cleanStamboomnr;
                     
-                    // Update of insert privé info (upsert op stamboomnr)
                     const { error } = await this.supabase
                         .from('priveinfo')
                         .upsert([importData], {
@@ -477,15 +459,15 @@ class DataManager extends BaseModule {
         });
     }
     
-    showExportStatus(message) {
-        const statusText = document.getElementById('exportStatus');
+    showExportText(message) {
+        const statusText = document.getElementById('exportText');
         if (statusText) {
             statusText.textContent = message;
         }
     }
     
-    showImportStatus(message) {
-        const statusText = document.getElementById('importStatus');
+    showImportText(message) {
+        const statusText = document.getElementById('importText');
         if (statusText) {
             statusText.textContent = message;
         }
