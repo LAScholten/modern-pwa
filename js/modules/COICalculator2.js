@@ -30,20 +30,8 @@ class COICalculator2 {
                 
                 let result;
                 try {
-                    // Probeer verschillende method signatures
-                    if (typeof service.getHonden === 'function') {
-                        // Methode 1: Met paginatie parameters
-                        if (service.getHonden.length >= 2) {
-                            result = await service.getHonden(currentPage, pageSize);
-                        } 
-                        // Methode 2: Zonder parameters
-                        else {
-                            result = await service.getHonden();
-                        }
-                    } else {
-                        console.error('❌ service.getHonden is geen functie');
-                        break;
-                    }
+                    // Gebruik de getHonden() methode van de hondenService
+                    result = await service.getHonden(currentPage, pageSize);
                 } catch (error) {
                     console.error(`❌ Fout bij laden pagina ${currentPage}:`, error);
                     break;
@@ -63,7 +51,6 @@ class COICalculator2 {
                     hasMorePages = result.data && result.data.length === pageSize;
                 } else {
                     console.warn('⚠️ Onbekend resultaat formaat bij paginatie:', result);
-                    // Probeer zonder paginatie
                     hasMorePages = false;
                     if (result) dogsArray = [result];
                 }
