@@ -124,6 +124,14 @@ class DataManager extends BaseModule {
             let fotos = [];
             try {
                 fotos = await this.getAllFotosWithPagination();
+                console.log('EXPORT DEBUG: Fototabel velden voor eerste foto:', Object.keys(fotos[0] || {}));
+                console.log('EXPORT DEBUG: Voorbeeld foto data:', fotos[0] ? {
+                    filename: fotos[0].filename,
+                    size: fotos[0].size,
+                    hasData: !!fotos[0].data,
+                    hasThumbnail: !!fotos[0].thumbnail,
+                    alleVelden: Object.keys(fotos[0])
+                } : 'Geen foto\'s');
             } catch (fotoError) {
                 console.log('Geen foto\'s om te exporteren:', fotoError.message);
             }
@@ -135,10 +143,20 @@ class DataManager extends BaseModule {
                 try {
                     priveinfo = await this.getTableWithPagination('prive_info', 'id');
                     console.log('DEBUG: Gebruikte tabelnaam: prive_info');
+                    console.log('EXPORT DEBUG: Priveinfo tabel velden voor eerste record:', Object.keys(priveinfo[0] || {}));
+                    console.log('EXPORT DEBUG: Voorbeeld priveinfo data:', priveinfo[0] ? {
+                        stamboomnr: priveinfo[0].stamboomnr,
+                        velden: Object.keys(priveinfo[0])
+                    } : 'Geen priveinfo');
                 } catch (error1) {
                     if (error1.code === 'PGRST116') {
                         priveinfo = await this.getTableWithPagination('priveinfo', 'id');
                         console.log('DEBUG: Gebruikte tabelnaam: priveinfo');
+                        console.log('EXPORT DEBUG: Priveinfo tabel velden voor eerste record:', Object.keys(priveinfo[0] || {}));
+                        console.log('EXPORT DEBUG: Voorbeeld priveinfo data:', priveinfo[0] ? {
+                            stamboomnr: priveinfo[0].stamboomnr,
+                            velden: Object.keys(priveinfo[0])
+                        } : 'Geen priveinfo');
                     } else {
                         throw error1;
                     }
@@ -259,6 +277,27 @@ class DataManager extends BaseModule {
             
             if (!backup.honden || !Array.isArray(backup.honden)) {
                 throw new Error('Ongeldig backup bestand');
+            }
+            
+            // DEBUG: Toon backup structuur
+            console.log('IMPORT DEBUG: Backup structuur:', {
+                honden: backup.honden?.length,
+                fotos: backup.fotos?.length,
+                priveinfo: backup.priveinfo?.length
+            });
+            
+            if (backup.fotos && backup.fotos.length > 0) {
+                console.log('IMPORT DEBUG: Eerste foto uit backup:', {
+                    velden: Object.keys(backup.fotos[0]),
+                    data: backup.fotos[0]
+                });
+            }
+            
+            if (backup.priveinfo && backup.priveinfo.length > 0) {
+                console.log('IMPORT DEBUG: Eerste priveinfo uit backup:', {
+                    velden: Object.keys(backup.priveinfo[0]),
+                    data: backup.priveinfo[0]
+                });
             }
             
             // Importeer alles
@@ -465,10 +504,27 @@ class DataManager extends BaseModule {
             }
         }
         
-        // 3. Importeer FOTO'S - SIMPEL: alleen basiskolommen
+        // 3. Importeer FOTO'S
         if (backup.fotos && backup.fotos.length > 0) {
             console.log(`Importing ${backup.fotos.length} foto's...`);
             this.updateProgressMessage('Foto\'s importeren...');
+            
+            // Eerst controleren welke kolommen er in de fototabel zitten
+            let fotoTableColumns = ['stamboomnr', 'filename']; // basis kolommen
+            
+            try {
+                const { data: sampleFoto, error } = await this.supabase
+                    .from('fotos')
+                    .select('*')
+                    .limit(1);
+                    
+                if (!error && sampleFoto && sampleFoto.length > 0) {
+                    fotoTableColumns = Object.keys(sampleFoto[0]);
+                    console.log('IMPORT DEBUG: Fototabel kolommen:', fotoTableColumns);
+                }
+            } catch (err) {
+                console.log('DEBUG: Kon fototabel kolommen niet ophalen:', err.message);
+            }
             
             const totalBatches = Math.ceil(backup.fotos.length / batchSize);
             
@@ -483,23 +539,23 @@ class DataManager extends BaseModule {
                     try {
                         const cleanStamboomnr = String(foto.stamboomnr).trim();
                         
-                        // Bepaal welke kolommen echt bestaan - alleen stamboomnr en filename zijn zeker
-                        const importData = { 
-                            stamboomnr: cleanStamboomnr,
-                            filename: foto.filename || ''
-                        };
+                        // Bouw import data op basis van wat er in de database bestaat
+                        const importData = {};
                         
-                        // Optioneel: voeg alleen toe als ze bestaan in de originele data
-                        if (foto.size !== undefined) importData.size = foto.size;
-                        if (foto.type) importData.type = foto.type;
-                        if (foto.uploaded_at) importData.uploaded_at = foto.uploaded_at;
-                        if (foto.thumbnail && foto.thumbnail.length < 1000000) {
-                            importData.thumbnail = foto.thumbnail;
+                        // Alleen kolommen toevoegen die in beide zitten (backup EN database)
+                        for (const column of fotoTableColumns) {
+                            if (foto[column] !== undefined) {
+                                importData[column] = foto[column];
+                            }
                         }
                         
-                        console.log('DEBUG: Foto import data (simpel):', {
-                            filename: importData.filename,
-                            kolommen: Object.keys(importData)
+                        // Zorg dat stamboomnr altijd goed staat
+                        importData.stamboomnr = cleanStamboomnr;
+                        
+                        console.log('IMPORT DEBUG: Foto import data:', {
+                            filename: importData.filename || foto.filename,
+                            gebruikteKolommen: Object.keys(importData),
+                            alleBackupKolommen: Object.keys(foto)
                         });
                         
                         try {
@@ -509,18 +565,9 @@ class DataManager extends BaseModule {
                                 .insert([importData]);
                             
                             if (error) {
-                                console.warn('Insert error, skip foto (alleen basis):', error.message);
-                                // Probeer zonder thumbnail
-                                delete importData.thumbnail;
-                                const { error: error2 } = await this.supabase
-                                    .from('fotos')
-                                    .insert([importData]);
-                                
-                                if (error2) {
-                                    console.warn('Ook zonder thumbnail mislukt, skip:', error2.message);
-                                    result.fotos.errors++;
-                                    continue;
-                                }
+                                console.warn('Foto insert error, skip:', error.message);
+                                result.fotos.errors++;
+                                continue;
                             }
                             result.fotos.added++;
                             
@@ -537,36 +584,37 @@ class DataManager extends BaseModule {
             }
         }
         
-        // 4. Importeer PRIVEINFO - SIMPEL: alleen basiskolommen
+        // 4. Importeer PRIVEINFO
         if (backup.priveinfo && backup.priveinfo.length > 0) {
             console.log(`Importing ${backup.priveinfo.length} priveinfo records...`);
             this.updateProgressMessage('Priveinfo importeren...');
             
-            // Bepaal de juiste tabelnaam
-            let priveTableName = 'priveinfo';
-            let priveTableExists = false;
+            // Bepaal de juiste tabelnaam en kolommen
+            let priveTableName = null;
+            let priveTableColumns = [];
             
-            // Test tabellen
+            // Test tabellen en haal kolommen op
             const testTables = ['priveinfo', 'prive_info'];
             for (const tableName of testTables) {
                 try {
-                    const { error: testError } = await this.supabase
+                    const { data: sampleData, error } = await this.supabase
                         .from(tableName)
-                        .select('id')
+                        .select('*')
                         .limit(1);
                         
-                    if (!testError || testError.code !== 'PGRST116') {
+                    if (!error && sampleData && sampleData.length > 0) {
                         priveTableName = tableName;
-                        priveTableExists = true;
-                        console.log('DEBUG: Gevonden tabel:', priveTableName);
+                        priveTableColumns = Object.keys(sampleData[0]);
+                        console.log(`IMPORT DEBUG: Gevonden tabel: ${priveTableName}`);
+                        console.log(`IMPORT DEBUG: Priveinfo tabel kolommen:`, priveTableColumns);
                         break;
                     }
                 } catch (err) {
-                    console.log('DEBUG: Test tabel', tableName, 'mislukt:', err.message);
+                    console.log(`DEBUG: Test tabel ${tableName} mislukt:`, err.message);
                 }
             }
             
-            if (!priveTableExists) {
+            if (!priveTableName) {
                 console.log('DEBUG: Geen priveinfo tabel gevonden, skip import');
                 result.priveinfo.errors = backup.priveinfo.length;
                 return result;
@@ -585,18 +633,23 @@ class DataManager extends BaseModule {
                     try {
                         const cleanStamboomnr = String(prive.stamboomnr).trim();
                         
-                        // Basis kolommen die waarschijnlijk bestaan
-                        const importData = { 
-                            stamboomnr: cleanStamboomnr
-                        };
+                        // Bouw import data op basis van wat er in de database bestaat
+                        const importData = {};
                         
-                        // Alleen toevoegen als ze in de backup zitten
-                        if (prive.privatenotes !== undefined) importData.privatenotes = prive.privatenotes;
-                        if (prive.vertrouwelijk !== undefined) importData.vertrouwelijk = prive.vertrouwelijk;
+                        // Alleen kolommen toevoegen die in beide zitten (backup EN database)
+                        for (const column of priveTableColumns) {
+                            if (prive[column] !== undefined) {
+                                importData[column] = prive[column];
+                            }
+                        }
                         
-                        console.log('DEBUG: Priveinfo import data (simpel):', {
+                        // Zorg dat stamboomnr altijd goed staat
+                        importData.stamboomnr = cleanStamboomnr;
+                        
+                        console.log('IMPORT DEBUG: Priveinfo import data:', {
                             stamboomnr: importData.stamboomnr,
-                            kolommen: Object.keys(importData)
+                            gebruikteKolommen: Object.keys(importData),
+                            alleBackupKolommen: Object.keys(prive)
                         });
                         
                         try {
@@ -608,14 +661,14 @@ class DataManager extends BaseModule {
                                 });
                             
                             if (error) {
-                                console.warn('Upsert error, probeer insert:', error.message);
-                                // Probeer simpele insert
+                                console.warn('Priveinfo upsert error:', error.message);
+                                // Probeer simpele insert als fallback
                                 const { error: insertError } = await this.supabase
                                     .from(priveTableName)
                                     .insert([importData]);
                                 
                                 if (insertError) {
-                                    console.warn('Insert ook mislukt, skip:', insertError.message);
+                                    console.warn('Priveinfo insert ook mislukt, skip:', insertError.message);
                                     result.priveinfo.errors++;
                                     continue;
                                 }
