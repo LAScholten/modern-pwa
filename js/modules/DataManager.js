@@ -315,7 +315,7 @@ class DataManager extends BaseModule {
                             const { data, error } = await this.supabase
                                 .from('honden')
                                 .select('id')
-                                .ilike('stamboomnr', hond.stamboomnr.trim())
+                                .eq('stamboomnr', encodeURIComponent(hond.stamboomnr.trim()))
                                 .single();
                             
                             if (!error) {
