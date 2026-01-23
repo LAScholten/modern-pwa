@@ -2,7 +2,7 @@
  * Supabase DataManager voor HondenDatabase
  * Werkt met vader_stamboomnr en moeder_stamboomnr kolommen
  */
-class SupabaseDataManager extends BaseModule {
+class DataManager extends BaseModule {
     constructor() {
         super();
         this.supabase = window.supabase; // Supabase client
