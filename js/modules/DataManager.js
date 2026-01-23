@@ -50,8 +50,11 @@ class DataManager extends BaseModule {
                         <div class="modal-body">
                             <div class="alert alert-info mb-3">
                                 <i class="bi bi-cloud-check"></i> 
-                                <strong>Supabase Backup</strong><br>
-                                Exporteert: Honden, Foto's, Privé info
+                                <strong>Supabase Complete Backup</strong><br>
+                                Exporteert en importeert:<br>
+                                • Honden (via stamboomnr)<br>
+                                • Foto's (gekoppeld aan stamboomnr)<br>
+                                • Privé info (gekoppeld aan stamboomnr)
                             </div>
                             
                             <div class="row">
@@ -62,6 +65,13 @@ class DataManager extends BaseModule {
                                         </div>
                                         <div class="card-body">
                                             <p>${t('exportDescription')}</p>
+                                            <div id="exportProgress" class="mb-3" style="display: none;">
+                                                <div class="progress">
+                                                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                                         role="progressbar" style="width: 0%"></div>
+                                                </div>
+                                                <small class="text-muted mt-1 d-block" id="exportStatus">0%</small>
+                                            </div>
                                             <button class="btn btn-primary w-100" id="startExportBtn">
                                                 <i class="bi bi-download"></i> ${t('startExport')}
                                             </button>
@@ -78,6 +88,13 @@ class DataManager extends BaseModule {
                                             <p>${t('importDescription')}</p>
                                             <div class="mb-3">
                                                 <input type="file" class="form-control" id="importFile" accept=".json">
+                                            </div>
+                                            <div id="importProgress" class="mb-3" style="display: none;">
+                                                <div class="progress">
+                                                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                                         role="progressbar" style="width: 0%"></div>
+                                                </div>
+                                                <small class="text-muted mt-1 d-block" id="importStatus">0%</small>
                                             </div>
                                             <button class="btn btn-success w-100" id="startImportBtn">
                                                 <i class="bi bi-upload"></i> ${t('startImport')}
@@ -114,13 +131,17 @@ class DataManager extends BaseModule {
             return;
         }
         
-        this.showProgress(t('exportingData'));
+        // Reset progress
+        this.showExportProgress(0, 'Start export...');
+        document.getElementById('exportProgress').style.display = 'block';
         
         try {
             // 1. Exporteer ALLE honden
+            this.showExportProgress(10, 'Honden exporteren...');
             const honden = await this.getAllHondenWithPagination();
             
             // 2. Exporteer foto's (als de tabel bestaat)
+            this.showExportProgress(40, 'Foto\'s exporteren...');
             let fotos = [];
             try {
                 fotos = await this.getAllFotosWithPagination();
@@ -129,67 +150,97 @@ class DataManager extends BaseModule {
             }
             
             // 3. Exporteer privé info (als de tabel bestaat)
-            let priveInfo = [];
+            this.showExportProgress(70, 'Privé info exporteren...');
+            let priveinfo = [];
             try {
-                priveInfo = await this.getAllPriveInfoWithPagination();
+                priveinfo = await this.getAllPriveinfoWithPagination();
             } catch (priveError) {
                 console.log('Geen privé info om te exporteren:', priveError.message);
             }
             
             // 4. Maak complete backup
+            this.showExportProgress(90, 'Backup bestand maken...');
             const backup = {
                 metadata: {
                     exportDate: new Date().toISOString(),
                     version: '2.0',
                     hondenCount: honden.length,
                     fotosCount: fotos.length,
-                    priveInfoCount: priveInfo.length,
+                    priveinfoCount: priveinfo.length,
                     system: 'Supabase complete backup'
                 },
                 honden: honden,
                 fotos: fotos,
-                priveInfo: priveInfo
+                priveinfo: priveinfo  // Correct: priveinfo, niet priveInfo
             };
             
             // 5. Download
             this.downloadBackup(backup);
             
-            this.hideProgress();
-            this.showSuccess(`Backup gemaakt!<br>
-                - ${honden.length} honden<br>
-                - ${fotos.length} foto's<br>
-                - ${priveInfo.length} privé records`);
+            this.showExportProgress(100, 'Export voltooid!');
+            setTimeout(() => {
+                document.getElementById('exportProgress').style.display = 'none';
+            }, 1000);
+            
+            this.showSuccess(`<strong>Backup gemaakt!</strong><br>
+                • ${honden.length} honden<br>
+                • ${fotos.length} foto's<br>
+                • ${priveinfo.length} privé records`);
             
         } catch (error) {
-            this.hideProgress();
+            document.getElementById('exportProgress').style.display = 'none';
             console.error('Export error:', error);
             this.showError(`Export mislukt: ${error.message}`);
         }
     }
     
     async getAllHondenWithPagination() {
-        return this.getTableWithPagination('honden', 'id');
+        return await this.getTableWithPagination('honden', 'id', 0, 33);
     }
     
     async getAllFotosWithPagination() {
-        return this.getTableWithPagination('fotos', 'id');
+        return await this.getTableWithPagination('fotos', 'id', 33, 66);
     }
     
-    async getAllPriveInfoWithPagination() {
-        return this.getTableWithPagination('prive_info', 'id');
+    async getAllPriveinfoWithPagination() {
+        return await this.getTableWithPagination('priveinfo', 'id', 66, 100);
     }
     
-    async getTableWithPagination(tableName, orderBy) {
+    async getTableWithPagination(tableName, orderBy, startProgress, endProgress) {
         const allData = [];
         const pageSize = 1000;
         let currentPage = 0;
         let hasMore = true;
+        let totalRows = 0;
         
         console.log(`Start paginated export for ${tableName}...`);
+        
+        // Eerst tellen hoeveel rijen er zijn voor progress
+        try {
+            const { count, error } = await this.supabase
+                .from(tableName)
+                .select('*', { count: 'exact', head: true });
+                
+            if (!error && count !== null) {
+                totalRows = count;
+                console.log(`Tabel ${tableName} heeft ${totalRows} rijen`);
+            }
+        } catch (countError) {
+            console.log(`Kan aantal niet tellen voor ${tableName}:`, countError);
+        }
         
         while (hasMore) {
             const from = currentPage * pageSize;
             const to = from + pageSize - 1;
+            
+            // Update progress
+            if (totalRows > 0) {
+                const progress = startProgress + ((allData.length / totalRows) * (endProgress - startProgress));
+                this.showExportProgress(Math.round(progress), `${tableName} exporteren... ${allData.length}/${totalRows}`);
+            } else {
+                const progress = startProgress + ((currentPage / 10) * (endProgress - startProgress));
+                this.showExportProgress(Math.round(progress), `${tableName} exporteren... pagina ${currentPage + 1}`);
+            }
             
             const { data: rows, error } = await this.supabase
                 .from(tableName)
@@ -214,9 +265,6 @@ class DataManager extends BaseModule {
             } else {
                 currentPage++;
             }
-            
-            // Update progress
-            this.updateProgressMessage(`Exporting ${tableName}... ${allData.length} records`);
         }
         
         console.log(`Export ${tableName} complete: ${allData.length} records`);
@@ -240,7 +288,9 @@ class DataManager extends BaseModule {
         const file = fileInput.files[0];
         
         try {
-            this.showProgress(t('importingData'));
+            // Reset progress
+            this.showImportProgress(0, 'Backup bestand lezen...');
+            document.getElementById('importProgress').style.display = 'block';
             
             // Lees file
             const text = await this.readFile(file);
@@ -251,29 +301,30 @@ class DataManager extends BaseModule {
             }
             
             // Importeer alles
+            this.showImportProgress(10, 'Start import...');
             const result = await this.importCompleteBackup(backup);
             
-            this.hideProgress();
+            document.getElementById('importProgress').style.display = 'none';
             
             const message = `
-                Import voltooid!<br>
+                <strong>Import voltooid!</strong><br><br>
                 <strong>Honden:</strong><br>
-                - ${result.honden.added} toegevoegd<br>
-                - ${result.honden.updated} bijgewerkt<br>
-                - ${result.honden.relaties} relaties<br>
-                - ${result.honden.errors} fouten<br><br>
+                • ${result.honden.added} toegevoegd<br>
+                • ${result.honden.updated} bijgewerkt<br>
+                • ${result.honden.relaties} relaties hersteld<br>
+                • ${result.honden.errors} fouten<br><br>
                 <strong>Foto's:</strong><br>
-                - ${result.fotos.added} toegevoegd<br>
-                - ${result.fotos.errors} fouten<br><br>
+                • ${result.fotos.added} toegevoegd<br>
+                • ${result.fotos.errors} fouten<br><br>
                 <strong>Privé info:</strong><br>
-                - ${result.priveInfo.updated} bijgewerkt<br>
-                - ${result.priveInfo.errors} fouten
+                • ${result.priveinfo.updated} bijgewerkt<br>
+                • ${result.priveinfo.errors} fouten
             `;
             
             this.showSuccess(message);
             
         } catch (error) {
-            this.hideProgress();
+            document.getElementById('importProgress').style.display = 'none';
             console.error('Import error:', error);
             this.showError(`Import mislukt: ${error.message}`);
         }
@@ -285,287 +336,200 @@ class DataManager extends BaseModule {
         const result = {
             honden: { added: 0, updated: 0, errors: 0, relaties: 0 },
             fotos: { added: 0, errors: 0 },
-            priveInfo: { updated: 0, errors: 0 }
+            priveinfo: { updated: 0, errors: 0 }  // Correct: priveinfo
         };
         
         const stamboomnrMap = new Map();
         const batchSize = 100;
         
-        // **NIEUW: WORKAROUND voor Supabase 406 error met numerieke stamboomnummers**
-        const findHondByStamboomnr = async (stamboomnr) => {
-            try {
-                const cleanStamboomnr = String(stamboomnr).trim();
-                
-                // WORKAROUND: Haal eerst ALLE honden op en filter lokaal
-                // Dit voorkomt de 406 error met numerieke stamboomnummers
-                const { data: allHonden, error } = await this.supabase
-                    .from('honden')
-                    .select('id, stamboomnr')
-                    .limit(10000); // Haal een groot aantal op
-                
-                if (error) {
-                    console.error('Error fetching all honden:', error);
-                    return { data: null, error };
-                }
-                
-                // Zoek lokaal
-                const found = allHonden.find(h => {
-                    const dbStamboomnr = String(h.stamboomnr).trim();
-                    return dbStamboomnr === cleanStamboomnr;
-                });
-                
-                return { data: found || null, error: null };
-                
-            } catch (error) {
-                console.error('Error in findHondByStamboomnr:', error);
-                return { data: null, error };
-            }
-        };
-        
-        // Cache voor alle honden (performance optimalisatie)
-        let allHondenCache = null;
-        const getAllHondenFromCache = async () => {
-            if (!allHondenCache) {
-                const { data, error } = await this.supabase
-                    .from('honden')
-                    .select('id, stamboomnr')
-                    .limit(10000);
-                
-                if (error) {
-                    throw error;
-                }
-                allHondenCache = data;
-            }
-            return allHondenCache;
-        };
-        
         // 1. Importeer HONDEN
         if (backup.honden && backup.honden.length > 0) {
-            console.log(`Importing ${backup.honden.length} honden...`);
+            const totalHonden = backup.honden.length;
             
-            // Haal eerst alle bestaande honden op voor caching
-            try {
-                await getAllHondenFromCache();
-            } catch (cacheError) {
-                console.warn('Could not cache honden:', cacheError);
-            }
-            
-            const totalBatches = Math.ceil(backup.honden.length / batchSize);
-            
-            for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
-                const start = batchIndex * batchSize;
-                const end = Math.min(start + batchSize, backup.honden.length);
-                const batch = backup.honden.slice(start, end);
+            for (let i = 0; i < backup.honden.length; i++) {
+                const hond = backup.honden[i];
+                const progress = 10 + (i / totalHonden * 40); // 10-50%
+                this.showImportProgress(Math.round(progress), `Honden importeren... ${i+1}/${totalHonden}`);
                 
-                this.updateProgressMessage(`Importing honden... batch ${batchIndex + 1}/${totalBatches}`);
-                
-                for (const hond of batch) {
-                    try {
-                        const cleanStamboomnr = String(hond.stamboomnr).trim();
-                        console.log('DEBUG: Processing stamboomnr:', cleanStamboomnr);
-                        
-                        // Zoek bestaande hond via cache
-                        let existing = null;
-                        if (allHondenCache) {
-                            existing = allHondenCache.find(h => 
-                                String(h.stamboomnr).trim() === cleanStamboomnr
-                            );
-                        } else {
-                            // Fallback naar query
-                            const { data: found, error: findError } = await findHondByStamboomnr(cleanStamboomnr);
-                            if (!findError && found) {
-                                existing = found;
-                            }
-                        }
-                        
-                        // Bereid import data voor
-                        const importData = { ...hond };
-                        delete importData.id;
-                        delete importData.vader_id;
-                        delete importData.moeder_id;
-                        delete importData.created_at;
-                        delete importData.updated_at;
-                        
-                        // Zorg dat stamboomnr altijd een string is
-                        importData.stamboomnr = cleanStamboomnr;
-                        
-                        if (existing) {
-                            // Update bestaande hond
-                            const { error } = await this.supabase
-                                .from('honden')
-                                .update(importData)
-                                .eq('id', existing.id);
-                            
-                            if (error) {
-                                console.error('Update error:', error);
-                                throw error;
-                            }
-                            
-                            stamboomnrMap.set(cleanStamboomnr, existing.id);
-                            result.honden.updated++;
-                        } else {
-                            // Nieuwe hond toevoegen
-                            const { data: newHond, error } = await this.supabase
-                                .from('honden')
-                                .insert([importData])
-                                .select('id')
-                                .single();
-                            
-                            if (error) {
-                                console.error('Insert error:', error);
-                                throw error;
-                            }
-                            
-                            stamboomnrMap.set(cleanStamboomnr, newHond.id);
-                            result.honden.added++;
-                            
-                            // Update cache
-                            if (allHondenCache) {
-                                allHondenCache.push({ id: newHond.id, stamboomnr: cleanStamboomnr });
-                            }
-                        }
-                        
-                    } catch (error) {
-                        console.error(`Fout bij hond ${hond.stamboomnr}:`, error);
-                        result.honden.errors++;
+                try {
+                    const cleanStamboomnr = String(hond.stamboomnr).trim();
+                    
+                    // WORKAROUND: Haal eerst alle honden op en filter lokaal
+                    const { data: allHonden, error: fetchError } = await this.supabase
+                        .from('honden')
+                        .select('id, stamboomnr')
+                        .limit(10000);
+                    
+                    if (fetchError) {
+                        console.error('Error fetching honden:', fetchError);
+                        throw fetchError;
                     }
+                    
+                    // Zoek bestaande hond
+                    const existing = allHonden.find(h => 
+                        String(h.stamboomnr).trim() === cleanStamboomnr
+                    );
+                    
+                    // Bereid import data voor
+                    const importData = { ...hond };
+                    delete importData.id;
+                    delete importData.vader_id;
+                    delete importData.moeder_id;
+                    delete importData.created_at;
+                    delete importData.updated_at;
+                    
+                    // Zorg dat stamboomnr altijd een string is
+                    importData.stamboomnr = cleanStamboomnr;
+                    
+                    if (existing) {
+                        // Update bestaande hond
+                        const { error } = await this.supabase
+                            .from('honden')
+                            .update(importData)
+                            .eq('id', existing.id);
+                        
+                        if (error) throw error;
+                        stamboomnrMap.set(cleanStamboomnr, existing.id);
+                        result.honden.updated++;
+                    } else {
+                        // Nieuwe hond toevoegen
+                        const { data: newHond, error } = await this.supabase
+                            .from('honden')
+                            .insert([importData])
+                            .select('id')
+                            .single();
+                        
+                        if (error) throw error;
+                        stamboomnrMap.set(cleanStamboomnr, newHond.id);
+                        result.honden.added++;
+                    }
+                    
+                } catch (error) {
+                    console.error(`Fout bij hond ${hond.stamboomnr}:`, error);
+                    result.honden.errors++;
                 }
             }
             
             // 2. Herstel HONDEN relaties
-            this.updateProgressMessage('Relaties herstellen tussen honden...');
+            this.showImportProgress(50, 'Relaties herstellen tussen honden...');
             
-            const relationBatches = Math.ceil(backup.honden.length / batchSize);
-            
-            for (let batchIndex = 0; batchIndex < relationBatches; batchIndex++) {
-                const start = batchIndex * batchSize;
-                const end = Math.min(start + batchSize, backup.honden.length);
-                const batch = backup.honden.slice(start, end);
+            for (let i = 0; i < backup.honden.length; i++) {
+                const hond = backup.honden[i];
+                const progress = 50 + (i / backup.honden.length * 15); // 50-65%
                 
-                for (const hond of batch) {
-                    try {
-                        const cleanStamboomnr = String(hond.stamboomnr).trim();
-                        const hondId = stamboomnrMap.get(cleanStamboomnr);
-                        if (!hondId) continue;
+                try {
+                    const cleanStamboomnr = String(hond.stamboomnr).trim();
+                    const hondId = stamboomnrMap.get(cleanStamboomnr);
+                    if (!hondId) continue;
+                    
+                    // Zoek parent IDs via stamboomnr
+                    const vaderId = hond.vader_stamboomnr ? stamboomnrMap.get(String(hond.vader_stamboomnr).trim()) : null;
+                    const moederId = hond.moeder_stamboomnr ? stamboomnrMap.get(String(hond.moeder_stamboomnr).trim()) : null;
+                    
+                    // Update relaties
+                    if (vaderId !== null || moederId !== null) {
+                        await this.supabase
+                            .from('honden')
+                            .update({
+                                vader_id: vaderId,
+                                moeder_id: moederId
+                            })
+                            .eq('id', hondId);
                         
-                        // Zoek parent IDs via stamboomnr
-                        const vaderId = hond.vader_stamboomnr ? stamboomnrMap.get(String(hond.vader_stamboomnr).trim()) : null;
-                        const moederId = hond.moeder_stamboomnr ? stamboomnrMap.get(String(hond.moeder_stamboomnr).trim()) : null;
-                        
-                        // Update relaties
-                        if (vaderId !== null || moederId !== null) {
-                            await this.supabase
-                                .from('honden')
-                                .update({
-                                    vader_id: vaderId,
-                                    moeder_id: moederId
-                                })
-                                .eq('id', hondId);
-                            
-                            result.honden.relaties++;
-                        }
-                        
-                    } catch (error) {
-                        console.error(`Fout bij relaties ${hond.stamboomnr}:`, error);
+                        result.honden.relaties++;
                     }
+                    
+                } catch (error) {
+                    console.error(`Fout bij relaties ${hond.stamboomnr}:`, error);
+                }
+                
+                if (i % 10 === 0) {
+                    this.showImportProgress(Math.round(progress), `Relaties herstellen... ${i+1}/${backup.honden.length}`);
                 }
             }
         }
         
         // 3. Importeer FOTO'S
         if (backup.fotos && backup.fotos.length > 0) {
-            console.log(`Importing ${backup.fotos.length} foto's...`);
-            this.updateProgressMessage('Foto\'s importeren...');
+            const totalFotos = backup.fotos.length;
             
-            const totalBatches = Math.ceil(backup.fotos.length / batchSize);
-            
-            for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
-                const start = batchIndex * batchSize;
-                const end = Math.min(start + batchSize, backup.fotos.length);
-                const batch = backup.fotos.slice(start, end);
+            for (let i = 0; i < backup.fotos.length; i++) {
+                const foto = backup.fotos[i];
+                const progress = 65 + (i / totalFotos * 15); // 65-80%
+                this.showImportProgress(Math.round(progress), `Foto's importeren... ${i+1}/${totalFotos}`);
                 
-                this.updateProgressMessage(`Importing foto's... batch ${batchIndex + 1}/${totalBatches}`);
-                
-                for (const foto of batch) {
-                    try {
-                        const cleanStamboomnr = String(foto.stamboomnr).trim();
-                        
-                        // WORKAROUND: Haal eerst alle foto's van deze stamboomnr op
-                        const { data: existingFotos, error: fetchError } = await this.supabase
-                            .from('fotos')
-                            .select('id, filename')
-                            .eq('stamboomnr', cleanStamboomnr);
-                        
-                        if (fetchError) {
-                            console.warn('Error fetching fotos:', fetchError);
-                        }
-                        
-                        const exists = existingFotos?.some(f => f.filename === foto.filename) || false;
-                        
-                        if (!exists) {
-                            // Bereid import data voor
-                            const importData = { ...foto };
-                            delete importData.id;
-                            delete importData.created_at;
-                            importData.stamboomnr = cleanStamboomnr;
-                            
-                            const { error } = await this.supabase
-                                .from('fotos')
-                                .insert([importData]);
-                            
-                            if (!error) result.fotos.added++;
-                        }
-                        
-                    } catch (error) {
-                        console.error(`Fout bij foto ${foto.filename}:`, error);
-                        result.fotos.errors++;
+                try {
+                    const cleanStamboomnr = String(foto.stamboomnr).trim();
+                    
+                    // Controleer of foto al bestaat
+                    const { data: existingFotos, error: fetchError } = await this.supabase
+                        .from('fotos')
+                        .select('id, filename')
+                        .eq('stamboomnr', cleanStamboomnr)
+                        .limit(100);
+                    
+                    if (fetchError) {
+                        console.warn('Error fetching fotos:', fetchError);
                     }
+                    
+                    const exists = existingFotos?.some(f => f.filename === foto.filename) || false;
+                    
+                    if (!exists) {
+                        // Bereid import data voor
+                        const importData = { ...foto };
+                        delete importData.id;
+                        delete importData.created_at;
+                        importData.stamboomnr = cleanStamboomnr;
+                        
+                        const { error } = await this.supabase
+                            .from('fotos')
+                            .insert([importData]);
+                        
+                        if (!error) result.fotos.added++;
+                    }
+                    
+                } catch (error) {
+                    console.error(`Fout bij foto ${foto.filename}:`, error);
+                    result.fotos.errors++;
                 }
             }
         }
         
         // 4. Importeer PRIVÉ INFO
-        if (backup.priveInfo && backup.priveInfo.length > 0) {
-            console.log(`Importing ${backup.priveInfo.length} privé records...`);
-            this.updateProgressMessage('Privé info importeren...');
+        if (backup.priveinfo && backup.priveinfo.length > 0) {
+            const totalPriveinfo = backup.priveinfo.length;
             
-            const totalBatches = Math.ceil(backup.priveInfo.length / batchSize);
-            
-            for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
-                const start = batchIndex * batchSize;
-                const end = Math.min(start + batchSize, backup.priveInfo.length);
-                const batch = backup.priveInfo.slice(start, end);
+            for (let i = 0; i < backup.priveinfo.length; i++) {
+                const prive = backup.priveinfo[i];
+                const progress = 80 + (i / totalPriveinfo * 20); // 80-100%
+                this.showImportProgress(Math.round(progress), `Privé info importeren... ${i+1}/${totalPriveinfo}`);
                 
-                this.updateProgressMessage(`Importing privé info... batch ${batchIndex + 1}/${totalBatches}`);
-                
-                for (const prive of batch) {
-                    try {
-                        const cleanStamboomnr = String(prive.stamboomnr).trim();
-                        
-                        // Bereid import data voor
-                        const importData = { ...prive };
-                        delete importData.id;
-                        delete importData.created_at;
-                        importData.stamboomnr = cleanStamboomnr;
-                        
-                        // WORKAROUND: Gebruik upsert met onConflict
-                        const { error } = await this.supabase
-                            .from('prive_info')
-                            .upsert([importData], {
-                                onConflict: 'stamboomnr',
-                                ignoreDuplicates: false
-                            });
-                        
-                        if (!error) result.priveInfo.updated++;
-                        
-                    } catch (error) {
-                        console.error(`Fout bij privé info ${prive.stamboomnr}:`, error);
-                        result.priveInfo.errors++;
-                    }
+                try {
+                    const cleanStamboomnr = String(prive.stamboomnr).trim();
+                    
+                    // Bereid import data voor
+                    const importData = { ...prive };
+                    delete importData.id;
+                    delete importData.created_at;
+                    importData.stamboomnr = cleanStamboomnr;
+                    
+                    // Update of insert privé info (upsert op stamboomnr)
+                    const { error } = await this.supabase
+                        .from('priveinfo')
+                        .upsert([importData], {
+                            onConflict: 'stamboomnr'
+                        });
+                    
+                    if (!error) result.priveinfo.updated++;
+                    
+                } catch (error) {
+                    console.error(`Fout bij privé info ${prive.stamboomnr}:`, error);
+                    result.priveinfo.errors++;
                 }
             }
         }
         
+        this.showImportProgress(100, 'Import voltooid!');
         console.log('Complete import finished:', result);
         return result;
     }
@@ -596,37 +560,28 @@ class DataManager extends BaseModule {
         });
     }
     
-    showProgress(message) {
-        this.hideProgress();
+    showExportProgress(percentage, message) {
+        const progressBar = document.querySelector('#exportProgress .progress-bar');
+        const statusText = document.getElementById('exportStatus');
         
-        const html = `
-        <div id="dataManagerProgress" class="modal-backdrop fade show" style="display: block;">
-            <div class="modal fade show" style="display: block;">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content">
-                        <div class="modal-body text-center">
-                            <div class="spinner-border text-primary mb-3"></div>
-                            <p>${message}</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        `;
-        
-        document.body.insertAdjacentHTML('beforeend', html);
-    }
-    
-    updateProgressMessage(message) {
-        const progress = document.getElementById('dataManagerProgress');
-        if (progress) {
-            const p = progress.querySelector('p');
-            if (p) p.textContent = message;
+        if (progressBar) {
+            progressBar.style.width = `${percentage}%`;
+        }
+        if (statusText) {
+            statusText.textContent = `${percentage}% - ${message}`;
         }
     }
     
-    hideProgress() {
-        document.getElementById('dataManagerProgress')?.remove();
+    showImportProgress(percentage, message) {
+        const progressBar = document.querySelector('#importProgress .progress-bar');
+        const statusText = document.getElementById('importStatus');
+        
+        if (progressBar) {
+            progressBar.style.width = `${percentage}%`;
+        }
+        if (statusText) {
+            statusText.textContent = `${percentage}% - ${message}`;
+        }
     }
     
     showSuccess(message) {
