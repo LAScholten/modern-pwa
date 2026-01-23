@@ -128,12 +128,12 @@ class DataManager extends BaseModule {
                 console.log('Geen foto\'s om te exporteren:', fotoError.message);
             }
             
-            // 3. Exporteer priveinfo (als de tabel bestaat)
-            let priveinfo = [];
+            // 3. Exporteer privé info (als de tabel bestaat)
+            let priveInfo = [];
             try {
-                priveinfo = await this.getAllPriveinfoWithPagination();
+                priveInfo = await this.getAllPriveInfoWithPagination();
             } catch (priveError) {
-                console.log('Geen priveinfo om te exporteren:', priveError.message);
+                console.log('Geen privé info om te exporteren:', priveError.message);
             }
             
             // 4. Maak complete backup
@@ -143,12 +143,12 @@ class DataManager extends BaseModule {
                     version: '2.0',
                     hondenCount: honden.length,
                     fotosCount: fotos.length,
-                    priveinfoCount: priveinfo.length,
+                    priveInfoCount: priveInfo.length,
                     system: 'Supabase complete backup'
                 },
                 honden: honden,
                 fotos: fotos,
-                priveinfo: priveinfo
+                priveInfo: priveInfo
             };
             
             // 5. Download
@@ -158,7 +158,7 @@ class DataManager extends BaseModule {
             this.showSuccess(`Backup gemaakt!<br>
                 - ${honden.length} honden<br>
                 - ${fotos.length} foto's<br>
-                - ${priveinfo.length} priveinfo records`);
+                - ${priveInfo.length} privé records`);
             
         } catch (error) {
             this.hideProgress();
@@ -175,7 +175,7 @@ class DataManager extends BaseModule {
         return this.getTableWithPagination('fotos', 'id');
     }
     
-    async getAllPriveinfoWithPagination() {
+    async getAllPriveInfoWithPagination() {
         return this.getTableWithPagination('prive_info', 'id');
     }
     
@@ -265,10 +265,9 @@ class DataManager extends BaseModule {
                 <strong>Foto's:</strong><br>
                 - ${result.fotos.added} toegevoegd<br>
                 - ${result.fotos.errors} fouten<br><br>
-                <strong>Priveinfo:</strong><br>
-                - ${result.priveinfo.added} toegevoegd<br>
-                - ${result.priveinfo.updated} bijgewerkt<br>
-                - ${result.priveinfo.errors} fouten
+                <strong>Privé info:</strong><br>
+                - ${result.priveInfo.updated} bijgewerkt<br>
+                - ${result.priveInfo.errors} fouten
             `;
             
             this.showSuccess(message);
@@ -281,18 +280,64 @@ class DataManager extends BaseModule {
     }
     
     async importCompleteBackup(backup) {
-        console.log('DEBUG: Start import');
+        console.log('DEBUG: Start import, aantal honden:', backup.honden?.length);
         
         const result = {
             honden: { added: 0, updated: 0, errors: 0, relaties: 0 },
             fotos: { added: 0, errors: 0 },
-            priveinfo: { added: 0, updated: 0, errors: 0 }
+            priveInfo: { updated: 0, errors: 0 }
         };
         
         const stamboomnrMap = new Map();
         const batchSize = 100;
         
-        // 1. Importeer HONDEN (werkt al goed)
+        // **NIEUW: Helper functie voor veilige stamboomnr matching**
+        const findHondByStamboomnr = async (stamboomnr) => {
+            try {
+                const cleanStamboomnr = String(stamboomnr).trim();
+                
+                // Probeer met ILIKE (case-insensitive, beter voor speciale chars)
+                const { data, error } = await this.supabase
+                    .from('honden')
+                    .select('id')
+                    .ilike('stamboomnr', cleanStamboomnr)
+                    .limit(1);
+                
+                if (error) {
+                    console.warn('ILike query failed, trying direct query:', error);
+                    
+                    // Fallback: Gebruik directe query
+                    const { data: directData, error: directError } = await this.supabase
+                        .from('honden')
+                        .select('id')
+                        .limit(1)
+                        .then(response => {
+                            // Filter lokaal als Supabase het niet doet
+                            if (response.data) {
+                                const found = response.data.find(h => 
+                                    String(h.stamboomnr).trim() === cleanStamboomnr
+                                );
+                                return { data: found ? [found] : [], error: null };
+                            }
+                            return response;
+                        });
+                    
+                    if (directData && directData.length > 0) {
+                        return { data: directData[0], error: null };
+                    }
+                    
+                    return { data: null, error: directError };
+                }
+                
+                return data && data.length > 0 ? { data: data[0], error: null } : { data: null, error: null };
+                
+            } catch (error) {
+                console.error('Error in findHondByStamboomnr:', error);
+                return { data: null, error };
+            }
+        };
+        
+        // 1. Importeer HONDEN
         if (backup.honden && backup.honden.length > 0) {
             console.log(`Importing ${backup.honden.length} honden...`);
             
@@ -308,6 +353,16 @@ class DataManager extends BaseModule {
                 for (const hond of batch) {
                     try {
                         const cleanStamboomnr = String(hond.stamboomnr).trim();
+                        console.log('DEBUG: Processing stamboomnr:', cleanStamboomnr);
+                        
+                        // Gebruik de veilige helper functie
+                        const { data: existing, error: findError } = await findHondByStamboomnr(cleanStamboomnr);
+                        
+                        if (findError) {
+                            console.warn('Find error, skipping hond:', cleanStamboomnr, findError);
+                            result.honden.errors++;
+                            continue;
+                        }
                         
                         // Bereid import data voor
                         const importData = { ...hond };
@@ -320,21 +375,36 @@ class DataManager extends BaseModule {
                         // Zorg dat stamboomnr schoon is
                         importData.stamboomnr = cleanStamboomnr;
                         
-                        // Nieuwe hond toevoegen
-                        const { data: newHond, error } = await this.supabase
-                            .from('honden')
-                            .insert([importData])
-                            .select('id')
-                            .single();
-                        
-                        if (error) {
-                            console.error('Insert error:', error);
-                            result.honden.errors++;
-                            continue;
+                        if (existing) {
+                            // Update bestaande hond
+                            const { error } = await this.supabase
+                                .from('honden')
+                                .update(importData)
+                                .eq('id', existing.id);
+                            
+                            if (error) {
+                                console.error('Update error:', error);
+                                throw error;
+                            }
+                            
+                            stamboomnrMap.set(cleanStamboomnr, existing.id);
+                            result.honden.updated++;
+                        } else {
+                            // Nieuwe hond toevoegen
+                            const { data: newHond, error } = await this.supabase
+                                .from('honden')
+                                .insert([importData])
+                                .select('id')
+                                .single();
+                            
+                            if (error) {
+                                console.error('Insert error:', error);
+                                throw error;
+                            }
+                            
+                            stamboomnrMap.set(cleanStamboomnr, newHond.id);
+                            result.honden.added++;
                         }
-                        
-                        stamboomnrMap.set(cleanStamboomnr, newHond.id);
-                        result.honden.added++;
                         
                     } catch (error) {
                         console.error(`Fout bij hond ${hond.stamboomnr}:`, error);
@@ -342,9 +412,48 @@ class DataManager extends BaseModule {
                     }
                 }
             }
+            
+            // 2. Herstel HONDEN relaties
+            this.updateProgressMessage('Relaties herstellen tussen honden...');
+            
+            const relationBatches = Math.ceil(backup.honden.length / batchSize);
+            
+            for (let batchIndex = 0; batchIndex < relationBatches; batchIndex++) {
+                const start = batchIndex * batchSize;
+                const end = Math.min(start + batchSize, backup.honden.length);
+                const batch = backup.honden.slice(start, end);
+                
+                for (const hond of batch) {
+                    try {
+                        const cleanStamboomnr = String(hond.stamboomnr).trim();
+                        const hondId = stamboomnrMap.get(cleanStamboomnr);
+                        if (!hondId) continue;
+                        
+                        // Zoek parent IDs via stamboomnr
+                        const vaderId = hond.vader_stamboomnr ? stamboomnrMap.get(String(hond.vader_stamboomnr).trim()) : null;
+                        const moederId = hond.moeder_stamboomnr ? stamboomnrMap.get(String(hond.moeder_stamboomnr).trim()) : null;
+                        
+                        // Update relaties
+                        if (vaderId !== null || moederId !== null) {
+                            await this.supabase
+                                .from('honden')
+                                .update({
+                                    vader_id: vaderId,
+                                    moeder_id: moederId
+                                })
+                                .eq('id', hondId);
+                            
+                            result.honden.relaties++;
+                        }
+                        
+                    } catch (error) {
+                        console.error(`Fout bij relaties ${hond.stamboomnr}:`, error);
+                    }
+                }
+            }
         }
         
-        // 2. Importeer FOTO'S - SIMPELE VERSIE
+        // 3. Importeer FOTO'S
         if (backup.fotos && backup.fotos.length > 0) {
             console.log(`Importing ${backup.fotos.length} foto's...`);
             this.updateProgressMessage('Foto\'s importeren...');
@@ -362,27 +471,35 @@ class DataManager extends BaseModule {
                     try {
                         const cleanStamboomnr = String(foto.stamboomnr).trim();
                         
-                        // HEEL SIMPEL: alleen stamboomnr en filename
-                        const importData = {
-                            stamboomnr: cleanStamboomnr,
-                            filename: foto.filename || ''
-                        };
+                        // Controleer of foto al bestaat met veilige matching
+                        let existing = null;
+                        try {
+                            const { data, error } = await this.supabase
+                                .from('fotos')
+                                .select('id')
+                                .ilike('stamboomnr', cleanStamboomnr)
+                                .eq('filename', foto.filename)
+                                .limit(1);
+                            
+                            if (!error && data && data.length > 0) {
+                                existing = data[0];
+                            }
+                        } catch (err) {
+                            existing = null;
+                        }
                         
-                        // Optioneel: size en type als ze bestaan
-                        if (foto.size !== undefined) importData.size = foto.size;
-                        if (foto.type) importData.type = foto.type;
+                        // Bereid import data voor
+                        const importData = { ...foto };
+                        delete importData.id;
+                        delete importData.created_at;
+                        importData.stamboomnr = cleanStamboomnr;
                         
-                        console.log('DEBUG: Foto import (simpel):', importData);
-                        
-                        const { error } = await this.supabase
-                            .from('fotos')
-                            .insert([importData]);
-                        
-                        if (error) {
-                            console.warn('Foto insert error:', error.message);
-                            result.fotos.errors++;
-                        } else {
-                            result.fotos.added++;
+                        if (!existing) {
+                            const { error } = await this.supabase
+                                .from('fotos')
+                                .insert([importData]);
+                            
+                            if (!error) result.fotos.added++;
                         }
                         
                     } catch (error) {
@@ -393,84 +510,48 @@ class DataManager extends BaseModule {
             }
         }
         
-        // 3. Importeer PRIVEINFO - SIMPELE VERSIE
-        if (backup.priveinfo && backup.priveinfo.length > 0) {
-            console.log(`Importing ${backup.priveinfo.length} priveinfo records...`);
-            this.updateProgressMessage('Priveinfo importeren...');
+        // 4. Importeer PRIVÉ INFO
+        if (backup.priveInfo && backup.priveInfo.length > 0) {
+            console.log(`Importing ${backup.priveInfo.length} privé records...`);
+            this.updateProgressMessage('Privé info importeren...');
             
-            // Probeer de juiste tabelnaam te vinden
-            let priveTableName = null;
-            const possibleTables = ['priveinfo', 'prive_info'];
+            const totalBatches = Math.ceil(backup.priveInfo.length / batchSize);
             
-            for (const table of possibleTables) {
-                try {
-                    // Test of tabel bestaat
-                    const { error } = await this.supabase
-                        .from(table)
-                        .select('stamboomnr')
-                        .limit(1);
-                    
-                    if (!error) {
-                        priveTableName = table;
-                        console.log(`DEBUG: Priveinfo tabel gevonden: ${table}`);
-                        break;
-                    }
-                } catch (err) {
-                    // Ga door naar volgende
-                }
-            }
-            
-            if (!priveTableName) {
-                console.log('DEBUG: Geen priveinfo tabel gevonden, skip import');
-                result.priveinfo.errors = backup.priveinfo.length;
-            } else {
-                const totalBatches = Math.ceil(backup.priveinfo.length / batchSize);
+            for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+                const start = batchIndex * batchSize;
+                const end = Math.min(start + batchSize, backup.priveInfo.length);
+                const batch = backup.priveInfo.slice(start, end);
                 
-                for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
-                    const start = batchIndex * batchSize;
-                    const end = Math.min(start + batchSize, backup.priveinfo.length);
-                    const batch = backup.priveinfo.slice(start, end);
-                    
-                    this.updateProgressMessage(`Importing priveinfo... batch ${batchIndex + 1}/${totalBatches}`);
-                    
-                    for (const prive of batch) {
-                        try {
-                            const cleanStamboomnr = String(prive.stamboomnr).trim();
-                            
-                            // HEEL SIMPEL: alleen stamboomnr en privatenotes
-                            const importData = {
-                                stamboomnr: cleanStamboomnr,
-                                privatenotes: prive.privatenotes || ''
-                            };
-                            
-                            // Optioneel: vertrouwelijk als het bestaat
-                            if (prive.vertrouwelijk !== undefined) {
-                                importData.vertrouwelijk = prive.vertrouwelijk;
-                            }
-                            
-                            console.log('DEBUG: Priveinfo import (simpel):', importData);
-                            
-                            const { error } = await this.supabase
-                                .from(priveTableName)
-                                .insert([importData]);
-                            
-                            if (error) {
-                                console.warn('Priveinfo insert error:', error.message);
-                                result.priveinfo.errors++;
-                            } else {
-                                result.priveinfo.added++;
-                            }
-                            
-                        } catch (error) {
-                            console.error(`Fout bij priveinfo ${prive.stamboomnr}:`, error);
-                            result.priveinfo.errors++;
-                        }
+                this.updateProgressMessage(`Importing privé info... batch ${batchIndex + 1}/${totalBatches}`);
+                
+                for (const prive of batch) {
+                    try {
+                        const cleanStamboomnr = String(prive.stamboomnr).trim();
+                        
+                        // Bereid import data voor
+                        const importData = { ...prive };
+                        delete importData.id;
+                        delete importData.created_at;
+                        importData.stamboomnr = cleanStamboomnr;
+                        
+                        // Update of insert privé info
+                        const { error } = await this.supabase
+                            .from('prive_info')
+                            .upsert([importData], {
+                                onConflict: 'stamboomnr'
+                            });
+                        
+                        if (!error) result.priveInfo.updated++;
+                        
+                    } catch (error) {
+                        console.error(`Fout bij privé info ${prive.stamboomnr}:`, error);
+                        result.priveInfo.errors++;
                     }
                 }
             }
         }
         
-        console.log('Import finished:', result);
+        console.log('Complete import finished:', result);
         return result;
     }
     
@@ -534,28 +615,10 @@ class DataManager extends BaseModule {
     }
     
     showSuccess(message) {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                icon: 'success',
-                title: 'Succes',
-                html: message,
-                confirmButtonText: 'OK'
-            });
-        } else {
-            alert(message.replace(/<br\s*\/?>/gi, '\n'));
-        }
+        alert('Success: ' + message);
     }
     
     showError(message) {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                icon: 'error',
-                title: 'Fout',
-                text: message,
-                confirmButtonText: 'OK'
-            });
-        } else {
-            alert('Fout: ' + message);
-        }
+        alert('Error: ' + message);
     }
 }
