@@ -1,13 +1,40 @@
 /**
- * Supabase DataManager voor HondenDatabase
- * Werkt met vader_stamboomnr en moeder_stamboomnr kolommen
+ * Data Management Module voor HondenDatabase - Supabase versie
  */
 class DataManager extends BaseModule {
     constructor() {
         super();
-        this.supabase = window.supabase; // Supabase client
         this.currentLang = localStorage.getItem('appLanguage') || 'nl';
-        this.translations = { /* ... (zelfde translations blijven) ... */ };
+        
+        // Supabase client
+        this.supabase = window.supabase;
+        if (!this.supabase) {
+            console.error('DataManager: Supabase client niet gevonden!');
+        }
+        
+        // Vertalingen (vereenvoudigd)
+        this.translations = {
+            nl: {
+                dataManagement: "Data Beheer",
+                dataImport: "Data Importeren",
+                importDescription: "Importeer backup bestand",
+                dataExport: "Data Exporteren", 
+                exportDescription: "Exporteer naar backup bestand",
+                selectJsonFile: "Selecteer backup bestand",
+                startImport: "Start Import",
+                startExport: "Start Export",
+                exportingData: "Data exporteren...",
+                importingData: "Data importeren...",
+                buildingRelations: "Relaties herstellen...",
+                exportSuccess: "Export succesvol!",
+                importSuccess: "Import succesvol!",
+                error: "Fout",
+                close: "Sluiten",
+                selectFileFirst: "Selecteer eerst een bestand"
+            }
+        };
+        
+        console.log('DataManager initialized for Supabase');
     }
     
     t(key) {
@@ -19,7 +46,7 @@ class DataManager extends BaseModule {
         
         return `
             <div class="modal fade" id="dataManagementModal" tabindex="-1">
-                <div class="modal-dialog modal-xl">
+                <div class="modal-dialog modal-lg">
                     <div class="modal-content">
                         <div class="modal-header bg-primary text-white">
                             <h5 class="modal-title">
@@ -28,61 +55,49 @@ class DataManager extends BaseModule {
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
-                            <div class="alert alert-warning">
-                                <i class="bi bi-info-circle"></i>
+                            <div class="alert alert-info mb-3">
+                                <i class="bi bi-cloud-check"></i> 
                                 <strong>Supabase Backup</strong><br>
-                                Exporteert naar JSON met stamboomnr relaties. Import herstelt automatisch.
+                                Werkt met stamboomnr relaties
                             </div>
                             
                             <div class="row">
-                                <!-- Import Sectie -->
-                                <div class="col-lg-6 mb-4">
-                                    <div class="card h-100 border-success">
-                                        <div class="card-header bg-success text-white">
-                                            <h5 class="mb-0"><i class="bi bi-upload"></i> ${t('dataImport')}</h5>
-                                        </div>
-                                        <div class="card-body">
-                                            <p>${t('importDescription')}</p>
-                                            
-                                            <div class="mb-3">
-                                                <label class="form-label">${t('selectJsonFile')}</label>
-                                                <input class="form-control" type="file" id="importFile" accept=".json">
-                                                <div class="form-text">${t('chooseExportedFile')}</div>
-                                            </div>
-                                            
-                                            <button class="btn btn-success w-100" id="startImportBtn">
-                                                <i class="bi bi-upload"></i> ${t('startImport')}
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Export Sectie -->
-                                <div class="col-lg-6 mb-4">
-                                    <div class="card h-100 border-primary">
+                                <!-- Export -->
+                                <div class="col-md-6 mb-3">
+                                    <div class="card h-100">
                                         <div class="card-header bg-primary text-white">
-                                            <h5 class="mb-0"><i class="bi bi-download"></i> ${t('dataExport')}</h5>
+                                            <h6><i class="bi bi-download"></i> ${t('dataExport')}</h6>
                                         </div>
                                         <div class="card-body">
                                             <p>${t('exportDescription')}</p>
-                                            
-                                            <div class="mb-3">
-                                                <div class="form-check">
-                                                    <input class="form-check-input" type="checkbox" id="exportHonden" checked>
-                                                    <label class="form-check-label">
-                                                        <strong>${t('exportData')}</strong>
-                                                    </label>
-                                                    <div class="form-text">${t('exportDataDescription')}</div>
-                                                </div>
-                                            </div>
-                                            
                                             <button class="btn btn-primary w-100" id="startExportBtn">
                                                 <i class="bi bi-download"></i> ${t('startExport')}
                                             </button>
                                         </div>
                                     </div>
                                 </div>
+                                
+                                <!-- Import -->
+                                <div class="col-md-6 mb-3">
+                                    <div class="card h-100">
+                                        <div class="card-header bg-success text-white">
+                                            <h6><i class="bi bi-upload"></i> ${t('dataImport')}</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <p>${t('importDescription')}</p>
+                                            <div class="mb-3">
+                                                <input type="file" class="form-control" id="importFile" accept=".json">
+                                            </div>
+                                            <button class="btn btn-success w-100" id="startImportBtn">
+                                                <i class="bi bi-upload"></i> ${t('startImport')}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">${t('close')}</button>
                         </div>
                     </div>
                 </div>
@@ -91,72 +106,57 @@ class DataManager extends BaseModule {
     }
     
     setupEvents() {
-        // Import knop
-        document.getElementById('startImportBtn')?.addEventListener('click', () => {
-            this.handleImport();
-        });
-        
-        // Export knop  
+        // Export knop
         document.getElementById('startExportBtn')?.addEventListener('click', () => {
             this.handleExport();
         });
         
-        // Modal open event
-        document.getElementById('dataManagementModal')?.addEventListener('shown.bs.modal', () => {
-            console.log('DataManager ready for Supabase');
+        // Import knop
+        document.getElementById('startImportBtn')?.addEventListener('click', () => {
+            this.handleImport();
         });
     }
     
     async handleExport() {
         const t = this.t.bind(this);
-        const fileInput = document.getElementById('importFile');
+        
+        if (!this.supabase) {
+            this.showError('Supabase niet beschikbaar');
+            return;
+        }
         
         this.showProgress(t('exportingData'));
         
         try {
-            // 1. Export metadata
-            const exportData = {
-                metadata: {
-                    exportDate: new Date().toISOString(),
-                    exportBy: window.auth?.getCurrentUser()?.username || 'unknown',
-                    version: '2.0',
-                    format: 'supabase_stamboomnr',
-                    description: 'Export met stamboomnr relaties'
-                },
-                honden: []
-            };
-            
-            // 2. Haal ALLE honden op MET relatie informatie
+            // Haal alle honden op
             const { data: honden, error } = await this.supabase
                 .from('honden')
                 .select('*')
-                .order('naam');
+                .order('id');
                 
             if (error) throw error;
             
-            // 3. Bereid export voor
-            exportData.honden = honden.map(hond => {
-                // Exporteer ALLE velden, inclusief de nieuwe stamboomnr kolommen
-                const exportHond = { ...hond };
-                
-                // Zorg dat we de stamboomnr relaties hebben
-                // Deze staan al in vader_stamboomnr en moeder_stamboomnr kolommen!
-                return exportHond;
-            });
+            // Maak backup
+            const backup = {
+                metadata: {
+                    exportDate: new Date().toISOString(),
+                    version: '2.0',
+                    count: honden.length,
+                    system: 'Supabase met stamboomnr relaties'
+                },
+                honden: honden
+            };
             
-            // 4. Download als JSON
-            const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
-            const timeStr = new Date().toISOString().split('T')[1].split('.')[0].replace(/:/g, '');
-            const filename = `honden_backup_${dateStr}_${timeStr}.json`;
-            
-            this.downloadJSON(exportData, filename);
+            // Download
+            this.downloadBackup(backup);
             
             this.hideProgress();
-            this.showSuccess(`${t('exportSuccess')}<br>${exportData.honden.length} honden geëxporteerd`);
+            this.showSuccess(`Backup gemaakt! ${honden.length} honden geëxporteerd.`);
             
         } catch (error) {
             this.hideProgress();
-            this.showError(`${t('exportFailed')}${error.message}`);
+            console.error('Export error:', error);
+            this.showError(`Export mislukt: ${error.message}`);
         }
     }
     
@@ -169,148 +169,138 @@ class DataManager extends BaseModule {
             return;
         }
         
+        if (!this.supabase) {
+            this.showError('Supabase niet beschikbaar');
+            return;
+        }
+        
         const file = fileInput.files[0];
-        const reader = new FileReader();
         
-        reader.onload = async (e) => {
-            try {
-                this.showProgress(t('importingData'));
-                
-                // 1. Parse JSON
-                const importData = JSON.parse(e.target.result);
-                
-                if (!importData.honden || !Array.isArray(importData.honden)) {
-                    throw new Error('Ongeldig backup bestand');
-                }
-                
-                // 2. Importeer in Supabase
-                const result = await this.importToSupabase(importData.honden);
-                
-                this.hideProgress();
-                this.showImportResults(result);
-                
-            } catch (error) {
-                this.hideProgress();
-                this.showError(`${t('importFailed')}${error.message}`);
+        try {
+            this.showProgress(t('importingData'));
+            
+            // Lees file
+            const text = await this.readFile(file);
+            const backup = JSON.parse(text);
+            
+            if (!backup.honden || !Array.isArray(backup.honden)) {
+                throw new Error('Ongeldig backup bestand');
             }
-        };
-        
-        reader.onerror = () => {
-            this.showError(t('fileReadError'));
-        };
-        
-        reader.readAsText(file);
+            
+            // Importeer
+            const result = await this.importHonden(backup.honden);
+            
+            this.hideProgress();
+            
+            const message = `
+                Import voltooid!<br>
+                - ${result.added} nieuwe honden toegevoegd<br>
+                - ${result.updated} honden bijgewerkt<br>
+                - ${result.relaties} relaties hersteld<br>
+                - ${result.errors} fouten
+            `;
+            
+            this.showSuccess(message);
+            
+        } catch (error) {
+            this.hideProgress();
+            console.error('Import error:', error);
+            this.showError(`Import mislukt: ${error.message}`);
+        }
     }
     
-    async importToSupabase(hondenData) {
-        const result = {
-            added: 0,
-            updated: 0,
-            errors: 0,
-            relatiesHersteld: 0
-        };
+    async importHonden(hondenData) {
+        const result = { added: 0, updated: 0, errors: 0, relaties: 0 };
+        const stamboomnrMap = new Map();
         
-        console.log(`Start import van ${hondenData.length} honden...`);
+        console.log(`Importing ${hondenData.length} honden...`);
         
-        // STAP 1: Importeer alle honden ZONDER relaties eerst
-        const stamboomnrToIdMap = new Map();
-        
-        for (const hondData of hondenData) {
+        // FASE 1: Importeer honden (zonder relaties)
+        for (const hond of hondenData) {
             try {
-                // Check of hond al bestaat (op basis van stamboomnr)
+                // Check of hond bestaat via stamboomnr
                 const { data: existing } = await this.supabase
                     .from('honden')
                     .select('id')
-                    .eq('stamboomnr', hondData.stamboomnr)
-                    .single();
+                    .eq('stamboomnr', hond.stamboomnr)
+                    .single()
+                    .catch(() => ({ data: null }));
                 
-                // Bereid import data voor (zonder ID en relatie velden)
-                const importHond = { ...hondData };
-                delete importHond.id; // Laat Supabase nieuwe ID genereren
-                delete importHond.vader_id; // Deze vullen we later
-                delete importHond.moeder_id; // Deze vullen we later
+                // Bereid import data voor
+                const importData = { ...hond };
+                delete importData.id;
+                delete importData.vader_id;
+                delete importData.moeder_id;
                 
                 if (existing) {
                     // Update bestaande hond
                     const { error } = await this.supabase
                         .from('honden')
-                        .update(importHond)
+                        .update(importData)
                         .eq('id', existing.id);
                     
                     if (error) throw error;
-                    stamboomnrToIdMap.set(hondData.stamboomnr, existing.id);
+                    stamboomnrMap.set(hond.stamboomnr, existing.id);
                     result.updated++;
                 } else {
                     // Nieuwe hond toevoegen
                     const { data: newHond, error } = await this.supabase
                         .from('honden')
-                        .insert([importHond])
+                        .insert([importData])
                         .select('id')
                         .single();
                     
                     if (error) throw error;
-                    stamboomnrToIdMap.set(hondData.stamboomnr, newHond.id);
+                    stamboomnrMap.set(hond.stamboomnr, newHond.id);
                     result.added++;
                 }
                 
             } catch (error) {
-                console.error(`Fout bij importeren hond ${hondData.stamboomnr}:`, error);
+                console.error(`Fout bij hond ${hond.stamboomnr}:`, error);
                 result.errors++;
             }
         }
         
-        console.log(`Fase 1 voltooid: ${result.added} toegevoegd, ${result.updated} bijgewerkt`);
-        console.log('Mapping:', stamboomnrToIdMap);
+        console.log('Stamboomnr mapping:', stamboomnrMap);
         
-        // STAP 2: Herstel relaties op basis van stamboomnr
+        // FASE 2: Herstel relaties
         this.updateProgressMessage('Relaties herstellen...');
         
-        for (const hondData of hondenData) {
+        for (const hond of hondenData) {
             try {
-                const hondId = stamboomnrToIdMap.get(hondData.stamboomnr);
+                const hondId = stamboomnrMap.get(hond.stamboomnr);
                 if (!hondId) continue;
                 
-                let vaderId = null;
-                let moederId = null;
+                // Zoek parent IDs via stamboomnr
+                const vaderId = hond.vader_stamboomnr ? stamboomnrMap.get(hond.vader_stamboomnr) : null;
+                const moederId = hond.moeder_stamboomnr ? stamboomnrMap.get(hond.moeder_stamboomnr) : null;
                 
-                // Zoek vader ID op basis van vader_stamboomnr
-                if (hondData.vader_stamboomnr) {
-                    vaderId = stamboomnrToIdMap.get(hondData.vader_stamboomnr);
-                }
-                
-                // Zoek moeder ID op basis van moeder_stamboomnr  
-                if (hondData.moeder_stamboomnr) {
-                    moederId = stamboomnrToIdMap.get(hondData.moeder_stamboomnr);
-                }
-                
-                // Update alleen als er relaties zijn
+                // Update relaties
                 if (vaderId !== null || moederId !== null) {
-                    const updateData = {
-                        vader_id: vaderId,
-                        moeder_id: moederId
-                    };
-                    
-                    const { error } = await this.supabase
+                    await this.supabase
                         .from('honden')
-                        .update(updateData)
+                        .update({
+                            vader_id: vaderId,
+                            moeder_id: moederId
+                        })
                         .eq('id', hondId);
                     
-                    if (!error) {
-                        result.relatiesHersteld++;
-                    }
+                    result.relaties++;
                 }
                 
             } catch (error) {
-                console.error(`Fout bij herstellen relaties voor ${hondData.stamboomnr}:`, error);
+                console.error(`Fout bij relaties ${hond.stamboomnr}:`, error);
             }
         }
         
-        console.log(`Import voltooid: ${result.relatiesHersteld} relaties hersteld`);
         return result;
     }
     
-    downloadJSON(data, filename) {
-        const jsonStr = JSON.stringify(data, null, 2);
+    downloadBackup(backup) {
+        const date = new Date();
+        const filename = `honden_backup_${date.getFullYear()}${(date.getMonth()+1).toString().padStart(2,'0')}${date.getDate().toString().padStart(2,'0')}_${date.getHours().toString().padStart(2,'0')}${date.getMinutes().toString().padStart(2,'0')}.json`;
+        
+        const jsonStr = JSON.stringify(backup, null, 2);
         const blob = new Blob([jsonStr], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         
@@ -323,11 +313,21 @@ class DataManager extends BaseModule {
         URL.revokeObjectURL(url);
     }
     
+    readFile(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = () => reject(new Error('Kan bestand niet lezen'));
+            reader.readAsText(file);
+        });
+    }
+    
     showProgress(message) {
-        // Eenvoudige progress indicator
-        const progressHtml = `
-            <div class="modal-backdrop fade show"></div>
-            <div class="modal fade show d-block" style="background: rgba(0,0,0,0.5)">
+        this.hideProgress();
+        
+        const html = `
+        <div id="dataManagerProgress" class="modal-backdrop fade show" style="display: block;">
+            <div class="modal fade show" style="display: block;">
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content">
                         <div class="modal-body text-center">
@@ -337,45 +337,29 @@ class DataManager extends BaseModule {
                     </div>
                 </div>
             </div>
+        </div>
         `;
         
-        const div = document.createElement('div');
-        div.id = 'backupProgress';
-        div.innerHTML = progressHtml;
-        document.body.appendChild(div);
-    }
-    
-    hideProgress() {
-        document.getElementById('backupProgress')?.remove();
+        document.body.insertAdjacentHTML('beforeend', html);
     }
     
     updateProgressMessage(message) {
-        const progress = document.getElementById('backupProgress');
+        const progress = document.getElementById('dataManagerProgress');
         if (progress) {
-            const messageEl = progress.querySelector('p');
-            if (messageEl) messageEl.textContent = message;
+            const p = progress.querySelector('p');
+            if (p) p.textContent = message;
         }
     }
     
+    hideProgress() {
+        document.getElementById('dataManagerProgress')?.remove();
+    }
+    
     showSuccess(message) {
-        alert('Success: ' + message); // Vereenvoudigd
+        alert('Success: ' + message);
     }
     
     showError(message) {
-        alert('Error: ' + message); // Vereenvoudigd
-    }
-    
-    showImportResults(result) {
-        const message = `
-            Import voltooid!<br>
-            - ${result.added} nieuwe honden toegevoegd<br>
-            - ${result.updated} honden bijgewerkt<br>
-            - ${result.relatiesHersteld} relaties hersteld<br>
-            - ${result.errors} fouten
-        `;
-        this.showSuccess(message);
+        alert('Error: ' + message);
     }
 }
-
-// Initialize
-window.supabaseDataManager = new SupabaseDataManager();
