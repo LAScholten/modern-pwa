@@ -81,6 +81,7 @@ class DogDataManager extends BaseModule {
                 addPhoto: "Foto toevoegen",
                 chooseFile: "Kies bestand",
                 noFileChosen: "Geen bestand gekozen",
+                chosenFile: "Gekozen bestand",
                 remarks: "Opmerkingen",
                 requiredFields: "Velden met * zijn verplicht",
                 saveChanges: "Wijzigingen Opslaan",
@@ -197,6 +198,7 @@ class DogDataManager extends BaseModule {
                 addPhoto: "Add photo",
                 chooseFile: "Choose file",
                 noFileChosen: "No file chosen",
+                chosenFile: "Chosen file",
                 remarks: "Remarks",
                 requiredFields: "Fields with * are required",
                 saveChanges: "Save Changes",
@@ -313,6 +315,7 @@ class DogDataManager extends BaseModule {
                 addPhoto: "Foto hinzufügen",
                 chooseFile: "Datei wählen",
                 noFileChosen: "Keine Datei gewählt",
+                chosenFile: "Ausgewählte Datei",
                 remarks: "Bemerkungen",
                 requiredFields: "Felder met * sind Pflichtfelder",
                 saveChanges: "Änderungen speichern",
@@ -345,7 +348,7 @@ class DogDataManager extends BaseModule {
                 savingChanges: "Änderungen speichern...",
                 changesSaved: "Änderungen gespeichert!",
                 dogDeleted: "Hond succesvol verwijderen!",
-                confirmDelete: "Weet u zeker dat u deze hond wilt verwijderen?",
+                confirmDelete: "Weet u zeker dat u diese hond wilt verwijderen?",
                 photoAdded: "Foto toegevoegd",
                 updatingDog: "Hond bijwerken...",
                 dogUpdated: "Hond bijgewerkt!",
@@ -362,7 +365,7 @@ class DogDataManager extends BaseModule {
                 adminOnly: "Nur Administratoren können Hunde bearbeiten",
                 invalidId: "Ungültige Hunde-ID",
                 dateFormatError: "Datum muss im Format TT-MM-JJJJ sein",
-                deathBeforeBirthError: "Sterbedatum kan niet vor dem Geburtsdatum liegen"
+                deathBeforeBirthError: "Sterbedatum kan nicht vor dem Geburtsdatum liegen"
             }
         };
     }
@@ -717,7 +720,7 @@ class DogDataManager extends BaseModule {
                                             <input type="file" class="form-control" id="dogPhoto" accept="image/*">
                                             <label class="input-group-text" for="dogPhoto">${t('chooseFile')}</label>
                                         </div>
-                                        <div class="form-text">${t('noFileChosen')}</div>
+                                        <div id="fileStatus" class="form-text">${t('noFileChosen')}</div>
                                     </div>
                                     
                                     <!-- Opmerkingen -->
@@ -1030,6 +1033,17 @@ class DogDataManager extends BaseModule {
                     font-size: 0.8rem;
                     color: #666;
                 }
+                
+                /* File status styling */
+                #fileStatus {
+                    transition: all 0.3s ease;
+                    font-weight: 500;
+                }
+                
+                #fileStatus.file-selected {
+                    color: #198754;
+                    font-weight: 600;
+                }
             </style>
         `;
     }
@@ -1149,10 +1163,37 @@ class DogDataManager extends BaseModule {
         // Setup datum validatie
         this.setupDateValidation();
         
+        // Setup file input status update
+        this.setupFileInputStatus();
+        
         // Vertaal de modal tekst
         setTimeout(() => {
             this.translateModal();
         }, 100);
+    }
+    
+    /**
+     * Setup file input status update
+     */
+    setupFileInputStatus() {
+        const fileInput = document.getElementById('dogPhoto');
+        const fileStatus = document.getElementById('fileStatus');
+        
+        if (fileInput && fileStatus) {
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files.length > 0) {
+                    const file = e.target.files[0];
+                    const fileName = file.name;
+                    const fileSize = (file.size / 1024).toFixed(2);
+                    
+                    fileStatus.textContent = `${this.t('chosenFile')}: ${fileName} (${fileSize} KB)`;
+                    fileStatus.classList.add('file-selected');
+                } else {
+                    fileStatus.textContent = this.t('noFileChosen');
+                    fileStatus.classList.remove('file-selected');
+                }
+            });
+        }
     }
     
     /**
@@ -1673,6 +1714,13 @@ class DogDataManager extends BaseModule {
         if (thyroidExplanationContainer) {
             thyroidExplanationContainer.style.display = (dog.schildklier === 'Positief') ? 'block' : 'none';
         }
+        
+        // Reset file status
+        const fileStatus = document.getElementById('fileStatus');
+        if (fileStatus) {
+            fileStatus.textContent = this.t('noFileChosen');
+            fileStatus.classList.remove('file-selected');
+        }
     }
     
     /**
@@ -1691,6 +1739,13 @@ class DogDataManager extends BaseModule {
         
         // Zorg dat datum velden correct zijn ingesteld
         this.setupDateFields();
+        
+        // Zet file input status terug
+        const fileStatus = document.getElementById('fileStatus');
+        if (fileStatus) {
+            fileStatus.textContent = this.t('noFileChosen');
+            fileStatus.classList.remove('file-selected');
+        }
     }
     
     /**
@@ -1714,6 +1769,19 @@ class DogDataManager extends BaseModule {
         document.getElementById('dogId').value = '';
         document.getElementById('vader_id').value = '';
         document.getElementById('moeder_id').value = '';
+        
+        // Reset file input
+        const fileInput = document.getElementById('dogPhoto');
+        if (fileInput) {
+            fileInput.value = '';
+        }
+        
+        // Reset file status
+        const fileStatus = document.getElementById('fileStatus');
+        if (fileStatus) {
+            fileStatus.textContent = this.t('noFileChosen');
+            fileStatus.classList.remove('file-selected');
+        }
         
         // Reset datum velden naar date type
         const birthDateInput = document.getElementById('birthDate');
