@@ -308,7 +308,7 @@ class DataManager extends BaseModule {
                         const { data: existing } = await this.supabase
                             .from('honden')
                             .select('id')
-                            .eq('stamboomnr', hond.stamboomnr)
+                            .eq('stamboomnr', hond.stamboomnr.trim())
                             .single()
                             .catch(() => ({ data: null }));
                         
@@ -326,7 +326,7 @@ class DataManager extends BaseModule {
                                 .eq('id', existing.id);
                             
                             if (error) throw error;
-                            stamboomnrMap.set(hond.stamboomnr, existing.id);
+                            stamboomnrMap.set(hond.stamboomnr.trim(), existing.id);
                             result.honden.updated++;
                         } else {
                             // Nieuwe hond toevoegen
@@ -337,7 +337,7 @@ class DataManager extends BaseModule {
                                 .single();
                             
                             if (error) throw error;
-                            stamboomnrMap.set(hond.stamboomnr, newHond.id);
+                            stamboomnrMap.set(hond.stamboomnr.trim(), newHond.id);
                             result.honden.added++;
                         }
                         
@@ -364,8 +364,8 @@ class DataManager extends BaseModule {
                         if (!hondId) continue;
                         
                         // Zoek parent IDs via stamboomnr
-                        const vaderId = hond.vader_stamboomnr ? stamboomnrMap.get(hond.vader_stamboomnr) : null;
-                        const moederId = hond.moeder_stamboomnr ? stamboomnrMap.get(hond.moeder_stamboomnr) : null;
+                        const vaderId = hond.vader_stamboomnr ? stamboomnrMap.get(hond.vader_stamboomnr.trim()) : null;
+                        const moederId = hond.moeder_stamboomnr ? stamboomnrMap.get(hond.moeder_stamboomnr.trim()) : null;
                         
                         // Update relaties
                         if (vaderId !== null || moederId !== null) {
