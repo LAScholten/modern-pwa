@@ -279,15 +279,15 @@ class DataManager extends BaseModule {
         }
     }
     
-async importCompleteBackup(backup) {
-    console.log('DEBUG: Start import, aantal honden:', backup.honden?.length);
-    console.log('DEBUG: Eerste hond:', backup.honden[0]);
+    async importCompleteBackup(backup) {
+        console.log('DEBUG: Start import, aantal honden:', backup.honden?.length);
+        console.log('DEBUG: Eerste hond:', backup.honden[0]);
     
-    const result = {
-        honden: { added: 0, updated: 0, errors: 0, relaties: 0 },
-        fotos: { added: 0, errors: 0 },
-        priveInfo: { updated: 0, errors: 0 }
-    };
+        const result = {
+            honden: { added: 0, updated: 0, errors: 0, relaties: 0 },
+            fotos: { added: 0, errors: 0 },
+            priveInfo: { updated: 0, errors: 0 }
+        };
     
     const stamboomnrMap = new Map();
     const batchSize = 100;  // Dit is goed
