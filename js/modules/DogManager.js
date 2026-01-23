@@ -82,6 +82,7 @@ class DogManager extends BaseModule {
                 addPhoto: "Foto toevoegen",
                 chooseFile: "Kies bestand",
                 noFileChosen: "Geen bestand gekozen",
+                selectedFile: "Gekozen bestand: {filename}",
                 remarks: "Opmerkingen",
                 requiredFields: "Velden met * zijn verplicht",
                 saveDog: "Hond Opslaan",
@@ -196,6 +197,7 @@ class DogManager extends BaseModule {
                 addPhoto: "Add photo",
                 chooseFile: "Choose file",
                 noFileChosen: "No file chosen",
+                selectedFile: "Selected file: {filename}",
                 remarks: "Remarks",
                 requiredFields: "Fields with * are required",
                 saveDog: "Save Dog",
@@ -305,6 +307,7 @@ class DogManager extends BaseModule {
                 addPhoto: "Foto hinzufügen",
                 chooseFile: "Datei wählen",
                 noFileChosen: "Keine Datei gewählt",
+                selectedFile: "Ausgewählte Datei: {filename}",
                 remarks: "Bemerkungen",
                 requiredFields: "Felder met * sind Pflichtfelder",
                 saveDog: "Hund speichern",
@@ -733,7 +736,7 @@ class DogManager extends BaseModule {
                         <input type="file" class="form-control" id="dogPhoto" accept="image/*">
                         <label class="input-group-text" for="dogPhoto">${t('chooseFile')}</label>
                     </div>
-                    <div class="form-text">${t('noFileChosen')}</div>
+                    <div class="form-text" id="fileStatusText">${t('noFileChosen')}</div>
                 </div>
                 
                 <!-- Opmerkingen -->
@@ -1007,6 +1010,35 @@ class DogManager extends BaseModule {
         
         // Setup datum validatie
         this.setupDateValidation();
+        
+        // Setup bestandsselectie feedback
+        this.setupFileSelectionFeedback();
+    }
+    
+    /**
+     * Setup bestandsselectie feedback
+     */
+    setupFileSelectionFeedback() {
+        const photoInput = document.getElementById('dogPhoto');
+        const fileStatusText = document.getElementById('fileStatusText');
+        
+        if (photoInput && fileStatusText) {
+            photoInput.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files.length > 0) {
+                    const file = e.target.files[0];
+                    // Toon bestandsnaam en grootte
+                    const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                    fileStatusText.innerHTML = this.t('selectedFile', { filename: `<strong>${file.name}</strong> (${fileSizeMB} MB)` });
+                    fileStatusText.classList.remove('text-muted');
+                    fileStatusText.classList.add('text-success', 'fw-semibold');
+                } else {
+                    // Reset naar standaard tekst
+                    fileStatusText.textContent = this.t('noFileChosen');
+                    fileStatusText.classList.remove('text-success', 'fw-semibold');
+                    fileStatusText.classList.add('text-muted');
+                }
+            });
+        }
     }
     
     /**

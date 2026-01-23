@@ -85,6 +85,7 @@ class LitterManager {
                 addPhoto: "Foto toevoegen",
                 chooseFile: "Kies bestand",
                 noFileChosen: "Geen bestand gekozen",
+                chosenFile: "Gekozen bestand:",
                 remarks: "Opmerkingen",
                 requiredFields: "Velden met * zijn verplicht",
                 saveDog: "Hond Opslaan",
@@ -209,6 +210,7 @@ class LitterManager {
                 addPhoto: "Add photo",
                 chooseFile: "Choose file",
                 noFileChosen: "No file chosen",
+                chosenFile: "Chosen file:",
                 remarks: "Remarks",
                 requiredFields: "Fields with * are required",
                 saveDog: "Save Dog",
@@ -333,6 +335,7 @@ class LitterManager {
                 addPhoto: "Foto hinzufügen",
                 chooseFile: "Datei wählen",
                 noFileChosen: "Keine Datei gewählt",
+                chosenFile: "Gewählte Datei:",
                 remarks: "Bemerkungen",
                 requiredFields: "Felder met * sind Pflichtfelder",
                 saveDog: "Hund speichern",
@@ -952,6 +955,13 @@ class LitterManager {
                     font-size: 0.875em;
                     margin-top: 0.25rem;
                 }
+                
+                /* Bestand gekozen styling */
+                .file-chosen-info {
+                    color: #28a745;
+                    font-size: 0.875em;
+                    margin-top: 0.25rem;
+                }
             </style>
         `;
     }
@@ -1304,7 +1314,7 @@ class LitterManager {
                             <input type="file" class="form-control" id="photo" accept="image/*">
                             <label class="input-group-text" for="photo">${t('chooseFile')}</label>
                         </div>
-                        <div class="form-text">${t('noFileChosen')}</div>
+                        <div id="fileInfo" class="form-text">${t('noFileChosen')}</div>
                     </div>
                     
                     <!-- Opmerkingen -->
@@ -1371,6 +1381,13 @@ class LitterManager {
                 
                 .error-message {
                     color: #dc3545;
+                    font-size: 0.875em;
+                    margin-top: 0.25rem;
+                }
+                
+                /* Bestand gekozen styling */
+                .file-chosen-info {
+                    color: #28a745;
                     font-size: 0.875em;
                     margin-top: 0.25rem;
                 }
@@ -1497,7 +1514,30 @@ class LitterManager {
         // Setup datum validatie
         this.setupDateValidation();
         
+        // Setup file upload feedback
+        this.setupFileUploadFeedback();
+        
         console.log('LitterManager: Alle events ingesteld');
+    }
+    
+    /**
+     * Setup bestandsfeedback - toont gekozen bestandsnaam
+     */
+    setupFileUploadFeedback() {
+        const photoInput = document.getElementById('photo');
+        const fileInfo = document.getElementById('fileInfo');
+        
+        if (photoInput && fileInfo) {
+            photoInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    fileInfo.innerHTML = `<span class="file-chosen-info"><i class="bi bi-check-circle"></i> ${this.t('chosenFile')} <strong>${file.name}</strong></span>`;
+                    console.log('LitterManager: Bestand gekozen:', file.name);
+                } else {
+                    fileInfo.textContent = this.t('noFileChosen');
+                }
+            });
+        }
     }
     
     /**
@@ -1753,9 +1793,11 @@ class LitterManager {
             deathDateInput.type = 'date';
         }
         
-        // Reset foto
+        // Reset foto en file info
         const photoInput = document.getElementById('photo');
+        const fileInfo = document.getElementById('fileInfo');
         if (photoInput) photoInput.value = '';
+        if (fileInfo) fileInfo.textContent = this.t('noFileChosen');
         
         // Reset opmerkingen
         const remarksTextarea = document.getElementById('remarks');
@@ -2401,6 +2443,12 @@ class LitterManager {
         if (deathDateInput) {
             deathDateInput.type = 'date';
             deathDateInput.placeholder = 'DD-MM-JJJJ';
+        }
+        
+        // Reset file info
+        const fileInfo = document.getElementById('fileInfo');
+        if (fileInfo) {
+            fileInfo.textContent = this.t('noFileChosen');
         }
         
         // Reset error berichten
