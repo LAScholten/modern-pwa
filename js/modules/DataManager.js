@@ -199,63 +199,44 @@ class DataManager extends BaseModule {
     }
     
     async getAllHondenWithPagination() {
-        return await this.getTableWithPagination('honden', 'id', 'honden', 0, 33);
+        const data = await this.getTableWithPagination('honden', 'id');
+        this.showExportProgress(33, 'Honden export voltooid!');
+        return data;
     }
     
     async getAllFotosWithPagination() {
-        return await this.getTableWithPagination('fotos', 'id', 'foto\'s', 33, 66);
+        const data = await this.getTableWithPagination('fotos', 'id');
+        this.showExportProgress(66, 'Foto\'s export voltooid!');
+        return data;
     }
     
     async getAllPriveinfoWithPagination() {
-        return await this.getTableWithPagination('priveinfo', 'id', 'privé info', 66, 100);
+        const data = await this.getTableWithPagination('priveinfo', 'id');
+        this.showExportProgress(99, 'Privé info export voltooid!');
+        return data;
     }
     
-    async getTableWithPagination(tableName, orderBy, displayName, startProgress, endProgress) {
+    async getTableWithPagination(tableName, orderBy) {
         const allData = [];
         const pageSize = 1000;
         let currentPage = 0;
         let hasMore = true;
-        let totalRows = 0;
         
         console.log(`Start paginated export for ${tableName}...`);
-        
-        // Eerst tellen hoeveel rijen er zijn voor progress
-        try {
-            const { count, error } = await this.supabase
-                .from(tableName)
-                .select('*', { count: 'exact', head: true });
-                
-            if (!error && count !== null) {
-                totalRows = count;
-                console.log(`Tabel ${tableName} heeft ${totalRows} rijen`);
-            }
-        } catch (countError) {
-            console.log(`Kan aantal niet tellen voor ${tableName}:`, countError);
-        }
-        
-        // Als tabel niet bestaat, ga terug
-        if (totalRows === 0) {
-            console.log(`Tabel ${tableName} lijkt niet te bestaan of is leeg`);
-            return [];
-        }
         
         while (hasMore) {
             const from = currentPage * pageSize;
             const to = from + pageSize - 1;
             
-            // Update progress - CORRECTE CALCULATIE
-            let progress;
-            if (totalRows > 0) {
-                const fetchedPercentage = (allData.length / totalRows);
-                progress = startProgress + (fetchedPercentage * (endProgress - startProgress));
-            } else {
-                progress = startProgress + ((currentPage / 10) * (endProgress - startProgress));
-            }
+            // Simpele progress update - niet afhankelijk van count
+            const baseProgress = {
+                'honden': 10,
+                'fotos': 40,
+                'priveinfo': 70
+            }[tableName] || 0;
             
-            this.showExportProgress(
-                Math.round(progress), 
-                `${displayName} exporteren... ${allData.length}${totalRows > 0 ? '/' + totalRows : ''} rijen`
-            );
+            const progress = baseProgress + Math.min(20, currentPage * 5);
+            this.showExportProgress(progress, `${tableName} exporteren... pagina ${currentPage + 1}`);
             
             try {
                 const { data: rows, error } = await this.supabase
@@ -372,7 +353,6 @@ class DataManager extends BaseModule {
         };
         
         const stamboomnrMap = new Map();
-        const batchSize = 100;
         
         // 1. Importeer HONDEN
         if (backup.honden && backup.honden.length > 0) {
