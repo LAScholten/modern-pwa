@@ -147,6 +147,7 @@ class DataManager extends BaseModule {
                 fotos = await this.getAllFotosWithPagination();
             } catch (fotoError) {
                 console.log('Geen foto\'s om te exporteren:', fotoError.message);
+                this.showExportProgress(45, 'Geen foto\'s gevonden...');
             }
             
             // 3. Exporteer privé info (als de tabel bestaat)
@@ -156,6 +157,7 @@ class DataManager extends BaseModule {
                 priveinfo = await this.getAllPriveinfoWithPagination();
             } catch (priveError) {
                 console.log('Geen privé info om te exporteren:', priveError.message);
+                this.showExportProgress(75, 'Geen privé info gevonden...');
             }
             
             // 4. Maak complete backup
@@ -171,16 +173,18 @@ class DataManager extends BaseModule {
                 },
                 honden: honden,
                 fotos: fotos,
-                priveinfo: priveinfo  // Correct: priveinfo, niet priveInfo
+                priveinfo: priveinfo
             };
             
             // 5. Download
             this.downloadBackup(backup);
             
-            this.showExportProgress(100, 'Export voltooid!');
+            this.showExportProgress(100, 'Export voltooid! Download gestart...');
+            
             setTimeout(() => {
                 document.getElementById('exportProgress').style.display = 'none';
-            }, 1000);
+                this.showExportProgress(0, '');
+            }, 2000);
             
             this.showSuccess(`<strong>Backup gemaakt!</strong><br>
                 • ${honden.length} honden<br>
@@ -195,18 +199,18 @@ class DataManager extends BaseModule {
     }
     
     async getAllHondenWithPagination() {
-        return await this.getTableWithPagination('honden', 'id', 0, 33);
+        return await this.getTableWithPagination('honden', 'id', 'honden', 0, 33);
     }
     
     async getAllFotosWithPagination() {
-        return await this.getTableWithPagination('fotos', 'id', 33, 66);
+        return await this.getTableWithPagination('fotos', 'id', 'foto\'s', 33, 66);
     }
     
     async getAllPriveinfoWithPagination() {
-        return await this.getTableWithPagination('priveinfo', 'id', 66, 100);
+        return await this.getTableWithPagination('priveinfo', 'id', 'privé info', 66, 100);
     }
     
-    async getTableWithPagination(tableName, orderBy, startProgress, endProgress) {
+    async getTableWithPagination(tableName, orderBy, displayName, startProgress, endProgress) {
         const allData = [];
         const pageSize = 1000;
         let currentPage = 0;
@@ -229,41 +233,63 @@ class DataManager extends BaseModule {
             console.log(`Kan aantal niet tellen voor ${tableName}:`, countError);
         }
         
+        // Als tabel niet bestaat, ga terug
+        if (totalRows === 0) {
+            console.log(`Tabel ${tableName} lijkt niet te bestaan of is leeg`);
+            return [];
+        }
+        
         while (hasMore) {
             const from = currentPage * pageSize;
             const to = from + pageSize - 1;
             
-            // Update progress
+            // Update progress - CORRECTE CALCULATIE
+            let progress;
             if (totalRows > 0) {
-                const progress = startProgress + ((allData.length / totalRows) * (endProgress - startProgress));
-                this.showExportProgress(Math.round(progress), `${tableName} exporteren... ${allData.length}/${totalRows}`);
+                const fetchedPercentage = (allData.length / totalRows);
+                progress = startProgress + (fetchedPercentage * (endProgress - startProgress));
             } else {
-                const progress = startProgress + ((currentPage / 10) * (endProgress - startProgress));
-                this.showExportProgress(Math.round(progress), `${tableName} exporteren... pagina ${currentPage + 1}`);
+                progress = startProgress + ((currentPage / 10) * (endProgress - startProgress));
             }
             
-            const { data: rows, error } = await this.supabase
-                .from(tableName)
-                .select('*')
-                .order(orderBy)
-                .range(from, to);
-                
-            if (error) {
-                // Tabel bestaat misschien niet
-                if (error.code === 'PGRST116') {
-                    console.log(`Tabel ${tableName} bestaat niet, skip export`);
-                    return [];
+            this.showExportProgress(
+                Math.round(progress), 
+                `${displayName} exporteren... ${allData.length}${totalRows > 0 ? '/' + totalRows : ''} rijen`
+            );
+            
+            try {
+                const { data: rows, error } = await this.supabase
+                    .from(tableName)
+                    .select('*')
+                    .order(orderBy)
+                    .range(from, to);
+                    
+                if (error) {
+                    // Tabel bestaat misschien niet
+                    if (error.code === 'PGRST116') {
+                        console.log(`Tabel ${tableName} bestaat niet, skip export`);
+                        return [];
+                    }
+                    throw error;
                 }
-                throw error;
-            }
-            
-            allData.push(...rows);
-            
-            // Check of er meer zijn
-            if (rows.length < pageSize) {
+                
+                if (!rows || rows.length === 0) {
+                    hasMore = false;
+                    break;
+                }
+                
+                allData.push(...rows);
+                
+                // Check of er meer zijn
+                if (rows.length < pageSize) {
+                    hasMore = false;
+                } else {
+                    currentPage++;
+                }
+                
+            } catch (error) {
+                console.error(`Fout bij pagina ${currentPage} van ${tableName}:`, error);
                 hasMore = false;
-            } else {
-                currentPage++;
             }
         }
         
@@ -304,7 +330,12 @@ class DataManager extends BaseModule {
             this.showImportProgress(10, 'Start import...');
             const result = await this.importCompleteBackup(backup);
             
-            document.getElementById('importProgress').style.display = 'none';
+            this.showImportProgress(100, 'Import voltooid!');
+            
+            setTimeout(() => {
+                document.getElementById('importProgress').style.display = 'none';
+                this.showImportProgress(0, '');
+            }, 1000);
             
             const message = `
                 <strong>Import voltooid!</strong><br><br>
@@ -325,6 +356,7 @@ class DataManager extends BaseModule {
             
         } catch (error) {
             document.getElementById('importProgress').style.display = 'none';
+            this.showImportProgress(0, '');
             console.error('Import error:', error);
             this.showError(`Import mislukt: ${error.message}`);
         }
@@ -336,7 +368,7 @@ class DataManager extends BaseModule {
         const result = {
             honden: { added: 0, updated: 0, errors: 0, relaties: 0 },
             fotos: { added: 0, errors: 0 },
-            priveinfo: { updated: 0, errors: 0 }  // Correct: priveinfo
+            priveinfo: { updated: 0, errors: 0 }
         };
         
         const stamboomnrMap = new Map();
@@ -348,17 +380,16 @@ class DataManager extends BaseModule {
             
             for (let i = 0; i < backup.honden.length; i++) {
                 const hond = backup.honden[i];
-                const progress = 10 + (i / totalHonden * 40); // 10-50%
+                const progress = 10 + (i / totalHonden * 40);
                 this.showImportProgress(Math.round(progress), `Honden importeren... ${i+1}/${totalHonden}`);
                 
                 try {
                     const cleanStamboomnr = String(hond.stamboomnr).trim();
                     
-                    // WORKAROUND: Haal eerst alle honden op en filter lokaal
+                    // Haal eerst alle honden op en filter lokaal
                     const { data: allHonden, error: fetchError } = await this.supabase
                         .from('honden')
-                        .select('id, stamboomnr')
-                        .limit(10000);
+                        .select('id, stamboomnr');
                     
                     if (fetchError) {
                         console.error('Error fetching honden:', fetchError);
@@ -415,7 +446,7 @@ class DataManager extends BaseModule {
             
             for (let i = 0; i < backup.honden.length; i++) {
                 const hond = backup.honden[i];
-                const progress = 50 + (i / backup.honden.length * 15); // 50-65%
+                const progress = 50 + (i / backup.honden.length * 15);
                 
                 try {
                     const cleanStamboomnr = String(hond.stamboomnr).trim();
@@ -455,7 +486,7 @@ class DataManager extends BaseModule {
             
             for (let i = 0; i < backup.fotos.length; i++) {
                 const foto = backup.fotos[i];
-                const progress = 65 + (i / totalFotos * 15); // 65-80%
+                const progress = 65 + (i / totalFotos * 15);
                 this.showImportProgress(Math.round(progress), `Foto's importeren... ${i+1}/${totalFotos}`);
                 
                 try {
@@ -465,8 +496,7 @@ class DataManager extends BaseModule {
                     const { data: existingFotos, error: fetchError } = await this.supabase
                         .from('fotos')
                         .select('id, filename')
-                        .eq('stamboomnr', cleanStamboomnr)
-                        .limit(100);
+                        .eq('stamboomnr', cleanStamboomnr);
                     
                     if (fetchError) {
                         console.warn('Error fetching fotos:', fetchError);
@@ -501,7 +531,7 @@ class DataManager extends BaseModule {
             
             for (let i = 0; i < backup.priveinfo.length; i++) {
                 const prive = backup.priveinfo[i];
-                const progress = 80 + (i / totalPriveinfo * 20); // 80-100%
+                const progress = 80 + (i / totalPriveinfo * 20);
                 this.showImportProgress(Math.round(progress), `Privé info importeren... ${i+1}/${totalPriveinfo}`);
                 
                 try {
