@@ -465,7 +465,7 @@ class DataManager extends BaseModule {
             }
         }
         
-        // 3. Importeer FOTO'S - GECORRIGEERD: gebruik juiste kolomnamen
+        // 3. Importeer FOTO'S - SIMPEL: alleen basiskolommen
         if (backup.fotos && backup.fotos.length > 0) {
             console.log(`Importing ${backup.fotos.length} foto's...`);
             this.updateProgressMessage('Foto\'s importeren...');
@@ -483,77 +483,51 @@ class DataManager extends BaseModule {
                     try {
                         const cleanStamboomnr = String(foto.stamboomnr).trim();
                         
-                        // Bereid import data voor - Gebruik alleen kolommen die bestaan
-                        // Eerst: map de kolomnamen van export naar database kolommen
+                        // Bepaal welke kolommen echt bestaan - alleen stamboomnr en filename zijn zeker
                         const importData = { 
                             stamboomnr: cleanStamboomnr,
-                            filename: foto.filename || '',
-                            size: foto.size || 0,
-                            type: foto.type || '',
-                            uploaded_at: foto.uploaded_at || new Date().toISOString(),
-                            // OPMERKING: 'geupload_door' bestaat niet in de database
-                            // Gebruik eventueel een andere kolom of laat weg
-                            hond_id: null // Laat leeg, we koppelen later via stamboomnr
+                            filename: foto.filename || ''
                         };
                         
-                        // Alleen data en thumbnail toevoegen als ze bestaan EN niet te groot zijn
-                        if (foto.data && foto.data.length < 1000000) {
-                            importData.data = foto.data;
-                        }
+                        // Optioneel: voeg alleen toe als ze bestaan in de originele data
+                        if (foto.size !== undefined) importData.size = foto.size;
+                        if (foto.type) importData.type = foto.type;
+                        if (foto.uploaded_at) importData.uploaded_at = foto.uploaded_at;
                         if (foto.thumbnail && foto.thumbnail.length < 1000000) {
                             importData.thumbnail = foto.thumbnail;
                         }
                         
-                        console.log('DEBUG: Foto import data:', {
+                        console.log('DEBUG: Foto import data (simpel):', {
                             filename: importData.filename,
-                            size: importData.size,
-                            hasData: !!importData.data,
-                            hasThumbnail: !!importData.thumbnail
+                            kolommen: Object.keys(importData)
                         });
                         
-                        // Eerst kijken of foto al bestaat
-                        let existingFoto = null;
                         try {
-                            const { data, error } = await this.supabase
-                                .from('fotos')
-                                .select('id')
-                                .eq('stamboomnr', cleanStamboomnr)
-                                .eq('filename', importData.filename)
-                                .limit(1);
-                            
-                            if (!error && data && data.length > 0) {
-                                existingFoto = data[0];
-                            }
-                        } catch (err) {
-                            console.log('DEBUG: Foto check error:', err);
-                        }
-                        
-                        if (existingFoto) {
-                            // Update bestaande foto
-                            const { error } = await this.supabase
-                                .from('fotos')
-                                .update(importData)
-                                .eq('id', existingFoto.id);
-                            
-                            if (error) {
-                                console.warn('Update error, skipping foto:', error);
-                                result.fotos.errors++;
-                                continue;
-                            }
-                        } else {
-                            // Nieuwe foto toevoegen
+                            // Probeer een eenvoudige insert
                             const { error } = await this.supabase
                                 .from('fotos')
                                 .insert([importData]);
                             
                             if (error) {
-                                console.warn('Insert error, skipping foto:', error);
-                                result.fotos.errors++;
-                                continue;
+                                console.warn('Insert error, skip foto (alleen basis):', error.message);
+                                // Probeer zonder thumbnail
+                                delete importData.thumbnail;
+                                const { error: error2 } = await this.supabase
+                                    .from('fotos')
+                                    .insert([importData]);
+                                
+                                if (error2) {
+                                    console.warn('Ook zonder thumbnail mislukt, skip:', error2.message);
+                                    result.fotos.errors++;
+                                    continue;
+                                }
                             }
+                            result.fotos.added++;
+                            
+                        } catch (insertError) {
+                            console.warn('Foto insert exception:', insertError.message);
+                            result.fotos.errors++;
                         }
-                        
-                        result.fotos.added++;
                         
                     } catch (error) {
                         console.error(`Fout bij foto ${foto.filename}:`, error);
@@ -563,29 +537,39 @@ class DataManager extends BaseModule {
             }
         }
         
-        // 4. Importeer PRIVEINFO - GECORRIGEERD: gebruik juiste kolomnamen
+        // 4. Importeer PRIVEINFO - SIMPEL: alleen basiskolommen
         if (backup.priveinfo && backup.priveinfo.length > 0) {
             console.log(`Importing ${backup.priveinfo.length} priveinfo records...`);
             this.updateProgressMessage('Priveinfo importeren...');
             
             // Bepaal de juiste tabelnaam
             let priveTableName = 'priveinfo';
-            try {
-                // Test of tabel 'priveinfo' bestaat
-                const { error: testError } = await this.supabase
-                    .from('priveinfo')
-                    .select('id')
-                    .limit(1);
-                    
-                if (testError && testError.code === 'PGRST116') {
-                    // Probeer 'prive_info'
-                    priveTableName = 'prive_info';
-                    console.log('DEBUG: Gebruik tabelnaam: prive_info');
-                } else {
-                    console.log('DEBUG: Gebruik tabelnaam: priveinfo');
+            let priveTableExists = false;
+            
+            // Test tabellen
+            const testTables = ['priveinfo', 'prive_info'];
+            for (const tableName of testTables) {
+                try {
+                    const { error: testError } = await this.supabase
+                        .from(tableName)
+                        .select('id')
+                        .limit(1);
+                        
+                    if (!testError || testError.code !== 'PGRST116') {
+                        priveTableName = tableName;
+                        priveTableExists = true;
+                        console.log('DEBUG: Gevonden tabel:', priveTableName);
+                        break;
+                    }
+                } catch (err) {
+                    console.log('DEBUG: Test tabel', tableName, 'mislukt:', err.message);
                 }
-            } catch (testErr) {
-                console.log('DEBUG: Gebruik standaard tabelnaam: priveinfo');
+            }
+            
+            if (!priveTableExists) {
+                console.log('DEBUG: Geen priveinfo tabel gevonden, skip import');
+                result.priveinfo.errors = backup.priveinfo.length;
+                return result;
             }
             
             const totalBatches = Math.ceil(backup.priveinfo.length / batchSize);
@@ -601,62 +585,58 @@ class DataManager extends BaseModule {
                     try {
                         const cleanStamboomnr = String(prive.stamboomnr).trim();
                         
-                        // Bereid import data voor - Gebruik alleen kolommen die bestaan
-                        // OPMERKING: 'hond_id' bestaat niet in de priveinfo tabel
+                        // Basis kolommen die waarschijnlijk bestaan
                         const importData = { 
-                            stamboomnr: cleanStamboomnr,
-                            privatenotes: prive.privatenotes || '',
-                            vertrouwelijk: prive.vertrouwelijk || false,
-                            laatstgewijzigd: prive.laatstgewijzigd || new Date().toISOString(),
-                            // 'toegevoegd_door' bestaat mogelijk ook niet
+                            stamboomnr: cleanStamboomnr
                         };
                         
-                        console.log('DEBUG: Priveinfo import data:', {
+                        // Alleen toevoegen als ze in de backup zitten
+                        if (prive.privatenotes !== undefined) importData.privatenotes = prive.privatenotes;
+                        if (prive.vertrouwelijk !== undefined) importData.vertrouwelijk = prive.vertrouwelijk;
+                        
+                        console.log('DEBUG: Priveinfo import data (simpel):', {
                             stamboomnr: importData.stamboomnr,
-                            heeftNotes: !!importData.privatenotes
+                            kolommen: Object.keys(importData)
                         });
                         
-                        // Eerst kijken of record al bestaat
-                        let existingRecord = null;
                         try {
-                            const { data, error } = await this.supabase
+                            // Probeer upsert (update of insert)
+                            const { error } = await this.supabase
+                                .from(priveTableName)
+                                .upsert([importData], {
+                                    onConflict: 'stamboomnr'
+                                });
+                            
+                            if (error) {
+                                console.warn('Upsert error, probeer insert:', error.message);
+                                // Probeer simpele insert
+                                const { error: insertError } = await this.supabase
+                                    .from(priveTableName)
+                                    .insert([importData]);
+                                
+                                if (insertError) {
+                                    console.warn('Insert ook mislukt, skip:', insertError.message);
+                                    result.priveinfo.errors++;
+                                    continue;
+                                }
+                            }
+                            
+                            // Controleer of het een update of insert was
+                            const { data: checkData } = await this.supabase
                                 .from(priveTableName)
                                 .select('id')
                                 .eq('stamboomnr', cleanStamboomnr)
                                 .limit(1);
                             
-                            if (!error && data && data.length > 0) {
-                                existingRecord = data[0];
+                            if (checkData && checkData.length > 0) {
+                                result.priveinfo.updated++;
+                            } else {
+                                result.priveinfo.added++;
                             }
-                        } catch (err) {
-                            console.log('DEBUG: Priveinfo check error:', err);
-                        }
-                        
-                        if (existingRecord) {
-                            // Update bestaand record
-                            const { error } = await this.supabase
-                                .from(priveTableName)
-                                .update(importData)
-                                .eq('id', existingRecord.id);
                             
-                            if (error) {
-                                console.warn('Update error, skipping priveinfo:', error);
-                                result.priveinfo.errors++;
-                                continue;
-                            }
-                            result.priveinfo.updated++;
-                        } else {
-                            // Nieuw record toevoegen
-                            const { error } = await this.supabase
-                                .from(priveTableName)
-                                .insert([importData]);
-                            
-                            if (error) {
-                                console.warn('Insert error, skipping priveinfo:', error);
-                                result.priveinfo.errors++;
-                                continue;
-                            }
-                            result.priveinfo.added++;
+                        } catch (dbError) {
+                            console.warn('Priveinfo database error:', dbError.message);
+                            result.priveinfo.errors++;
                         }
                         
                     } catch (error) {
