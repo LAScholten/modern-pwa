@@ -228,6 +228,8 @@ async updateHond(hondData) {
       moeder_id: hondData.moeder_id || null,
       vader: hondData.vader || '',
       moeder: hondData.moeder || '',
+      vader_stamboomnr: hondData.vader_stamboomnr || null,
+      moeder_stamboomnr: hondData.moeder_stamboomnr || null,
       geboortedatum: hondData.geboortedatum || null,
       overlijdensdatum: hondData.overlijdensdatum || null,
       // VERWIJDER DIT: gezondheidsinfo: JSON.stringify({...}),
