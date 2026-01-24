@@ -408,7 +408,7 @@ class LitterManager {
      * Injecteer database en auth objecten (fallback voor backward compatibility)
      */
     injectDependencies(db, auth) {
-        console.log('LitterManager: injectDependencies aangeroepen');
+        console.log('LitterManager: injectDependencies aangroepen');
         // Gebruik window object als primaire bron, anders de geïnjecteerde dependencies
         this.db = window.hondenService || db;
         this.auth = window.auth || auth;
@@ -2061,6 +2061,7 @@ class LitterManager {
                 const dogId = item.getAttribute('data-id');
                 const dogName = item.getAttribute('data-name');
                 const dogKennel = item.getAttribute('data-kennel');
+                const dogPedigree = item.getAttribute('data-pedigree');
                 const input = document.getElementById(parentType);
                 // BELANGRIJK: Gebruik vader_id en moeder_id zoals in DogManager
                 const idInput = parentType === 'father' ? document.getElementById('vader_id') : document.getElementById('moeder_id');
@@ -2076,8 +2077,11 @@ class LitterManager {
                     console.log(`LitterManager: ${parentType} ID opgeslagen:`, dogId, 'in veld:', idInput.id);
                 }
                 
+                // Sla ook het stamboomnummer op in het data attribute van het input veld
+                input.setAttribute('data-pedigree', dogPedigree);
+                
                 dropdown.style.display = 'none';
-                console.log('LitterManager: Ouder geselecteerd:', displayName, 'ID:', dogId);
+                console.log('LitterManager: Ouder geselecteerd:', displayName, 'ID:', dogId, 'Stamboomnummer:', dogPedigree);
             });
         });
     }
@@ -2135,8 +2139,16 @@ class LitterManager {
         const vaderIdValue = vaderIdInput?.value;
         const moederIdValue = moederIdInput?.value;
         
+        // Haal stamboomnummers van ouders op uit de input velden
+        const fatherInput = document.getElementById('father');
+        const motherInput = document.getElementById('mother');
+        const vaderStamboomnr = fatherInput ? fatherInput.getAttribute('data-pedigree') || '' : '';
+        const moederStamboomnr = motherInput ? motherInput.getAttribute('data-pedigree') || '' : '';
+        
         console.log('LitterManager: vader_id uit hidden input:', vaderIdValue);
         console.log('LitterManager: moeder_id uit hidden input:', moederIdValue);
+        console.log('LitterManager: vader_stamboomnr:', vaderStamboomnr);
+        console.log('LitterManager: moeder_stamboomnr:', moederStamboomnr);
         console.log('LitterManager: vader_id type:', typeof vaderIdValue);
         console.log('LitterManager: moeder_id type:', typeof moederIdValue);
         
@@ -2155,10 +2167,12 @@ class LitterManager {
             vader_id: vaderIdValue && vaderIdValue.trim() !== '' && !isNaN(parseInt(vaderIdValue)) 
                 ? parseInt(vaderIdValue) 
                 : null,
+            vader_stamboomnr: vaderStamboomnr || null, // NIEUW: vader_stamboomnr toegevoegd
             moeder: document.getElementById('mother')?.value.trim() || '',
             moeder_id: moederIdValue && moederIdValue.trim() !== '' && !isNaN(parseInt(moederIdValue)) 
                 ? parseInt(moederIdValue) 
                 : null,
+            moeder_stamboomnr: moederStamboomnr || null, // NIEUW: moeder_stamboomnr toegevoegd
             
             // DATUMS
             geboortedatum: formatDateForStorage(birthDateValue),
@@ -2188,8 +2202,8 @@ class LitterManager {
         
         console.log('[LitterManager] === DOG DATA VOOR OPSLAG ===');
         console.log('Aantal velden:', Object.keys(dogData).length);
-        console.log('Vader:', dogData.vader, 'vader_id:', dogData.vader_id);
-        console.log('Moeder:', dogData.moeder, 'moeder_id:', dogData.moeder_id);
+        console.log('Vader:', dogData.vader, 'vader_id:', dogData.vader_id, 'vader_stamboomnr:', dogData.vader_stamboomnr);
+        console.log('Moeder:', dogData.moeder, 'moeder_id:', dogData.moeder_id, 'moeder_stamboomnr:', dogData.moeder_stamboomnr);
         console.log('Ogenverklaring:', dogData.ogenverklaring);
         console.log('Schildklierverklaring:', dogData.schildklierverklaring);
         console.log('Volledige data:', JSON.stringify(dogData, null, 2));
@@ -2282,7 +2296,9 @@ class LitterManager {
                 dandyWalker: dogData.dandyWalker,
                 schildklier: dogData.schildklier,
                 vader_id: dogData.vader_id,
-                moeder_id: dogData.moeder_id
+                moeder_id: dogData.moeder_id,
+                vader_stamboomnr: dogData.vader_stamboomnr,
+                moeder_stamboomnr: dogData.moeder_stamboomnr
             });
             
             // Update de UI lijst
