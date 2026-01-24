@@ -128,12 +128,12 @@ class DataManager extends BaseModule {
                 console.log('Geen foto\'s om te exporteren:', fotoError.message);
             }
             
-            // 3. Exporteer privé info (als de tabel bestaat)
-            let priveInfo = [];
+            // 3. Exporteer prive info (als de tabel bestaat)
+            let priveinfo = [];
             try {
-                priveInfo = await this.getAllPriveInfoWithPagination();
+                priveinfo = await this.getAllPriveinfoWithPagination();
             } catch (priveError) {
-                console.log('Geen privé info om te exporteren:', priveError.message);
+                console.log('Geen prive info om te exporteren:', priveError.message);
             }
             
             // 4. Maak complete backup
@@ -143,12 +143,12 @@ class DataManager extends BaseModule {
                     version: '2.0',
                     hondenCount: honden.length,
                     fotosCount: fotos.length,
-                    priveInfoCount: priveInfo.length,
+                    priveinfoCount: priveinfo.length,
                     system: 'Supabase complete backup'
                 },
                 honden: honden,
                 fotos: fotos,
-                priveInfo: priveInfo
+                priveinfo: priveinfo
             };
             
             // 5. Download
@@ -158,7 +158,7 @@ class DataManager extends BaseModule {
             this.showSuccess(`Backup gemaakt!<br>
                 - ${honden.length} honden<br>
                 - ${fotos.length} foto's<br>
-                - ${priveInfo.length} privé records`);
+                - ${priveinfo.length} prive records`);
             
         } catch (error) {
             this.hideProgress();
@@ -175,8 +175,8 @@ class DataManager extends BaseModule {
         return this.getTableWithPagination('fotos', 'id');
     }
     
-    async getAllPriveInfoWithPagination() {
-        return this.getTableWithPagination('prive_info', 'id');
+    async getAllPriveinfoWithPagination() {
+        return this.getTableWithPagination('priveinfo', 'id');
     }
     
     async getTableWithPagination(tableName, orderBy) {
@@ -266,8 +266,8 @@ class DataManager extends BaseModule {
                 - ${result.fotos.added} toegevoegd<br>
                 - ${result.fotos.errors} fouten<br><br>
                 <strong>Privé info:</strong><br>
-                - ${result.priveInfo.updated} bijgewerkt<br>
-                - ${result.priveInfo.errors} fouten
+                - ${result.priveinfo.updated} bijgewerkt<br>
+                - ${result.priveinfo.errors} fouten
             `;
             
             this.showSuccess(message);
@@ -285,13 +285,13 @@ class DataManager extends BaseModule {
         const result = {
             honden: { added: 0, updated: 0, errors: 0, relaties: 0 },
             fotos: { added: 0, errors: 0 },
-            priveInfo: { updated: 0, errors: 0 }
+            priveinfo: { updated: 0, errors: 0 }
         };
         
         const stamboomnrMap = new Map();
         const batchSize = 100;
         
-        // **NIEUW: Helper functie voor veilige stamboomnr matching**
+        // Helper functie voor veilige stamboomnr matching
         const findHondByStamboomnr = async (stamboomnr) => {
             try {
                 const cleanStamboomnr = String(stamboomnr).trim();
@@ -488,11 +488,22 @@ class DataManager extends BaseModule {
                             existing = null;
                         }
                         
-                        // Bereid import data voor
-                        const importData = { ...foto };
+                        // Bereid import data voor met CORRECTE kolomnamen
+                        const importData = {
+                            stamboomnr: cleanStamboomnr,
+                            data: foto.data,
+                            thumbnail: foto.thumbnail,
+                            filename: foto.filename,
+                            size: foto.size,
+                            type: foto.type,
+                            upload_at: foto.upload_at,
+                            geupload_door: foto.geupload_door,
+                            hond_id: foto.hond_id
+                        };
+                        
+                        // Verwijder onnodige velden
                         delete importData.id;
                         delete importData.created_at;
-                        importData.stamboomnr = cleanStamboomnr;
                         
                         if (!existing) {
                             const { error } = await this.supabase
@@ -511,41 +522,48 @@ class DataManager extends BaseModule {
         }
         
         // 4. Importeer PRIVÉ INFO
-        if (backup.priveInfo && backup.priveInfo.length > 0) {
-            console.log(`Importing ${backup.priveInfo.length} privé records...`);
+        if (backup.priveinfo && backup.priveinfo.length > 0) {
+            console.log(`Importing ${backup.priveinfo.length} prive records...`);
             this.updateProgressMessage('Privé info importeren...');
             
-            const totalBatches = Math.ceil(backup.priveInfo.length / batchSize);
+            const totalBatches = Math.ceil(backup.priveinfo.length / batchSize);
             
             for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
                 const start = batchIndex * batchSize;
-                const end = Math.min(start + batchSize, backup.priveInfo.length);
-                const batch = backup.priveInfo.slice(start, end);
+                const end = Math.min(start + batchSize, backup.priveinfo.length);
+                const batch = backup.priveinfo.slice(start, end);
                 
-                this.updateProgressMessage(`Importing privé info... batch ${batchIndex + 1}/${totalBatches}`);
+                this.updateProgressMessage(`Importing prive info... batch ${batchIndex + 1}/${totalBatches}`);
                 
                 for (const prive of batch) {
                     try {
                         const cleanStamboomnr = String(prive.stamboomnr).trim();
                         
-                        // Bereid import data voor
-                        const importData = { ...prive };
+                        // Bereid import data voor met CORRECTE kolomnamen
+                        const importData = {
+                            stamboomnr: cleanStamboomnr,
+                            privatenotes: prive.privatenotes,
+                            vertrouwelijk: prive.vertrouwelijk,
+                            laatstgewijzigd: prive.laatstgewijzigd,
+                            toegevoegd_door: prive.toegevoegd_door
+                        };
+                        
+                        // Verwijder onnodige velden
                         delete importData.id;
                         delete importData.created_at;
-                        importData.stamboomnr = cleanStamboomnr;
                         
-                        // Update of insert privé info
+                        // Update of insert prive info
                         const { error } = await this.supabase
-                            .from('prive_info')
+                            .from('priveinfo')
                             .upsert([importData], {
                                 onConflict: 'stamboomnr'
                             });
                         
-                        if (!error) result.priveInfo.updated++;
+                        if (!error) result.priveinfo.updated++;
                         
                     } catch (error) {
-                        console.error(`Fout bij privé info ${prive.stamboomnr}:`, error);
-                        result.priveInfo.errors++;
+                        console.error(`Fout bij prive info ${prive.stamboomnr}:`, error);
+                        result.priveinfo.errors++;
                     }
                 }
             }
