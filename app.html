@@ -287,7 +287,7 @@
                     <div class="card-body">
                         <div class="alert alert-success">
                             <h5><i class="bi bi-check-circle"></i> <span class="app-text" data-key="welcomeTitle">Welkom bij de Hondendatabase PWA - Desktop Edition</span></h5>
-                            <p class="app-text" data-key="welcomeText">Kies een optie uit het menu om te beginnen. Deze app werkt volledig in je browser.</p>
+                            <p class="app-text" data-key="welcomeText">Kies een optie uit het menu om te beginnen. De interactieve Database online.</p>
                             
                             <!-- DISCLAIMER KNOOP - Wordt nu afgehandeld door disclaimer.js -->
                             <button class="btn btn-secondary" id="disclaimerBtn">
@@ -303,11 +303,10 @@
                                         <h5><i class="bi bi-info-circle text-primary"></i> <span class="app-text" data-key="aboutApp">Over deze PWA</span></h5>
                                         <p>Deze Progressive Web App heeft verschillende mogelijkheden:</p>
                                         <ul>
-                                            <li><strong>💾 Browser opslag:</strong> Sla data op in je browser</li>
-                                            <li><strong>📱 Offline toegang:</strong> Werkt ook zonder internet</li>
-                                            <li><strong>🔄 Easy backup:</strong> Exporteer je data gemakkelijk voor altijd je gegevens te behouden</li>
+                                            <li><strong>💾 Browser opslag:</strong> Slaat de data op in de online database</li>
+                                            <li><strong>🔄 Easy backup:</strong> Backups worden weekelijks uitgevoerd door de beheerder</li>
                                             <li><strong>⚡ Snelle werking:</strong> Directe toegang tot je gegevens</li>
-                                            <li><strong>🔒 Veilige opslag:</strong> Gegevens blijven op je eigen apparaat zolang je de browser geschiedenis niet wist.</li>
+                                            <li><strong>🔒 Veilige opslag:</strong> Privé informatie is alleen te zien door de persoon die deze heeft ingevoerd.</li>
                                         </ul>
                                     </div>
                                 </div>
@@ -319,11 +318,15 @@
                                         <p class="app-text" data-key="roleBasedAccess">De app gebruikt rol-gebaseerde toegang:</p>
                                         <div class="alert alert-warning">
                                             <strong class="app-text" data-key="adminRole">Administrator (admin/admin123)</strong><br>
-                                            <span class="app-text" data-key="adminRights">Volledige rechten, inclusief nieuwe honden toevoegen.</span>
+                                            <span class="app-text" data-key="adminRights">Volledige rechten.</span>
+                                        </div>
+                                        <div class="alert alert-info">
+                                            <strong class="app-text" data-key="userRole">Gebruiker+ (user/user123)</strong><br>
+                                            <span class="app-text" data-key="userRights">Kan data bekijken, fokplanning maken en eigen honden/nesten toevoegen of bewerken.</span>
                                         </div>
                                         <div class="alert alert-info">
                                             <strong class="app-text" data-key="userRole">Gebruiker (user/user123)</strong><br>
-                                            <span class="app-text" data-key="userRights">Kan data importeren/exporteren en bekijken, maar geen nieuwe honden toevoegen of bewerken.</span>
+                                            <span class="app-text" data-key="userRights">Kan data bekijken, maar niet de eigen een fokplanning maken en eigen honden/nesten toevoegen of bewerken.</span>
                                         </div>
                                     </div>
                                 </div>
@@ -444,7 +447,7 @@
                     
                     <div class="alert alert-info mt-3">
                         <i class="bi bi-info-circle"></i> 
-                        <strong>Voordeel van een snelkoppeling:</strong> De app werkt als een normale app, kan offline werken en is snel toegankelijk vanaf je beginscherm!
+                        <strong>Voordeel van een snelkoppeling:</strong> De app werkt als een normale app!
                     </div>
                 </div>
                 <div class="modal-footer">
