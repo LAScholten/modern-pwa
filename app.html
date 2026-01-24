@@ -301,12 +301,12 @@
                                 <div class="card">
                                     <div class="card-body">
                                         <h5><i class="bi bi-info-circle text-primary"></i> <span class="app-text" data-key="aboutApp">Over deze PWA</span></h5>
-                                        <p>Deze Progressive Web App heeft verschillende mogelijkheden:</p>
+                                        <p class="app-text" data-key="appDescription">Deze Progressive Web App heeft verschillende mogelijkheden:</p>
                                         <ul>
-                                            <li><strong>💾 Browser opslag:</strong> Slaat de data op in de online database</li>
-                                            <li><strong>🔄 Easy backup:</strong> Backups worden weekelijks uitgevoerd door de beheerder</li>
-                                            <li><strong>⚡ Snelle werking:</strong> Directe toegang tot je gegevens</li>
-                                            <li><strong>🔒 Veilige opslag:</strong> Privé informatie is alleen te zien door de persoon die deze heeft ingevoerd.</li>
+                                            <li><strong class="app-text" data-key="feature1">💾 Browser opslag:</strong> Slaat de data op in de online database</li>
+                                            <li><strong class="app-text" data-key="feature2">🔄 Easy backup:</strong> Backups worden weekelijks uitgevoerd door de beheerder</li>
+                                            <li><strong class="app-text" data-key="feature3">⚡ Snelle werking:</strong> Directe toegang tot je gegevens</li>
+                                            <li><strong class="app-text" data-key="feature4">🔒 Veilige opslag:</strong> Privé informatie is alleen te zien door de persoon die deze heeft ingevoerd.</li>
                                         </ul>
                                     </div>
                                 </div>
@@ -516,7 +516,7 @@
         // Laad taal uit localStorage
         const appLanguage = localStorage.getItem('appLanguage') || 'nl';
         
-        // Vertalingen - NU MET 3 ROLLEN
+        // Vertalingen - MET ALLE VERTALINGEN NU COMPLEET
         const appTranslations = {
             nl: {
                 appTitle: "Hondendatabase PWA - Desktop Edition",
@@ -538,12 +538,12 @@
                 welcomeTitle: "Welkom bij de Hondendatabase PWA - Desktop Edition",
                 welcomeText: "Kies een optie uit het menu om te beginnen. Deze app werkt volledig in je browser.",
                 aboutApp: "Over deze PWA",
-                appDescription: "Deze PWA (Progressive Web App) slaat alle data op in een online database. U kunt:",
-                feature1: "Honden toevoegen en beheren",
-                feature2: "Data van honden bewerken",
-                feature3: "Foto's uploaden en bekijken",
-                feature4: "Fokplannen maken",
-                feature5: "Privé informatie bewaren",
+                appDescription: "Deze Progressive Web App heeft verschillende mogelijkheden:",
+                feature1: "💾 Browser opslag:",
+                feature2: "🔄 Easy backup:",
+                feature3: "⚡ Snelle werking:",
+                feature4: "🔒 Veilige opslag:",
+                feature5: "Honden toevoegen en beheren",
                 feature6: "Data importeren/exporteren",
                 security: "Beveiliging",
                 roleBasedAccess: "De app gebruikt rol-gebaseerde toegang:",
@@ -576,19 +576,19 @@
                 welcomeTitle: "Welcome to the Dog Database PWA - Desktop Edition",
                 welcomeText: "Choose an option from the menu to start. This app works completely in your browser.",
                 aboutApp: "About this PWA",
-                appDescription: "This PWA (Progressive Web App) stores all data in an online database. You can:",
-                feature1: "Add and manage dogs",
-                feature2: "Edit dog data",
-                feature3: "Upload and view photos",
-                feature4: "Create breeding plans",
-                feature5: "Store private information",
+                appDescription: "This Progressive Web App has several features:",
+                feature1: "💾 Browser storage:",
+                feature2: "🔄 Easy backup:",
+                feature3: "⚡ Fast operation:",
+                feature4: "🔒 Secure storage:",
+                feature5: "Add and manage dogs",
                 feature6: "Import/Export data",
                 security: "Security",
                 roleBasedAccess: "The app uses role-based access:",
                 adminRole: "Administrator (admin/admin123)",
                 adminRights: "Full rights.",
                 userPlusRole: "User+ (user+/user+123)",
-                userPlusRights: "Can view dogs, create breeding plans, and add/edit own dogs/litters, provided parents are already in the database.",
+                userPlusRights: "Can view dogs, create breeding plans, and add/edit own dogs/litters, if provided parents are already in the database.",
                 userRole: "User (user/user123)",
                 userRights: "Can view dogs, but cannot create own breeding plans and add/edit own dogs/litters.",
                 disclaimerBtn: "Disclaimer/Information about COI calculation",
@@ -614,12 +614,12 @@
                 welcomeTitle: "Willkommen bei der Hundendatenbank PWA - Desktop Edition",
                 welcomeText: "Wählen Sie eine option aus dem menü, um zu beginnen. Diese App arbeitet vollständig in Ihrem Browser.",
                 aboutApp: "Über diese PWA",
-                appDescription: "Diese PWA (Progressive Web App) speichert alle Daten in einer online Datenbank. Sie können:",
-                feature1: "Hunde hinzufügen en verwalten",
-                feature2: "Hundedaten bearbeiten",
-                feature3: "Fotos hochladen en ansehen",
-                feature4: "Zuchtpläne erstellen",
-                feature5: "Private Informationen speichern",
+                appDescription: "Diese Progressive Web App hat verschiedene Möglichkeiten:",
+                feature1: "💾 Browser-Speicher:",
+                feature2: "🔄 Einfache Sicherung:",
+                feature3: "⚡ Schnelle Arbeit:",
+                feature4: "🔒 Sichere Speicherung:",
+                feature5: "Hunde hinzufügen und verwalten",
                 feature6: "Daten importieren/exportieren",
                 security: "Sicherheit",
                 roleBasedAccess: "Die App verwendet rollenbasierte Zugriffe:",
@@ -641,7 +641,20 @@
             elements.forEach(element => {
                 const key = element.getAttribute('data-key');
                 if (appTranslations[lang] && appTranslations[lang][key]) {
-                    element.textContent = appTranslations[lang][key];
+                    // Speciaal geval voor de list items in de PWA beschrijving
+                    if (element.parentElement.tagName === 'LI') {
+                        const li = element.parentElement;
+                        const strong = li.querySelector('strong');
+                        if (strong && strong.classList.contains('app-text')) {
+                            // Vervang alleen de tekst in het strong element
+                            strong.textContent = appTranslations[lang][key];
+                            // De rest van de tekst blijft staan (de beschrijving)
+                        } else {
+                            element.textContent = appTranslations[lang][key];
+                        }
+                    } else {
+                        element.textContent = appTranslations[lang][key];
+                    }
                 }
             });
             
