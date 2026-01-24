@@ -321,12 +321,12 @@
                                             <span class="app-text" data-key="adminRights">Volledige rechten.</span>
                                         </div>
                                         <div class="alert alert-info">
-                                            <strong class="app-text" data-key="userRole">Gebruiker+ (user/user123)</strong><br>
-                                            <span class="app-text" data-key="userRights">Kan honden bekijken, fokplanning maken en eigen honden/nesten toevoegen of bewerken, mits de ouders al in de database staan.</span>
+                                            <strong class="app-text" data-key="userPlusRole">Gebruiker+ (user+/user+123)</strong><br>
+                                            <span class="app-text" data-key="userPlusRights">Kan honden bekijken, fokplanning maken en eigen honden/nesten toevoegen of bewerken, mits de ouders al in de database staan.</span>
                                         </div>
                                         <div class="alert alert-info">
                                             <strong class="app-text" data-key="userRole">Gebruiker (user/user123)</strong><br>
-                                            <span class="app-text" data-key="userRights">Kan honden bekijken, maar niet de eigen een fokplanning maken en eigen honden/nesten toevoegen of bewerken.</span>
+                                            <span class="app-text" data-key="userRights">Kan honden bekijken, maar niet de eigen fokplanning maken en eigen honden/nesten toevoegen of bewerken.</span>
                                         </div>
                                     </div>
                                 </div>
@@ -516,7 +516,7 @@
         // Laad taal uit localStorage
         const appLanguage = localStorage.getItem('appLanguage') || 'nl';
         
-        // Vertalingen
+        // Vertalingen - NU MET 3 ROLLEN
         const appTranslations = {
             nl: {
                 appTitle: "Hondendatabase PWA - Desktop Edition",
@@ -547,16 +547,13 @@
                 feature6: "Data importeren/exporteren",
                 security: "Beveiliging",
                 roleBasedAccess: "De app gebruikt rol-gebaseerde toegang:",
-                adminRole: "Administrator",
+                adminRole: "Administrator (admin/admin123)",
                 adminRights: "Volledige rechten.",
-                userRole: "Gebruiker+",
-                userRights: "Kan honden bekijken, fokplanning maken en eigen honden/nesten toevoegen of bewerken, mits de ouders al in de database staan.",
-                userRole: "Gebruiker",
-                userRights: "Kan honden bekijken, maar niet een fokplanning maken en eigen honden/nesten toevoegen of bewerken.",
-
-                // NIEUWE disclaimer teksten
+                userPlusRole: "Gebruiker+ (user+/user+123)",
+                userPlusRights: "Kan honden bekijken, fokplanning maken en eigen honden/nesten toevoegen of bewerken, mits de ouders al in de database staan.",
+                userRole: "Gebruiker (user/user123)",
+                userRights: "Kan honden bekijken, maar niet de eigen fokplanning maken en eigen honden/nesten toevoegen of bewerken.",
                 disclaimerBtn: "Disclaimer/Informatie over COI berekening",
-                
                 installPWA: "Maak Snelkoppeling"
             },
             en: {
@@ -579,7 +576,7 @@
                 welcomeTitle: "Welcome to the Dog Database PWA - Desktop Edition",
                 welcomeText: "Choose an option from the menu to start. This app works completely in your browser.",
                 aboutApp: "About this PWA",
-                appDescription: "This PWA (Progressive Web App) stores all data locally in your browser. You can:",
+                appDescription: "This PWA (Progressive Web App) stores all data in an online database. You can:",
                 feature1: "Add and manage dogs",
                 feature2: "Edit dog data",
                 feature3: "Upload and view photos",
@@ -588,14 +585,13 @@
                 feature6: "Import/Export data",
                 security: "Security",
                 roleBasedAccess: "The app uses role-based access:",
-                adminRole: "Administrator",
-                adminRights: "Full rights, including adding new dogs.",
-                userRole: "User",
-                userRights: "Can import/export and view data, but cannot add or edit new dogs.",
-                
-                // NEW disclaimer texts
+                adminRole: "Administrator (admin/admin123)",
+                adminRights: "Full rights.",
+                userPlusRole: "User+ (user+/user+123)",
+                userPlusRights: "Can view dogs, create breeding plans, and add/edit own dogs/litters, provided parents are already in the database.",
+                userRole: "User (user/user123)",
+                userRights: "Can view dogs, but cannot create own breeding plans and add/edit own dogs/litters.",
                 disclaimerBtn: "Disclaimer/Information about COI calculation",
-                
                 installPWA: "Create Shortcut"
             },
             de: {
@@ -617,8 +613,8 @@
                 dashboard: "Dashboard",
                 welcomeTitle: "Willkommen bei der Hundendatenbank PWA - Desktop Edition",
                 welcomeText: "Wählen Sie eine option aus dem menü, um zu beginnen. Diese App arbeitet vollständig in Ihrem Browser.",
-                aboutApp: "Über deze PWA",
-                appDescription: "Diese PWA (Progressive Web App) speichert alle Daten lokal in Ihrem Browser. Sie können:",
+                aboutApp: "Über diese PWA",
+                appDescription: "Diese PWA (Progressive Web App) speichert alle Daten in einer online Datenbank. Sie können:",
                 feature1: "Hunde hinzufügen en verwalten",
                 feature2: "Hundedaten bearbeiten",
                 feature3: "Fotos hochladen en ansehen",
@@ -627,14 +623,13 @@
                 feature6: "Daten importieren/exportieren",
                 security: "Sicherheit",
                 roleBasedAccess: "Die App verwendet rollenbasierte Zugriffe:",
-                adminRole: "Administrator",
-                adminRights: "Volle Rechte, einschließlich neuer Hunde hinzufügen.",
-                userRole: "Benutzer",
-                userRights: "Kann Daten importieren/exportieren en ansehen, aber keine neuen Hunde hinzufügen of bearbeiten.",
-                
-                // NEUE Disclaimer Texte
+                adminRole: "Administrator (admin/admin123)",
+                adminRights: "Volle Rechte.",
+                userPlusRole: "Benutzer+ (user+/user+123)",
+                userPlusRights: "Kann Hunde ansehen, Zuchtpläne erstellen und eigene Hunde/Würfe hinzufügen oder bearbeiten, vorausgesetzt die Eltern sind bereits in der Datenbank.",
+                userRole: "Benutzer (user/user123)",
+                userRights: "Kann Hunde ansehen, aber keine eigenen Zuchtpläne erstellen und keine eigenen Hunde/Würfe hinzufügen oder bearbeiten.",
                 disclaimerBtn: "Disclaimer/Information zur COI Berechnung",
-                
                 installPWA: "Verknüpfung erstellen"
             }
         };
