@@ -120,7 +120,7 @@ class DataManager extends BaseModule {
             // 1. Exporteer ALLE honden
             const honden = await this.getAllHondenWithPagination();
             
-            // 2. Exporteer foto's (als de tabel bestaat)
+            // 2. Exporteer foto's (als de tabel bestaat) MET JUISTE KOLOMMEN
             let fotos = [];
             try {
                 fotos = await this.getAllFotosWithPagination();
@@ -128,7 +128,7 @@ class DataManager extends BaseModule {
                 console.log('Geen foto\'s om te exporteren:', fotoError.message);
             }
             
-            // 3. Exporteer privé info (als de tabel bestaat)
+            // 3. Exporteer privé info (als de tabel bestaat) MET JUISTE KOLOMMEN
             let priveInfo = [];
             try {
                 priveInfo = await this.getAllPriveInfoWithPagination();
@@ -291,7 +291,7 @@ class DataManager extends BaseModule {
         const stamboomnrMap = new Map();
         const batchSize = 100;
         
-        // **NIEUW: Helper functie voor veilige stamboomnr matching**
+        // Helper functie voor veilige stamboomnr matching
         const findHondByStamboomnr = async (stamboomnr) => {
             try {
                 const cleanStamboomnr = String(stamboomnr).trim();
@@ -453,7 +453,7 @@ class DataManager extends BaseModule {
             }
         }
         
-        // 3. Importeer FOTO'S
+        // 3. Importeer FOTO'S - MET JUISTE KOLOMNAMEN
         if (backup.fotos && backup.fotos.length > 0) {
             console.log(`Importing ${backup.fotos.length} foto's...`);
             this.updateProgressMessage('Foto\'s importeren...');
@@ -488,11 +488,22 @@ class DataManager extends BaseModule {
                             existing = null;
                         }
                         
-                        // Bereid import data voor
-                        const importData = { ...foto };
+                        // Bereid import data voor met JUISTE KOLOMNAMEN
+                        const importData = {
+                            stamboomnr: cleanStamboomnr,
+                            data: foto.data || null,
+                            thumbnail: foto.thumbnail || null,
+                            filename: foto.filename || null,
+                            size: foto.size || null,
+                            type: foto.type || null,
+                            upload_at: foto.upload_at || null,
+                            geupload_door: foto.geupload_door || null,
+                            hond_id: foto.hond_id || null
+                        };
+                        
+                        // Verwijder mogelijk onnodige velden
                         delete importData.id;
                         delete importData.created_at;
-                        importData.stamboomnr = cleanStamboomnr;
                         
                         if (!existing) {
                             const { error } = await this.supabase
@@ -510,7 +521,7 @@ class DataManager extends BaseModule {
             }
         }
         
-        // 4. Importeer PRIVÉ INFO
+        // 4. Importeer PRIVÉ INFO - MET JUISTE KOLOMNAMEN
         if (backup.priveInfo && backup.priveInfo.length > 0) {
             console.log(`Importing ${backup.priveInfo.length} privé records...`);
             this.updateProgressMessage('Privé info importeren...');
@@ -528,11 +539,18 @@ class DataManager extends BaseModule {
                     try {
                         const cleanStamboomnr = String(prive.stamboomnr).trim();
                         
-                        // Bereid import data voor
-                        const importData = { ...prive };
+                        // Bereid import data voor met JUISTE KOLOMNAMEN
+                        const importData = {
+                            stamboomnr: cleanStamboomnr,
+                            privatenotes: prive.privatenotes || null,
+                            vertrouwelijk: prive.vertrouwelijk || false,
+                            laatstgewijzigd: prive.laatstgewijzigd || null,
+                            toegevoegd_door: prive.toegevoegd_door || null
+                        };
+                        
+                        // Verwijder mogelijk onnodige velden
                         delete importData.id;
                         delete importData.created_at;
-                        importData.stamboomnr = cleanStamboomnr;
                         
                         // Update of insert privé info
                         const { error } = await this.supabase
