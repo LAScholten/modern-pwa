@@ -302,8 +302,8 @@ class DogDataManager extends BaseModule {
                 eyesExplanation: "Erklärung andere",
                 dandyWalker: "Dandy Walker Malformation",
                 dandyOptions: "Status wählen...",
-                dandyFreeDNA: "Frij op DNA",
-                dandyFreeParents: "Frij op ouders",
+                dandyFreeDNA: "Frei op DNA",
+                dandyFreeParents: "Frei op ouders",
                 dandyCarrier: "Träger",
                 dandyAffected: "Betroffen",
                 thyroid: "Schilddrüse",
@@ -322,7 +322,7 @@ class DogDataManager extends BaseModule {
                 cancel: "Abbrechen",
                 deleteDog: "Hund löschen",
                 choose: "Wählen...",
-                searchPlaceholder: "Name oder Stammbaum-Nummer eingeben...",
+                searchPlaceholder: "Name oder Ahnen-Nummer eingeben...",
                 
                 // Zugangskontrolle Popup Texte
                 insufficientPermissions: "Unzureichende Berechtigingen",

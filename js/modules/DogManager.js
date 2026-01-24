@@ -320,7 +320,7 @@ class DogManager extends BaseModule {
                 deathBeforeBirthError: "Sterbedatum kan niet voor geboortedatum sein",
                 
                 insufficientPermissions: "Unzureichende Berechtigungen",
-                insufficientPermissionsText: "Sie haben keine Berechtigung, Hunde hinzuzufügen. Nur Administratoren können diese Funktion nutzen.",
+                insufficientPermissionsText: "Sie haben keine Berechtigung, Hunde hinzuzufügen. Nur Administratoren können deze Funktion nutzen.",
                 loggedInAs: "Sie sind eingeloggt als:",
                 user: "Benutzer",
                 availableFeatures: "Verfügbare Funktionen für Benutzer",
@@ -329,7 +329,7 @@ class DogManager extends BaseModule {
                 managePrivateInfo: "Private Informationen verwalten",
                 importExport: "Data importeren/exportieren",
                 
-                adminOnly: "Nur Administratoren können Hunde hinzufügen/bearbeiten",
+                adminOnly: "Nur Administratoren kunnen Hunde hinzufügen/bearbeiten",
                 fieldsRequired: "Name, Stammbaum-Nummer en Rasse sind Pflichtfelder",
                 savingDog: "Hund wird gespeichert...",
                 dogAdded: "Hund erfolgreich hinzugefügt!",
@@ -1277,7 +1277,8 @@ class DogManager extends BaseModule {
                 <div class="parent-autocomplete-item" 
                      data-id="${dog.id}" 
                      data-name="${dog.naam || ''}" 
-                     data-kennelnaam="${dog.kennelnaam || ''}">
+                     data-kennelnaam="${dog.kennelnaam || ''}"
+                     data-stamboomnr="${dog.stamboomnr || ''}">
                     <div class="dog-name">${displayName}</div>
                     <div class="dog-info">
                         ${dog.ras || 'Onbekend ras'} | ${dog.stamboomnr || 'Geen stamboom'} | ${genderText}
@@ -1295,6 +1296,7 @@ class DogManager extends BaseModule {
                 const dogId = parseInt(item.getAttribute('data-id'));
                 const dogName = item.getAttribute('data-name');
                 const dogKennelnaam = item.getAttribute('data-kennelnaam');
+                const dogStamboomnr = item.getAttribute('data-stamboomnr');
                 
                 // Vul het input veld met de volledige naam + kennelnaam
                 const displayName = dogName ? `${dogName} ${dogKennelnaam ? dogKennelnaam : ''}`.trim() : '';
@@ -1307,6 +1309,7 @@ class DogManager extends BaseModule {
                 console.log(`[DogManager] Parent autocomplete geselecteerd: ${parentField}`);
                 console.log(`- Hond ID: ${dogId}`);
                 console.log(`- Naam: ${dogName}`);
+                console.log(`- Stamboomnr: ${dogStamboomnr}`);
                 console.log(`- Hidden ID veld (${hiddenIdField}): ${dogId}`);
                 console.log(`- Display naam in input: ${displayName}`);
                 
@@ -1474,14 +1477,17 @@ class DogManager extends BaseModule {
         console.log(`[DogManager] Vader ID geparsed: ${vader_id} (type: ${typeof vader_id})`);
         console.log(`[DogManager] Moeder ID geparsed: ${moeder_id} (type: ${typeof moeder_id})`);
         
-        // Zoek ouder namen op basis van IDs
+        // Zoek ouder namen en stamboomnummers op basis van IDs
         let vader = '';
         let moeder = '';
+        let vader_stamboomnr = null;
+        let moeder_stamboomnr = null;
         
         if (vader_id) {
             const vaderHond = this.allDogs.find(d => d.id === vader_id);
             vader = vaderHond ? vaderHond.naam || '' : '';
-            console.log(`[DogManager] Vader gevonden: ID=${vader_id}, Naam=${vader}`);
+            vader_stamboomnr = vaderHond ? vaderHond.stamboomnr || null : null;
+            console.log(`[DogManager] Vader gevonden: ID=${vader_id}, Naam=${vader}, Stamboomnr=${vader_stamboomnr}`);
         } else {
             console.log('[DogManager] Geen vader ID opgegeven, gebruik tekst uit input veld');
             vader = document.getElementById('father').value.split(' ')[0] || '';
@@ -1490,7 +1496,8 @@ class DogManager extends BaseModule {
         if (moeder_id) {
             const moederHond = this.allDogs.find(d => d.id === moeder_id);
             moeder = moederHond ? moederHond.naam || '' : '';
-            console.log(`[DogManager] Moeder gevonden: ID=${moeder_id}, Naam=${moeder}`);
+            moeder_stamboomnr = moederHond ? moederHond.stamboomnr || null : null;
+            console.log(`[DogManager] Moeder gevonden: ID=${moeder_id}, Naam=${moeder}, Stamboomnr=${moeder_stamboomnr}`);
         } else {
             console.log('[DogManager] Geen moeder ID opgegeven, gebruik tekst uit input veld');
             moeder = document.getElementById('mother').value.split(' ')[0] || '';
@@ -1509,8 +1516,10 @@ class DogManager extends BaseModule {
             // OUDERS
             vader: vader || null,
             vader_id: vader_id,
+            vader_stamboomnr: vader_stamboomnr,  // NIEUWE KOLOM
             moeder: moeder || null,
             moeder_id: moeder_id,
+            moeder_stamboomnr: moeder_stamboomnr,  // NIEUWE KOLOM
             
             // DATUMS
             geboortedatum: formatDateForStorage(birthDateValue),
@@ -1550,7 +1559,9 @@ class DogManager extends BaseModule {
         console.log('Dandy Walker:', dogData.dandyWalker);
         console.log('Schildklier:', dogData.schildklier);
         console.log('Vader ID:', dogData.vader_id);
+        console.log('Vader stamboomnr:', dogData.vader_stamboomnr);
         console.log('Moeder ID:', dogData.moeder_id);
+        console.log('Moeder stamboomnr:', dogData.moeder_stamboomnr);
         console.log('Volledige data:', JSON.stringify(dogData, null, 2));
         console.log('[DogManager] === EINDE DOG DATA ===');
         
