@@ -303,10 +303,10 @@
                                         <h5><i class="bi bi-info-circle text-primary"></i> <span class="app-text" data-key="aboutApp">Over deze PWA</span></h5>
                                         <p class="app-text" data-key="appDescription">Deze Progressive Web App heeft verschillende mogelijkheden:</p>
                                         <ul>
-                                            <li><strong class="app-text" data-key="feature1">💾 Browser opslag:</strong> Slaat de data op in de online database</li>
-                                            <li><strong class="app-text" data-key="feature2">🔄 Easy backup:</strong> Backups worden weekelijks uitgevoerd door de beheerder</li>
-                                            <li><strong class="app-text" data-key="feature3">⚡ Snelle werking:</strong> Directe toegang tot je gegevens</li>
-                                            <li><strong class="app-text" data-key="feature4">🔒 Veilige opslag:</strong> Privé informatie is alleen te zien door de persoon die deze heeft ingevoerd.</li>
+                                            <li><strong class="app-text" data-key="feature1">💾 Browser opslag:</strong> <span class="app-text" data-key="feature1Desc">Slaat de data op in de online database</span></li>
+                                            <li><strong class="app-text" data-key="feature2">🔄 Easy backup:</strong> <span class="app-text" data-key="feature2Desc">Backups worden weekelijks uitgevoerd door de beheerder</span></li>
+                                            <li><strong class="app-text" data-key="feature3">⚡ Snelle werking:</strong> <span class="app-text" data-key="feature3Desc">Directe toegang tot je gegevens</span></li>
+                                            <li><strong class="app-text" data-key="feature4">🔒 Veilige opslag:</strong> <span class="app-text" data-key="feature4Desc">Privé informatie is alleen te zien door de persoon die deze heeft ingevoerd.</span></li>
                                         </ul>
                                     </div>
                                 </div>
@@ -516,7 +516,7 @@
         // Laad taal uit localStorage
         const appLanguage = localStorage.getItem('appLanguage') || 'nl';
         
-        // Vertalingen - MET ALLE VERTALINGEN NU COMPLEET
+        // Vertalingen - NU COMPLEET MET ALLE BESCHRIJVINGEN
         const appTranslations = {
             nl: {
                 appTitle: "Hondendatabase PWA - Desktop Edition",
@@ -540,9 +540,13 @@
                 aboutApp: "Over deze PWA",
                 appDescription: "Deze Progressive Web App heeft verschillende mogelijkheden:",
                 feature1: "💾 Browser opslag:",
+                feature1Desc: "Slaat de data op in de online database",
                 feature2: "🔄 Easy backup:",
+                feature2Desc: "Backups worden weekelijks uitgevoerd door de beheerder",
                 feature3: "⚡ Snelle werking:",
+                feature3Desc: "Directe toegang tot je gegevens",
                 feature4: "🔒 Veilige opslag:",
+                feature4Desc: "Privé informatie is alleen te zien door de persoon die deze heeft ingevoerd.",
                 feature5: "Honden toevoegen en beheren",
                 feature6: "Data importeren/exporteren",
                 security: "Beveiliging",
@@ -578,9 +582,13 @@
                 aboutApp: "About this PWA",
                 appDescription: "This Progressive Web App has several features:",
                 feature1: "💾 Browser storage:",
+                feature1Desc: "Stores data in the online database",
                 feature2: "🔄 Easy backup:",
+                feature2Desc: "Backups are performed weekly by the administrator",
                 feature3: "⚡ Fast operation:",
+                feature3Desc: "Direct access to your data",
                 feature4: "🔒 Secure storage:",
+                feature4Desc: "Private information is only visible to the person who entered it.",
                 feature5: "Add and manage dogs",
                 feature6: "Import/Export data",
                 security: "Security",
@@ -616,9 +624,13 @@
                 aboutApp: "Über diese PWA",
                 appDescription: "Diese Progressive Web App hat verschiedene Möglichkeiten:",
                 feature1: "💾 Browser-Speicher:",
+                feature1Desc: "Speichert Daten in der Online-Datenbank",
                 feature2: "🔄 Einfache Sicherung:",
+                feature2Desc: "Sicherungen werden wöchentlich vom Administrator durchgeführt",
                 feature3: "⚡ Schnelle Arbeit:",
+                feature3Desc: "Direkter Zugriff auf Ihre Daten",
                 feature4: "🔒 Sichere Speicherung:",
+                feature4Desc: "Private Informationen sind nur für die Person sichtbar, die sie eingegeben hat.",
                 feature5: "Hunde hinzufügen und verwalten",
                 feature6: "Daten importieren/exportieren",
                 security: "Sicherheit",
@@ -641,20 +653,7 @@
             elements.forEach(element => {
                 const key = element.getAttribute('data-key');
                 if (appTranslations[lang] && appTranslations[lang][key]) {
-                    // Speciaal geval voor de list items in de PWA beschrijving
-                    if (element.parentElement.tagName === 'LI') {
-                        const li = element.parentElement;
-                        const strong = li.querySelector('strong');
-                        if (strong && strong.classList.contains('app-text')) {
-                            // Vervang alleen de tekst in het strong element
-                            strong.textContent = appTranslations[lang][key];
-                            // De rest van de tekst blijft staan (de beschrijving)
-                        } else {
-                            element.textContent = appTranslations[lang][key];
-                        }
-                    } else {
-                        element.textContent = appTranslations[lang][key];
-                    }
+                    element.textContent = appTranslations[lang][key];
                 }
             });
             
