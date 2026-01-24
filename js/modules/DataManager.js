@@ -210,7 +210,7 @@ class DataManager extends BaseModule {
     }
     
     // =============================================
-    // DATA (HONDEN) FUNCTIES
+    // DATA (HONDEN) FUNCTIES - EXACT ZOALS HET WAS
     // =============================================
     
     async handleDataExport() {
@@ -224,10 +224,8 @@ class DataManager extends BaseModule {
         this.showProgress(t('exportingData'));
         
         try {
-            // Exporteer ALLE honden
             const honden = await this.getAllHondenWithPagination();
             
-            // Maak DATA backup met DUDELLIJKE MARKERS
             const backup = {
                 metadata: {
                     exportDate: new Date().toISOString(),
@@ -244,7 +242,6 @@ class DataManager extends BaseModule {
                 // ===== END DATA SECTION =====
             };
             
-            // Download
             this.downloadBackup(backup, 'honden_data_backup');
             
             this.hideProgress();
@@ -269,15 +266,152 @@ class DataManager extends BaseModule {
         try {
             this.showProgress(t('importingData'));
             
-            // Lees file
             const text = await this.readFile(file);
             const backup = JSON.parse(text);
+            
+            console.log('DEBUG: Data import gestart, backup:', backup);
             
             if (!backup.data_section || !backup.data_section.honden || !Array.isArray(backup.data_section.honden)) {
                 throw new Error('Ongeldig DATA backup bestand');
             }
             
-            const result = await this.importDataSection(backup.data_section.honden);
+            // EXACT ZELFDE LOGICA ALS VOORHEEN
+            const result = {
+                added: 0,
+                updated: 0,
+                errors: 0,
+                relaties: 0
+            };
+            
+            const stamboomnrMap = new Map();
+            const batchSize = 100;
+            
+            // 1. Importeer HONDEN - EXACT ZOALS HET WAS
+            if (backup.data_section.honden && backup.data_section.honden.length > 0) {
+                console.log(`Importing ${backup.data_section.honden.length} honden...`);
+                
+                const totalBatches = Math.ceil(backup.data_section.honden.length / batchSize);
+                
+                for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+                    const start = batchIndex * batchSize;
+                    const end = Math.min(start + batchSize, backup.data_section.honden.length);
+                    const batch = backup.data_section.honden.slice(start, end);
+                    
+                    console.log(`Batch ${batchIndex + 1}/${totalBatches}, ${batch.length} honden`);
+                    this.updateProgressMessage(`Importing honden... batch ${batchIndex + 1}/${totalBatches}`);
+                    
+                    for (const hond of batch) {
+                        try {
+                            const cleanStamboomnr = String(hond.stamboomnr).trim();
+                            console.log('DEBUG: Processing stamboomnr:', cleanStamboomnr);
+                            
+                            // Zoek bestaande hond - EXACT ZOALS HET WAS
+                            let existing = null;
+                            const { data: foundData, error: findError } = await this.supabase
+                                .from('honden')
+                                .select('id')
+                                .ilike('stamboomnr', cleanStamboomnr)
+                                .limit(1);
+                            
+                            if (!findError && foundData && foundData.length > 0) {
+                                existing = foundData[0];
+                            }
+                            
+                            // Bereid import data voor
+                            const importData = { ...hond };
+                            delete importData.id;
+                            delete importData.vader_id;
+                            delete importData.moeder_id;
+                            delete importData.created_at;
+                            delete importData.updated_at;
+                            
+                            importData.stamboomnr = cleanStamboomnr;
+                            
+                            if (existing) {
+                                // Update bestaande hond
+                                const { error } = await this.supabase
+                                    .from('honden')
+                                    .update(importData)
+                                    .eq('id', existing.id);
+                                
+                                if (error) {
+                                    console.error('Update error:', error);
+                                    throw error;
+                                }
+                                
+                                stamboomnrMap.set(cleanStamboomnr, existing.id);
+                                result.updated++;
+                                console.log(`Hond ${cleanStamboomnr} updated`);
+                            } else {
+                                // Nieuwe hond toevoegen
+                                const { data: newHond, error } = await this.supabase
+                                    .from('honden')
+                                    .insert([importData])
+                                    .select('id')
+                                    .single();
+                                
+                                if (error) {
+                                    console.error('Insert error:', error);
+                                    throw error;
+                                }
+                                
+                                stamboomnrMap.set(cleanStamboomnr, newHond.id);
+                                result.added++;
+                                console.log(`Hond ${cleanStamboomnr} added`);
+                            }
+                            
+                        } catch (error) {
+                            console.error(`Fout bij hond ${hond.stamboomnr}:`, error);
+                            result.errors++;
+                        }
+                    }
+                }
+                
+                // 2. Herstel HONDEN relaties - EXACT ZOALS HET WAS
+                console.log('Herstel relaties tussen honden...');
+                this.updateProgressMessage('Relaties herstellen tussen honden...');
+                
+                const relationBatches = Math.ceil(backup.data_section.honden.length / batchSize);
+                
+                for (let batchIndex = 0; batchIndex < relationBatches; batchIndex++) {
+                    const start = batchIndex * batchSize;
+                    const end = Math.min(start + batchSize, backup.data_section.honden.length);
+                    const batch = backup.data_section.honden.slice(start, end);
+                    
+                    console.log(`Relaties batch ${batchIndex + 1}/${relationBatches}`);
+                    
+                    for (const hond of batch) {
+                        try {
+                            const cleanStamboomnr = String(hond.stamboomnr).trim();
+                            const hondId = stamboomnrMap.get(cleanStamboomnr);
+                            if (!hondId) continue;
+                            
+                            // Zoek parent IDs via stamboomnr
+                            const vaderId = hond.vader_stamboomnr ? stamboomnrMap.get(String(hond.vader_stamboomnr).trim()) : null;
+                            const moederId = hond.moeder_stamboomnr ? stamboomnrMap.get(String(hond.moeder_stamboomnr).trim()) : null;
+                            
+                            // Update relaties
+                            if (vaderId !== null || moederId !== null) {
+                                await this.supabase
+                                    .from('honden')
+                                    .update({
+                                        vader_id: vaderId,
+                                        moeder_id: moederId
+                                    })
+                                    .eq('id', hondId);
+                                
+                                result.relaties++;
+                                console.log(`Relaties voor ${cleanStamboomnr} hersteld`);
+                            }
+                            
+                        } catch (error) {
+                            console.error(`Fout bij relaties ${hond.stamboomnr}:`, error);
+                        }
+                    }
+                }
+            }
+            
+            console.log('Data import finished:', result);
             
             this.hideProgress();
             
@@ -299,142 +433,8 @@ class DataManager extends BaseModule {
         }
     }
     
-    async importDataSection(honden) {
-        console.log('DEBUG: Start data import, aantal honden:', honden?.length);
-        
-        const result = { added: 0, updated: 0, errors: 0, relaties: 0 };
-        const stamboomnrMap = new Map();
-        const batchSize = 100;
-        
-        const findHondByStamboomnr = async (stamboomnr) => {
-            try {
-                const cleanStamboomnr = String(stamboomnr).trim();
-                
-                const { data, error } = await this.supabase
-                    .from('honden')
-                    .select('id')
-                    .ilike('stamboomnr', cleanStamboomnr)
-                    .limit(1);
-                
-                if (error) {
-                    console.warn('ILike query failed:', error);
-                    return { data: null, error };
-                }
-                
-                return data && data.length > 0 ? { data: data[0], error: null } : { data: null, error: null };
-                
-            } catch (error) {
-                console.error('Error in findHondByStamboomnr:', error);
-                return { data: null, error };
-            }
-        };
-        
-        if (honden && honden.length > 0) {
-            console.log(`Importing ${honden.length} honden...`);
-            
-            const totalBatches = Math.ceil(honden.length / batchSize);
-            
-            for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
-                const start = batchIndex * batchSize;
-                const end = Math.min(start + batchSize, honden.length);
-                const batch = honden.slice(start, end);
-                
-                this.updateProgressMessage(`Importing honden... batch ${batchIndex + 1}/${totalBatches}`);
-                
-                for (const hond of batch) {
-                    try {
-                        const cleanStamboomnr = String(hond.stamboomnr).trim();
-                        
-                        const { data: existing, error: findError } = await findHondByStamboomnr(cleanStamboomnr);
-                        
-                        if (findError) {
-                            console.warn('Find error, skipping hond:', cleanStamboomnr, findError);
-                            result.errors++;
-                            continue;
-                        }
-                        
-                        const importData = { ...hond };
-                        delete importData.id;
-                        delete importData.vader_id;
-                        delete importData.moeder_id;
-                        delete importData.created_at;
-                        delete importData.updated_at;
-                        
-                        importData.stamboomnr = cleanStamboomnr;
-                        
-                        if (existing) {
-                            const { error } = await this.supabase
-                                .from('honden')
-                                .update(importData)
-                                .eq('id', existing.id);
-                            
-                            if (error) throw error;
-                            
-                            stamboomnrMap.set(cleanStamboomnr, existing.id);
-                            result.updated++;
-                        } else {
-                            const { data: newHond, error } = await this.supabase
-                                .from('honden')
-                                .insert([importData])
-                                .select('id')
-                                .single();
-                            
-                            if (error) throw error;
-                            
-                            stamboomnrMap.set(cleanStamboomnr, newHond.id);
-                            result.added++;
-                        }
-                        
-                    } catch (error) {
-                        console.error(`Fout bij hond ${hond.stamboomnr}:`, error);
-                        result.errors++;
-                    }
-                }
-            }
-            
-            this.updateProgressMessage('Relaties herstellen tussen honden...');
-            
-            const relationBatches = Math.ceil(honden.length / batchSize);
-            
-            for (let batchIndex = 0; batchIndex < relationBatches; batchIndex++) {
-                const start = batchIndex * batchSize;
-                const end = Math.min(start + batchSize, honden.length);
-                const batch = honden.slice(start, end);
-                
-                for (const hond of batch) {
-                    try {
-                        const cleanStamboomnr = String(hond.stamboomnr).trim();
-                        const hondId = stamboomnrMap.get(cleanStamboomnr);
-                        if (!hondId) continue;
-                        
-                        const vaderId = hond.vader_stamboomnr ? stamboomnrMap.get(String(hond.vader_stamboomnr).trim()) : null;
-                        const moederId = hond.moeder_stamboomnr ? stamboomnrMap.get(String(hond.moeder_stamboomnr).trim()) : null;
-                        
-                        if (vaderId !== null || moederId !== null) {
-                            await this.supabase
-                                .from('honden')
-                                .update({
-                                    vader_id: vaderId,
-                                    moeder_id: moederId
-                                })
-                                .eq('id', hondId);
-                            
-                            result.relaties++;
-                        }
-                        
-                    } catch (error) {
-                        console.error(`Fout bij relaties ${hond.stamboomnr}:`, error);
-                    }
-                }
-            }
-        }
-        
-        console.log('Data import finished:', result);
-        return result;
-    }
-    
     // =============================================
-    // FOTO'S FUNCTIES
+    // FOTO'S FUNCTIES - EXACT ZOALS HET WAS
     // =============================================
     
     async handleFotosExport() {
@@ -455,7 +455,6 @@ class DataManager extends BaseModule {
                 console.log('Geen foto\'s om te exporteren:', fotoError.message);
             }
             
-            // Maak FOTO'S backup met DUDELLIJKE MARKERS
             const backup = {
                 metadata: {
                     exportDate: new Date().toISOString(),
@@ -472,7 +471,6 @@ class DataManager extends BaseModule {
                 // ===== END FOTO'S SECTION =====
             };
             
-            // Download
             this.downloadBackup(backup, 'fotos_backup');
             
             this.hideProgress();
@@ -500,11 +498,92 @@ class DataManager extends BaseModule {
             const text = await this.readFile(file);
             const backup = JSON.parse(text);
             
+            console.log('DEBUG: Foto\'s import gestart, backup:', backup);
+            
             if (!backup.fotos_section || !backup.fotos_section.fotos || !Array.isArray(backup.fotos_section.fotos)) {
                 throw new Error('Ongeldig FOTO\'S backup bestand');
             }
             
-            const result = await this.importFotosSection(backup.fotos_section.fotos);
+            // EXACT ZELFDE LOGICA ALS VOORHEEN
+            const result = {
+                added: 0,
+                errors: 0
+            };
+            
+            const batchSize = 50;
+            
+            if (backup.fotos_section.fotos && backup.fotos_section.fotos.length > 0) {
+                console.log(`Importing ${backup.fotos_section.fotos.length} foto's...`);
+                
+                const totalBatches = Math.ceil(backup.fotos_section.fotos.length / batchSize);
+                
+                for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+                    const start = batchIndex * batchSize;
+                    const end = Math.min(start + batchSize, backup.fotos_section.fotos.length);
+                    const batch = backup.fotos_section.fotos.slice(start, end);
+                    
+                    console.log(`Foto's batch ${batchIndex + 1}/${totalBatches}, ${batch.length} foto's`);
+                    this.updateProgressMessage(`Importing foto's... batch ${batchIndex + 1}/${totalBatches}`);
+                    
+                    for (const foto of batch) {
+                        try {
+                            const cleanStamboomnr = String(foto.stamboomnr).trim();
+                            console.log('DEBUG: Processing foto:', foto.filename, 'voor stamboomnr:', cleanStamboomnr);
+                            
+                            // Controleer of foto al bestaat - EXACT ZOALS HET WAS
+                            let existing = null;
+                            const { data: foundData, error: findError } = await this.supabase
+                                .from('fotos')
+                                .select('id')
+                                .ilike('stamboomnr', cleanStamboomnr)
+                                .eq('filename', foto.filename)
+                                .limit(1);
+                            
+                            if (!findError && foundData && foundData.length > 0) {
+                                existing = foundData[0];
+                            }
+                            
+                            // Bereid import data voor met CORRECTE kolomnamen
+                            const importData = {
+                                stamboomnr: cleanStamboomnr,
+                                data: foto.data,
+                                thumbnail: foto.thumbnail,
+                                filename: foto.filename,
+                                size: foto.size,
+                                type: foto.type,
+                                upload_at: foto.upload_at,
+                                geupload_door: foto.geupload_door,
+                                hond_id: foto.hond_id
+                            };
+                            
+                            delete importData.id;
+                            delete importData.created_at;
+                            
+                            if (!existing) {
+                                const { error } = await this.supabase
+                                    .from('fotos')
+                                    .insert([importData]);
+                                
+                                if (!error) {
+                                    result.added++;
+                                    console.log(`Foto ${foto.filename} toegevoegd`);
+                                } else {
+                                    console.error('Insert error voor foto:', foto.filename, error);
+                                    result.errors++;
+                                }
+                            } else {
+                                console.log(`Foto ${foto.filename} bestaat al, overslaan`);
+                            }
+                            
+                        } catch (error) {
+                            console.error(`Fout bij foto ${foto.filename}:`, error);
+                            result.errors++;
+                        }
+                    }
+                }
+            }
+            
+            console.log('Foto\'s import finished:', result);
             
             this.hideProgress();
             
@@ -524,84 +603,8 @@ class DataManager extends BaseModule {
         }
     }
     
-    async importFotosSection(fotos) {
-        console.log('DEBUG: Start foto\'s import, aantal foto\'s:', fotos?.length);
-        
-        const result = { added: 0, errors: 0 };
-        const batchSize = 50;
-        
-        if (fotos && fotos.length > 0) {
-            console.log(`Importing ${fotos.length} foto's...`);
-            
-            const totalBatches = Math.ceil(fotos.length / batchSize);
-            
-            for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
-                const start = batchIndex * batchSize;
-                const end = Math.min(start + batchSize, fotos.length);
-                const batch = fotos.slice(start, end);
-                
-                this.updateProgressMessage(`Importing foto's... batch ${batchIndex + 1}/${totalBatches}`);
-                
-                for (const foto of batch) {
-                    try {
-                        const cleanStamboomnr = String(foto.stamboomnr).trim();
-                        
-                        // Controleer of foto al bestaat
-                        let existing = null;
-                        try {
-                            const { data, error } = await this.supabase
-                                .from('fotos')
-                                .select('id')
-                                .ilike('stamboomnr', cleanStamboomnr)
-                                .eq('filename', foto.filename)
-                                .limit(1);
-                            
-                            if (!error && data && data.length > 0) {
-                                existing = data[0];
-                            }
-                        } catch (err) {
-                            existing = null;
-                        }
-                        
-                        // Bereid import data voor met CORRECTE kolomnamen
-                        const importData = {
-                            stamboomnr: cleanStamboomnr,
-                            data: foto.data,
-                            thumbnail: foto.thumbnail,
-                            filename: foto.filename,
-                            size: foto.size,
-                            type: foto.type,
-                            upload_at: foto.upload_at,
-                            geupload_door: foto.geupload_door,
-                            hond_id: foto.hond_id
-                        };
-                        
-                        // Verwijder onnodige velden
-                        delete importData.id;
-                        delete importData.created_at;
-                        
-                        if (!existing) {
-                            const { error } = await this.supabase
-                                .from('fotos')
-                                .insert([importData]);
-                            
-                            if (!error) result.added++;
-                        }
-                        
-                    } catch (error) {
-                        console.error(`Fout bij foto ${foto.filename}:`, error);
-                        result.errors++;
-                    }
-                }
-            }
-        }
-        
-        console.log('Foto\'s import finished:', result);
-        return result;
-    }
-    
     // =============================================
-    // PRIVEINFO FUNCTIES
+    // PRIVEINFO FUNCTIES - EXACT ZOALS HET WAS
     // =============================================
     
     async handlePriveinfoExport() {
@@ -622,7 +625,6 @@ class DataManager extends BaseModule {
                 console.log('Geen prive info om te exporteren:', priveError.message);
             }
             
-            // Maak PRIVEINFO backup met DUDELLIJKE MARKERS
             const backup = {
                 metadata: {
                     exportDate: new Date().toISOString(),
@@ -639,7 +641,6 @@ class DataManager extends BaseModule {
                 // ===== END PRIVEINFO SECTION =====
             };
             
-            // Download
             this.downloadBackup(backup, 'priveinfo_backup');
             
             this.hideProgress();
@@ -667,11 +668,74 @@ class DataManager extends BaseModule {
             const text = await this.readFile(file);
             const backup = JSON.parse(text);
             
+            console.log('DEBUG: Priveinfo import gestart, backup:', backup);
+            
             if (!backup.priveinfo_section || !backup.priveinfo_section.priveinfo || !Array.isArray(backup.priveinfo_section.priveinfo)) {
                 throw new Error('Ongeldig PRIVÉ INFO backup bestand');
             }
             
-            const result = await this.importPriveinfoSection(backup.priveinfo_section.priveinfo);
+            // EXACT ZELFDE LOGICA ALS VOORHEEN
+            const result = {
+                updated: 0,
+                errors: 0
+            };
+            
+            const batchSize = 100;
+            
+            if (backup.priveinfo_section.priveinfo && backup.priveinfo_section.priveinfo.length > 0) {
+                console.log(`Importing ${backup.priveinfo_section.priveinfo.length} priveinfo records...`);
+                
+                const totalBatches = Math.ceil(backup.priveinfo_section.priveinfo.length / batchSize);
+                
+                for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+                    const start = batchIndex * batchSize;
+                    const end = Math.min(start + batchSize, backup.priveinfo_section.priveinfo.length);
+                    const batch = backup.priveinfo_section.priveinfo.slice(start, end);
+                    
+                    console.log(`Priveinfo batch ${batchIndex + 1}/${totalBatches}, ${batch.length} records`);
+                    this.updateProgressMessage(`Importing prive info... batch ${batchIndex + 1}/${totalBatches}`);
+                    
+                    for (const prive of batch) {
+                        try {
+                            const cleanStamboomnr = String(prive.stamboomnr).trim();
+                            console.log('DEBUG: Processing priveinfo voor stamboomnr:', cleanStamboomnr);
+                            
+                            // Bereid import data voor met CORRECTE kolomnamen
+                            const importData = {
+                                stamboomnr: cleanStamboomnr,
+                                privatenotes: prive.privatenotes,
+                                vertrouwelijk: prive.vertrouwelijk,
+                                laatstgewijzigd: prive.laatstgewijzigd,
+                                toegevoegd_door: prive.toegevoegd_door
+                            };
+                            
+                            delete importData.id;
+                            delete importData.created_at;
+                            
+                            // Update of insert prive info - EXACT ZOALS HET WAS
+                            const { error } = await this.supabase
+                                .from('priveinfo')
+                                .upsert([importData], {
+                                    onConflict: 'stamboomnr'
+                                });
+                            
+                            if (!error) {
+                                result.updated++;
+                                console.log(`Priveinfo voor ${cleanStamboomnr} bijgewerkt`);
+                            } else {
+                                console.error('Upsert error voor priveinfo:', cleanStamboomnr, error);
+                                result.errors++;
+                            }
+                            
+                        } catch (error) {
+                            console.error(`Fout bij prive info ${prive.stamboomnr}:`, error);
+                            result.errors++;
+                        }
+                    }
+                }
+            }
+            
+            console.log('Priveinfo import finished:', result);
             
             this.hideProgress();
             
@@ -691,64 +755,8 @@ class DataManager extends BaseModule {
         }
     }
     
-    async importPriveinfoSection(priveinfoArray) {
-        console.log('DEBUG: Start priveinfo import, aantal records:', priveinfoArray?.length);
-        
-        const result = { updated: 0, errors: 0 };
-        const batchSize = 100;
-        
-        if (priveinfoArray && priveinfoArray.length > 0) {
-            console.log(`Importing ${priveinfoArray.length} priveinfo records...`);
-            
-            const totalBatches = Math.ceil(priveinfoArray.length / batchSize);
-            
-            for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
-                const start = batchIndex * batchSize;
-                const end = Math.min(start + batchSize, priveinfoArray.length);
-                const batch = priveinfoArray.slice(start, end);
-                
-                this.updateProgressMessage(`Importing prive info... batch ${batchIndex + 1}/${totalBatches}`);
-                
-                for (const prive of batch) {
-                    try {
-                        const cleanStamboomnr = String(prive.stamboomnr).trim();
-                        
-                        // Bereid import data voor met CORRECTE kolomnamen
-                        const importData = {
-                            stamboomnr: cleanStamboomnr,
-                            privatenotes: prive.privatenotes,
-                            vertrouwelijk: prive.vertrouwelijk,
-                            laatstgewijzigd: prive.laatstgewijzigd,
-                            toegevoegd_door: prive.toegevoegd_door
-                        };
-                        
-                        // Verwijder onnodige velden
-                        delete importData.id;
-                        delete importData.created_at;
-                        
-                        // Update of insert prive info
-                        const { error } = await this.supabase
-                            .from('priveinfo')
-                            .upsert([importData], {
-                                onConflict: 'stamboomnr'
-                            });
-                        
-                        if (!error) result.updated++;
-                        
-                    } catch (error) {
-                        console.error(`Fout bij prive info ${prive.stamboomnr}:`, error);
-                        result.errors++;
-                    }
-                }
-            }
-        }
-        
-        console.log('Priveinfo import finished:', result);
-        return result;
-    }
-    
     // =============================================
-    // GEMEENSCHAPPELIJKE FUNCTIES
+    // GEMEENSCHAPPELIJKE FUNCTIES - EXACT ZOALS HET WAS
     // =============================================
     
     async getAllHondenWithPagination() {
@@ -797,6 +805,7 @@ class DataManager extends BaseModule {
                 currentPage++;
             }
             
+            console.log(`Export ${tableName}: ${allData.length} records`);
             this.updateProgressMessage(`Exporting ${tableName}... ${allData.length} records`);
         }
         
