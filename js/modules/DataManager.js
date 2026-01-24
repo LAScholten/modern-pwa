@@ -11,10 +11,14 @@ class DataManager extends BaseModule {
         this.translations = {
             nl: {
                 dataManagement: "Data Beheer",
-                dataImport: "Data Importeren",
-                importDescription: "Importeer backup bestand",
-                dataExport: "Data Exporteren", 
+                hondenExport: "Honden Data Exporteren",
+                hondenImport: "Honden Data Importeren",
+                fotosExport: "Foto's Exporteren",
+                fotosImport: "Foto's Importeren",
+                priveinfoExport: "Privé Info Exporteren",
+                priveinfoImport: "Privé Info Importeren",
                 exportDescription: "Exporteer naar backup bestand",
+                importDescription: "Importeer backup bestand",
                 selectJsonFile: "Selecteer backup bestand",
                 startImport: "Start Import",
                 startExport: "Start Export",
@@ -25,7 +29,10 @@ class DataManager extends BaseModule {
                 importSuccess: "Import succesvol!",
                 error: "Fout",
                 close: "Sluiten",
-                selectFileFirst: "Selecteer eerst een bestand"
+                selectFileFirst: "Selecteer eerst een bestand",
+                dataBackup: "Data Backup",
+                fotosBackup: "Foto's Backup",
+                priveinfoBackup: "Privé Info Backup"
             }
         };
     }
@@ -51,37 +58,84 @@ class DataManager extends BaseModule {
                             <div class="alert alert-info mb-3">
                                 <i class="bi bi-cloud-check"></i> 
                                 <strong>Supabase Backup</strong><br>
-                                Exporteert: Honden, Foto's, Privé info
+                                Drie aparte backup types voor betrouwbaarheid
                             </div>
                             
                             <div class="row">
-                                <div class="col-md-6 mb-3">
+                                <!-- Data (Honden) Backup Card -->
+                                <div class="col-md-4 mb-3">
                                     <div class="card h-100">
                                         <div class="card-header bg-primary text-white">
-                                            <h6><i class="bi bi-download"></i> ${t('dataExport')}</h6>
+                                            <h6><i class="bi bi-database"></i> ${t('dataBackup')}</h6>
                                         </div>
                                         <div class="card-body">
-                                            <p>${t('exportDescription')}</p>
-                                            <button class="btn btn-primary w-100" id="startExportBtn">
-                                                <i class="bi bi-download"></i> ${t('startExport')}
-                                            </button>
+                                            <p class="small mb-2"><strong>Alleen hondendata</strong></p>
+                                            <p class="small mb-3">Excl. foto's en privé info</p>
+                                            <div class="row g-2">
+                                                <div class="col-6">
+                                                    <button class="btn btn-primary btn-sm w-100" id="exportDataBtn">
+                                                        <i class="bi bi-download"></i> ${t('hondenExport')}
+                                                    </button>
+                                                </div>
+                                                <div class="col-6">
+                                                    <input type="file" class="form-control form-control-sm mb-2 d-none" id="importDataFile" accept=".json">
+                                                    <button class="btn btn-outline-primary btn-sm w-100" id="importDataBtn">
+                                                        <i class="bi bi-upload"></i> ${t('hondenImport')}
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                                 
-                                <div class="col-md-6 mb-3">
+                                <!-- Foto's Backup Card -->
+                                <div class="col-md-4 mb-3">
                                     <div class="card h-100">
-                                        <div class="card-header bg-success text-white">
-                                            <h6><i class="bi bi-upload"></i> ${t('dataImport')}</h6>
+                                        <div class="card-header bg-warning text-dark">
+                                            <h6><i class="bi bi-image"></i> ${t('fotosBackup')}</h6>
                                         </div>
                                         <div class="card-body">
-                                            <p>${t('importDescription')}</p>
-                                            <div class="mb-3">
-                                                <input type="file" class="form-control" id="importFile" accept=".json">
+                                            <p class="small mb-2"><strong>Alleen foto's</strong></p>
+                                            <p class="small mb-3">Foto metadata en thumbnails</p>
+                                            <div class="row g-2">
+                                                <div class="col-6">
+                                                    <button class="btn btn-warning btn-sm w-100" id="exportFotosBtn">
+                                                        <i class="bi bi-download"></i> ${t('fotosExport')}
+                                                    </button>
+                                                </div>
+                                                <div class="col-6">
+                                                    <input type="file" class="form-control form-control-sm mb-2 d-none" id="importFotosFile" accept=".json">
+                                                    <button class="btn btn-outline-warning btn-sm w-100" id="importFotosBtn">
+                                                        <i class="bi bi-upload"></i> ${t('fotosImport')}
+                                                    </button>
+                                                </div>
                                             </div>
-                                            <button class="btn btn-success w-100" id="startImportBtn">
-                                                <i class="bi bi-upload"></i> ${t('startImport')}
-                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Privé Info Backup Card -->
+                                <div class="col-md-4 mb-3">
+                                    <div class="card h-100">
+                                        <div class="card-header bg-danger text-white">
+                                            <h6><i class="bi bi-shield-lock"></i> ${t('priveinfoBackup')}</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <p class="small mb-2"><strong>Alleen privé info</strong></p>
+                                            <p class="small mb-3">Vertrouwelijke gegevens</p>
+                                            <div class="row g-2">
+                                                <div class="col-6">
+                                                    <button class="btn btn-danger btn-sm w-100" id="exportPriveinfoBtn">
+                                                        <i class="bi bi-download"></i> ${t('priveinfoExport')}
+                                                    </button>
+                                                </div>
+                                                <div class="col-6">
+                                                    <input type="file" class="form-control form-control-sm mb-2 d-none" id="importPriveinfoFile" accept=".json">
+                                                    <button class="btn btn-outline-danger btn-sm w-100" id="importPriveinfoBtn">
+                                                        <i class="bi bi-upload"></i> ${t('priveinfoImport')}
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -97,16 +151,69 @@ class DataManager extends BaseModule {
     }
     
     setupEvents() {
-        document.getElementById('startExportBtn')?.addEventListener('click', () => {
-            this.handleExport();
+        // Data (Honden) buttons
+        document.getElementById('exportDataBtn')?.addEventListener('click', () => {
+            this.handleDataExport();
         });
         
-        document.getElementById('startImportBtn')?.addEventListener('click', () => {
-            this.handleImport();
+        document.getElementById('importDataBtn')?.addEventListener('click', () => {
+            const fileInput = document.getElementById('importDataFile');
+            if (fileInput.files.length) {
+                this.handleDataImport(fileInput.files[0]);
+            } else {
+                fileInput.click();
+                fileInput.onchange = () => {
+                    if (fileInput.files.length) {
+                        this.handleDataImport(fileInput.files[0]);
+                    }
+                };
+            }
+        });
+        
+        // Foto's buttons
+        document.getElementById('exportFotosBtn')?.addEventListener('click', () => {
+            this.handleFotosExport();
+        });
+        
+        document.getElementById('importFotosBtn')?.addEventListener('click', () => {
+            const fileInput = document.getElementById('importFotosFile');
+            if (fileInput.files.length) {
+                this.handleFotosImport(fileInput.files[0]);
+            } else {
+                fileInput.click();
+                fileInput.onchange = () => {
+                    if (fileInput.files.length) {
+                        this.handleFotosImport(fileInput.files[0]);
+                    }
+                };
+            }
+        });
+        
+        // Priveinfo buttons
+        document.getElementById('exportPriveinfoBtn')?.addEventListener('click', () => {
+            this.handlePriveinfoExport();
+        });
+        
+        document.getElementById('importPriveinfoBtn')?.addEventListener('click', () => {
+            const fileInput = document.getElementById('importPriveinfoFile');
+            if (fileInput.files.length) {
+                this.handlePriveinfoImport(fileInput.files[0]);
+            } else {
+                fileInput.click();
+                fileInput.onchange = () => {
+                    if (fileInput.files.length) {
+                        this.handlePriveinfoImport(fileInput.files[0]);
+                    }
+                };
+            }
         });
     }
     
-    async handleExport() {
+    // =============================================
+    // DATA (HONDEN) FUNCTIES
+    // =============================================
+    
+    async handleDataExport() {
         const t = this.t.bind(this);
         
         if (!this.supabase) {
@@ -117,127 +224,47 @@ class DataManager extends BaseModule {
         this.showProgress(t('exportingData'));
         
         try {
-            // 1. Exporteer ALLE honden
+            // Exporteer ALLE honden
             const honden = await this.getAllHondenWithPagination();
             
-            // 2. Exporteer foto's (als de tabel bestaat)
-            let fotos = [];
-            try {
-                fotos = await this.getAllFotosWithPagination();
-            } catch (fotoError) {
-                console.log('Geen foto\'s om te exporteren:', fotoError.message);
-            }
-            
-            // 3. Exporteer prive info (als de tabel bestaat)
-            let priveinfo = [];
-            try {
-                priveinfo = await this.getAllPriveinfoWithPagination();
-            } catch (priveError) {
-                console.log('Geen prive info om te exporteren:', priveError.message);
-            }
-            
-            // 4. Maak complete backup
+            // Maak DATA backup met DUDELLIJKE MARKERS
             const backup = {
                 metadata: {
                     exportDate: new Date().toISOString(),
                     version: '2.0',
+                    type: 'DATA_BACKUP',
                     hondenCount: honden.length,
-                    fotosCount: fotos.length,
-                    priveinfoCount: priveinfo.length,
-                    system: 'Supabase complete backup'
+                    system: 'Supabase DATA backup'
                 },
-                honden: honden,
-                fotos: fotos,
-                priveinfo: priveinfo
+                // ===== BEGIN DATA SECTION =====
+                data_section: {
+                    description: "HONDEN DATA - Alle hondengegevens",
+                    honden: honden
+                }
+                // ===== END DATA SECTION =====
             };
             
-            // 5. Download
-            this.downloadBackup(backup);
+            // Download
+            this.downloadBackup(backup, 'honden_data_backup');
             
             this.hideProgress();
-            this.showSuccess(`Backup gemaakt!<br>
-                - ${honden.length} honden<br>
-                - ${fotos.length} foto's<br>
-                - ${priveinfo.length} prive records`);
+            this.showSuccess(`Data backup gemaakt!<br>
+                - ${honden.length} honden`);
             
         } catch (error) {
             this.hideProgress();
-            console.error('Export error:', error);
-            this.showError(`Export mislukt: ${error.message}`);
+            console.error('Data export error:', error);
+            this.showError(`Data export mislukt: ${error.message}`);
         }
     }
     
-    async getAllHondenWithPagination() {
-        return this.getTableWithPagination('honden', 'id');
-    }
-    
-    async getAllFotosWithPagination() {
-        return this.getTableWithPagination('fotos', 'id');
-    }
-    
-    async getAllPriveinfoWithPagination() {
-        return this.getTableWithPagination('priveinfo', 'id');
-    }
-    
-    async getTableWithPagination(tableName, orderBy) {
-        const allData = [];
-        const pageSize = 1000;
-        let currentPage = 0;
-        let hasMore = true;
-        
-        console.log(`Start paginated export for ${tableName}...`);
-        
-        while (hasMore) {
-            const from = currentPage * pageSize;
-            const to = from + pageSize - 1;
-            
-            const { data: rows, error } = await this.supabase
-                .from(tableName)
-                .select('*')
-                .order(orderBy)
-                .range(from, to);
-                
-            if (error) {
-                // Tabel bestaat misschien niet
-                if (error.code === 'PGRST116') {
-                    console.log(`Tabel ${tableName} bestaat niet, skip export`);
-                    return [];
-                }
-                throw error;
-            }
-            
-            allData.push(...rows);
-            
-            // Check of er meer zijn
-            if (rows.length < pageSize) {
-                hasMore = false;
-            } else {
-                currentPage++;
-            }
-            
-            // Update progress
-            this.updateProgressMessage(`Exporting ${tableName}... ${allData.length} records`);
-        }
-        
-        console.log(`Export ${tableName} complete: ${allData.length} records`);
-        return allData;
-    }
-    
-    async handleImport() {
+    async handleDataImport(file) {
         const t = this.t.bind(this);
-        const fileInput = document.getElementById('importFile');
-        
-        if (!fileInput || !fileInput.files.length) {
-            this.showError(t('selectFileFirst'));
-            return;
-        }
         
         if (!this.supabase) {
             this.showError('Supabase niet beschikbaar');
             return;
         }
-        
-        const file = fileInput.files[0];
         
         try {
             this.showProgress(t('importingData'));
@@ -246,57 +273,43 @@ class DataManager extends BaseModule {
             const text = await this.readFile(file);
             const backup = JSON.parse(text);
             
-            if (!backup.honden || !Array.isArray(backup.honden)) {
-                throw new Error('Ongeldig backup bestand');
+            if (!backup.data_section || !backup.data_section.honden || !Array.isArray(backup.data_section.honden)) {
+                throw new Error('Ongeldig DATA backup bestand');
             }
             
-            // Importeer alles
-            const result = await this.importCompleteBackup(backup);
+            const result = await this.importDataSection(backup.data_section.honden);
             
             this.hideProgress();
             
             const message = `
-                Import voltooid!<br>
+                Data import voltooid!<br>
                 <strong>Honden:</strong><br>
-                - ${result.honden.added} toegevoegd<br>
-                - ${result.honden.updated} bijgewerkt<br>
-                - ${result.honden.relaties} relaties<br>
-                - ${result.honden.errors} fouten<br><br>
-                <strong>Foto's:</strong><br>
-                - ${result.fotos.added} toegevoegd<br>
-                - ${result.fotos.errors} fouten<br><br>
-                <strong>Privé info:</strong><br>
-                - ${result.priveinfo.updated} bijgewerkt<br>
-                - ${result.priveinfo.errors} fouten
+                - ${result.added} toegevoegd<br>
+                - ${result.updated} bijgewerkt<br>
+                - ${result.relaties} relaties<br>
+                - ${result.errors} fouten
             `;
             
             this.showSuccess(message);
             
         } catch (error) {
             this.hideProgress();
-            console.error('Import error:', error);
-            this.showError(`Import mislukt: ${error.message}`);
+            console.error('Data import error:', error);
+            this.showError(`Data import mislukt: ${error.message}`);
         }
     }
     
-    async importCompleteBackup(backup) {
-        console.log('DEBUG: Start import, aantal honden:', backup.honden?.length);
+    async importDataSection(honden) {
+        console.log('DEBUG: Start data import, aantal honden:', honden?.length);
         
-        const result = {
-            honden: { added: 0, updated: 0, errors: 0, relaties: 0 },
-            fotos: { added: 0, errors: 0 },
-            priveinfo: { updated: 0, errors: 0 }
-        };
-        
+        const result = { added: 0, updated: 0, errors: 0, relaties: 0 };
         const stamboomnrMap = new Map();
         const batchSize = 100;
         
-        // Helper functie voor veilige stamboomnr matching
         const findHondByStamboomnr = async (stamboomnr) => {
             try {
                 const cleanStamboomnr = String(stamboomnr).trim();
                 
-                // Probeer met ILIKE (case-insensitive, beter voor speciale chars)
                 const { data, error } = await this.supabase
                     .from('honden')
                     .select('id')
@@ -304,29 +317,8 @@ class DataManager extends BaseModule {
                     .limit(1);
                 
                 if (error) {
-                    console.warn('ILike query failed, trying direct query:', error);
-                    
-                    // Fallback: Gebruik directe query
-                    const { data: directData, error: directError } = await this.supabase
-                        .from('honden')
-                        .select('id')
-                        .limit(1)
-                        .then(response => {
-                            // Filter lokaal als Supabase het niet doet
-                            if (response.data) {
-                                const found = response.data.find(h => 
-                                    String(h.stamboomnr).trim() === cleanStamboomnr
-                                );
-                                return { data: found ? [found] : [], error: null };
-                            }
-                            return response;
-                        });
-                    
-                    if (directData && directData.length > 0) {
-                        return { data: directData[0], error: null };
-                    }
-                    
-                    return { data: null, error: directError };
+                    console.warn('ILike query failed:', error);
+                    return { data: null, error };
                 }
                 
                 return data && data.length > 0 ? { data: data[0], error: null } : { data: null, error: null };
@@ -337,34 +329,30 @@ class DataManager extends BaseModule {
             }
         };
         
-        // 1. Importeer HONDEN
-        if (backup.honden && backup.honden.length > 0) {
-            console.log(`Importing ${backup.honden.length} honden...`);
+        if (honden && honden.length > 0) {
+            console.log(`Importing ${honden.length} honden...`);
             
-            const totalBatches = Math.ceil(backup.honden.length / batchSize);
+            const totalBatches = Math.ceil(honden.length / batchSize);
             
             for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
                 const start = batchIndex * batchSize;
-                const end = Math.min(start + batchSize, backup.honden.length);
-                const batch = backup.honden.slice(start, end);
+                const end = Math.min(start + batchSize, honden.length);
+                const batch = honden.slice(start, end);
                 
                 this.updateProgressMessage(`Importing honden... batch ${batchIndex + 1}/${totalBatches}`);
                 
                 for (const hond of batch) {
                     try {
                         const cleanStamboomnr = String(hond.stamboomnr).trim();
-                        console.log('DEBUG: Processing stamboomnr:', cleanStamboomnr);
                         
-                        // Gebruik de veilige helper functie
                         const { data: existing, error: findError } = await findHondByStamboomnr(cleanStamboomnr);
                         
                         if (findError) {
                             console.warn('Find error, skipping hond:', cleanStamboomnr, findError);
-                            result.honden.errors++;
+                            result.errors++;
                             continue;
                         }
                         
-                        // Bereid import data voor
                         const importData = { ...hond };
                         delete importData.id;
                         delete importData.vader_id;
@@ -372,56 +360,46 @@ class DataManager extends BaseModule {
                         delete importData.created_at;
                         delete importData.updated_at;
                         
-                        // Zorg dat stamboomnr schoon is
                         importData.stamboomnr = cleanStamboomnr;
                         
                         if (existing) {
-                            // Update bestaande hond
                             const { error } = await this.supabase
                                 .from('honden')
                                 .update(importData)
                                 .eq('id', existing.id);
                             
-                            if (error) {
-                                console.error('Update error:', error);
-                                throw error;
-                            }
+                            if (error) throw error;
                             
                             stamboomnrMap.set(cleanStamboomnr, existing.id);
-                            result.honden.updated++;
+                            result.updated++;
                         } else {
-                            // Nieuwe hond toevoegen
                             const { data: newHond, error } = await this.supabase
                                 .from('honden')
                                 .insert([importData])
                                 .select('id')
                                 .single();
                             
-                            if (error) {
-                                console.error('Insert error:', error);
-                                throw error;
-                            }
+                            if (error) throw error;
                             
                             stamboomnrMap.set(cleanStamboomnr, newHond.id);
-                            result.honden.added++;
+                            result.added++;
                         }
                         
                     } catch (error) {
                         console.error(`Fout bij hond ${hond.stamboomnr}:`, error);
-                        result.honden.errors++;
+                        result.errors++;
                     }
                 }
             }
             
-            // 2. Herstel HONDEN relaties
             this.updateProgressMessage('Relaties herstellen tussen honden...');
             
-            const relationBatches = Math.ceil(backup.honden.length / batchSize);
+            const relationBatches = Math.ceil(honden.length / batchSize);
             
             for (let batchIndex = 0; batchIndex < relationBatches; batchIndex++) {
                 const start = batchIndex * batchSize;
-                const end = Math.min(start + batchSize, backup.honden.length);
-                const batch = backup.honden.slice(start, end);
+                const end = Math.min(start + batchSize, honden.length);
+                const batch = honden.slice(start, end);
                 
                 for (const hond of batch) {
                     try {
@@ -429,11 +407,9 @@ class DataManager extends BaseModule {
                         const hondId = stamboomnrMap.get(cleanStamboomnr);
                         if (!hondId) continue;
                         
-                        // Zoek parent IDs via stamboomnr
                         const vaderId = hond.vader_stamboomnr ? stamboomnrMap.get(String(hond.vader_stamboomnr).trim()) : null;
                         const moederId = hond.moeder_stamboomnr ? stamboomnrMap.get(String(hond.moeder_stamboomnr).trim()) : null;
                         
-                        // Update relaties
                         if (vaderId !== null || moederId !== null) {
                             await this.supabase
                                 .from('honden')
@@ -443,7 +419,7 @@ class DataManager extends BaseModule {
                                 })
                                 .eq('id', hondId);
                             
-                            result.honden.relaties++;
+                            result.relaties++;
                         }
                         
                     } catch (error) {
@@ -453,17 +429,116 @@ class DataManager extends BaseModule {
             }
         }
         
-        // 3. Importeer FOTO'S
-        if (backup.fotos && backup.fotos.length > 0) {
-            console.log(`Importing ${backup.fotos.length} foto's...`);
-            this.updateProgressMessage('Foto\'s importeren...');
+        console.log('Data import finished:', result);
+        return result;
+    }
+    
+    // =============================================
+    // FOTO'S FUNCTIES
+    // =============================================
+    
+    async handleFotosExport() {
+        const t = this.t.bind(this);
+        
+        if (!this.supabase) {
+            this.showError('Supabase niet beschikbaar');
+            return;
+        }
+        
+        this.showProgress('Foto\'s exporteren...');
+        
+        try {
+            let fotos = [];
+            try {
+                fotos = await this.getAllFotosWithPagination();
+            } catch (fotoError) {
+                console.log('Geen foto\'s om te exporteren:', fotoError.message);
+            }
             
-            const totalBatches = Math.ceil(backup.fotos.length / batchSize);
+            // Maak FOTO'S backup met DUDELLIJKE MARKERS
+            const backup = {
+                metadata: {
+                    exportDate: new Date().toISOString(),
+                    version: '2.0',
+                    type: 'FOTOS_BACKUP',
+                    fotosCount: fotos.length,
+                    system: 'Supabase FOTO\'S backup'
+                },
+                // ===== BEGIN FOTO'S SECTION =====
+                fotos_section: {
+                    description: "FOTO'S DATA - Alle foto metadata en thumbnails",
+                    fotos: fotos
+                }
+                // ===== END FOTO'S SECTION =====
+            };
+            
+            // Download
+            this.downloadBackup(backup, 'fotos_backup');
+            
+            this.hideProgress();
+            this.showSuccess(`Foto's backup gemaakt!<br>
+                - ${fotos.length} foto's`);
+            
+        } catch (error) {
+            this.hideProgress();
+            console.error('Foto\'s export error:', error);
+            this.showError(`Foto's export mislukt: ${error.message}`);
+        }
+    }
+    
+    async handleFotosImport(file) {
+        const t = this.t.bind(this);
+        
+        if (!this.supabase) {
+            this.showError('Supabase niet beschikbaar');
+            return;
+        }
+        
+        try {
+            this.showProgress('Foto\'s importeren...');
+            
+            const text = await this.readFile(file);
+            const backup = JSON.parse(text);
+            
+            if (!backup.fotos_section || !backup.fotos_section.fotos || !Array.isArray(backup.fotos_section.fotos)) {
+                throw new Error('Ongeldig FOTO\'S backup bestand');
+            }
+            
+            const result = await this.importFotosSection(backup.fotos_section.fotos);
+            
+            this.hideProgress();
+            
+            const message = `
+                Foto's import voltooid!<br>
+                <strong>Foto's:</strong><br>
+                - ${result.added} toegevoegd<br>
+                - ${result.errors} fouten
+            `;
+            
+            this.showSuccess(message);
+            
+        } catch (error) {
+            this.hideProgress();
+            console.error('Foto\'s import error:', error);
+            this.showError(`Foto's import mislukt: ${error.message}`);
+        }
+    }
+    
+    async importFotosSection(fotos) {
+        console.log('DEBUG: Start foto\'s import, aantal foto\'s:', fotos?.length);
+        
+        const result = { added: 0, errors: 0 };
+        const batchSize = 50;
+        
+        if (fotos && fotos.length > 0) {
+            console.log(`Importing ${fotos.length} foto's...`);
+            
+            const totalBatches = Math.ceil(fotos.length / batchSize);
             
             for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
                 const start = batchIndex * batchSize;
-                const end = Math.min(start + batchSize, backup.fotos.length);
-                const batch = backup.fotos.slice(start, end);
+                const end = Math.min(start + batchSize, fotos.length);
+                const batch = fotos.slice(start, end);
                 
                 this.updateProgressMessage(`Importing foto's... batch ${batchIndex + 1}/${totalBatches}`);
                 
@@ -471,7 +546,7 @@ class DataManager extends BaseModule {
                     try {
                         const cleanStamboomnr = String(foto.stamboomnr).trim();
                         
-                        // Controleer of foto al bestaat met veilige matching
+                        // Controleer of foto al bestaat
                         let existing = null;
                         try {
                             const { data, error } = await this.supabase
@@ -510,28 +585,127 @@ class DataManager extends BaseModule {
                                 .from('fotos')
                                 .insert([importData]);
                             
-                            if (!error) result.fotos.added++;
+                            if (!error) result.added++;
                         }
                         
                     } catch (error) {
                         console.error(`Fout bij foto ${foto.filename}:`, error);
-                        result.fotos.errors++;
+                        result.errors++;
                     }
                 }
             }
         }
         
-        // 4. Importeer PRIVÉ INFO
-        if (backup.priveinfo && backup.priveinfo.length > 0) {
-            console.log(`Importing ${backup.priveinfo.length} prive records...`);
-            this.updateProgressMessage('Privé info importeren...');
+        console.log('Foto\'s import finished:', result);
+        return result;
+    }
+    
+    // =============================================
+    // PRIVEINFO FUNCTIES
+    // =============================================
+    
+    async handlePriveinfoExport() {
+        const t = this.t.bind(this);
+        
+        if (!this.supabase) {
+            this.showError('Supabase niet beschikbaar');
+            return;
+        }
+        
+        this.showProgress('Privé info exporteren...');
+        
+        try {
+            let priveinfo = [];
+            try {
+                priveinfo = await this.getAllPriveinfoWithPagination();
+            } catch (priveError) {
+                console.log('Geen prive info om te exporteren:', priveError.message);
+            }
             
-            const totalBatches = Math.ceil(backup.priveinfo.length / batchSize);
+            // Maak PRIVEINFO backup met DUDELLIJKE MARKERS
+            const backup = {
+                metadata: {
+                    exportDate: new Date().toISOString(),
+                    version: '2.0',
+                    type: 'PRIVEINFO_BACKUP',
+                    priveinfoCount: priveinfo.length,
+                    system: 'Supabase PRIVEINFO backup'
+                },
+                // ===== BEGIN PRIVEINFO SECTION =====
+                priveinfo_section: {
+                    description: "PRIVÉ INFO DATA - Alle vertrouwelijke gegevens",
+                    priveinfo: priveinfo
+                }
+                // ===== END PRIVEINFO SECTION =====
+            };
+            
+            // Download
+            this.downloadBackup(backup, 'priveinfo_backup');
+            
+            this.hideProgress();
+            this.showSuccess(`Privé info backup gemaakt!<br>
+                - ${priveinfo.length} records`);
+            
+        } catch (error) {
+            this.hideProgress();
+            console.error('Privé info export error:', error);
+            this.showError(`Privé info export mislukt: ${error.message}`);
+        }
+    }
+    
+    async handlePriveinfoImport(file) {
+        const t = this.t.bind(this);
+        
+        if (!this.supabase) {
+            this.showError('Supabase niet beschikbaar');
+            return;
+        }
+        
+        try {
+            this.showProgress('Privé info importeren...');
+            
+            const text = await this.readFile(file);
+            const backup = JSON.parse(text);
+            
+            if (!backup.priveinfo_section || !backup.priveinfo_section.priveinfo || !Array.isArray(backup.priveinfo_section.priveinfo)) {
+                throw new Error('Ongeldig PRIVÉ INFO backup bestand');
+            }
+            
+            const result = await this.importPriveinfoSection(backup.priveinfo_section.priveinfo);
+            
+            this.hideProgress();
+            
+            const message = `
+                Privé info import voltooid!<br>
+                <strong>Privé info:</strong><br>
+                - ${result.updated} bijgewerkt<br>
+                - ${result.errors} fouten
+            `;
+            
+            this.showSuccess(message);
+            
+        } catch (error) {
+            this.hideProgress();
+            console.error('Privé info import error:', error);
+            this.showError(`Privé info import mislukt: ${error.message}`);
+        }
+    }
+    
+    async importPriveinfoSection(priveinfoArray) {
+        console.log('DEBUG: Start priveinfo import, aantal records:', priveinfoArray?.length);
+        
+        const result = { updated: 0, errors: 0 };
+        const batchSize = 100;
+        
+        if (priveinfoArray && priveinfoArray.length > 0) {
+            console.log(`Importing ${priveinfoArray.length} priveinfo records...`);
+            
+            const totalBatches = Math.ceil(priveinfoArray.length / batchSize);
             
             for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
                 const start = batchIndex * batchSize;
-                const end = Math.min(start + batchSize, backup.priveinfo.length);
-                const batch = backup.priveinfo.slice(start, end);
+                const end = Math.min(start + batchSize, priveinfoArray.length);
+                const batch = priveinfoArray.slice(start, end);
                 
                 this.updateProgressMessage(`Importing prive info... batch ${batchIndex + 1}/${totalBatches}`);
                 
@@ -559,23 +733,80 @@ class DataManager extends BaseModule {
                                 onConflict: 'stamboomnr'
                             });
                         
-                        if (!error) result.priveinfo.updated++;
+                        if (!error) result.updated++;
                         
                     } catch (error) {
                         console.error(`Fout bij prive info ${prive.stamboomnr}:`, error);
-                        result.priveinfo.errors++;
+                        result.errors++;
                     }
                 }
             }
         }
         
-        console.log('Complete import finished:', result);
+        console.log('Priveinfo import finished:', result);
         return result;
     }
     
-    downloadBackup(backup) {
+    // =============================================
+    // GEMEENSCHAPPELIJKE FUNCTIES
+    // =============================================
+    
+    async getAllHondenWithPagination() {
+        return this.getTableWithPagination('honden', 'id');
+    }
+    
+    async getAllFotosWithPagination() {
+        return this.getTableWithPagination('fotos', 'id');
+    }
+    
+    async getAllPriveinfoWithPagination() {
+        return this.getTableWithPagination('priveinfo', 'id');
+    }
+    
+    async getTableWithPagination(tableName, orderBy) {
+        const allData = [];
+        const pageSize = 1000;
+        let currentPage = 0;
+        let hasMore = true;
+        
+        console.log(`Start paginated export for ${tableName}...`);
+        
+        while (hasMore) {
+            const from = currentPage * pageSize;
+            const to = from + pageSize - 1;
+            
+            const { data: rows, error } = await this.supabase
+                .from(tableName)
+                .select('*')
+                .order(orderBy)
+                .range(from, to);
+                
+            if (error) {
+                if (error.code === 'PGRST116') {
+                    console.log(`Tabel ${tableName} bestaat niet, skip export`);
+                    return [];
+                }
+                throw error;
+            }
+            
+            allData.push(...rows);
+            
+            if (rows.length < pageSize) {
+                hasMore = false;
+            } else {
+                currentPage++;
+            }
+            
+            this.updateProgressMessage(`Exporting ${tableName}... ${allData.length} records`);
+        }
+        
+        console.log(`Export ${tableName} complete: ${allData.length} records`);
+        return allData;
+    }
+    
+    downloadBackup(backup, baseName) {
         const date = new Date();
-        const filename = `honden_complete_backup_${date.getFullYear()}${(date.getMonth()+1).toString().padStart(2,'0')}${date.getDate().toString().padStart(2,'0')}_${date.getHours().toString().padStart(2,'0')}${date.getMinutes().toString().padStart(2,'0')}.json`;
+        const filename = `${baseName}_${date.getFullYear()}${(date.getMonth()+1).toString().padStart(2,'0')}${date.getDate().toString().padStart(2,'0')}_${date.getHours().toString().padStart(2,'0')}${date.getMinutes().toString().padStart(2,'0')}.json`;
         
         const jsonStr = JSON.stringify(backup, null, 2);
         const blob = new Blob([jsonStr], { type: 'application/json' });
