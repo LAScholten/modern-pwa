@@ -149,8 +149,7 @@ const hondenService = {
         moeder_id: hond.moeder_id || null,
         vader: hond.vader || '',
         moeder: hond.moeder || '',
-        vader_stamboomnr: hondData.vader_stamboomnr || null,
-        moeder_stamboomnr: hondData.moeder_stamboomnr || null,
+
         
         // Datums
         geboortedatum: hond.geboortedatum || null,
