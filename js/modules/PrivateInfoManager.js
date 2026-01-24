@@ -6,7 +6,6 @@ class PrivateInfoManager extends BaseModule {
         this.isLoading = false;
         this.currentPriveInfo = null;
         
-        // EXACT ZELFDE ALS SEARCHMANAGER
         this.translations = {
             nl: {
                 privateInfo: "Privé Informatie",
@@ -21,27 +20,21 @@ class PrivateInfoManager extends BaseModule {
                 privateNote: "Deze notities zijn alleen voor u zichtbaar",
                 clear: "Wissen",
                 save: "Opslaan",
-                backup: "Backup",
-                restore: "Restore",
                 selectDogFirst: "Selecteer eerst een hond",
                 loadingInfo: "Privé info laden...",
                 noInfoFound: "Geen privé informatie gevonden",
                 savingInfo: "Privé info opslaan...",
                 saveSuccess: "Privé informatie opgeslagen!",
                 clearConfirm: "Weet je zeker dat je alle notities wilt wissen?",
-                makingBackup: "Backup maken...",
-                backupSuccess: "Backup gemaakt!",
-                restoring: "Backup herstellen...",
                 loadingDogs: "Honden laden...",
                 noDogsFound: "Geen honden gevonden",
-                typeToSearch: "Begin met typen om te zoeken" // EXACT ZELFDE
+                typeToSearch: "Begin met typen om te zoeken"
             }
         };
     }
     
     t(key) { return this.translations[this.currentLang][key] || key; }
     
-    // EXACT DEZELFDE FUNCTIE ALS SEARCHMANAGER
     async loadSearchData() {
         if (this.isLoading) return;
         
@@ -49,10 +42,8 @@ class PrivateInfoManager extends BaseModule {
             this.isLoading = true;
             this.showProgress("Honden laden... (0 geladen)");
             
-            // EXACT DEZELFDE METHODE
             this.allDogs = await this.loadAllDogsWithPaginationDogDataManagerStyle();
             
-            // EXACT ZELFDE SORTING
             this.allDogs.sort((a, b) => (a.naam || '').localeCompare(b.naam || ''));
             
             console.log(`PrivateInfoManager: ${this.allDogs.length} honden geladen`);
@@ -67,7 +58,6 @@ class PrivateInfoManager extends BaseModule {
         }
     }
     
-    // EXACT DEZELFDE FUNCTIE ALS SEARCHMANAGER
     async loadAllDogsWithPaginationDogDataManagerStyle() {
         try {
             let allDogs = [];
@@ -113,9 +103,6 @@ class PrivateInfoManager extends BaseModule {
         const modalElement = document.getElementById('privateInfoModal');
         const modal = new bootstrap.Modal(modalElement);
         modal.show();
-        
-        // NIET hier honden laden - EXACT ZELFDE ALS SEARCHMANAGER
-        // SearchManager laadt pas bij focus op zoekveld
     }
     
     getModalHTML() {
@@ -130,7 +117,7 @@ class PrivateInfoManager extends BaseModule {
                         </div>
                         <div class="modal-body">
                             <div class="row mb-4">
-                                <div class="col-md-4">
+                                <div class="col-md-6">
                                     <div class="card">
                                         <div class="card-header"><h6 class="mb-0"><i class="bi bi-search"></i> ${t('selectDog')}</h6></div>
                                         <div class="card-body">
@@ -151,17 +138,13 @@ class PrivateInfoManager extends BaseModule {
                                     </div>
                                 </div>
                                 
-                                <div class="col-md-8">
+                                <div class="col-md-6">
                                     <div class="card">
                                         <div class="card-header"><h6 class="mb-0"><i class="bi bi-shield"></i> ${t('securityInfo')}</h6></div>
                                         <div class="card-body">
                                             <div class="small">
                                                 <p><i class="bi bi-check-circle text-success"></i> ${t('privateStorage')}</p>
                                                 <p><i class="bi bi-person-check text-info"></i> ${t('privateNote')}</p>
-                                            </div>
-                                            <div class="mt-3">
-                                                <button class="btn btn-outline-dark btn-sm" id="backupPrivateInfoBtn">${t('backup')}</button>
-                                                <button class="btn btn-outline-dark btn-sm" id="restorePrivateInfoBtn">${t('restore')}</button>
                                             </div>
                                         </div>
                                     </div>
@@ -188,12 +171,11 @@ class PrivateInfoManager extends BaseModule {
     }
     
     setupEvents() {
-        // EXACT ZELFDE ALS SEARCHMANAGER - laad bij focus op zoekveld
         const searchInput = document.getElementById('privateHondSearch');
         if (searchInput) {
             searchInput.addEventListener('focus', async () => {
                 if (this.allDogs.length === 0) {
-                    await this.loadSearchData(); // LAAD NU PAS
+                    await this.loadSearchData();
                 }
                 this.setupDogSearch();
             });
@@ -213,16 +195,6 @@ class PrivateInfoManager extends BaseModule {
             if (e.target && (e.target.id === 'clearPrivateInfoBtn' || e.target.closest('#clearPrivateInfoBtn'))) {
                 e.preventDefault();
                 this.clearPrivateInfo();
-            }
-            
-            if (e.target && (e.target.id === 'backupPrivateInfoBtn' || e.target.closest('#backupPrivateInfoBtn'))) {
-                e.preventDefault();
-                this.backupPrivateInfo();
-            }
-            
-            if (e.target && (e.target.id === 'restorePrivateInfoBtn' || e.target.closest('#restorePrivateInfoBtn'))) {
-                e.preventDefault();
-                this.restorePrivateInfo();
             }
         });
     }
@@ -364,105 +336,6 @@ class PrivateInfoManager extends BaseModule {
             document.getElementById('privateNotes').value = '';
             this.showSuccess('Notities gewist');
         }
-    }
-    
-    async backupPrivateInfo() {
-        this.showProgress(this.t('makingBackup'));
-        
-        try {
-            if (!window.priveInfoService) throw new Error('Privé info service niet beschikbaar');
-            
-            const result = await window.priveInfoService.getPriveInfoMetPaginatie(1, 10000);
-            
-            const backupData = {
-                backupDatum: new Date().toISOString(),
-                aantalRecords: result.priveInfo?.length || 0,
-                appNaam: "Honden Privé Info",
-                data: (result.priveInfo || []).map(info => ({
-                    stamboomnr: info.stamboomnr,
-                    privateNotes: info.privatenotes || '',
-                    savedAt: info.laatstgewijzigd || new Date().toISOString()
-                }))
-            };
-            
-            const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `prive-info-backup-${new Date().toISOString().slice(0, 10)}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            
-            this.hideProgress();
-            this.showSuccess(this.t('backupSuccess'));
-            
-        } catch (error) {
-            console.error('Backup fout:', error);
-            this.hideProgress();
-            this.showError('Backup mislukt: ' + error.message);
-        }
-    }
-    
-    restorePrivateInfo() {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.json';
-        
-        input.onchange = async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            
-            reader.onload = async (e) => {
-                try {
-                    const backupData = JSON.parse(e.target.result);
-                    
-                    if (!backupData.data || !Array.isArray(backupData.data)) {
-                        throw new Error('Ongeldig backup bestand');
-                    }
-                    
-                    if (!confirm('Backup herstellen? Bestaande data wordt overschreven.')) {
-                        return;
-                    }
-                    
-                    this.showProgress(this.t('restoring'));
-                    
-                    if (!window.priveInfoService) throw new Error('Privé info service niet beschikbaar');
-                    
-                    let successCount = 0;
-                    let errorCount = 0;
-                    
-                    for (const item of backupData.data) {
-                        try {
-                            if (item.stamboomnr) {
-                                await window.priveInfoService.bewaarPriveInfo({
-                                    stamboomnr: item.stamboomnr,
-                                    privateNotes: item.privateNotes || ''
-                                });
-                                successCount++;
-                            }
-                        } catch (error) {
-                            console.error('Fout bij restore:', error);
-                            errorCount++;
-                        }
-                    }
-                    
-                    this.hideProgress();
-                    this.showSuccess(`${successCount} records hersteld${errorCount > 0 ? `, ${errorCount} mislukt` : ''}`);
-                    
-                } catch (error) {
-                    this.hideProgress();
-                    this.showError('Restore mislukt: ' + error.message);
-                }
-            };
-            
-            reader.readAsText(file);
-        };
-        
-        input.click();
     }
     
     showProgress(message) {
