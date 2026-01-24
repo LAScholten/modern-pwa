@@ -15,74 +15,6 @@
     <link rel="stylesheet" href="css/style.css">
     
     <style>
-        /* COMPACT Backup Banner Styling - 60% van normale hoogte */
-        #backupHeaderBanner {
-            border-radius: 0;
-            margin-bottom: 0;
-            border-left: none;
-            border-right: none;
-            padding: 4px 0;
-            transition: all 0.3s ease;
-            min-height: 32px;
-        }
-        
-        .backup-status-good {
-            background-color: #d4edda !important;
-            color: #155724;
-            border-top: 2px solid #28a745;
-        }
-        
-        .backup-status-warning {
-            background-color: #fff3cd !important;
-            color: #856404;
-            border-top: 2px solid #ffc107;
-        }
-        
-        .backup-status-danger {
-            background-color: #f8d7da !important;
-            color: #721c24;
-            border-top: 2px solid #dc3545;
-            animation: gentle-pulse 2s infinite;
-        }
-        
-        @keyframes gentle-pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.9; }
-            100% { opacity: 1; }
-        }
-        
-        .backup-compact-content {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: nowrap;
-            gap: 12px;
-            min-height: 24px;
-        }
-        
-        .backup-status-text {
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.85rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .backup-compact-actions {
-            display: flex;
-            gap: 8px;
-            flex-shrink: 0;
-        }
-        
-        .backup-compact-actions .btn {
-            padding: 2px 8px;
-            font-size: 0.8rem;
-            line-height: 1.2;
-        }
-        
         /* PWA Installatie knop styling */
         #pwaInstallBtn {
             transition: all 0.3s ease;
@@ -258,9 +190,9 @@
                 
                 <!-- Desktop layout: knoppen naast elkaar -->
                 <div class="action-buttons-row">
-                    <!-- PWA Installatie Knop - ALTIJD ZICHTBAAR -->
+                    <!-- Snelkoppeling Knop - ALTIJD ZICHTBAAR -->
                     <button class="btn btn-success btn-sm me-2" id="pwaInstallBtn">
-                        <i class="bi bi-download"></i> Installeer App
+                        <i class="bi bi-link"></i> Maak Snelkoppeling
                     </button>
                     
                     <button class="btn btn-outline-light btn-sm" id="logoutBtn">
@@ -270,9 +202,9 @@
                 
                 <!-- Mobile layout: knoppen onder elkaar -->
                 <div class="action-buttons-column d-none">
-                    <!-- PWA Installatie Knop voor mobiel -->
+                    <!-- Snelkoppeling Knop voor mobiel -->
                     <button class="btn btn-success btn-sm" id="pwaInstallBtnMobile">
-                        <i class="bi bi-download"></i> Installeer App
+                        <i class="bi bi-link"></i> Maak Snelkoppeling
                     </button>
                     
                     <!-- Uitlogknop voor mobiel -->
@@ -283,26 +215,6 @@
             </div>
         </div>
     </nav>
-    
-    <!-- COMPACT Backup Status Banner -->
-    <div id="backupHeaderBanner" class="alert backup-status-good" style="display: none;">
-        <div class="container-fluid">
-            <div class="backup-compact-content">
-                <div class="backup-status-text">
-                    <i class="bi bi-shield-check"></i>
-                    <span id="backupStatusText">Backup status: OK</span>
-                </div>
-                <div class="backup-compact-actions">
-                    <button id="backupNowHeaderBtn" class="btn btn-success btn-sm">
-                        <i class="bi bi-download"></i> <span id="backupNowText">Backup</span>
-                    </button>
-                    <button id="learnMoreHeaderBtn" class="btn btn-outline-secondary btn-sm">
-                        <i class="bi bi-question-circle"></i> <span id="learnMoreText">Uitleg</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
     
     <!-- Main Content -->
     <div class="container-fluid mt-3">
@@ -373,26 +285,6 @@
                         <h4 class="mb-0"><i class="bi bi-house-door"></i> <span class="app-text" data-key="dashboard">Dashboard</span></h4>
                     </div>
                     <div class="card-body">
-                        <!-- Backup Reminder Card -->
-                        <div id="backupDashboardCard" class="card mb-3 border-warning" style="display: none;">
-                            <div class="card-header bg-warning text-dark">
-                                <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> <span id="backupWarningTitle">Backup Aanbevolen</span></h5>
-                            </div>
-                            <div class="card-body">
-                                <div id="backupDashboardText" class="mb-2">
-                                    Het is al een tijdje geleden dat je een backup hebt gemaakt.
-                                </div>
-                                <div class="d-flex gap-2 flex-wrap">
-                                    <button id="backupFromDashboardBtn" class="btn btn-success btn-sm">
-                                        <i class="bi bi-download"></i> <span id="backupNowDashboardText">Nu backup maken</span>
-                                    </button>
-                                    <button id="dismissDashboardBackupBtn" class="btn btn-outline-secondary btn-sm">
-                                        <i class="bi bi-x-circle"></i> <span id="dismissBackupText">Niet meer tonen</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        
                         <div class="alert alert-success">
                             <h5><i class="bi bi-check-circle"></i> <span class="app-text" data-key="welcomeTitle">Welkom bij de Hondendatabase PWA - Desktop Edition</span></h5>
                             <p class="app-text" data-key="welcomeText">Kies een optie uit het menu om te beginnen. Deze app werkt volledig in je browser.</p>
@@ -446,92 +338,113 @@
     <!-- Modals Container -->
     <div id="modalsContainer"></div>
     
-    <!-- Backup Info Modal - ZONDER backup knop -->
-    <div class="modal fade" id="backupInfoModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title"><i class="bi bi-shield-check"></i> <span id="backupModalTitle">Data Backup - Waarom is dit belangrijk?</span></h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="card h-100 border-danger">
-                                <div class="card-header bg-danger text-white">
-                                    <h6><i class="bi bi-exclamation-triangle-fill"></i> <span id="backupRisksTitle">Risico's zonder backup</span></h6>
-                                </div>
-                                <div class="card-body">
-                                    <p id="backupRisksText1">Deze app slaat alle gegevens <strong>alleen lokaal in je browser</strong> op.</p>
-                                    <p id="backupRisksText2">Je data kan verloren gaan als je: </p>
-                                    <ul id="backupRisksList">
-                                        <li>Browser geschiedenis wist</li>
-                                        <li>Cookies en sitegegevens verwijdert</li>
-                                        <li>Je telefoon/tablet reset</li>
-                                        <li>De app lange tijd niet gebruikt</li>
-                                        <li>Van browser wisselt</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="card h-100 border-success">
-                                <div class="card-header bg-success text-white">
-                                    <h6><i class="bi bi-lightbulb-fill"></i> <span id="backupHowToTitle">Hoe te backuppen</span></h6>
-                                </div>
-                                <div class="card-body">
-                                    <p id="backupHowToText1"><strong>Aanbevolen:</strong> Maak wekelijks een backup</p>
-                                    <h6 id="backupIOSHeading">Op iPhone/iPad:</h6>
-                                    <ol id="backupIOSSteps">
-                                        <li>Klik op "Nu backup maken"</li>
-                                        <li>Kies "Opslaan in Bestanden"</li>
-                                        <li>Sla op in iCloud Drive</li>
-                                    </ol>
-                                    <h6 id="backupAndroidHeading">Op Android:</h6>
-                                    <ol id="backupAndroidSteps">
-                                        <li>Klik op "Nu backup maken"</li>
-                                        <li>Sla op in Downloads</li>
-                                        <li>Upload naar Google Drive</li>
-                                    </ol>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="alert alert-info mt-3">
-                        <h6><i class="bi bi-star-fill"></i> <span id="backupBestPracticesTitle">Beste praktijken:</span></h6>
-                        <ul id="backupBestPracticesList" class="mb-0">
-                            <li>Maak een backup <strong>voor én na</strong> belangrijke wijzigingen</li>
-                            <li>Bewaar meerdere versies (laatste 3-4 backups)</li>
-                            <li>Sla backups op op meerdere plaatsen (telefoon + cloud)</li>
-                            <li>Test af en toe of je backup werkt door te importeren</li>
-                        </ul>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <!-- ALLEEN Sluiten knop - geen backup knop meer -->
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="backupModalClose">Sluiten</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- PWA Installatie Instructie Modal -->
+    <!-- Snelkoppeling Instructie Modal -->
     <div class="modal fade" id="installModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title"><i class="bi bi-download"></i> App Installeren</h5>
+                    <h5 class="modal-title"><i class="bi bi-link"></i> Snelkoppeling Maken</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div id="installSteps">
-                        <!-- Hier komen de installatie stappen -->
+                        <h5>Hoe maak je een snelkoppeling op je apparaat:</h5>
+                        
+                        <div class="accordion" id="installAccordion">
+                            <!-- iPhone/iPad -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#iosSteps">
+                                        <i class="bi bi-phone me-2"></i> iPhone/iPad
+                                    </button>
+                                </h2>
+                                <div id="iosSteps" class="accordion-collapse collapse show" data-bs-parent="#installAccordion">
+                                    <div class="accordion-body">
+                                        <ol>
+                                            <li>Open Safari en ga naar deze pagina</li>
+                                            <li>Tik op het <strong>deel icoon</strong> onderaan (vierkant met pijl omhoog)</li>
+                                            <li>Scroll naar beneden en selecteer <strong>"Zet op beginscherm"</strong></li>
+                                            <li>Geef de snelkoppeling een naam (bijv. "Hondendatabase")</li>
+                                            <li>Tik op <strong>"Toevoegen"</strong> in de rechterbovenhoek</li>
+                                            <li>De app verschijnt nu op je beginscherm!</li>
+                                        </ol>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Android -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#androidSteps">
+                                        <i class="bi bi-phone me-2"></i> Android
+                                    </button>
+                                </h2>
+                                <div id="androidSteps" class="accordion-collapse collapse" data-bs-parent="#installAccordion">
+                                    <div class="accordion-body">
+                                        <ol>
+                                            <li>Open Chrome of Firefox en ga naar deze pagina</li>
+                                            <li>Tik op het <strong>menu icoon</strong> (drie puntjes) rechtsboven</li>
+                                            <li>Selecteer <strong>"Toevoegen aan beginscherm"</strong> of "Installeer app"</li>
+                                            <li>Geef de snelkoppeling een naam</li>
+                                            <li>Tik op <strong>"Toevoegen"</strong> of "Installeren"</li>
+                                            <li>De app verschijnt nu op je beginscherm!</li>
+                                        </ol>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Windows -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#windowsSteps">
+                                        <i class="bi bi-laptop me-2"></i> Windows (Chrome/Edge)
+                                    </button>
+                                </h2>
+                                <div id="windowsSteps" class="accordion-collapse collapse" data-bs-parent="#installAccordion">
+                                    <div class="accordion-body">
+                                        <ol>
+                                            <li>Open Chrome of Microsoft Edge</li>
+                                            <li>Ga naar deze pagina</li>
+                                            <li>Klik op het <strong>installatie icoon</strong> rechts in de adresbalk (vierkant met pijl)</li>
+                                            <li>Klik op <strong>"Installeren"</strong></li>
+                                            <li>De app wordt geïnstalleerd en verschijnt in je startmenu</li>
+                                            <li>Je kunt ook een snelkoppeling op je bureaublad maken</li>
+                                        </ol>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Mac -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#macSteps">
+                                        <i class="bi bi-laptop me-2"></i> Mac (Safari/Chrome)
+                                    </button>
+                                </h2>
+                                <div id="macSteps" class="accordion-collapse collapse" data-bs-parent="#installAccordion">
+                                    <div class="accordion-body">
+                                        <h6>Safari:</h6>
+                                        <ol>
+                                            <li>Ga naar deze pagina in Safari</li>
+                                            <li>Klik op "Bestand" in de menubalk</li>
+                                            <li>Selecteer <strong>"Toevoegen aan Dock"</strong></li>
+                                        </ol>
+                                        
+                                        <h6>Chrome:</h6>
+                                        <ol>
+                                            <li>Ga naar deze pagina in Chrome</li>
+                                            <li>Klik op het installatie icoon rechts in de adresbalk</li>
+                                            <li>Klik op <strong>"Installeren"</strong></li>
+                                        </ol>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     
                     <div class="alert alert-info mt-3">
                         <i class="bi bi-info-circle"></i> 
-                        <strong>Belangrijk:</strong> Na installatie werkt de app volledig offline!
+                        <strong>Voordeel van een snelkoppeling:</strong> De app werkt als een normale app, kan offline werken en is snel toegankelijk vanaf je beginscherm!
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -636,33 +549,10 @@
                 userRole: "Gebruiker",
                 userRights: "Kan data importeren/exporteren en bekijken, maar geen nieuwe honden toevoegen of bewerken.",
                 
-                // Backup teksten
-                backupNow: "Backup",
-                learnMore: "Uitleg",
-                backupWarningTitle: "Backup Aanbevolen",
-                backupNowDashboard: "Nu backup maken",
-                dismissBackup: "Niet meer tonen",
-                backupModalTitle: "Data Backup - Waarom is dit belangrijk?",
-                backupRisksTitle: "Risico's zonder backup",
-                backupRisksText1: "Deze app slaat alle gegevens <strong>alleen lokaal in je browser</strong> op.",
-                backupRisksText2: "Je data kan verloren gaan als je: ",
-                backupHowToTitle: "Hoe te backuppen",
-                backupHowToText1: "<strong>Aanbevolen:</strong> Maak wekelijks een backup",
-                backupIOSHeading: "Op iPhone/iPad:",
-                backupAndroidHeading: "Op Android:",
-                backupBestPracticesTitle: "Beste praktijken:",
-                backupModalClose: "Sluiten",
-                backupModalAction: "Nu backup maken",
-                backupStatusGood: "✓ Backup: Okay",
-                backupStatusWarning: "⚠ Laatste backup: {days} dagen geleden",
-                backupStatusDanger: "🚨 NOG NOOIT gebackupt!",
-                dashboardWarningNever: "Je hebt nog nooit een backup gemaakt! Als je browser data wist, ben je al je hondengegevens kwijt.",
-                dashboardWarningOld: "Je laatste backup was {days} dagen geleden. Overweeg een nieuwe backup te maken om dataverlies te voorkomen.",
-                
                 // NIEUWE disclaimer teksten
                 disclaimerBtn: "Disclaimer/Informatie over COI berekening",
                 
-                installPWA: "Installeer App"
+                installPWA: "Maak Snelkoppeling"
             },
             en: {
                 appTitle: "Dog Database PWA - Desktop Edition",
@@ -698,33 +588,10 @@
                 userRole: "User",
                 userRights: "Can import/export and view data, but cannot add or edit new dogs.",
                 
-                // Backup texts
-                backupNow: "Backup",
-                learnMore: "Info",
-                backupWarningTitle: "Backup Recommended",
-                backupNowDashboard: "Create Backup Now",
-                dismissBackup: "Don't Show Again",
-                backupModalTitle: "Data Backup - Why is this important?",
-                backupRisksTitle: "Risks without backup",
-                backupRisksText1: "This app stores all data <strong>only locally in your browser</strong>.",
-                backupRisksText2: "Your data can be lost if you: ",
-                backupHowToTitle: "How to backup",
-                backupHowToText1: "<strong>Recommended:</strong> Create weekly backups",
-                backupIOSHeading: "On iPhone/iPad:",
-                backupAndroidHeading: "On Android:",
-                backupBestPracticesTitle: "Best practices:",
-                backupModalClose: "Close",
-                backupModalAction: "Create Backup Now",
-                backupStatusGood: "✓ Backup: Okay",
-                backupStatusWarning: "⚠ Last backup: {days} days ago",
-                backupStatusDanger: "🚨 NEVER backed up!",
-                dashboardWarningNever: "You have never created a backup! If you clear browser data, you will lose all your dog records.",
-                dashboardWarningOld: "Your last backup was {days} days ago. Consider creating a new backup to prevent data loss.",
-                
                 // NEW disclaimer texts
                 disclaimerBtn: "Disclaimer/Information about COI calculation",
                 
-                installPWA: "Install App"
+                installPWA: "Create Shortcut"
             },
             de: {
                 appTitle: "Hundendatenbank PWA - Desktop Edition",
@@ -760,257 +627,15 @@
                 userRole: "Benutzer",
                 userRights: "Kann Daten importieren/exportieren en ansehen, aber keine neuen Hunde hinzufügen of bearbeiten.",
                 
-                // Backup Texte
-                backupNow: "Backup",
-                learnMore: "Info",
-                backupWarningTitle: "Backup empfohlen",
-                backupNowDashboard: "Jetzt Backup erstellen",
-                dismissBackup: "Nicht mehr anzeigen",
-                backupModalTitle: "Data Backup - Warum is das wichtig?",
-                backupRisksTitle: "Risiken ohne Backup",
-                backupRisksText1: "Diese App speichert alle Daten <strong>nur lokal in Ihrem Browser</strong>.",
-                backupRisksText2: "Ihre Daten können verloren gehen, wenn Sie: ",
-                backupHowToTitle: "Wie man ein Backup erstellt",
-                backupHowToText1: "<strong>Empfohlen:</strong> Erstellen Sie wöchentliche Backups",
-                backupIOSHeading: "Auf iPhone/iPad:",
-                backupAndroidHeading: "On Android:",
-                backupBestPracticesTitle: "Beste Praktiken:",
-                backupModalClose: "Schließen",
-                backupModalAction: "Jetzt Backup erstellen",
-                backupStatusGood: "✓ Backup: Okay",
-                backupStatusWarning: "⚠ Letztes Backup: vor {days} Tagen",
-                backupStatusDanger: "🚨 NOCH NIE gebackupt!",
-                dashboardWarningNever: "Sie haben noch nie ein Backup erstellt! Wenn Sie Browser-Daten löschen, verlieren Sie alle Ihre Hundeaufzeichnungen.",
-                dashboardWarningOld: "Ihr letztes Backup was vor {days} Tagen. Erwägen Sie, ein neues Backup te maken, um Datenverlust te vermeiden.",
-                
                 // NEUE Disclaimer Texte
                 disclaimerBtn: "Disclaimer/Information zur COI Berechnung",
                 
-                installPWA: "App installieren"
+                installPWA: "Verknüpfung erstellen"
             }
         };
 
-        // Backup status management
-        const backupManager = {
-            storageKey: 'honden_backup_history',
-            warningDays: 7,
-            dangerDays: 14,
-            currentLang: appLanguage,
-            backupHistory: [],
-            hideReminderUntil: null,
-            
-            init: function() {
-                this.backupHistory = this.loadBackupHistory();
-                this.hideReminderUntil = this.getHideReminderDate();
-                this.updateUI();
-            },
-            
-            loadBackupHistory: function() {
-                try {
-                    const history = localStorage.getItem(this.storageKey);
-                    return history ? JSON.parse(history) : [];
-                } catch (error) {
-                    console.error('Fout bij laden backup history:', error);
-                    return [];
-                }
-            },
-            
-            saveBackupHistory: function() {
-                try {
-                    localStorage.setItem(this.storageKey, JSON.stringify(this.backupHistory));
-                } catch (error) {
-                    console.error('Fout bij opslaan backup history:', error);
-                }
-            },
-            
-            getHideReminderDate: function() {
-                try {
-                    return localStorage.getItem('hide_backup_reminder_until');
-                } catch (error) {
-                    return null;
-                }
-            },
-            
-            getLastBackupDate: function() {
-                if (this.backupHistory.length === 0) {
-                    return null;
-                }
-                
-                const sorted = [...this.backupHistory].sort((a, b) => 
-                    new Date(b.date) - new Date(a.date)
-                );
-                
-                return sorted[0].date;
-            },
-            
-            getDaysSinceLastBackup: function() {
-                const lastBackup = this.getLastBackupDate();
-                if (!lastBackup) return Infinity;
-                
-                const lastDate = new Date(lastBackup);
-                const now = new Date();
-                const diffTime = Math.abs(now - lastDate);
-                return Math.floor(diffTime / (1000 * 60 * 60 * 24));
-            },
-            
-            getStatus: function() {
-                const daysSince = this.getDaysSinceLastBackup();
-                
-                if (daysSince === Infinity) {
-                    return {
-                        level: 'danger',
-                        days: 999,
-                        icon: 'bi-exclamation-triangle-fill'
-                    };
-                } else if (daysSince >= this.dangerDays) {
-                    return {
-                        level: 'danger',
-                        days: daysSince,
-                        icon: 'bi-exclamation-triangle-fill'
-                    };
-                } else if (daysSince >= this.warningDays) {
-                    return {
-                        level: 'warning',
-                        days: daysSince,
-                        icon: 'bi-exclamation-triangle'
-                    };
-                } else {
-                    return {
-                        level: 'good',
-                        days: daysSince,
-                        icon: 'bi-shield-check'
-                    };
-                }
-            },
-            
-            updateUI: function() {
-                const banner = document.getElementById('backupHeaderBanner');
-                const statusText = document.getElementById('backupStatusText');
-                const dashboardCard = document.getElementById('backupDashboardCard');
-                const dashboardText = document.getElementById('backupDashboardText');
-                const warningTitle = document.getElementById('backupWarningTitle');
-                
-                if (!banner || !statusText) return;
-                
-                const status = this.getStatus();
-                const t = this.currentLang;
-                
-                // Update header banner
-                banner.className = `alert backup-status-${status.level}`;
-                banner.style.display = 'block';
-                
-                // Update status text
-                let displayText = '';
-                if (status.level === 'good') {
-                    const text = appTranslations[t]?.backupStatusGood || appTranslations.nl.backupStatusGood;
-                    if (status.days === 0) {
-                        displayText = text.replace('{days}', 'vandaag');
-                    } else {
-                        displayText = text.replace('{days}', status.days);
-                    }
-                } else if (status.level === 'warning') {
-                    const text = appTranslations[t]?.backupStatusWarning || appTranslations.nl.backupStatusWarning;
-                    displayText = text.replace('{days}', status.days);
-                } else {
-                    displayText = appTranslations[t]?.backupStatusDanger || appTranslations.nl.backupStatusDanger;
-                }
-                
-                statusText.textContent = displayText;
-                
-                // Update dashboard card
-                if (dashboardCard && dashboardText && warningTitle) {
-                    if (status.level === 'danger') {
-                        dashboardCard.style.display = 'block';
-                        warningTitle.textContent = appTranslations[t]?.backupWarningTitle || appTranslations.nl.backupWarningTitle;
-                        dashboardText.textContent = appTranslations[t]?.dashboardWarningNever || appTranslations.nl.dashboardWarningNever;
-                    } else if (status.level === 'warning') {
-                        dashboardCard.style.display = 'block';
-                        warningTitle.textContent = appTranslations[t]?.backupWarningTitle || appTranslations.nl.backupWarningTitle;
-                        const text = appTranslations[t]?.dashboardWarningOld || appTranslations.nl.dashboardWarningOld;
-                        dashboardText.textContent = text.replace('{days}', status.days);
-                    } else {
-                        dashboardCard.style.display = 'none';
-                    }
-                }
-            },
-            
-            recordBackup: function() {
-                const backupEntry = {
-                    date: new Date().toISOString(),
-                    type: 'manual',
-                    dataSize: 0 // Kan later uitgebreid worden
-                };
-                
-                this.backupHistory.push(backupEntry);
-                this.saveBackupHistory();
-                this.updateUI();
-                
-                console.log('Backup recorded:', backupEntry);
-                return true;
-            },
-            
-            setupEventListeners: function() {
-                // Backup now buttons
-                const backupButtons = [
-                    'backupNowHeaderBtn',
-                    'backupFromDashboardBtn'
-                ];
-                
-                backupButtons.forEach(btnId => {
-                    const btn = document.getElementById(btnId);
-                    if (btn) {
-                        btn.addEventListener('click', () => {
-                            // Eerst de backup manager bijwerken
-                            this.recordBackup();
-                            
-                            // Dan de Data Manager modal openen
-                            if (window.uiHandler && typeof window.uiHandler.showModal === 'function') {
-                                window.uiHandler.showModal('data');
-                            }
-                        });
-                    }
-                });
-                
-                // Learn more button
-                const learnMoreBtn = document.getElementById('learnMoreHeaderBtn');
-                if (learnMoreBtn) {
-                    learnMoreBtn.addEventListener('click', () => {
-                        const modal = new bootstrap.Modal(document.getElementById('backupInfoModal'));
-                        modal.show();
-                        
-                        // Vertaal de backup info modal direct
-                        setTimeout(() => translateBackupInfoModal(), 100);
-                    });
-                }
-                
-                // Dismiss backup button
-                const dismissBtn = document.getElementById('dismissDashboardBackupBtn');
-                if (dismissBtn) {
-                    dismissBtn.addEventListener('click', () => {
-                        const hideUntil = new Date();
-                        hideUntil.setDate(hideUntil.getDate() + 30);
-                        localStorage.setItem('hide_backup_reminder_until', hideUntil.toISOString());
-                        this.hideReminderUntil = hideUntil.toISOString();
-                        this.updateUI();
-                        
-                        if (window.uiHandler && window.uiHandler.showSuccess) {
-                            window.uiHandler.showSuccess('Backup herinnering uitgezet voor 30 dagen');
-                        }
-                    });
-                }
-            }
-        };
-        
-        window.backupManager = backupManager;
-        
         // Pagina tekst vertalen
         function translateAppPage(lang) {
-            // Update managers taal
-            backupManager.currentLang = lang;
-            
-            // Update backup manager UI
-            backupManager.updateUI();
-            
             // Update app teksten
             const elements = document.querySelectorAll('.app-text');
             elements.forEach(element => {
@@ -1019,9 +644,6 @@
                     element.textContent = appTranslations[lang][key];
                 }
             });
-            
-            // Vertaal ook de backup info modal als die open is
-            translateBackupInfoModal();
             
             // Update actieve vlag
             document.querySelectorAll('.app-lang-btn').forEach(btn => {
@@ -1046,34 +668,15 @@
             };
             document.title = titles[lang] || titles.nl;
             
-            // Update install knop tekst
+            // Update snelkoppeling knop tekst
             const installButtons = ['pwaInstallBtn', 'pwaInstallBtnMobile'];
             installButtons.forEach(btnId => {
                 const btn = document.getElementById(btnId);
                 if (btn) {
                     const text = appTranslations[lang]?.installPWA || appTranslations.nl.installPWA;
-                    btn.innerHTML = `<i class="bi bi-download"></i> ${text}`;
+                    btn.innerHTML = `<i class="bi bi-link"></i> ${text}`;
                 }
             });
-        }
-        
-        // Vertaal de backup info modal
-        function translateBackupInfoModal() {
-            const lang = localStorage.getItem('appLanguage') || 'nl';
-            const translations = appTranslations[lang] || appTranslations.nl;
-            
-            // Update backup info modal elementen
-            const modal = document.getElementById('backupInfoModal');
-            if (modal) {
-                const elements = modal.querySelectorAll('[id^="backup"]');
-                elements.forEach(element => {
-                    const id = element.id;
-                    const translationKey = id.charAt(0).toLowerCase() + id.slice(1);
-                    if (translations[translationKey]) {
-                        element.innerHTML = translations[translationKey];
-                    }
-                });
-            }
         }
 
         // Event listeners voor vlaggetjes - SIMPELE OPLOSSING: REFRESH DE PAGINA
@@ -1117,18 +720,14 @@
                         `${userEmail} (${isAdmin === 'true' ? 'Admin' : 'Gebruiker'})`;
                 }
                 
-                // Setup backup manager
-                backupManager.init();
-                backupManager.setupEventListeners();
-                
                 // Setup event listeners voor menu knoppen
                 setupMenuEventListeners();
                 
                 // Setup andere event listeners
                 setupOtherEventListeners();
                 
-                // Setup PWA installatie - nu gebruikt installatiewizard
-                setupPWAInstallation();
+                // Setup snelkoppeling functionaliteit
+                setupSnelkoppeling();
                 
                 // Laad initiële statistieken
                 loadInitialStats();
@@ -1243,31 +842,25 @@
             }
         }
         
-        // PWA INSTALLATIE - Gebruik nu de installatiewizard
-        function setupPWAInstallation() {
-            // Desktop installatie knop
-            const pwaInstallBtn = document.getElementById('pwaInstallBtn');
-            if (pwaInstallBtn) {
-                pwaInstallBtn.addEventListener('click', function() {
-                    // Gebruik de installatiewizard
-                    if (window.installatieWizard && window.installatieWizard.showInstallInstructions) {
-                        window.installatieWizard.showInstallInstructions();
-                    } else {
-                        console.error('Installatie Wizard niet beschikbaar');
-                    }
+        // SNELKOPPELING functionaliteit
+        function setupSnelkoppeling() {
+            // Desktop snelkoppeling knop
+            const snelkoppelingBtn = document.getElementById('pwaInstallBtn');
+            if (snelkoppelingBtn) {
+                snelkoppelingBtn.addEventListener('click', function() {
+                    // Toon de snelkoppeling instructies modal
+                    const modal = new bootstrap.Modal(document.getElementById('installModal'));
+                    modal.show();
                 });
             }
             
-            // Mobiele installatie knop
-            const pwaInstallBtnMobile = document.getElementById('pwaInstallBtnMobile');
-            if (pwaInstallBtnMobile) {
-                pwaInstallBtnMobile.addEventListener('click', function() {
-                    // Gebruik de installatiewizard
-                    if (window.installatieWizard && window.installatieWizard.showInstallInstructions) {
-                        window.installatieWizard.showInstallInstructions();
-                    } else {
-                        console.error('Installatie Wizard niet beschikbaar');
-                    }
+            // Mobiele snelkoppeling knop
+            const snelkoppelingBtnMobile = document.getElementById('pwaInstallBtnMobile');
+            if (snelkoppelingBtnMobile) {
+                snelkoppelingBtnMobile.addEventListener('click', function() {
+                    // Toon de snelkoppeling instructies modal
+                    const modal = new bootstrap.Modal(document.getElementById('installModal'));
+                    modal.show();
                 });
             }
         }
@@ -1305,66 +898,12 @@
                 // Mobiel: toon kolom layout
                 if (columnLayout) columnLayout.classList.remove('d-none');
                 if (rowLayout) rowLayout.classList.add('d-none');
-                
-                // Verberg uitlegknop op mobiel
-                const learnMoreBtn = document.getElementById('learnMoreHeaderBtn');
-                if (learnMoreBtn) {
-                    learnMoreBtn.style.display = 'none';
-                }
             } else {
                 // Desktop: toon rij layout
                 if (columnLayout) columnLayout.classList.add('d-none');
                 if (rowLayout) rowLayout.classList.remove('d-none');
-                
-                // Toon uitlegknop op desktop
-                const learnMoreBtn = document.getElementById('learnMoreHeaderBtn');
-                if (learnMoreBtn) {
-                    learnMoreBtn.style.display = '';
-                }
             }
         }
-        
-        // Automatische PWA detectie voor browsers die het ondersteunen
-        let deferredPrompt;
-        
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            window.deferredPrompt = e;
-            
-            // Update knoppen tekst als installatie beschikbaar is
-            const updateInstallButton = (btn) => {
-                if (btn) {
-                    btn.innerHTML = '<i class="bi bi-download"></i> Klik om te Installeren';
-                    btn.classList.add('btn-warning');
-                }
-            };
-            
-            updateInstallButton(document.getElementById('pwaInstallBtn'));
-            updateInstallButton(document.getElementById('pwaInstallBtnMobile'));
-        });
-        
-        // Wanneer app is geïnstalleerd
-        window.addEventListener('appinstalled', () => {
-            console.log('PWA succesvol geïnstalleerd!');
-            deferredPrompt = null;
-            
-            const updateInstalledButton = (btn) => {
-                if (btn) {
-                    btn.innerHTML = '<i class="bi bi-check-circle"></i> Geïnstalleerd!';
-                    btn.classList.remove('btn-warning', 'btn-success');
-                    btn.classList.add('btn-secondary');
-                    btn.disabled = true;
-                }
-            };
-            
-            updateInstalledButton(document.getElementById('pwaInstallBtn'));
-            updateInstalledButton(document.getElementById('pwaInstallBtnMobile'));
-            
-            if (ui && ui.showSuccess) {
-                ui.showSuccess('App succesvol geïnstalleerd!');
-            }
-        });
         
         // Modal fix
         document.addEventListener('hidden.bs.modal', function() {
@@ -1475,17 +1014,6 @@
                 });
             };
         }
-        
-        // **BELANGRIJKE TOEVOEGING: Reset backup status voor bestaande gebruikers**
-        // Als je al een backup hebt gemaakt maar de app zegt van niet,
-        // kun je dit in de console runnen om het te resetten:
-        window.resetBackupHistory = function() {
-            localStorage.removeItem('honden_backup_history');
-            localStorage.removeItem('hide_backup_reminder_until');
-            backupManager.init();
-            console.log('Backup history gereset!');
-            alert('Backup history is gereset. De app zal nu opnieuw beginnen met tellen.');
-        };
     </script>
     
 
