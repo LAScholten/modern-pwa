@@ -339,7 +339,7 @@ class DogDataManager extends BaseModule {
                 loadingDogs: "Hunde laden...",
                 noResults: "Keine Hunde gefunden",
                 selectDogToEdit: "Wählen Sie einen Hund zum Bearbeiten",
-                typeToSearch: "Beginnen Sie mit der Eingabe, um zu suchen",
+                typeToSearch: "Beginnen Sie met der Eingabe, um zu suchen",
                 
                 // Status Meldungen
                 searchResults: "Suchergebnisse",
@@ -2252,7 +2252,7 @@ class DogDataManager extends BaseModule {
     }
     
     /**
-     * Toon parent autocomplete - MET NEDERLANDSE ID OPSLAG EN CONSOLE LOGGING
+     * Toon parent autocomplete - MET NEDERLANDSE ID EN STAMBOOMNUMMER OPSLAG EN CONSOLE LOGGING
      */
     showParentAutocomplete(searchTerm, parentField) {
         const input = document.getElementById(parentField);
