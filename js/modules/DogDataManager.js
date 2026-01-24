@@ -339,7 +339,7 @@ class DogDataManager extends BaseModule {
                 loadingDogs: "Hunde laden...",
                 noResults: "Keine Hunde gefunden",
                 selectDogToEdit: "Wählen Sie einen Hund zum Bearbeiten",
-                typeToSearch: "Beginnen Sie met der Eingabe, um zu suchen",
+                typeToSearch: "Beginnen Sie mit der Eingabe, um zu suchen",
                 
                 // Status Meldungen
                 searchResults: "Suchergebnisse",
@@ -348,7 +348,7 @@ class DogDataManager extends BaseModule {
                 savingChanges: "Änderungen speichern...",
                 changesSaved: "Änderungen gespeichert!",
                 dogDeleted: "Hond succesvol verwijderen!",
-                confirmDelete: "Weet u zeker dat u diese hond wilt verwijderen?",
+                confirmDelete: "Weet u zeker dat u deze hond wilt verwijderen?",
                 photoAdded: "Foto toegevoegd",
                 updatingDog: "Hond bijwerken...",
                 dogUpdated: "Hond bijgewerkt!",
@@ -491,6 +491,8 @@ class DogDataManager extends BaseModule {
                                     <!-- BELANGRIJK: Gebruik Nederlandse veldnamen zoals in database -->
                                     <input type="hidden" id="vader_id" value="">
                                     <input type="hidden" id="moeder_id" value="">
+                                    <input type="hidden" id="vader_stamboomnr" value="">
+                                    <input type="hidden" id="moeder_stamboomnr" value="">
                                     
                                     <div class="alert alert-info mb-3">
                                         <i class="bi bi-pencil"></i> 
@@ -1619,7 +1621,7 @@ class DogDataManager extends BaseModule {
         // Vachtkleur
         document.getElementById('coatColor').value = dog.vachtkleur || '';
         
-        // Ouders - CORRECT ID'S OPSLAAN IN HET NEDERLANDSE HIDDEN INPUT VELD
+        // Ouders - CORRECT ID'S EN STAMBOOMNUMMERS OPSLAAN IN HET NEDERLANDSE HIDDEN INPUT VELD
         const vaderId = dog.vader_id || null;
         let vaderDisplayNaam = '';
         
@@ -1630,12 +1632,15 @@ class DogDataManager extends BaseModule {
             } else {
                 vaderDisplayNaam = dog.vader || '';
             }
-            // Sla ID op in het verborgen veld
+            // Sla ID en stamboomnr op in het verborgen veld
             document.getElementById('vader_id').value = vaderId;
+            document.getElementById('vader_stamboomnr').value = dog.vader_stamboomnr || '';
             console.log(`[DEBUG] Vader ID gevuld: ${vaderId} (display: ${vaderDisplayNaam})`);
+            console.log(`[DEBUG] Vader stamboomnr gevuld: ${dog.vader_stamboomnr || ''}`);
         } else {
             vaderDisplayNaam = dog.vader || '';
             document.getElementById('vader_id').value = '';
+            document.getElementById('vader_stamboomnr').value = '';
             console.log('[DEBUG] Geen vader ID gevonden in database, gebruik tekst:', vaderDisplayNaam);
         }
         
@@ -1649,12 +1654,15 @@ class DogDataManager extends BaseModule {
             } else {
                 moederDisplayNaam = dog.moeder || '';
             }
-            // Sla ID op in het verborgen veld
+            // Sla ID en stamboomnr op in het verborgen veld
             document.getElementById('moeder_id').value = moederId;
+            document.getElementById('moeder_stamboomnr').value = dog.moeder_stamboomnr || '';
             console.log(`[DEBUG] Moeder ID gevuld: ${moederId} (display: ${moederDisplayNaam})`);
+            console.log(`[DEBUG] Moeder stamboomnr gevuld: ${dog.moeder_stamboomnr || ''}`);
         } else {
             moederDisplayNaam = dog.moeder || '';
             document.getElementById('moeder_id').value = '';
+            document.getElementById('moeder_stamboomnr').value = '';
             console.log('[DEBUG] Geen moeder ID gevonden in database, gebruik tekst:', moederDisplayNaam);
         }
         
@@ -1771,6 +1779,8 @@ class DogDataManager extends BaseModule {
         document.getElementById('dogId').value = '';
         document.getElementById('vader_id').value = '';
         document.getElementById('moeder_id').value = '';
+        document.getElementById('vader_stamboomnr').value = '';
+        document.getElementById('moeder_stamboomnr').value = '';
         
         // Reset file input
         const fileInput = document.getElementById('dogPhoto');
@@ -1808,7 +1818,7 @@ class DogDataManager extends BaseModule {
     }
     
     /**
-     * Opslaan wijzigingen - VEREENVOUDIGDE VERSIE (alleen hondenService aanroep) MET OUDER STAMBOOMNUMMERS
+     * Opslaan wijzigingen - MET OUDER STAMBOOMNUMMERS
      */
     async saveDogChanges() {
         console.log('[DEBUG] === START saveDogChanges ===');
@@ -1861,12 +1871,16 @@ class DogDataManager extends BaseModule {
             }
         };
         
-        // Haal ouder IDs op - CORRECT VAN HET NEDERLANDSE HIDDEN INPUT VELD
+        // Haal ouder IDs en stamboomnummers op - CORRECT VAN HET NEDERLANDSE HIDDEN INPUT VELD
         const vaderIdValue = document.getElementById('vader_id').value;
         const moederIdValue = document.getElementById('moeder_id').value;
+        const vaderStamboomnrValue = document.getElementById('vader_stamboomnr').value;
+        const moederStamboomnrValue = document.getElementById('moeder_stamboomnr').value;
         
         console.log(`[DEBUG] Vader ID raw: ${vaderIdValue}`);
         console.log(`[DEBUG] Moeder ID raw: ${moederIdValue}`);
+        console.log(`[DEBUG] Vader stamboomnr raw: ${vaderStamboomnrValue}`);
+        console.log(`[DEBUG] Moeder stamboomnr raw: ${moederStamboomnrValue}`);
         
         const vader_id = vaderIdValue && vaderIdValue.trim() !== '' && !isNaN(parseInt(vaderIdValue)) 
             ? parseInt(vaderIdValue) 
@@ -1876,20 +1890,27 @@ class DogDataManager extends BaseModule {
             ? parseInt(moederIdValue) 
             : null;
         
-        console.log(`[DEBUG] Vader ID geparsed: ${vader_id} (type: ${typeof vader_id})`);
-        console.log(`[DEBUG] Moeder ID geparsed: ${moeder_id} (type: ${typeof moeder_id})`);
+        const vader_stamboomnr = vaderStamboomnrValue && vaderStamboomnrValue.trim() !== '' 
+            ? vaderStamboomnrValue.trim() 
+            : null;
         
-        // Zoek ouder namen en stamboomnummers op basis van IDs
+        const moeder_stamboomnr = moederStamboomnrValue && moederStamboomnrValue.trim() !== '' 
+            ? moederStamboomnrValue.trim() 
+            : null;
+        
+        console.log(`[DEBUG] Vader ID geparsed: ${vader_id}`);
+        console.log(`[DEBUG] Moeder ID geparsed: ${moeder_id}`);
+        console.log(`[DEBUG] Vader stamboomnr geparsed: ${vader_stamboomnr}`);
+        console.log(`[DEBUG] Moeder stamboomnr geparsed: ${moeder_stamboomnr}`);
+        
+        // Zoek ouder namen op basis van IDs
         let vader = '';
-        let vader_stamboomnr = '';
         let moeder = '';
-        let moeder_stamboomnr = '';
         
         if (vader_id) {
             const vaderHond = this.allDogs.find(d => d.id === vader_id);
             vader = vaderHond ? vaderHond.naam || '' : '';
-            vader_stamboomnr = vaderHond ? vaderHond.stamboomnr || '' : '';
-            console.log(`[DEBUG] Vader gevonden: ID=${vader_id}, Naam=${vader}, Stamboomnr=${vader_stamboomnr}`);
+            console.log(`[DEBUG] Vader gevonden: ID=${vader_id}, Naam=${vader}`);
         } else {
             console.log('[DEBUG] Geen vader ID opgegeven, gebruik tekst uit input veld');
             vader = document.getElementById('father').value.split(' ')[0] || '';
@@ -1898,8 +1919,7 @@ class DogDataManager extends BaseModule {
         if (moeder_id) {
             const moederHond = this.allDogs.find(d => d.id === moeder_id);
             moeder = moederHond ? moederHond.naam || '' : '';
-            moeder_stamboomnr = moederHond ? moederHond.stamboomnr || '' : '';
-            console.log(`[DEBUG] Moeder gevonden: ID=${moeder_id}, Naam=${moeder}, Stamboomnr=${moeder_stamboomnr}`);
+            console.log(`[DEBUG] Moeder gevonden: ID=${moeder_id}, Naam=${moeder}`);
         } else {
             console.log('[DEBUG] Geen moeder ID opgegeven, gebruik tekst uit input veld');
             moeder = document.getElementById('mother').value.split(' ')[0] || '';
@@ -2194,7 +2214,7 @@ class DogDataManager extends BaseModule {
     }
     
     /**
-     * Setup autocomplete voor ouders - MET CORRECTE NEDERLANDSE ID OPSLAG EN CONSOLE LOGGING
+     * Setup autocomplete voor ouders - MET CORRECTE NEDERLANDSE ID EN STAMBOOMNUMMER OPSLAG
      */
     setupParentAutocomplete() {
         // Event listeners voor vader en moeder velden
@@ -2202,18 +2222,18 @@ class DogDataManager extends BaseModule {
         const motherInput = document.getElementById('mother');
         
         if (fatherInput) {
-            this.setupSingleParentAutocomplete(fatherInput, 'father', 'vader_id');
+            this.setupSingleParentAutocomplete(fatherInput, 'father', 'vader_id', 'vader_stamboomnr');
         }
         
         if (motherInput) {
-            this.setupSingleParentAutocomplete(motherInput, 'mother', 'moeder_id');
+            this.setupSingleParentAutocomplete(motherInput, 'mother', 'moeder_id', 'moeder_stamboomnr');
         }
     }
     
     /**
      * Setup autocomplete voor een individueel ouder veld
      */
-    setupSingleParentAutocomplete(inputElement, parentField, hiddenIdField) {
+    setupSingleParentAutocomplete(inputElement, parentField, hiddenIdField, hiddenStamboomnrField) {
         // Verwijder bestaande event listeners
         const oldInput = inputElement.cloneNode(true);
         inputElement.parentNode.replaceChild(oldInput, inputElement);
@@ -2238,9 +2258,10 @@ class DogDataManager extends BaseModule {
                 this.showParentAutocomplete(searchTerm, parentField);
             } else {
                 this.hideParentAutocomplete(parentField);
-                // Reset hidden ID als het veld leeg is
+                // Reset hidden ID en stamboomnr als het veld leeg is
                 document.getElementById(hiddenIdField).value = '';
-                console.log(`[DEBUG] ${hiddenIdField} gereset omdat input veld leeg is`);
+                document.getElementById(hiddenStamboomnrField).value = '';
+                console.log(`[DEBUG] ${hiddenIdField} en ${hiddenStamboomnrField} gereset omdat input veld leeg is`);
             }
         });
         
@@ -2257,6 +2278,7 @@ class DogDataManager extends BaseModule {
     showParentAutocomplete(searchTerm, parentField) {
         const input = document.getElementById(parentField);
         const hiddenIdField = parentField === 'father' ? 'vader_id' : 'moeder_id';
+        const hiddenStamboomnrField = parentField === 'father' ? 'vader_stamboomnr' : 'moeder_stamboomnr';
         
         if (!input) return;
         
@@ -2335,6 +2357,7 @@ class DogDataManager extends BaseModule {
                 
                 // Vul het hidden ID veld - BELANGRIJK: Sla op in het Nederlandse veld
                 document.getElementById(hiddenIdField).value = dogId;
+                document.getElementById(hiddenStamboomnrField).value = dogStamboomnr;
                 
                 // CONSOLE LOGGING
                 console.log(`[DEBUG] Parent autocomplete geselecteerd: ${parentField}`);
@@ -2343,6 +2366,7 @@ class DogDataManager extends BaseModule {
                 console.log(`[DEBUG] - Kennelnaam: ${dogKennelnaam}`);
                 console.log(`[DEBUG] - Stamboomnr: ${dogStamboomnr}`);
                 console.log(`[DEBUG] - Hidden ID veld (${hiddenIdField}): ${dogId}`);
+                console.log(`[DEBUG] - Hidden stamboomnr veld (${hiddenStamboomnrField}): ${dogStamboomnr}`);
                 console.log(`[DEBUG] - Display naam in input: ${displayName}`);
                 
                 // Verberg de dropdown
