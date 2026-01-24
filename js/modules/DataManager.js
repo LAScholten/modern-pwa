@@ -551,8 +551,8 @@ class DataManager extends BaseModule {
                                 filename: foto.filename,
                                 size: foto.size,
                                 type: foto.type,
-                                upload_at: foto.upload_at,
-                                geupload_door: foto.geupload_door,
+                                uploaded_at: foto.uploaded_at,
+                                geuploaded_door: foto.geuploaded_door,
                                 hond_id: foto.hond_id
                             };
                             
