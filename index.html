@@ -265,23 +265,22 @@
         
         async function registerUser(email, password) {
             showMessage('📝 Account aanmaken...', 'info');
+            console.log('Registratie start voor:', email);
             
             try {
                 const supabase = await initSupabase();
+                console.log('Supabase geladen');
                 
-                // 1. Eerst Auth registratie
                 const { data: authData, error: authError } = await supabase.auth.signUp({
                     email: email,
-                    password: password,
-                    options: {
-                        data: {
-                            email: email
-                        }
-                    }
+                    password: password
                 });
                 
+                console.log('Auth response:', { authData, authError });
+                
                 if (authError) {
-                    // Als gebruiker al bestaat in Auth, probeer in te loggen
+                    console.error('Auth error:', authError);
+                    
                     if (authError.message.includes('already registered')) {
                         showMessage('⚠️ Account bestaat al. Probeer in te loggen.', 'warning');
                         switchToLogin();
@@ -293,36 +292,35 @@
                 }
                 
                 if (authData.user) {
-                    // 2. Wacht even zodat Auth zeker is opgeslagen
-                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    console.log('Auth user created:', authData.user.id);
                     
-                    // 3. Maak profiel aan in profiles tabel
                     const now = new Date().toISOString();
-                    const { error: profileError } = await supabase
+                    console.log('Creating profile...');
+                    
+                    const { data: profileData, error: profileError } = await supabase
                         .from('profiles')
-                        .upsert({
+                        .insert({
                             user_id: authData.user.id,
                             email: email,
                             role: 'viewer',
                             created_at: now,
                             updated_at: now
-                        }, {
-                            onConflict: 'user_id'
-                        });
+                        })
+                        .select();
+                    
+                    console.log('Profile response:', { profileData, profileError });
                     
                     if (profileError) {
-                        console.error('Profiel aanmaken fout:', profileError);
+                        console.error('Profile error:', profileError);
                         showMessage('❌ Profiel aanmaken mislukt. Contacteer beheerder.', 'error');
                         return false;
                     }
                     
                     showMessage('✅ Registratie succesvol! Je kunt nu inloggen.', 'success');
                     
-                    // Reset form
                     document.getElementById('registerForm').reset();
                     document.getElementById('passwordStrength').className = 'password-strength';
                     
-                    // Ga terug naar login
                     setTimeout(() => {
                         switchToLogin();
                         document.getElementById('loginEmail').value = email;
@@ -343,21 +341,24 @@
         
         async function loginUser(email, password) {
             showMessage('🔐 Inloggen...', 'info');
+            console.log('Login start voor:', email);
             
             try {
                 const supabase = await initSupabase();
+                console.log('Supabase geladen');
                 
-                // 1. Login bij Supabase Auth
                 const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
                     email: email,
                     password: password
                 });
                 
+                console.log('Login response:', { authData, authError });
+                
                 if (authError) throw authError;
                 
-                // 2. Haal gebruikerrol op uit profiles tabel
                 let userRole = 'viewer';
                 let userId = authData.user.id;
+                console.log('User ID:', userId);
                 
                 try {
                     const { data: profile, error: profileError } = await supabase
@@ -366,34 +367,46 @@
                         .eq('user_id', userId)
                         .maybeSingle();
                     
-                    if (profileError) {
-                        // Als geen profiel bestaat, maak er een aan
+                    console.log('Profile check:', { profile, profileError });
+                    
+                    if (profileError && profileError.code === 'PGRST116') {
+                        console.log('No profile found, creating one...');
                         const now = new Date().toISOString();
-                        await supabase
+                        const { error: createError } = await supabase
                             .from('profiles')
-                            .upsert({
+                            .insert({
                                 user_id: userId,
                                 email: email,
                                 role: 'viewer',
                                 created_at: now,
                                 updated_at: now
                             });
+                        
+                        if (createError) {
+                            console.error('Create profile error:', createError);
+                        }
                     } else if (profile) {
                         userRole = profile.role || 'viewer';
+                        console.log('User role:', userRole);
                     }
                 } catch (profileError) {
-                    console.warn('Rol ophalen/maken mislukt:', profileError);
+                    console.warn('Profile error:', profileError);
                 }
                 
-                // 3. Sla gebruiker op in localStorage
                 localStorage.setItem('userEmail', email);
                 localStorage.setItem('userId', userId);
                 localStorage.setItem('userRole', userRole);
                 localStorage.setItem('isAdmin', (userRole === 'admin').toString());
                 
-                showMessage(`✅ Ingelogd als ${userRole}! Doorsturen...`, 'success');
+                console.log('LocalStorage set:', {
+                    email: email,
+                    userId: userId,
+                    role: userRole,
+                    isAdmin: userRole === 'admin'
+                });
                 
-                // 4. Ga naar app
+                showMessage(`✅ Ingelogd! Doorsturen...`, 'success');
+                
                 setTimeout(() => {
                     window.location.href = 'app.html';
                 }, 1500);
@@ -408,6 +421,8 @@
         }
         
         document.addEventListener('DOMContentLoaded', async function() {
+            console.log('DOM loaded, checking auth...');
+            
             if (localStorage.getItem('userEmail')) {
                 showMessage('Je bent al ingelogd. Doorsturen...', 'info');
                 setTimeout(() => {
@@ -416,7 +431,9 @@
                 return;
             }
             
+            console.log('Initializing Supabase...');
             await initSupabase();
+            console.log('Supabase initialized');
             
             document.getElementById('loginForm').addEventListener('submit', async function(e) {
                 e.preventDefault();
@@ -476,6 +493,8 @@
             document.getElementById('registerEmail').addEventListener('input', checkRegisterButton);
             document.getElementById('registerPassword').addEventListener('input', checkRegisterButton);
             document.getElementById('registerPasswordConfirm').addEventListener('input', checkRegisterButton);
+            
+            console.log('Event listeners attached');
         });
     </script>
 </body>
