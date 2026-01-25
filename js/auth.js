@@ -47,10 +47,29 @@ const auth = {
             
             if (profileError) {
                 console.error('Profiel ophalen fout:', profileError);
-                return { 
-                    success: false, 
-                    error: 'Kon profielgegevens niet ophalen' 
-                };
+                // Als er geen profiel is, maak er dan een aan
+                const { data: newProfile, error: createError } = await this.supabase
+                    .from('profiles')
+                    .insert([
+                        {
+                            id: authData.user.id,
+                            email: email,
+                            role: 'viewer', // Default rol
+                            created_at: new Date().toISOString()
+                        }
+                    ])
+                    .select()
+                    .single();
+                
+                if (createError) {
+                    console.error('Profiel aanmaken fout:', createError);
+                    return { 
+                        success: false, 
+                        error: 'Kon profiel niet aanmaken' 
+                    };
+                }
+                
+                profileData = newProfile;
             }
             
             console.log('Auth: Profiel gevonden:', profileData);
@@ -62,8 +81,12 @@ const auth = {
             localStorage.setItem('userProfile', JSON.stringify(profileData));
             localStorage.setItem('sessionTimestamp', Date.now().toString());
             
-            // 4. Update UI
-            this.updateUserDisplay();
+            // 4. DEBUG: Log wat er is opgeslagen
+            console.log('DEBUG: Data opgeslagen in localStorage:');
+            console.log('- userEmail:', localStorage.getItem('userEmail'));
+            console.log('- userRole:', localStorage.getItem('userRole'));
+            console.log('- userId:', localStorage.getItem('userId'));
+            console.log('- sessionTimestamp:', localStorage.getItem('sessionTimestamp'));
             
             return { 
                 success: true, 
@@ -112,54 +135,52 @@ const auth = {
         window.location.href = 'index.html';
     },
     
-    // Check of ingelogd
+    // Check of ingelogd - SIMPELE VERSIE
     isLoggedIn: function() {
         const userEmail = localStorage.getItem('userEmail');
-        const userRole = localStorage.getItem('userRole');
-        const sessionTime = localStorage.getItem('sessionTimestamp');
+        const hasEmail = userEmail && userEmail.trim() !== '';
         
-        if (!userEmail || !userRole) return false;
+        console.log('DEBUG isLoggedIn:');
+        console.log('- userEmail:', userEmail);
+        console.log('- hasEmail:', hasEmail);
         
-        // Optioneel: Check sessie timeout (24 uur)
-        if (sessionTime) {
-            const sessionAge = Date.now() - parseInt(sessionTime);
-            const maxAge = 24 * 60 * 60 * 1000; // 24 uur
-            if (sessionAge > maxAge) {
-                console.log('Auth: Sessie verlopen');
-                this.logout();
-                return false;
-            }
-        }
-        
-        return true;
+        // Eenvoudige check: alleen op email
+        return hasEmail;
     },
     
     // Haal huidige gebruiker op
     getCurrentUser: function() {
-        if (!this.isLoggedIn()) return null;
+        if (!this.isLoggedIn()) {
+            console.log('DEBUG getCurrentUser: Niet ingelogd');
+            return null;
+        }
         
         try {
             const profileStr = localStorage.getItem('userProfile');
             if (profileStr) {
                 const profile = JSON.parse(profileStr);
-                return {
+                const user = {
                     id: profile.id,
                     email: profile.email || localStorage.getItem('userEmail'),
-                    role: profile.role || localStorage.getItem('userRole'),
+                    role: profile.role || localStorage.getItem('userRole') || 'viewer',
                     username: profile.username || localStorage.getItem('userEmail')?.split('@')[0] || 'Gebruiker'
                 };
+                console.log('DEBUG getCurrentUser:', user);
+                return user;
             }
         } catch (e) {
             console.warn('Kon userProfile niet parsen:', e);
         }
         
         // Fallback naar localStorage
-        return {
+        const user = {
             email: localStorage.getItem('userEmail'),
             id: localStorage.getItem('userId'),
             role: localStorage.getItem('userRole') || 'viewer',
             username: localStorage.getItem('userEmail')?.split('@')[0] || 'Gebruiker'
         };
+        console.log('DEBUG getCurrentUser (fallback):', user);
+        return user;
     },
     
     // === NIEUWE ROL FUNCTIES ===
@@ -167,7 +188,9 @@ const auth = {
     // Check specifieke rol
     hasRole: function(role) {
         const user = this.getCurrentUser();
-        return user && user.role === role;
+        const hasRole = user && user.role === role;
+        console.log(`DEBUG hasRole(${role}):`, hasRole, 'user role:', user?.role);
+        return hasRole;
     },
     
     // Check of admin
@@ -178,12 +201,16 @@ const auth = {
     // Check of editor (kan bewerken)
     canEdit: function() {
         const user = this.getCurrentUser();
-        return user && (user.role === 'admin' || user.role === 'editor');
+        const canEdit = user && (user.role === 'admin' || user.role === 'editor');
+        console.log('DEBUG canEdit:', canEdit, 'user role:', user?.role);
+        return canEdit;
     },
     
     // Check of delete toegestaan (alleen admin)
     canDelete: function() {
-        return this.hasRole('admin');
+        const canDelete = this.hasRole('admin');
+        console.log('DEBUG canDelete:', canDelete);
+        return canDelete;
     },
     
     // Check of viewer (alleen bekijken)
@@ -225,6 +252,8 @@ const auth = {
                     ${user.email}
                     <span class="badge ${roleClass} ms-1">${roleName}</span>
                 `;
+            } else {
+                userDisplay.innerHTML = 'Niet ingelogd';
             }
         }
     },
@@ -269,60 +298,120 @@ const auth = {
         });
     },
     
-    // Sessie controle
+    // Sessie controle - FIXED VERSION
     checkSession: function() {
-        if (!this.isLoggedIn() && window.location.pathname.includes('app.html')) {
-            console.log('Auth: Niet ingelogd, redirect naar login');
+        console.log('DEBUG checkSession:');
+        console.log('- Pathname:', window.location.pathname);
+        console.log('- Is app.html?', window.location.pathname.includes('app.html'));
+        console.log('- Is logged in?', this.isLoggedIn());
+        console.log('- User email in localStorage:', localStorage.getItem('userEmail'));
+        
+        // Alleen redirect als we op app.html zijn EN niet ingelogd
+        if (window.location.pathname.includes('app.html') && !this.isLoggedIn()) {
+            console.log('DEBUG: Niet ingelogd op app.html, redirect naar index.html');
             window.location.href = 'index.html';
+            return true; // Redirect uitgevoerd
         }
+        
+        // Als we op index.html zijn EN ingelogd, redirect naar app.html
+        if (window.location.pathname.includes('index.html') && this.isLoggedIn()) {
+            console.log('DEBUG: Ingelogd op index.html, redirect naar app.html');
+            window.location.href = 'app.html';
+            return true; // Redirect uitgevoerd
+        }
+        
+        console.log('DEBUG: Geen redirect nodig');
+        return false; // Geen redirect
     },
     
-    // Automatische sessie verlenging
-    refreshSession: function() {
-        if (this.isLoggedIn()) {
-            localStorage.setItem('sessionTimestamp', Date.now().toString());
+    // Laad profiel vanuit Supabase (voor sessie herstel)
+    loadProfileFromSupabase: async function(userId) {
+        try {
+            const { data: profileData, error } = await this.supabase
+                .from('profiles')
+                .select('id, email, username, role')
+                .eq('id', userId)
+                .single();
+            
+            if (error) {
+                console.error('loadProfileFromSupabase error:', error);
+                return false;
+            }
+            
+            if (profileData) {
+                localStorage.setItem('userEmail', profileData.email || '');
+                localStorage.setItem('userId', profileData.id);
+                localStorage.setItem('userRole', profileData.role || 'viewer');
+                localStorage.setItem('userProfile', JSON.stringify(profileData));
+                localStorage.setItem('sessionTimestamp', Date.now().toString());
+                console.log('DEBUG: Profiel geladen vanuit Supabase');
+                return true;
+            }
+        } catch (e) {
+            console.error('loadProfileFromSupabase catch:', e);
         }
+        return false;
     },
     
     // Initialiseer alles
     init: async function() {
         console.log('Auth: Initialiseren...');
+        console.log('DEBUG init start - location:', window.location.pathname);
         
         // Init Supabase
         if (!this.initSupabase()) {
             console.warn('Auth: Supabase niet beschikbaar, auth beperkt');
         }
         
-        // Controleer sessie
-        this.checkSession();
-        
-        // Update user display
-        this.updateUserDisplay();
-        
-        // Setup logout buttons
-        setTimeout(() => {
-            this.setupLogoutButtons();
-        }, 500);
-        
-        // Sessie auto-refresh elke 5 minuten
-        setInterval(() => this.refreshSession(), 5 * 60 * 1000);
-        
-        // Maak functies globaal beschikbaar
-        window.globalLogout = () => this.logout();
-        window.getCurrentUserRole = () => this.getCurrentUser()?.role;
-        window.hasPermission = (action) => {
-            switch(action) {
-                case 'edit': return this.canEdit();
-                case 'delete': return this.canDelete();
-                case 'admin': return this.isAdmin();
-                default: return this.isLoggedIn();
+        // Controleer Supabase sessie (voor als localStorage leeg is)
+        if (this.supabase && !this.isLoggedIn()) {
+            const { data: session } = await this.supabase.auth.getSession();
+            console.log('DEBUG: Supabase session:', session);
+            
+            if (session?.session?.user?.id) {
+                console.log('DEBUG: Supabase sessie gevonden, laad profiel');
+                await this.loadProfileFromSupabase(session.session.user.id);
             }
-        };
+        }
         
-        console.log('Auth: Initialisatie voltooid. User:', this.getCurrentUser());
-        console.log('Auth: Rol:', this.getCurrentUser()?.role);
-        console.log('Auth: Kan bewerken?', this.canEdit());
-        console.log('Auth: Kan verwijderen?', this.canDelete());
+        // Controleer sessie (dit kan redirect doen)
+        const redirected = this.checkSession();
+        
+        // Als er geen redirect was, setup UI
+        if (!redirected) {
+            // Update user display
+            this.updateUserDisplay();
+            
+            // Setup logout buttons
+            setTimeout(() => {
+                this.setupLogoutButtons();
+            }, 500);
+            
+            // Sessie auto-refresh elke 5 minuten
+            setInterval(() => {
+                if (this.isLoggedIn()) {
+                    localStorage.setItem('sessionTimestamp', Date.now().toString());
+                }
+            }, 5 * 60 * 1000);
+            
+            // Maak functies globaal beschikbaar
+            window.globalLogout = () => this.logout();
+            window.getCurrentUserRole = () => this.getCurrentUser()?.role;
+            window.hasPermission = (action) => {
+                switch(action) {
+                    case 'edit': return this.canEdit();
+                    case 'delete': return this.canDelete();
+                    case 'admin': return this.isAdmin();
+                    default: return this.isLoggedIn();
+                }
+            };
+            
+            console.log('Auth: Initialisatie voltooid.');
+            console.log('Auth: User:', this.getCurrentUser());
+            console.log('Auth: Rol:', this.getCurrentUser()?.role);
+            console.log('Auth: Kan bewerken?', this.canEdit());
+            console.log('Auth: Kan verwijderen?', this.canDelete());
+        }
     }
 };
 
@@ -331,6 +420,7 @@ window.auth = auth;
 
 // Automatisch initialiseren wanneer DOM geladen is
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOMContentLoaded - start auth init');
     setTimeout(() => {
         auth.init();
     }, 300);
