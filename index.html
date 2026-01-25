@@ -277,16 +277,19 @@
                 if (authError) throw authError;
                 
                 if (authData.user) {
-                    try {
-                        await supabase
-                            .from('profiles')
-                            .insert({
-                                user_id: authData.user.id,
-                                email: email,
-                                role: 'viewer',
-                                created_at: new Date().toISOString()
-                            });
-                    } catch (profileError) {
+                    const now = new Date().toISOString();
+                    
+                    const { error: profileError } = await supabase
+                        .from('profiles')
+                        .insert({
+                            user_id: authData.user.id,
+                            email: email,
+                            role: 'viewer',
+                            created_at: now,
+                            updated_at: now
+                        });
+                    
+                    if (profileError) {
                         console.warn('Profiel aanmaken mislukt:', profileError);
                     }
                     
