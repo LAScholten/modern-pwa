@@ -70,7 +70,6 @@
                         <p class="mb-0">Beheer systeem voor hondengegevens</p>
                     </div>
                     <div class="card-body p-4 p-md-5">
-                        <!-- Tabs voor Login/Registratie -->
                         <ul class="nav nav-tabs nav-fill mb-4" id="authTabs" role="tablist">
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link active" id="login-tab" data-bs-toggle="tab" data-bs-target="#login" type="button" role="tab">
@@ -84,23 +83,17 @@
                             </li>
                         </ul>
                         
-                        <!-- Tab Inhoud -->
                         <div class="tab-content" id="authTabsContent">
-                            <!-- LOGIN TAB -->
                             <div class="tab-pane fade show active" id="login" role="tabpanel">
                                 <form id="loginForm">
                                     <div class="mb-4">
                                         <label class="form-label fw-bold">E-mailadres</label>
-                                        <input type="email" class="form-control form-control-lg" 
-                                               id="loginEmail" required 
-                                               placeholder="je-email@voorbeeld.nl">
+                                        <input type="email" class="form-control form-control-lg" id="loginEmail" required placeholder="je-email@voorbeeld.nl">
                                     </div>
                                     
                                     <div class="mb-4">
                                         <label class="form-label fw-bold">Wachtwoord</label>
-                                        <input type="password" class="form-control form-control-lg" 
-                                               id="loginPassword" required 
-                                               placeholder="Je wachtwoord">
+                                        <input type="password" class="form-control form-control-lg" id="loginPassword" required placeholder="Je wachtwoord">
                                     </div>
                                     
                                     <button type="submit" class="btn btn-primary-custom btn-lg text-white w-100 mb-3">
@@ -115,33 +108,24 @@
                                 </form>
                             </div>
                             
-                            <!-- REGISTRATIE TAB -->
                             <div class="tab-pane fade" id="register" role="tabpanel">
                                 <form id="registerForm">
                                     <div class="mb-3">
                                         <label class="form-label fw-bold">E-mailadres</label>
-                                        <input type="email" class="form-control form-control-lg" 
-                                               id="registerEmail" required 
-                                               placeholder="je-email@voorbeeld.nl">
+                                        <input type="email" class="form-control form-control-lg" id="registerEmail" required placeholder="je-email@voorbeeld.nl">
                                         <div class="form-text">Gebruik een geldig e-mailadres</div>
                                     </div>
                                     
                                     <div class="mb-3">
                                         <label class="form-label fw-bold">Wachtwoord</label>
-                                        <input type="password" class="form-control form-control-lg" 
-                                               id="registerPassword" required 
-                                               placeholder="Minimaal 6 tekens"
-                                               oninput="checkPasswordStrength(this.value)">
+                                        <input type="password" class="form-control form-control-lg" id="registerPassword" required placeholder="Minimaal 6 tekens" oninput="checkPasswordStrength(this.value)">
                                         <div class="password-strength" id="passwordStrength"></div>
                                         <div class="form-text">Minimaal 6 tekens, sterker wachtwoord is veiliger</div>
                                     </div>
                                     
                                     <div class="mb-4">
                                         <label class="form-label fw-bold">Bevestig wachtwoord</label>
-                                        <input type="password" class="form-control form-control-lg" 
-                                               id="registerPasswordConfirm" required 
-                                               placeholder="Herhaal wachtwoord"
-                                               oninput="checkPasswordMatch()">
+                                        <input type="password" class="form-control form-control-lg" id="registerPasswordConfirm" required placeholder="Herhaal wachtwoord" oninput="checkPasswordMatch()">
                                         <div class="form-text text-danger" id="passwordMatchError" style="display: none;">
                                             <i class="bi bi-exclamation-triangle"></i> Wachtwoorden komen niet overeen
                                         </div>
@@ -149,8 +133,7 @@
                                     
                                     <div class="alert alert-info mb-4">
                                         <i class="bi bi-info-circle"></i> 
-                                        <strong>Belangrijk:</strong> Alle nieuwe gebruikers krijgen automatisch de rol <strong>'viewer'</strong>.
-                                        Dit betekent dat je alleen gegevens kunt bekijken, niet bewerken of verwijderen.
+                                        <strong>Alle nieuwe gebruikers krijgen automatisch de rol 'viewer'.</strong>
                                         Een beheerder kan later je rechten aanpassen.
                                     </div>
                                     
@@ -174,17 +157,14 @@
         </div>
     </div>
 
-    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
-        // Supabase configuratie
         const SUPABASE_URL = 'https://owjwkjrktftugjjrcwml.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93andranJrdGZ0dWdqanJjd21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2MzA4OTAsImV4cCI6MjA4NDIwNjg5MH0.oW6HTAlMBkjUu_4e3kn4iozjn5wK-15h4wCKcaHrtp8';
         
         let supabaseClient = null;
         
-        // Laad en init Supabase
         async function initSupabase() {
             if (supabaseClient) return supabaseClient;
             
@@ -205,21 +185,9 @@
             });
         }
         
-        // Toon bericht
         function showMessage(message, type = 'info') {
-            const colors = {
-                'info': 'alert-info',
-                'success': 'alert-success',
-                'error': 'alert-danger',
-                'warning': 'alert-warning'
-            };
-            
-            const icons = {
-                'info': 'bi-info-circle',
-                'success': 'bi-check-circle',
-                'error': 'bi-exclamation-triangle',
-                'warning': 'bi-exclamation-circle'
-            };
+            const colors = { 'info': 'alert-info', 'success': 'alert-success', 'error': 'alert-danger', 'warning': 'alert-warning' };
+            const icons = { 'info': 'bi-info-circle', 'success': 'bi-check-circle', 'error': 'bi-exclamation-triangle', 'warning': 'bi-exclamation-circle' };
             
             const messageDiv = document.getElementById('authMessage');
             messageDiv.innerHTML = `
@@ -232,7 +200,6 @@
                 </div>
             `;
             
-            // Auto-dismiss success messages
             if (type === 'success') {
                 setTimeout(() => {
                     const alert = messageDiv.querySelector('.alert');
@@ -244,7 +211,6 @@
             }
         }
         
-        // Wachtwoord sterkte checker
         function checkPasswordStrength(password) {
             const strengthBar = document.getElementById('passwordStrength');
             let strength = 0;
@@ -255,14 +221,11 @@
             if (/\d/.test(password)) strength++;
             if (/[^A-Za-z0-9]/.test(password)) strength++;
             
-            // Cap at 3 for display
             strength = Math.min(strength, 3);
-            
             strengthBar.className = 'password-strength strength-' + strength;
             checkRegisterButton();
         }
         
-        // Wachtwoord match checker
         function checkPasswordMatch() {
             const password = document.getElementById('registerPassword').value;
             const confirm = document.getElementById('registerPasswordConfirm').value;
@@ -277,7 +240,6 @@
             checkRegisterButton();
         }
         
-        // Schakel registratie knop in/uit
         function checkRegisterButton() {
             const email = document.getElementById('registerEmail').value;
             const password = document.getElementById('registerPassword').value;
@@ -291,7 +253,6 @@
             button.disabled = !(emailValid && passwordValid && passwordsMatch);
         }
         
-        // Tab switches
         function switchToRegister() {
             const registerTab = new bootstrap.Tab(document.getElementById('register-tab'));
             registerTab.show();
@@ -302,14 +263,12 @@
             loginTab.show();
         }
         
-        // Registreer nieuwe gebruiker
         async function registerUser(email, password) {
             showMessage('📝 Account aanmaken...', 'info');
             
             try {
                 const supabase = await initSupabase();
                 
-                // 1. Registreer bij Supabase Auth
                 const { data: authData, error: authError } = await supabase.auth.signUp({
                     email: email,
                     password: password
@@ -318,28 +277,24 @@
                 if (authError) throw authError;
                 
                 if (authData.user) {
-                    // 2. Maak profiel aan in profiles tabel met standaard rol 'viewer'
-                    const { error: profileError } = await supabase
-                        .from('profiles')
-                        .insert({
-                            user_id: authData.user.id,
-                            email: email,
-                            role: 'viewer',  // Standaard rol voor nieuwe gebruikers
-                            created_at: new Date().toISOString()
-                        });
-                    
-                    if (profileError) {
-                        console.warn('Profiel aanmaken mislukt, maar gebruiker is geregistreerd:', profileError);
-                        // Doorgaan want auth is gelukt
+                    try {
+                        await supabase
+                            .from('profiles')
+                            .insert({
+                                user_id: authData.user.id,
+                                email: email,
+                                role: 'viewer',
+                                created_at: new Date().toISOString()
+                            });
+                    } catch (profileError) {
+                        console.warn('Profiel aanmaken mislukt:', profileError);
                     }
                     
                     showMessage('✅ Registratie succesvol! Je kunt nu inloggen.', 'success');
                     
-                    // Reset form
                     document.getElementById('registerForm').reset();
                     document.getElementById('passwordStrength').className = 'password-strength';
                     
-                    // Ga terug naar login tab
                     setTimeout(() => {
                         switchToLogin();
                         document.getElementById('loginEmail').value = email;
@@ -358,14 +313,12 @@
             }
         }
         
-        // Login gebruiker
         async function loginUser(email, password) {
             showMessage('🔐 Inloggen...', 'info');
             
             try {
                 const supabase = await initSupabase();
                 
-                // 1. Login bij Supabase Auth
                 const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
                     email: email,
                     password: password
@@ -373,8 +326,7 @@
                 
                 if (authError) throw authError;
                 
-                // 2. Haal gebruikerrol op uit profiles tabel
-                let userRole = 'viewer'; // Standaard rol
+                let userRole = 'viewer';
                 let userId = authData.user.id;
                 
                 try {
@@ -382,24 +334,22 @@
                         .from('profiles')
                         .select('role')
                         .eq('user_id', userId)
-                        .maybeSingle(); // Gebruik maybeSingle voor het geval er geen profiel is
+                        .maybeSingle();
                     
                     if (!profileError && profile) {
                         userRole = profile.role || 'viewer';
                     }
                 } catch (profileError) {
-                    console.warn('Kon rol niet ophalen, gebruik standaard:', profileError);
+                    console.warn('Kon rol niet ophalen:', profileError);
                 }
                 
-                // 3. Sla gebruiker op in localStorage (compatibel met auth.js)
                 localStorage.setItem('userEmail', email);
                 localStorage.setItem('userId', userId);
                 localStorage.setItem('userRole', userRole);
                 localStorage.setItem('isAdmin', (userRole === 'admin').toString());
                 
-                showMessage(`✅ Ingelogd als ${email} (${userRole})! Doorsturen...`, 'success');
+                showMessage(`✅ Ingelogd! Doorsturen...`, 'success');
                 
-                // 4. Ga naar app
                 setTimeout(() => {
                     window.location.href = 'app.html';
                 }, 1500);
@@ -413,21 +363,17 @@
             }
         }
         
-        // Event Listeners
         document.addEventListener('DOMContentLoaded', async function() {
-            // Check of er al ingelogd is
             if (localStorage.getItem('userEmail')) {
-                showMessage('Je bent al ingelogd. Doorsturen naar dashboard...', 'info');
+                showMessage('Je bent al ingelogd. Doorsturen...', 'info');
                 setTimeout(() => {
                     window.location.href = 'app.html';
                 }, 1500);
                 return;
             }
             
-            // Init Supabase
             await initSupabase();
             
-            // Login form submit
             document.getElementById('loginForm').addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
@@ -450,7 +396,6 @@
                 btn.disabled = false;
             });
             
-            // Register form submit
             document.getElementById('registerForm').addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
@@ -484,7 +429,6 @@
                 btn.disabled = false;
             });
             
-            // Real-time validatie voor registratie velden
             document.getElementById('registerEmail').addEventListener('input', checkRegisterButton);
             document.getElementById('registerPassword').addEventListener('input', checkRegisterButton);
             document.getElementById('registerPasswordConfirm').addEventListener('input', checkRegisterButton);
