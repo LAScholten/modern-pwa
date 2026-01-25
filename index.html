@@ -3,105 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hondendatabase - Login & Registratie</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Hondendatabase - Login</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
     <style>
-        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; padding: 20px 0; }
-        .auth-card { background: white; border-radius: 15px; border: none; box-shadow: 0 20px 40px rgba(0,0,0,0.2); max-width: 500px; margin: 0 auto; }
-        .btn-primary-custom { background: #0d6efd; border: none; padding: 12px; font-weight: 600; }
-        .btn-primary-custom:hover { background: #0b5ed7; }
-        .btn-secondary-custom { background: #6c757d; border: none; padding: 12px; font-weight: 600; }
-        .btn-secondary-custom:hover { background: #5a6268; }
-        .tab-content { padding-top: 15px; }
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+        }
+        .login-card {
+            background: white;
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        .btn-login {
+            background: #0d6efd;
+            border: none;
+            padding: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .btn-login:hover {
+            background: #0b5ed7;
+            transform: translateY(-2px);
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="row justify-content-center">
-            <div class="col-md-10 col-lg-8">
-                <div class="card auth-card">
+            <div class="col-md-6 col-lg-5">
+                <div class="card login-card">
                     <div class="card-header text-white text-center py-4" style="background: #0d6efd; border-radius: 15px 15px 0 0;">
-                        <h3 class="mb-2"><i class="bi bi-database"></i> Hondendatabase</h3>
-                        <p class="mb-0">Beheer systeem voor hondengegevens</p>
+                        <h3 class="mb-2">
+                            <i class="bi bi-database"></i> Hondendatabase
+                        </h3>
+                        <p class="mb-0">Beheerder Login</p>
                     </div>
-                    <div class="card-body p-4 p-md-5">
-                        <ul class="nav nav-tabs nav-fill mb-4" id="authTabs" role="tablist">
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link active" id="login-tab" data-bs-toggle="tab" data-bs-target="#login" type="button" role="tab">
-                                    <i class="bi bi-box-arrow-in-right"></i> Inloggen
-                                </button>
-                            </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="register-tab" data-bs-toggle="tab" data-bs-target="#register" type="button" role="tab">
-                                    <i class="bi bi-person-plus"></i> Registreren
-                                </button>
-                            </li>
-                        </ul>
-                        
-                        <div class="tab-content" id="authTabsContent">
-                            <div class="tab-pane fade show active" id="login" role="tabpanel">
-                                <form id="loginForm">
-                                    <div class="mb-4">
-                                        <label class="form-label fw-bold">E-mailadres</label>
-                                        <input type="email" class="form-control form-control-lg" id="loginEmail" required placeholder="je-email@voorbeeld.nl">
-                                    </div>
-                                    <div class="mb-4">
-                                        <label class="form-label fw-bold">Wachtwoord</label>
-                                        <input type="password" class="form-control form-control-lg" id="loginPassword" required placeholder="Je wachtwoord">
-                                    </div>
-                                    <button type="submit" class="btn btn-primary-custom btn-lg text-white w-100 mb-3">
-                                        <i class="bi bi-box-arrow-in-right"></i> INLOGGEN
-                                    </button>
-                                    <div class="text-center">
-                                        <small class="text-muted">Nog geen account? <a href="#" class="text-decoration-none" onclick="switchToRegister()">Registreer hier</a></small>
-                                    </div>
-                                </form>
+                    <div class="card-body p-4">
+                        <form id="loginForm">
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">E-mailadres</label>
+                                <input type="email" class="form-control form-control-lg" 
+                                       id="email" required 
+                                       placeholder="voorbeeld@email.nl">
                             </div>
                             
-                            <div class="tab-pane fade" id="register" role="tabpanel">
-                                <form id="registerForm">
-                                    <div class="mb-3">
-                                        <label class="form-label fw-bold">E-mailadres</label>
-                                        <input type="email" class="form-control form-control-lg" id="registerEmail" required placeholder="je-email@voorbeeld.nl">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label fw-bold">Wachtwoord</label>
-                                        <input type="password" class="form-control form-control-lg" id="registerPassword" required placeholder="Minimaal 6 tekens">
-                                    </div>
-                                    <div class="mb-4">
-                                        <label class="form-label fw-bold">Bevestig wachtwoord</label>
-                                        <input type="password" class="form-control form-control-lg" id="registerPasswordConfirm" required placeholder="Herhaal wachtwoord">
-                                    </div>
-                                    <div class="alert alert-info mb-4">
-                                        <i class="bi bi-info-circle"></i> 
-                                        <strong>Alle nieuwe gebruikers krijgen automatisch de rol 'viewer'.</strong>
-                                    </div>
-                                    <button type="submit" class="btn btn-secondary-custom btn-lg text-white w-100 mb-3" id="registerButton">
-                                        <i class="bi bi-person-plus"></i> REGISTREREN
-                                    </button>
-                                    <div class="text-center">
-                                        <small class="text-muted">Al een account? <a href="#" class="text-decoration-none" onclick="switchToLogin()">Login hier</a></small>
-                                    </div>
-                                </form>
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Wachtwoord</label>
+                                <input type="password" class="form-control form-control-lg" 
+                                       id="password" required 
+                                       placeholder="Je wachtwoord">
                             </div>
+                            
+                            <button type="submit" class="btn btn-login btn-lg text-white w-100">
+                                <i class="bi bi-box-arrow-in-right"></i> INLOGGEN
+                            </button>
+                        </form>
+                        
+                        <div class="mt-4 text-center">
+                            <small class="text-muted">
+                                Gebruik je Supabase e-mail en wachtwoord
+                            </small>
                         </div>
-                        <div id="authMessage" class="mt-4"></div>
+                        
+                        <div id="loginMessage" class="mt-3"></div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    
     <script>
+        // Supabase configuratie
         const SUPABASE_URL = 'https://owjwkjrktftugjjrcwml.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93andranJrdGZ0dWdqanJjd21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2MzA4OTAsImV4cCI6MjA4NDIwNjg5MH0.oW6HTAlMBkjUu_4e3kn4iozjn5wK-15h4wCKcaHrtp8';
         
+        // Laad Supabase dynamisch
+        function loadSupabase() {
+            return new Promise((resolve) => {
+                if (window.supabase) {
+                    resolve(window.supabase);
+                    return;
+                }
+                
+                const script = document.createElement('script');
+                script.src = 'https://unpkg.com/@supabase/supabase-js@2';
+                script.onload = () => {
+                    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                    resolve(supabase);
+                };
+                document.head.appendChild(script);
+            });
+        }
+        
+        // Toon bericht
         function showMessage(message, type = 'info') {
-            const colors = { 'info': 'alert-info', 'success': 'alert-success', 'error': 'alert-danger' };
-            const messageDiv = document.getElementById('authMessage');
+            const colors = {
+                'info': 'alert-info',
+                'success': 'alert-success',
+                'error': 'alert-danger'
+            };
+            
+            const messageDiv = document.getElementById('loginMessage');
             messageDiv.innerHTML = `
                 <div class="alert ${colors[type]} alert-dismissible fade show">
                     ${message}
@@ -110,217 +117,55 @@
             `;
         }
         
-        function switchToRegister() {
-            document.getElementById('register-tab').click();
-        }
-        
-        function switchToLogin() {
-            document.getElementById('login-tab').click();
-        }
-        
-        function generateUserId() {
-            return 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        }
-        
-        async function makeDatabaseRequest(method = 'POST', data = null, action = 'login') {
-            // Simpele fetch zonder complexe headers die tracking prevention triggeren
-            const url = `${SUPABASE_URL}/rest/v1/profiles`;
-            
-            const options = {
-                method: method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'apikey': SUPABASE_KEY,
-                    'Authorization': `Bearer ${SUPABASE_KEY}`,
-                    'Prefer': 'return=representation'
-                }
-            };
-            
-            if (data) {
-                options.body = JSON.stringify(data);
-            }
+        // Normale login
+        async function loginUser(email, password) {
+            showMessage('🔐 Inloggen bij Supabase...', 'info');
             
             try {
-                const response = await fetch(url, options);
+                const supabase = await loadSupabase();
                 
-                if (response.status === 401) {
-                    // RLS error - we moeten een nieuw systeem maken
-                    throw new Error('Database beveiliging blokkeert actie');
-                }
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
                 
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`HTTP ${response.status}: ${errorText}`);
-                }
-                
-                return await response.json();
-            } catch (error) {
-                console.error('Database error:', error);
-                
-                // Als database niet werkt, gebruik localStorage als fallback
-                if (action === 'register') {
-                    return handleLocalRegistration(data);
-                } else if (action === 'login') {
-                    return handleLocalLogin(data);
-                }
-                
-                throw error;
-            }
-        }
-        
-        // LOCAL FALLBACK SYSTEM - werkt altijd
-        function handleLocalRegistration(userData) {
-            const users = JSON.parse(localStorage.getItem('local_users') || '{}');
-            const userId = generateUserId();
-            
-            users[userData.email] = {
-                id: userId,
-                email: userData.email,
-                password_hash: btoa(userData.password), // simpele encoding
-                role: 'viewer',
-                created_at: new Date().toISOString()
-            };
-            
-            localStorage.setItem('local_users', JSON.stringify(users));
-            
-            return [{ id: userId }];
-        }
-        
-        function handleLocalLogin(loginData) {
-            const users = JSON.parse(localStorage.getItem('local_users') || '{}');
-            const user = users[loginData.email];
-            
-            if (!user) {
-                throw new Error('Gebruiker niet gevonden');
-            }
-            
-            if (btoa(loginData.password) !== user.password_hash) {
-                throw new Error('Ongeldig wachtwoord');
-            }
-            
-            return [user];
-        }
-        
-        async function registerUser(email, password) {
-            showMessage('📝 Account aanmaken...', 'info');
-            
-            try {
-                // Controleer eerst of gebruiker al bestaat (lokaal of database)
-                let existingUser = null;
-                
-                try {
-                    const existingUsers = await makeDatabaseRequest('GET', null, 'login');
-                    existingUser = existingUsers.find(u => u.email === email);
-                } catch (error) {
-                    // Database niet bereikbaar, check lokaal
-                    const localUsers = JSON.parse(localStorage.getItem('local_users') || '{}');
-                    existingUser = localUsers[email];
-                }
-                
-                if (existingUser) {
-                    showMessage('⚠️ Account bestaat al. Probeer in te loggen.', 'warning');
-                    switchToLogin();
-                    document.getElementById('loginEmail').value = email;
+                if (error) {
+                    showMessage(`❌ Fout: ${error.message}`, 'error');
                     return false;
                 }
                 
-                // Probeer eerst database
-                const now = new Date().toISOString();
-                const userId = generateUserId();
+                // SUCCESS
+                showMessage('✅ Ingelogd! Controleer beheerder rechten...', 'success');
                 
+                // Controleer of gebruiker admin is
+                let isAdmin = false;
                 try {
-                    await makeDatabaseRequest('POST', {
-                        user_id: userId,
-                        email: email,
-                        role: 'viewer',
-                        created_at: now,
-                        updated_at: now
-                    }, 'register');
-                } catch (dbError) {
-                    console.log('Database registratie mislukt, gebruik lokaal systeem:', dbError);
-                    // Doorgaan met lokaal systeem
-                }
-                
-                // Sla ook lokaal op voor zekerheid
-                const localUsers = JSON.parse(localStorage.getItem('local_users') || '{}');
-                localUsers[email] = {
-                    id: userId,
-                    email: email,
-                    password_hash: btoa(password),
-                    role: 'viewer',
-                    created_at: now
-                };
-                localStorage.setItem('local_users', JSON.stringify(localUsers));
-                
-                // Log direct in
-                localStorage.setItem('userEmail', email);
-                localStorage.setItem('userId', userId);
-                localStorage.setItem('userRole', 'viewer');
-                localStorage.setItem('isAdmin', 'false');
-                
-                showMessage('✅ Registratie succesvol! Je bent ingelogd.', 'success');
-                
-                setTimeout(() => {
-                    window.location.href = 'app.html';
-                }, 2000);
-                
-                return true;
-                
-            } catch (error) {
-                console.error('Registratie error:', error);
-                showMessage(`❌ Registratie mislukt: ${error.message}`, 'error');
-                return false;
-            }
-        }
-        
-        async function loginUser(email, password) {
-            showMessage('🔐 Inloggen...', 'info');
-            
-            try {
-                let user = null;
-                
-                // Probeer eerst database
-                try {
-                    const users = await makeDatabaseRequest('GET', null, 'login');
-                    user = users.find(u => u.email === email);
+                    const { data: profile, error: profileError } = await supabase
+                        .from('profiles')
+                        .select('is_admin')
+                        .eq('user_id', data.user.id)
+                        .single();
                     
-                    if (user) {
-                        // Database user gevonden - check password (simpel systeem)
-                        // In een echt systeem zou je Supabase Auth gebruiken
-                        const localUsers = JSON.parse(localStorage.getItem('local_users') || '{}');
-                        const localUser = localUsers[email];
-                        
-                        if (!localUser || btoa(password) !== localUser.password_hash) {
-                            throw new Error('Ongeldig wachtwoord voor database gebruiker');
-                        }
+                    if (!profileError && profile) {
+                        isAdmin = profile.is_admin === true;
                     }
-                } catch (dbError) {
-                    console.log('Database login mislukt, probeer lokaal:', dbError);
-                    // Database niet beschikbaar, probeer lokaal
-                }
-                
-                // Als geen database user, probeer lokaal
-                if (!user) {
-                    const localUsers = JSON.parse(localStorage.getItem('local_users') || '{}');
-                    user = localUsers[email];
-                    
-                    if (!user) {
-                        throw new Error('Geen account gevonden met dit e-mailadres');
-                    }
-                    
-                    if (btoa(password) !== user.password_hash) {
-                        throw new Error('Ongeldig wachtwoord');
-                    }
+                } catch (error) {
+                    console.log('Profiel check mislukt:', error);
                 }
                 
                 // Sla gebruiker op
-                localStorage.setItem('userEmail', email);
-                localStorage.setItem('userId', user.id);
-                localStorage.setItem('userRole', user.role || 'viewer');
-                localStorage.setItem('isAdmin', (user.role === 'admin').toString());
+                localStorage.setItem('userEmail', data.user.email);
+                localStorage.setItem('userId', data.user.id);
+                localStorage.setItem('isAdmin', isAdmin.toString());
                 
-                showMessage('✅ Ingelogd! Doorsturen...', 'success');
+                // Toon resultaat
+                if (isAdmin) {
+                    showMessage('✅ Beheerder toegang verleend! Doorsturen...', 'success');
+                } else {
+                    showMessage('⚠️ Gewone gebruiker toegang. Doorsturen...', 'info');
+                }
                 
+                // Naar app
                 setTimeout(() => {
                     window.location.href = 'app.html';
                 }, 1500);
@@ -328,66 +173,41 @@
                 return true;
                 
             } catch (error) {
-                console.error('Login error:', error);
-                showMessage(`❌ Inloggen mislukt: ${error.message}`, 'error');
+                showMessage(`❌ Fout: ${error.message}`, 'error');
                 return false;
             }
         }
         
+        // Form submit
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            
+            if (!email || !password) {
+                showMessage('❌ Vul e-mail en wachtwoord in', 'error');
+                return;
+            }
+            
+            const btn = this.querySelector('button[type="submit"]');
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Inloggen...';
+            btn.disabled = true;
+            
+            await loginUser(email, password);
+            
+            btn.innerHTML = '<i class="bi bi-box-arrow-in-right"></i> INLOGGEN';
+            btn.disabled = false;
+        });
+        
+        // Check of er al ingelogd is
         document.addEventListener('DOMContentLoaded', function() {
             if (localStorage.getItem('userEmail')) {
                 showMessage('Je bent al ingelogd. Doorsturen...', 'info');
                 setTimeout(() => {
                     window.location.href = 'app.html';
                 }, 1000);
-                return;
             }
-            
-            document.getElementById('loginForm').addEventListener('submit', async function(e) {
-                e.preventDefault();
-                const email = document.getElementById('loginEmail').value.trim();
-                const password = document.getElementById('loginPassword').value;
-                
-                if (!email || !password) {
-                    showMessage('❌ Vul e-mail en wachtwoord in', 'error');
-                    return;
-                }
-                
-                const btn = this.querySelector('button[type="submit"]');
-                btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Inloggen...';
-                btn.disabled = true;
-                
-                await loginUser(email, password);
-                
-                btn.innerHTML = '<i class="bi bi-box-arrow-in-right"></i> INLOGGEN';
-                btn.disabled = false;
-            });
-            
-            document.getElementById('registerForm').addEventListener('submit', async function(e) {
-                e.preventDefault();
-                const email = document.getElementById('registerEmail').value.trim();
-                const password = document.getElementById('registerPassword').value;
-                const confirm = document.getElementById('registerPasswordConfirm').value;
-                
-                if (password !== confirm) {
-                    showMessage('❌ Wachtwoorden komen niet overeen', 'error');
-                    return;
-                }
-                
-                if (password.length < 6) {
-                    showMessage('❌ Wachtwoord moet minimaal 6 tekens zijn', 'error');
-                    return;
-                }
-                
-                const btn = document.getElementById('registerButton');
-                btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Registreren...';
-                btn.disabled = true;
-                
-                await registerUser(email, password);
-                
-                btn.innerHTML = '<i class="bi bi-person-plus"></i> REGISTREREN';
-                btn.disabled = false;
-            });
         });
     </script>
 </body>
