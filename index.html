@@ -269,35 +269,60 @@
             try {
                 const supabase = await initSupabase();
                 
+                // 1. Eerst Auth registratie
                 const { data: authData, error: authError } = await supabase.auth.signUp({
                     email: email,
-                    password: password
+                    password: password,
+                    options: {
+                        data: {
+                            email: email
+                        }
+                    }
                 });
                 
-                if (authError) throw authError;
+                if (authError) {
+                    // Als gebruiker al bestaat in Auth, probeer in te loggen
+                    if (authError.message.includes('already registered')) {
+                        showMessage('⚠️ Account bestaat al. Probeer in te loggen.', 'warning');
+                        switchToLogin();
+                        document.getElementById('loginEmail').value = email;
+                        document.getElementById('loginPassword').focus();
+                        return false;
+                    }
+                    throw authError;
+                }
                 
                 if (authData.user) {
-                    const now = new Date().toISOString();
+                    // 2. Wacht even zodat Auth zeker is opgeslagen
+                    await new Promise(resolve => setTimeout(resolve, 1000));
                     
+                    // 3. Maak profiel aan in profiles tabel
+                    const now = new Date().toISOString();
                     const { error: profileError } = await supabase
                         .from('profiles')
-                        .insert({
+                        .upsert({
                             user_id: authData.user.id,
                             email: email,
                             role: 'viewer',
                             created_at: now,
                             updated_at: now
+                        }, {
+                            onConflict: 'user_id'
                         });
                     
                     if (profileError) {
-                        console.warn('Profiel aanmaken mislukt:', profileError);
+                        console.error('Profiel aanmaken fout:', profileError);
+                        showMessage('❌ Profiel aanmaken mislukt. Contacteer beheerder.', 'error');
+                        return false;
                     }
                     
                     showMessage('✅ Registratie succesvol! Je kunt nu inloggen.', 'success');
                     
+                    // Reset form
                     document.getElementById('registerForm').reset();
                     document.getElementById('passwordStrength').className = 'password-strength';
                     
+                    // Ga terug naar login
                     setTimeout(() => {
                         switchToLogin();
                         document.getElementById('loginEmail').value = email;
@@ -322,6 +347,7 @@
             try {
                 const supabase = await initSupabase();
                 
+                // 1. Login bij Supabase Auth
                 const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
                     email: email,
                     password: password
@@ -329,6 +355,7 @@
                 
                 if (authError) throw authError;
                 
+                // 2. Haal gebruikerrol op uit profiles tabel
                 let userRole = 'viewer';
                 let userId = authData.user.id;
                 
@@ -339,20 +366,34 @@
                         .eq('user_id', userId)
                         .maybeSingle();
                     
-                    if (!profileError && profile) {
+                    if (profileError) {
+                        // Als geen profiel bestaat, maak er een aan
+                        const now = new Date().toISOString();
+                        await supabase
+                            .from('profiles')
+                            .upsert({
+                                user_id: userId,
+                                email: email,
+                                role: 'viewer',
+                                created_at: now,
+                                updated_at: now
+                            });
+                    } else if (profile) {
                         userRole = profile.role || 'viewer';
                     }
                 } catch (profileError) {
-                    console.warn('Kon rol niet ophalen:', profileError);
+                    console.warn('Rol ophalen/maken mislukt:', profileError);
                 }
                 
+                // 3. Sla gebruiker op in localStorage
                 localStorage.setItem('userEmail', email);
                 localStorage.setItem('userId', userId);
                 localStorage.setItem('userRole', userRole);
                 localStorage.setItem('isAdmin', (userRole === 'admin').toString());
                 
-                showMessage(`✅ Ingelogd! Doorsturen...`, 'success');
+                showMessage(`✅ Ingelogd als ${userRole}! Doorsturen...`, 'success');
                 
+                // 4. Ga naar app
                 setTimeout(() => {
                     window.location.href = 'app.html';
                 }, 1500);
