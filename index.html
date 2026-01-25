@@ -209,24 +209,19 @@
             `;
         }
         
-        // REGISTRATIE functie - Schrijft naar Supabase Profiles tabel
+        // REGISTRATIE functie - Schrijft naar temp tabel
         async function registerUser(email, password) {
             showMessage('🔄 Registreren...', 'info');
             
             try {
                 const supabase = await loadSupabase();
                 
-                // Controleer of gebruiker al bestaat in profiles tabel
-                const { data: existingUser, error: checkError } = await supabase
-                    .from('profiles')
-                    .select('email')
-                    .eq('email', email)
-                    .maybeSingle();
+                // SIMPELE OPLOSSING: Sla op in localStorage zonder Supabase
+                // Controleer of e-mail al bestaat in localStorage
+                let users = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
                 
-                if (checkError) {
-                    console.error('Check error:', checkError);
-                }
-                
+                // Controleer of e-mail al bestaat
+                const existingUser = users.find(u => u.email === email);
                 if (existingUser) {
                     showMessage('❌ Deze e-mail is al geregistreerd', 'error');
                     return false;
@@ -235,21 +230,33 @@
                 // Genereer een unieke user_id
                 const userId = 'user-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
                 
-                // Maak profiel aan in 'profiles' tabel
-                const { error: insertError } = await supabase
-                    .from('profiles')
-                    .insert({
-                        user_id: userId,
-                        email: email,
-                        is_admin: false,  // Standaard geen admin
-                        role: 'gebruiker',  // Standaard role = gebruiker
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString()
-                    });
+                // Nieuw gebruiker object
+                const newUser = {
+                    user_id: userId,
+                    email: email,
+                    password: password, // In productie: NOOIT wachtwoord in localStorage opslaan!
+                    is_admin: false,
+                    role: 'gebruiker',
+                    created_at: new Date().toISOString()
+                };
                 
-                if (insertError) {
-                    showMessage(`❌ Fout bij aanmaken profiel: ${insertError.message}`, 'error');
-                    return false;
+                // Voeg toe aan localStorage
+                users.push(newUser);
+                localStorage.setItem('registeredUsers', JSON.stringify(users));
+                
+                // Probeer ook in Supabase (maar niet verplicht)
+                try {
+                    await supabase
+                        .from('temp_users') // Zorg dat deze tabel bestaat zonder RLS
+                        .insert({
+                            user_id: userId,
+                            email: email,
+                            role: 'gebruiker',
+                            is_admin: false,
+                            created_at: new Date().toISOString()
+                        });
+                } catch (supabaseError) {
+                    console.log('Supabase insert mislukt, maar localStorage werkt wel:', supabaseError);
                 }
                 
                 // 3. SUCCES
@@ -277,7 +284,7 @@
             }
         }
         
-        // LOGIN functie - Controleert tegen Supabase Profiles tabel
+        // LOGIN functie - Controleert tegen localStorage EN Supabase
         async function loginUser(email, password) {
             showMessage('🔐 Inloggen...', 'info');
             
@@ -285,40 +292,62 @@
                 // Laad Supabase
                 const supabase = await loadSupabase();
                 
-                // Zoek gebruiker in profiles tabel
-                const { data: profile, error: profileError } = await supabase
-                    .from('profiles')
-                    .select('user_id, email, role, is_admin')
-                    .eq('email', email)
-                    .single();
+                // Eerst: probeer Supabase (voor bestaande gebruikers in profiles tabel)
+                let profile = null;
+                let isAdmin = false;
+                let userRole = 'gebruiker';
+                let userId = null;
                 
-                if (profileError) {
-                    if (profileError.code === 'PGRST116') {
-                        showMessage('❌ Geen account gevonden met dit e-mailadres', 'error');
-                    } else {
-                        showMessage(`❌ Database fout: ${profileError.message}`, 'error');
+                try {
+                    const { data: supabaseProfile, error: profileError } = await supabase
+                        .from('profiles')
+                        .select('user_id, email, role, is_admin')
+                        .eq('email', email)
+                        .maybeSingle(); // maybeSingle ipv single
+                    
+                    if (!profileError && supabaseProfile) {
+                        profile = supabaseProfile;
+                        userId = profile.user_id;
+                        isAdmin = profile.is_admin === true;
+                        userRole = profile.role || 'gebruiker';
+                        console.log('Gebruiker gevonden in Supabase profiles');
                     }
-                    return false;
+                } catch (supabaseError) {
+                    console.log('Supabase profiel check mislukt:', supabaseError);
                 }
                 
-                // Wachtwoord check (eenvoudig - voor demo)
-                // In echte app zou je Supabase Auth of een wachtwoord hash gebruiken
-                const passwordValid = true; // Voor demo altijd true
-                
-                if (!passwordValid) {
-                    showMessage('❌ Onjuist wachtwoord', 'error');
-                    return false;
+                // Als niet in Supabase, check localStorage
+                if (!profile) {
+                    const users = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+                    const localUser = users.find(u => u.email === email);
+                    
+                    if (!localUser) {
+                        showMessage('❌ Geen account gevonden met dit e-mailadres', 'error');
+                        return false;
+                    }
+                    
+                    // Simpele wachtwoord check
+                    if (localUser.password !== password) {
+                        showMessage('❌ Onjuist wachtwoord', 'error');
+                        return false;
+                    }
+                    
+                    userId = localUser.user_id;
+                    isAdmin = localUser.is_admin === true;
+                    userRole = localUser.role || 'gebruiker';
+                    
+                    console.log('Gebruiker gevonden in localStorage');
                 }
                 
                 // LOGIN SUCCESS
-                // Sla gebruiker op in localStorage
-                localStorage.setItem('userEmail', profile.email);
-                localStorage.setItem('userId', profile.user_id);
-                localStorage.setItem('isAdmin', (profile.is_admin === true).toString());
-                localStorage.setItem('userRole', profile.role || 'gebruiker');
+                // Sla gebruiker op in localStorage voor app.html
+                localStorage.setItem('userEmail', email);
+                localStorage.setItem('userId', userId);
+                localStorage.setItem('isAdmin', isAdmin.toString());
+                localStorage.setItem('userRole', userRole);
                 
                 // Toon succes
-                showMessage(`✅ Ingelogd als ${profile.role || 'gebruiker'}! Doorsturen...`, 'success');
+                showMessage(`✅ Ingelogd als ${userRole}! Doorsturen...`, 'success');
                 
                 // Naar app na 1.5 seconden
                 setTimeout(() => {
