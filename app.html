@@ -143,7 +143,7 @@
             }
         }
         
-        /* Desktop: verberg mobiele layout */
+        /* Desktop: verberg mobiele layout -->
         @media (min-width: 769px) {
             .action-buttons-column {
                 display: none !important;
@@ -153,7 +153,7 @@
                 display: flex !important;
             }
             
-            /* Disclaimer knop op desktop */
+            /* Disclaimer knop op desktop -->
             #disclaimerBtn {
                 display: inline-block;
             }
@@ -163,12 +163,13 @@
     <!-- LOGIN CONTROLE - DIRECT NA HEADER -->
     <script>
         // Eerste controle: check of er user data is
-        if (!localStorage.getItem('userEmail')) {
+        if (!localStorage.getItem('userEmail') || !localStorage.getItem('userId')) {
             console.log('❌ Geen login data gevonden, ga terug naar login');
             window.location.href = 'index.html';
         } else {
             console.log('✅ Ingelogd als:', localStorage.getItem('userEmail'));
-            console.log('👑 Admin status:', localStorage.getItem('isAdmin'));
+            console.log('🆔 User ID:', localStorage.getItem('userId'));
+            console.log('👑 Rol wordt opgehaald uit database...');
         }
     </script>
 </head>
@@ -255,7 +256,8 @@
                         <h5 class="mb-0"><i class="bi bi-menu-button"></i> <span class="app-text" data-key="menu">Menu</span></h5>
                     </div>
                     <div class="list-group list-group-flush">
-                        <button class="list-group-item list-group-item-action" id="dataManagementBtn">
+                        <!-- Data Beheer knop - ALLEEN voor admin -->
+                        <button class="list-group-item list-group-item-action d-none" id="dataManagementBtn">
                             <i class="bi bi-database-gear"></i> <span class="app-text" data-key="dataManagement">Data Beheer</span>
                         </button>
                         <button class="list-group-item list-group-item-action" id="searchBtn">
@@ -264,19 +266,24 @@
                         <button class="list-group-item list-group-item-action" id="photoGalleryBtn">
                             <i class="bi bi-images"></i> <span class="app-text" data-key="photoGallery">Foto Galerij</span>
                         </button>
-                        <button class="list-group-item list-group-item-action" id="breedingPlanBtn">
+                        <!-- Fok Planning knop - VERBORGEN voor gebruiker -->
+                        <button class="list-group-item list-group-item-action d-none" id="breedingPlanBtn">
                             <i class="bi bi-calendar-heart"></i> <span class="app-text" data-key="breedingPlan">Fok Planning</span>
                         </button>
-                        <button class="list-group-item list-group-item-action" id="privateInfoBtn">
+                        <!-- Privé Informatie knop - VERBORGEN voor gebruiker -->
+                        <button class="list-group-item list-group-item-action d-none" id="privateInfoBtn">
                             <i class="bi bi-lock"></i> <span class="app-text" data-key="privateInfo">Privé Informatie</span>
                         </button>
-                        <button class="list-group-item list-group-item-action" id="addDogBtn">
+                        <!-- Nieuwe Hond knop - ALLEEN voor admin -->
+                        <button class="list-group-item list-group-item-action d-none" id="addDogBtn">
                             <i class="bi bi-plus-circle"></i> <span class="app-text" data-key="newDog">Nieuwe Hond</span>
                         </button>
-                        <button class="list-group-item list-group-item-action" id="addLitterBtn">
+                        <!-- Nieuw Nest knop - VERBORGEN voor gebruiker -->
+                        <button class="list-group-item list-group-item-action d-none" id="addLitterBtn">
                             <i class="bi bi-motherboard"></i> <span class="app-text" data-key="newLitter">Nieuw Nest</span>
                         </button>
-                        <button class="list-group-item list-group-item-action" id="editDogDataBtn">
+                        <!-- Data Hond Bewerken knop - VERBORGEN voor gebruiker -->
+                        <button class="list-group-item list-group-item-action d-none" id="editDogDataBtn">
                             <i class="bi bi-pencil-square"></i> <span class="app-text" data-key="editDogData">Data Hond Bewerken</span>
                         </button>
                     </div>
@@ -345,10 +352,6 @@
                                     <div class="card-body">
                                         <h5><i class="bi bi-shield-check text-success"></i> <span class="app-text" data-key="security">Beveiliging</span></h5>
                                         <p class="app-text" data-key="roleBasedAccess">De app gebruikt rol-gebaseerde toegang:</p>
-                                        <div class="alert alert-warning">
-                                            <strong class="app-text" data-key="adminRole">Administrator</strong><br>
-                                            <span class="app-text" data-key="adminRights">Volledige rechten.</span>
-                                        </div>
                                         <div class="alert alert-info">
                                             <strong class="app-text" data-key="userPlusRole">Gebruiker+</strong><br>
                                             <span class="app-text" data-key="userPlusRights">Kan honden bekijken, fokplanning maken en eigen honden/nesten toevoegen of bewerken, mits de ouders al in de database staan.</span>
@@ -542,6 +545,77 @@
     
     <!-- App Initialization -->
     <script>
+        // Simpele functie om gebruikerrol op te halen uit database
+        async function getUserRoleFromDatabase() {
+            const userId = localStorage.getItem('userId');
+            
+            if (!userId) {
+                console.error('❌ Geen userId gevonden');
+                return 'gebruiker';
+            }
+            
+            console.log('🔄 Haal rol op voor:', userId);
+            
+            try {
+                // Probeer verschillende mogelijke kolomnamen
+                const possibleColumns = ['user_id', 'auth_id', 'auth_user_id', 'user_uuid', 'uuid', 'supabase_uid'];
+                
+                for (const column of possibleColumns) {
+                    console.log(`ℹ️ Probeer met kolom: ${column}`);
+                    
+                    const { data, error } = await window.supabase
+                        .from('profiles')
+                        .select('role')
+                        .eq(column, userId)
+                        .single();
+                    
+                    if (!error && data && data.role) {
+                        console.log(`✅ Rol gevonden via kolom ${column}:`, data.role);
+                        return data.role;
+                    }
+                    
+                    if (error && !error.message.includes('invalid input syntax')) {
+                        console.log(`⚠️ Geen data via kolom ${column}:`, error.message);
+                    }
+                }
+                
+                // Laatste poging: gebruik de auth.js rol als die beschikbaar is
+                if (window.auth && window.auth.user && window.auth.user.role) {
+                    console.log('✅ Rol gevonden via auth.js:', window.auth.user.role);
+                    return window.auth.user.role;
+                }
+                
+                console.warn('⚠️ Geen rol kunnen vinden, gebruik standaard "gebruiker"');
+                return 'gebruiker';
+                
+            } catch (error) {
+                console.error('❌ Error:', error);
+                return 'gebruiker';
+            }
+        }
+        
+        // Functie om app te initialiseren met de juiste rol
+        async function initializeAppWithRole() {
+            // Haal de rol op uit de database
+            const userRole = await getUserRoleFromDatabase();
+            
+            // Sla de rol op in localStorage
+            localStorage.setItem('userRole', userRole);
+            localStorage.setItem('isAdmin', (userRole === 'admin').toString());
+            
+            console.log('🎉 App met rol:', userRole);
+            
+            // Toon rol in UI
+            const userEmail = localStorage.getItem('userEmail');
+            const roleDisplay = document.getElementById('currentUser');
+            if (roleDisplay) {
+                roleDisplay.textContent = `${userEmail} (${userRole})`;
+            }
+            
+            // Initialiseer de rest van de app
+            initApp(userRole);
+        }
+        
         // Laad taal uit localStorage
         const appLanguage = localStorage.getItem('appLanguage') || 'nl';
         
@@ -650,26 +724,26 @@
                 dashboard: "Dashboard",
                 welcomeTitle: "Willkommen bei der Hundendatenbank PWA - Desktop Edition",
                 welcomeText: "Wählen Sie eine option aus dem menü, um zu beginnen.",
-                aboutApp: "Über diese PWA",
-                appDescription: "Diese Progressive Web App hat verschiedene Möglichkeiten:",
+                aboutApp: "Über deze PWA",
+                appDescription: "Diese Progressive Web App hat verschiedene mogelijkkeiten:",
                 feature1: "💾 Speicher:",
                 feature1Desc: "Speichert Daten in der Online-Datenbank",
                 feature2: "🔄 Einfache Sicherung:",
-                feature2Desc: "Sicherungen werden wöchentlich vom Administrator durchgeführt",
+                feature2Desc: "Sicherungen worden wöchentlich vom Administrator durchgeführt",
                 feature3: "⚡ Schnelle Arbeit:",
                 feature3Desc: "Direkter Zugriff auf Ihre Daten",
                 feature4: "🔒 Sichere Speicherung:",
-                feature4Desc: "Private Informationen sind nur für die Person sichtbar, die sie eingegeben hat.",
+                feature4Desc: "Private informatie zijn alleen voor de person zichtbaar, die ze heeft ingevoerd.",
                 feature5: "Hunde hinzufügen en verwalten",
                 feature6: "Daten importieren/exportieren",
                 security: "Sicherheit",
-                roleBasedAccess: "Die App verwendet rollenbasierte Zugriffe:",
+                roleBasedAccess: "Die App gebruikt rollenbasierte Zugriffe:",
                 adminRole: "Administrator",
                 adminRights: "Volle Rechte.",
                 userPlusRole: "Benutzer+",
-                userPlusRights: "Kann Hunde ansehen, Zuchtpläne erstellen und eigene Hunde/Würfe hinzufügen oder bearbeiten, vorausgesetzt die Eltern sind bereits in der Datenbank.",
+                userPlusRights: "Kann Hunde ansehen, Zuchtpläne erstellen en eigene Hunde/Würfe hinzufügen of bearbeiten, vorausgesetzt die ouders sind bereits in der Datenbank.",
                 userRole: "Benutzer",
-                userRights: "Kann Hunde ansehen, aber keine eigenen Zuchtpläne erstellen und keine eigenen Hunde/Würfe hinzufügen oder bearbeiten.",
+                userRights: "Kann Hunde ansehen, aber keine eigenen Zuchtpläne erstellen und geen eigenen Hunde/Würfe hinzufügen of bearbeiten.",
                 disclaimerBtn: "Disclaimer/Information zur COI Berechnung",
                 installPWA: "Verknüpfung erstellen"
             }
@@ -731,11 +805,72 @@
             });
         });
 
-        // Initialiseer UI Handler
+        // MAKEN van ui variabele GLOBAAAL beschikbaar
         let ui = null;
-        
-        // Wacht tot DOM volledig geladen is
-        document.addEventListener('DOMContentLoaded', function() {
+
+        // Hoofd init functie voor de rest van de app
+        function initApp(userRole) {
+            console.log('Initializing app with role:', userRole);
+            
+            // BEPALEN WELKE MENU KNOOPPEN GETOOND WORDEN OP BASIS VAN ROL
+            const menuButtons = {
+                dataManagementBtn: document.getElementById('dataManagementBtn'),
+                breedingPlanBtn: document.getElementById('breedingPlanBtn'),
+                privateInfoBtn: document.getElementById('privateInfoBtn'),
+                addDogBtn: document.getElementById('addDogBtn'),
+                addLitterBtn: document.getElementById('addLitterBtn'),
+                editDogDataBtn: document.getElementById('editDogDataBtn'),
+                searchBtn: document.getElementById('searchBtn'),
+                photoGalleryBtn: document.getElementById('photoGalleryBtn')
+            };
+            
+            // RESET: Verberg alle knoppen eerst
+            Object.values(menuButtons).forEach(btn => {
+                if (btn) btn.classList.add('d-none');
+            });
+            
+            // TOON ALTIJD: Hond Zoeken en Foto Galerij voor ALLE gebruikers
+            if (menuButtons.searchBtn) menuButtons.searchBtn.classList.remove('d-none');
+            if (menuButtons.photoGalleryBtn) menuButtons.photoGalleryBtn.classList.remove('d-none');
+            
+            // VOOR GEBRUIKER: alleen de bovenstaande 2 knoppen tonen
+            if (userRole === 'gebruiker') {
+                console.log('Alleen Hond Zoeken en Foto Galerij getoond voor gebruiker');
+                
+            // VOOR GEBRUIKER+: toon extra knoppen
+            } else if (userRole === 'gebruiker+') {
+                console.log('Extra knoppen getoond voor gebruiker+');
+                
+                // Toon extra knoppen voor gebruiker+
+                const extraButtonsForUserPlus = [
+                    'breedingPlanBtn',
+                    'privateInfoBtn',
+                    'addLitterBtn',
+                    'editDogDataBtn'
+                ];
+                
+                extraButtonsForUserPlus.forEach(btnId => {
+                    if (menuButtons[btnId]) menuButtons[btnId].classList.remove('d-none');
+                });
+                
+                // Nieuwe Hond knop NIET tonen voor gebruiker+
+                // Alleen voor admin!
+                if (menuButtons.addDogBtn) {
+                    menuButtons.addDogBtn.classList.add('d-none');
+                    console.log('Nieuwe Hond knop VERBORGEN voor gebruiker+');
+                }
+                
+            // VOOR ADMIN: toon ALLES
+            } else if (userRole === 'admin') {
+                console.log('Alle knoppen getoond voor admin');
+                
+                // Toon ALLE knoppen
+                Object.values(menuButtons).forEach(btn => {
+                    if (btn) btn.classList.remove('d-none');
+                });
+            }
+            
+            // Initialiseer UI Handler
             try {
                 ui = new UIHandler();
                 window.appUI = ui;
@@ -752,14 +887,6 @@
                 
                 // Initialiseer taal
                 translateAppPage(appLanguage);
-                
-                // Toon huidige gebruiker
-                const userEmail = localStorage.getItem('userEmail');
-                const isAdmin = localStorage.getItem('isAdmin');
-                if (userEmail) {
-                    document.getElementById('currentUser').textContent = 
-                        `${userEmail} (${isAdmin === 'true' ? 'Admin' : 'Gebruiker'})`;
-                }
                 
                 // Setup event listeners voor menu knoppen
                 setupMenuEventListeners();
@@ -796,7 +923,7 @@
                 console.error('Fout bij initialiseren UI:', error);
                 alert('Fout bij initialiseren applicatie: ' + error.message);
             }
-        });
+        }
         
         function setupMenuEventListeners() {
             console.log('Setting up menu event listeners');
@@ -852,6 +979,7 @@
                             // Fallback: verwijder localStorage en ga naar login
                             localStorage.removeItem('userEmail');
                             localStorage.removeItem('userId');
+                            localStorage.removeItem('userRole');
                             localStorage.removeItem('isAdmin');
                             window.location.href = 'index.html';
                         }
@@ -989,9 +1117,10 @@
                     setTimeout(() => {
                         try {
                             if (litterManager.setupEvents) {
-                                const isAdmin = this.auth.isAdmin();
-                                if (!isAdmin) {
-                                    console.log('User is not admin, showing access denied popup');
+                                // TOEGANGS CONTROLE aangepast voor gebruikers+
+                                const userRole = localStorage.getItem('userRole');
+                                if (userRole !== 'admin' && userRole !== 'gebruiker+') {
+                                    console.log('User is not admin or gebruiker+, showing access denied popup');
                                     return;
                                 }
                                 litterManager.setupEvents();
@@ -1055,6 +1184,12 @@
                 });
             };
         }
+        
+        // Start de app initialisatie wanneer de DOM geladen is
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM geladen, start app initialisatie met rol...');
+            initializeAppWithRole();
+        });
     </script>
     
 

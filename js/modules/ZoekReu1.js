@@ -442,8 +442,8 @@ class ZoekReu {
                 selectFemaleToStart: "Wählen Sie eine Hündin, um zu beginnen",
                 useSearchCriteria: "Verwenden Sie Suchkriterien, um Rüden zu finden",
                 searchingMales: "Suche nach geeigneten Rüden...",
-                pedigreeFunctionalityUnavailable: "Stamboomfunktionaliteit ist derzeit nicht verfügbar",
-                maleNotFound: "Konnte Rüdendaten nicht finden",
+                pedigreeFunctionalityUnavailable: "Stamboomfunktionaliteit ist derzeit niet verfügbar",
+                maleNotFound: "Konnte Rüdendaten niet finden",
                 errorShowingPedigree: "Beim Anzeigen des Stamboons is een Fehler aufgetreten",
                 combinedParents: "Kombinierte Eltern",
                 noHondenFound: "Keine Hunde gefunden",
@@ -2636,24 +2636,90 @@ class ZoekReu {
     async showReuPedigree(reuId, reuName) {
         console.log(`🔄 Toon stamboom voor reu: ${reuId} - ${reuName}`);
         
+        // Eerst controleren of StamboomManager beschikbaar is in de globale scope
+        if (typeof StamboomManager === 'undefined') {
+            console.error('❌ StamboomManager klasse niet gevonden!');
+            this.showAlert(this.t('pedigreeFunctionalityUnavailable'), 'warning');
+            return;
+        }
+        
+        // Zoek naar bestaande StamboomManager in globale scope
+        if (!window.stamboomManager && !this.stamboomManager) {
+            try {
+                console.log('🔄 Zoek naar bestaande StamboomManager...');
+                
+                // Controleer of er al een StamboomManager bestaat in de app
+                if (window.appUI && window.appUI.modules && window.appUI.modules.stamboom) {
+                    this.stamboomManager = window.appUI.modules.stamboom;
+                    console.log('✅ StamboomManager gevonden in appUI.modules');
+                }
+                else if (window.uiHandler && window.uiHandler.modules && window.uiHandler.modules.stamboom) {
+                    this.stamboomManager = window.uiHandler.modules.stamboom;
+                    console.log('✅ StamboomManager gevonden in uiHandler.modules');
+                }
+                else if (window.dogManager && window.dogManager.stamboomManager) {
+                    this.stamboomManager = window.dogManager.stamboomManager;
+                    console.log('✅ StamboomManager gevonden in dogManager');
+                }
+                else {
+                    console.log('ℹ️ Geen bestaande StamboomManager gevonden, ga door...');
+                }
+            } catch (error) {
+                console.error('❌ Fout bij zoeken StamboomManager:', error);
+            }
+        }
+        
+        const reu = this.allHonden.find(h => h.id == reuId);
+        
+        if (!reu) {
+            this.showAlert(this.t('maleNotFound'), 'warning');
+            return;
+        }
+        
         try {
-            // Zoek de reu
-            const reu = this.allHonden.find(h => h.id == reuId);
-            
-            if (!reu) {
-                this.showAlert(this.t('maleNotFound'), 'warning');
-                return;
+            // Als we een bestaande StamboomManager hebben, gebruik die
+            if (this.stamboomManager) {
+                console.log('✅ Gebruik bestaande StamboomManager');
+                await this.stamboomManager.showPedigree(reu);
+            } 
+            // Anders, probeer de globale stamboomManager te gebruiken
+            else if (window.stamboomManager) {
+                console.log('✅ Gebruik globale stamboomManager');
+                this.stamboomManager = window.stamboomManager;
+                await this.stamboomManager.showPedigree(reu);
             }
-            
-            // Initialiseer stamboom manager als nog niet gedaan - ZELFDE ALS SEARCHMANAGER
-            if (!this.stamboomManager) {
-                console.log('ZoekReu: Initializing StamboomManager...');
-                this.stamboomManager = new StamboomManager(this.db, this.currentLang);
-                await this.stamboomManager.initialize();
+            // Als laatste optie, maak een tijdelijke StamboomManager
+            else {
+                console.log('⚠️ Geen bestaande StamboomManager, maak tijdelijke versie...');
+                
+                // Simpele mock voor BaseModule als deze niet bestaat
+                if (typeof BaseModule === 'undefined') {
+                    window.BaseModule = class BaseModule {
+                        showProgress() {}
+                        hideProgress() {}
+                        showError(msg) { console.error(msg); }
+                        showSuccess(msg) { console.log(msg); }
+                    };
+                }
+                
+                // Maak een tijdelijke StamboomManager
+                const tempStamboomManager = new StamboomManager({
+                    getHonden: () => Promise.resolve({ honden: this.allHonden }),
+                    checkFotosExist: () => Promise.resolve(false),
+                    getFotoThumbnails: () => Promise.resolve([]),
+                    getFotoById: () => Promise.resolve(null)
+                }, this.currentLang);
+                
+                // Gebruik onze reeds geladen honden
+                tempStamboomManager.allDogs = this.allHonden;
+                tempStamboomManager._isActive = true;
+                
+                // Toon de stamboom
+                await tempStamboomManager.showPedigree(reu);
+                
+                // Bewaar voor toekomstig gebruik
+                this.stamboomManager = tempStamboomManager;
             }
-            
-            // Toon stamboom modal - ZELFDE ALS SEARCHMANAGER
-            this.stamboomManager.showPedigree(reu);
             
             console.log('✅ Stamboom getoond voor:', reu.naam);
             

@@ -20,7 +20,7 @@ const auth = {
             email: localStorage.getItem('userEmail'),
             id: localStorage.getItem('userId'),
             username: localStorage.getItem('userEmail')?.split('@')[0] || 'Gebruiker',
-            role: this.isAdmin() ? 'admin' : 'user'
+            role: localStorage.getItem('userRole') || 'gebruiker'  // VERANDERING: Gebruik userRole uit localStorage
         };
     },
     
@@ -28,8 +28,6 @@ const auth = {
     login: function(email, password) {
         // Test accounts voor nu
         const users = {
-            'leoneurasier@gmail.com': { password: 'admin1903', isAdmin: true },
-            'admin@honden.nl': { password: 'Admin123!', isAdmin: true },
             'user@honden.nl': { password: 'User123!', isAdmin: false }
         };
         
@@ -39,8 +37,9 @@ const auth = {
             localStorage.setItem('userEmail', email);
             localStorage.setItem('userId', 'user-' + Date.now());
             localStorage.setItem('isAdmin', user.isAdmin.toString());
+            localStorage.setItem('userRole', user.isAdmin ? 'admin' : 'gebruiker');  // VERANDERING: Gebruik 'gebruiker' ipv 'user'
             
-            return { success: true, user: { email: email, role: user.isAdmin ? 'admin' : 'user' } };
+            return { success: true, user: { email: email, role: user.isAdmin ? 'admin' : 'gebruiker' } };
         }
         
         return { success: false, error: 'Ongeldige inloggegevens' };
@@ -54,6 +53,7 @@ const auth = {
         localStorage.removeItem('userEmail');
         localStorage.removeItem('userId');
         localStorage.removeItem('isAdmin');
+        localStorage.removeItem('userRole');  // VERANDERING: Ook userRole verwijderen
         localStorage.removeItem('currentUser');
         localStorage.removeItem('sessionTimestamp');
         
@@ -71,8 +71,7 @@ const auth = {
             if (user) {
                 userDisplay.innerHTML = `
                     ${user.email}
-                    ${this.isAdmin() ? '<span class="badge bg-warning ms-1">Admin</span>' : 
-                                      '<span class="badge bg-info ms-1">Gebruiker</span>'}
+                    <span class="badge bg-info ms-1">${user.role}</span>
                 `;
             }
         }

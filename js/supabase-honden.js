@@ -125,100 +125,98 @@ const hondenService = {
     }
   },
 
-  // 5. Hond toevoegen - GECORRIGEERD: met RLS compliance
-  async voegHondToe(hond) {
-    try {
-      const user = window.auth ? window.auth.getCurrentUser() : null;
+// 5. Hond toevoegen - GECORRIGEERD: met RLS compliance
+async voegHondToe(hond) {
+  try {
+    const user = window.auth ? window.auth.getCurrentUser() : null;
+    
+    if (!user || !user.id) {
+      throw new Error('Gebruiker niet ingelogd of geen user ID beschikbaar');
+    }
+    
+    // GEBRUIK DEZELFDE VELDEN ALS DogDataManager.js + user_id voor RLS
+    const supabaseHond = {
+      // Basis velden
+      naam: hond.naam || '',
+      kennelnaam: hond.kennelnaam || '',
+      stamboomnr: hond.stamboomnr || '',
+      ras: hond.ras || '',
+      vachtkleur: hond.vachtkleur || '',
+      geslacht: hond.geslacht || '',
       
-      if (!user || !user.id) {
-        throw new Error('Gebruiker niet ingelogd of geen user ID beschikbaar');
-      }
+      // Ouders
+      vader_id: hond.vader_id || null,
+      moeder_id: hond.moeder_id || null,
+      vader: hond.vader || '',
+      moeder: hond.moeder || '',
+      // VOEG DEZE TOE:
+      vader_stamboomnr: hond.vader_stamboomnr || null,
+      moeder_stamboomnr: hond.moeder_stamboomnr || null,
       
-      // GEBRUIK DEZELFDE VELDEN ALS DogDataManager.js + user_id voor RLS
-      const supabaseHond = {
-        // Basis velden
-        naam: hond.naam || '',
-        kennelnaam: hond.kennelnaam || '',
-        stamboomnr: hond.stamboomnr || '',
-        ras: hond.ras || '',
-        vachtkleur: hond.vachtkleur || '',
-        geslacht: hond.geslacht || '',
-        
-        // Ouders
-        vader_id: hond.vader_id || null,
-        moeder_id: hond.moeder_id || null,
-        vader: hond.vader || '',
-        moeder: hond.moeder || '',
-        vader_stamboomnr: hond.vader_stamboomnr || null,
-        moeder_stamboomnr: hond.moeder_stamboomnr || null,
-        
-        // Datums
-        geboortedatum: hond.geboortedatum || null,
-        overlijdensdatum: hond.overlijdensdatum || null,
-        
-        // LOSSE GEZONDHEIDSVELDEN - geen JSON!
-        heupdysplasie: hond.heupdysplasie || null,
-        elleboogdysplasie: hond.elleboogdysplasie || null,
-        patella: hond.patella || null,
-        ogen: hond.ogen || null,
-        ogenverklaring: hond.ogenverklaring || null,
-        dandyWalker: hond.dandyWalker || null,
-        schildklier: hond.schildklier || null,
-        schildklierverklaring: hond.schildklierverklaring || null,
-        
-        // Locatie
-        land: hond.land || null,
-        postcode: hond.postcode || null,
-        
-        // Opmerkingen
-        opmerkingen: hond.opmerkingen || null,
-        
-        // BELANGRIJK: User ID voor RLS (Row Level Security)
-        user_id: user.id,
-        toegevoegd_door: user.id,
-        
-        // Systeemvelden
-        createdat: new Date().toISOString(),
-        updatedat: new Date().toISOString(),
-        aangemaakt_op: new Date().toISOString(),
-        bijgewerkt_op: new Date().toISOString()
-      };
+      // Datums
+      geboortedatum: hond.geboortedatum || null,
+      overlijdensdatum: hond.overlijdensdatum || null,
       
-      console.log('[HONDENSERVICE] voegHondToe - Data naar Supabase:', supabaseHond);
-      console.log('[HONDENSERVICE] User ID voor RLS:', user.id);
-      console.log('[HONDENSERVICE] Heupdysplasie:', supabaseHond.heupdysplasie);
-      console.log('[HONDENSERVICE] Elleboogdysplasie:', supabaseHond.elleboogdysplasie);
-      console.log('[HONDENSERVICE] Ogen:', supabaseHond.ogen);
-      console.log('[HONDENSERVICE] Dandy Walker:', supabaseHond.dandyWalker);
-      console.log('[HONDENSERVICE] Schildklier:', supabaseHond.schildklier);
+      // LOSSE GEZONDHEIDSVELDEN - geen JSON!
+      heupdysplasie: hond.heupdysplasie || null,
+      elleboogdysplasie: hond.elleboogdysplasie || null,
+      patella: hond.patella || null,
+      ogen: hond.ogen || null,
+      ogenverklaring: hond.ogenverklaring || null,
+      dandyWalker: hond.dandyWalker || null,
+      schildklier: hond.schildklier || null,
+      schildklierverklaring: hond.schildklierverklaring || null,
       
-      const { data, error } = await window.supabase
-        .from('honden')
-        .insert(supabaseHond)
-        .select()
-        .single();
+      // Locatie
+      land: hond.land || null,
+      postcode: hond.postcode || null,
       
-      if (error) {
-        console.error('[HONDENSERVICE] Supabase insert error:', error);
-        throw error;
-      }
+      // Opmerkingen
+      opmerkingen: hond.opmerkingen || null,
       
-      console.log('[HONDENSERVICE] Hond succesvol toegevoegd:', data);
-      return data;
-    } catch (error) {
-      console.error('Fout bij toevoegen hond:', error);
+      // BELANGRIJK: User ID voor RLS (Row Level Security)
+      user_id: user.id,
+      toegevoegd_door: user.id,
+      
+      // Systeemvelden
+      createdat: new Date().toISOString(),
+      updatedat: new Date().toISOString(),
+      aangemaakt_op: new Date().toISOString(),
+      bijgewerkt_op: new Date().toISOString()
+    };
+    
+    console.log('[HONDENSERVICE] voegHondToe - Data naar Supabase:', supabaseHond);
+    console.log('[HONDENSERVICE] vader_stamboomnr:', supabaseHond.vader_stamboomnr);
+    console.log('[HONDENSERVICE] moeder_stamboomnr:', supabaseHond.moeder_stamboomnr);
+    
+    const { data, error } = await window.supabase
+      .from('honden')
+      .insert(supabaseHond)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('[HONDENSERVICE] Supabase insert error:', error);
       throw error;
     }
-  },
+    
+    console.log('[HONDENSERVICE] Hond succesvol toegevoegd:', data);
+    return data;
+  } catch (error) {
+    console.error('Fout bij toevoegen hond:', error);
+    throw error;
+  }
+},
 // 6. Update hond
 async updateHond(hondData) {
   try {
     if (!hondData.id) throw new Error('Hond ID is vereist voor update');
     
     console.log('[HONDENSERVICE] updateHond aangeroepen met:', hondData);
+    console.log('[HONDENSERVICE] vader_stamboomnr:', hondData.vader_stamboomnr);
+    console.log('[HONDENSERVICE] moeder_stamboomnr:', hondData.moeder_stamboomnr);
     
-    // BELANGRIJK: Verwijder de gezondheidsinfo van updateData
-    // Dit veld bestaat misschien niet in je database
+    // Voeg de missende velden toe
     const updateData = {
       naam: hondData.naam,
       kennelnaam: hondData.kennelnaam,
@@ -230,12 +228,12 @@ async updateHond(hondData) {
       moeder_id: hondData.moeder_id || null,
       vader: hondData.vader || '',
       moeder: hondData.moeder || '',
+      // VOEG DEZE TOE:
       vader_stamboomnr: hondData.vader_stamboomnr || null,
       moeder_stamboomnr: hondData.moeder_stamboomnr || null,
       geboortedatum: hondData.geboortedatum || null,
       overlijdensdatum: hondData.overlijdensdatum || null,
-      // VERWIJDER DIT: gezondheidsinfo: JSON.stringify({...}),
-      // IN PLAATS DAARVAN, gebruik de individuele velden:
+      // GEZONDHEIDSVELDEN
       heupdysplasie: hondData.heupdysplasie || null,
       elleboogdysplasie: hondData.elleboogdysplasie || null,
       patella: hondData.patella || null,
@@ -252,31 +250,21 @@ async updateHond(hondData) {
     
     console.log('[HONDENSERVICE] Update data naar Supabase:', updateData);
     
-    // Probeer WITHOUT .select() eerst
-    const { error: updateError } = await window.supabase
+    // Update met .select() om data terug te krijgen
+    const { data, error } = await window.supabase
       .from('honden')
       .update(updateData)
-      .eq('id', hondData.id);
-    
-    if (updateError) {
-      console.error('[HONDENSERVICE] Supabase update error:', updateError);
-      throw updateError;
-    }
-    
-    // Controleer of de update echt werkte
-    const { data: checkData, error: checkError } = await window.supabase
-      .from('honden')
-      .select('naam, land, postcode')
       .eq('id', hondData.id)
+      .select()
       .single();
     
-    if (checkError) {
-      console.error('[HONDENSERVICE] Check na update error:', checkError);
-      throw checkError;
+    if (error) {
+      console.error('[HONDENSERVICE] Supabase update error:', error);
+      throw error;
     }
     
-    console.log('[HONDENSERVICE] Update succesvol, gecontroleerd:', checkData);
-    return checkData;
+    console.log('[HONDENSERVICE] Update succesvol, teruggekregen data:', data);
+    return data;
     
   } catch (error) {
     console.error('Fout bij updaten hond:', error);
@@ -443,6 +431,12 @@ async updateHond(hondData) {
       
       if (hondenError) throw hondenError;
       
+      const { count: totaalFotos, error: fotosError } = await window.supabase
+        .from('fotos')
+        .select('*', { count: 'exact', head: true });
+      
+      if (fotosError) throw fotosError;
+      
       const { data: hondenData, error: dataError } = await window.supabase
         .from('honden')
         .select('kennelnaam, vachtkleur')
@@ -463,6 +457,7 @@ async updateHond(hondData) {
       
       return {
         totaalHonden: totaalHonden || 0,
+        totaalFotos: totaalFotos || 0,
         kennelStatistieken: {
           totaalKennels: Object.keys(kennelStats).length,
           hondenPerKennel: kennelStats
@@ -477,6 +472,7 @@ async updateHond(hondData) {
       console.error('Fout bij ophalen statistieken:', error);
       return {
         totaalHonden: 0,
+        totaalFotos: 0,
         kennelStatistieken: { totaalKennels: 0, hondenPerKennel: {} },
         vachtkleurStatistieken: { totaalVachtkleuren: 0, hondenPerVachtkleur: {} },
         laatsteUpdate: null

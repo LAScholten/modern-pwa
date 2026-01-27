@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hondendatabase - Registratie & Login</title>
+    <title>Hondendatabase - Login</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
     <style>
@@ -30,143 +30,52 @@
             background: #0b5ed7;
             transform: translateY(-2px);
         }
-        .btn-register {
-            background: #198754;
-            border: none;
-            padding: 12px;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-        .btn-register:hover {
-            background: #157347;
-            transform: translateY(-2px);
-        }
-        .nav-tabs {
-            border: none;
-            justify-content: center;
-            margin-bottom: 2rem;
-        }
-        .nav-tabs .nav-link {
-            border: none;
-            color: #666;
-            font-weight: 500;
-            padding: 10px 20px;
-        }
-        .nav-tabs .nav-link.active {
-            color: #0d6efd;
-            border-bottom: 3px solid #0d6efd;
-            background: transparent;
-        }
-        .tab-content {
-            padding: 0 1rem;
-        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="row justify-content-center">
-            <div class="col-md-8 col-lg-6">
+            <div class="col-md-6 col-lg-5">
                 <div class="card login-card">
                     <div class="card-header text-white text-center py-4" style="background: #0d6efd; border-radius: 15px 15px 0 0;">
                         <h3 class="mb-2">
                             <i class="bi bi-database"></i> Hondendatabase
                         </h3>
-                        <p class="mb-0">Registreer en Login</p>
+                        <p class="mb-0">Beheerder Login</p>
                     </div>
                     <div class="card-body p-4">
-                        
-                        <!-- Tabs voor Registratie/Login -->
-                        <ul class="nav nav-tabs" id="authTabs" role="tablist">
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link active" id="login-tab" data-bs-toggle="tab" data-bs-target="#login" type="button" role="tab">
-                                    <i class="bi bi-box-arrow-in-right"></i> Inloggen
-                                </button>
-                            </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="register-tab" data-bs-toggle="tab" data-bs-target="#register" type="button" role="tab">
-                                    <i class="bi bi-person-plus"></i> Registreren
-                                </button>
-                            </li>
-                        </ul>
-                        
-                        <!-- Tab Inhoud -->
-                        <div class="tab-content" id="authTabsContent">
-                            
-                            <!-- LOGIN TAB -->
-                            <div class="tab-pane fade show active" id="login" role="tabpanel">
-                                <form id="loginForm">
-                                    <div class="mb-4">
-                                        <label class="form-label fw-bold">E-mailadres</label>
-                                        <input type="email" class="form-control form-control-lg" 
-                                               id="loginEmail" required 
-                                               placeholder="voorbeeld@email.nl">
-                                    </div>
-                                    
-                                    <div class="mb-4">
-                                        <label class="form-label fw-bold">Wachtwoord</label>
-                                        <input type="password" class="form-control form-control-lg" 
-                                               id="loginPassword" required 
-                                               placeholder="Je wachtwoord">
-                                    </div>
-                                    
-                                    <button type="submit" class="btn btn-login btn-lg text-white w-100">
-                                        <i class="bi bi-box-arrow-in-right"></i> INLOGGEN
-                                    </button>
-                                </form>
-                                
-                                <div class="mt-4 text-center">
-                                    <small class="text-muted">
-                                        Heb je nog geen account? Klik op "Registreren" bovenin
-                                    </small>
-                                </div>
+                        <form id="loginForm">
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">E-mailadres</label>
+                                <input type="email" class="form-control form-control-lg" 
+                                       id="email" required 
+                                       placeholder="voorbeeld@email.nl">
                             </div>
                             
-                            <!-- REGISTRATIE TAB -->
-                            <div class="tab-pane fade" id="register" role="tabpanel">
-                                <form id="registerForm">
-                                    <div class="mb-4">
-                                        <label class="form-label fw-bold">E-mailadres</label>
-                                        <input type="email" class="form-control form-control-lg" 
-                                               id="registerEmail" required 
-                                               placeholder="voorbeeld@email.nl">
-                                    </div>
-                                    
-                                    <div class="mb-4">
-                                        <label class="form-label fw-bold">Wachtwoord</label>
-                                        <input type="password" class="form-control form-control-lg" 
-                                               id="registerPassword" required 
-                                               placeholder="Minimaal 6 tekens">
-                                    </div>
-                                    
-                                    <div class="mb-4">
-                                        <label class="form-label fw-bold">Bevestig wachtwoord</label>
-                                        <input type="password" class="form-control form-control-lg" 
-                                               id="registerPasswordConfirm" required 
-                                               placeholder="Herhaal je wachtwoord">
-                                    </div>
-                                    
-                                    <button type="submit" class="btn btn-register btn-lg text-white w-100">
-                                        <i class="bi bi-person-plus"></i> REGISTREER
-                                    </button>
-                                </form>
-                                
-                                <div class="mt-4 text-center">
-                                    <small class="text-muted">
-                                        Na registratie kun je inloggen als "gebruiker"
-                                    </small>
-                                </div>
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Wachtwoord</label>
+                                <input type="password" class="form-control form-control-lg" 
+                                       id="password" required 
+                                       placeholder="Je wachtwoord">
                             </div>
+                            
+                            <button type="submit" class="btn btn-login btn-lg text-white w-100">
+                                <i class="bi bi-box-arrow-in-right"></i> INLOGGEN
+                            </button>
+                        </form>
+                        
+                        <div class="mt-4 text-center">
+                            <small class="text-muted">
+                                Gebruik je Supabase e-mail en wachtwoord
+                            </small>
                         </div>
                         
-                        <div id="authMessage" class="mt-3"></div>
+                        <div id="loginMessage" class="mt-3"></div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
         // Supabase configuratie
@@ -196,11 +105,10 @@
             const colors = {
                 'info': 'alert-info',
                 'success': 'alert-success',
-                'error': 'alert-danger',
-                'warning': 'alert-warning'
+                'error': 'alert-danger'
             };
             
-            const messageDiv = document.getElementById('authMessage');
+            const messageDiv = document.getElementById('loginMessage');
             messageDiv.innerHTML = `
                 <div class="alert ${colors[type]} alert-dismissible fade show">
                     ${message}
@@ -209,76 +117,13 @@
             `;
         }
         
-        // REGISTRATIE functie - Gebruik Supabase Auth
-        async function registerUser(email, password) {
-            showMessage('🔄 Registreren bij Supabase...', 'info');
-            
-            try {
-                const supabase = await loadSupabase();
-                
-                // Registreer in Supabase Auth
-                const { data, error } = await supabase.auth.signUp({
-                    email: email,
-                    password: password
-                });
-                
-                if (error) {
-                    showMessage(`❌ Fout bij registratie: ${error.message}`, 'error');
-                    return false;
-                }
-                
-                // Wacht 2 seconden voor supabase trigger
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                
-                // Maak profiel aan in profiles tabel (als trigger niet werkt)
-                try {
-                    await supabase
-                        .from('profiles')
-                        .insert({
-                            user_id: data.user.id,
-                            email: email,
-                            role: 'gebruiker',
-                            is_admin: false,
-                            created_at: new Date().toISOString(),
-                            updated_at: new Date().toISOString()
-                        });
-                } catch (profileError) {
-                    console.log('Profile insert mislukt, maar gebruiker is wel geregistreerd in Auth');
-                }
-                
-                // SUCCES
-                showMessage('✅ Succesvol geregistreerd als "gebruiker"! Je kunt nu inloggen.', 'success');
-                
-                // Terug naar login tab na 3 seconden
-                setTimeout(() => {
-                    const loginTab = new bootstrap.Tab(document.getElementById('login-tab'));
-                    loginTab.show();
-                    
-                    // Vul email in login veld
-                    document.getElementById('loginEmail').value = email;
-                    
-                    // Reset register form
-                    document.getElementById('registerForm').reset();
-                    
-                    showMessage('✅ Vul je wachtwoord in om in te loggen.', 'info');
-                }, 3000);
-                
-                return true;
-                
-            } catch (error) {
-                showMessage(`❌ Fout: ${error.message}`, 'error');
-                return false;
-            }
-        }
-        
-        // LOGIN functie - Gebruik Supabase Auth
+        // Normale login
         async function loginUser(email, password) {
             showMessage('🔐 Inloggen bij Supabase...', 'info');
             
             try {
                 const supabase = await loadSupabase();
                 
-                // Login via Supabase Auth
                 const { data, error } = await supabase.auth.signInWithPassword({
                     email: email,
                     password: password
@@ -289,35 +134,22 @@
                     return false;
                 }
                 
-                // Haal profiel op voor role info
-                let userRole = 'gebruiker';
-                let isAdmin = false;
+                // SUCCESS
+                showMessage('✅ Ingelogd! Opslaan gebruikersgegevens...', 'success');
                 
-                try {
-                    const { data: profile, error: profileError } = await supabase
-                        .from('profiles')
-                        .select('role, is_admin')
-                        .eq('user_id', data.user.id)
-                        .single();
-                    
-                    if (!profileError && profile) {
-                        userRole = profile.role || 'gebruiker';
-                        isAdmin = profile.is_admin === true;
-                    }
-                } catch (profileError) {
-                    console.log('Profiel ophalen mislukt:', profileError);
-                }
-                
-                // Sla gebruiker op in localStorage
+                // Alleen email en ID opslaan in localStorage
+                // GEEN rol opslaan - die wordt in app.html uit de database gehaald
                 localStorage.setItem('userEmail', data.user.email);
                 localStorage.setItem('userId', data.user.id);
-                localStorage.setItem('isAdmin', isAdmin.toString());
-                localStorage.setItem('userRole', userRole);
                 
-                // Toon succes
-                showMessage(`✅ Ingelogd als ${userRole}! Doorsturen...`, 'success');
+                // Verwijder eventuele oude rolgegevens (voor zekerheid)
+                localStorage.removeItem('userRole');
+                localStorage.removeItem('isAdmin');
                 
-                // Naar app na 1.5 seconden
+                // Toon bericht en doorsturen
+                showMessage('✅ Doorsturen naar app...', 'success');
+                
+                // Naar app
                 setTimeout(() => {
                     window.location.href = 'app.html';
                 }, 1500);
@@ -330,47 +162,12 @@
             }
         }
         
-        // FORM EVENT HANDLERS
-        
-        // Registratie form
-        document.getElementById('registerForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const email = document.getElementById('registerEmail').value.trim();
-            const password = document.getElementById('registerPassword').value;
-            const passwordConfirm = document.getElementById('registerPasswordConfirm').value;
-            
-            if (!email || !password || !passwordConfirm) {
-                showMessage('❌ Vul alle velden in', 'error');
-                return;
-            }
-            
-            if (password !== passwordConfirm) {
-                showMessage('❌ Wachtwoorden komen niet overeen', 'error');
-                return;
-            }
-            
-            if (password.length < 6) {
-                showMessage('❌ Wachtwoord moet minimaal 6 tekens zijn', 'error');
-                return;
-            }
-            
-            const btn = this.querySelector('button[type="submit"]');
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Registreren...';
-            btn.disabled = true;
-            
-            await registerUser(email, password);
-            
-            btn.innerHTML = '<i class="bi bi-person-plus"></i> REGISTREER';
-            btn.disabled = false;
-        });
-        
-        // Login form
+        // Form submit
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const email = document.getElementById('loginEmail').value.trim();
-            const password = document.getElementById('loginPassword').value;
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
             
             if (!email || !password) {
                 showMessage('❌ Vul e-mail en wachtwoord in', 'error');
@@ -389,7 +186,7 @@
         
         // Check of er al ingelogd is
         document.addEventListener('DOMContentLoaded', function() {
-            if (localStorage.getItem('userEmail')) {
+            if (localStorage.getItem('userId')) {
                 showMessage('Je bent al ingelogd. Doorsturen...', 'info');
                 setTimeout(() => {
                     window.location.href = 'app.html';

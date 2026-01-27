@@ -126,7 +126,8 @@ class LitterManager {
                 photoAdded: "Foto toegevoegd",
                 photoError: "Fout bij uploaden foto: ",
                 addedDogs: "Toegevoegde honden:",
-                noDogsAdded: "Nog geen honden toegevoegd",
+                noDogsAdded: "Nog geen honden toevoegd",
+                parentNotSelected: "Selecteer een geldige hond uit de lijst voor zowel vader als moeder",
 
                 // Container titels
                 parentDetails: "Ouderdetails",
@@ -252,6 +253,7 @@ class LitterManager {
                 photoError: "Error uploading photo: ",
                 addedDogs: "Added dogs:",
                 noDogsAdded: "No dogs added yet",
+                parentNotSelected: "Select a valid dog from the list for both father and mother",
 
                 // Container titles
                 parentDetails: "Parent Details",
@@ -377,6 +379,7 @@ class LitterManager {
                 photoError: "Fehler beim Hochladen des Fotos: ",
                 addedDogs: "Hinzugefügte Hunden:",
                 noDogsAdded: "Noch keine Hunde hinzugefügt",
+                parentNotSelected: "Wählen Sie einen gültigen Hund aus der Liste für sowohl Vater als auch Mutter",
 
                 // Container Titel
                 parentDetails: "Elterndetails",
@@ -422,56 +425,6 @@ class LitterManager {
      */
     getModalHTML(isEdit = false, litterData = null) {
         console.log('LitterManager: getModalHTML aangeroepen');
-        
-        // Controleer of gebruiker admin is - zoals in DogManager
-        const currentUser = this.auth?.getCurrentUser ? this.auth.getCurrentUser() : { username: 'unknown', role: 'user' };
-        const isAdmin = this.auth?.isAdmin ? this.auth.isAdmin() : false;
-        const userRole = currentUser.role === 'admin' ? 'Admin' : this.t('user');
-        
-        if (!isAdmin) {
-            const modalId = 'addLitterModal';
-            
-            return `
-                <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
-                    <div class="modal-dialog modal-lg">
-                        <div class="modal-content">
-                            <div class="modal-header bg-danger text-white">
-                                <h5 class="modal-title" id="${modalId}Label">
-                                    <i class="bi bi-exclamation-triangle me-2"></i>
-                                    <span class="module-title" data-key="accessDenied">${this.t('accessDenied')}</span>
-                                </h5>
-                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="alert alert-danger">
-                                    <h5><i class="bi bi-shield-lock"></i> ${this.t('insufficientPermissions')}</h5>
-                                    <p>${this.t('insufficientPermissionsText')}</p>
-                                    <p class="mb-0">${this.t('loggedInAs')}: <strong>${currentUser.username}</strong> (${userRole})</p>
-                                </div>
-                                
-                                <div class="card mt-3">
-                                    <div class="card-body">
-                                        <h6><i class="bi bi-info-circle text-primary"></i> ${this.t('availableFeatures')}</h6>
-                                        <ul>
-                                            <li>${this.t('searchDogs')}</li>
-                                            <li>${this.t('viewGallery')}</li>
-                                            <li>${this.t('managePrivateInfo')}</li>
-                                            <li>${this.t('importExport')}</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                    <i class="bi bi-x-circle me-1"></i>
-                                    <span class="module-text" data-key="close">${this.t('close')}</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
         
         // Als gebruiker admin is, toon het nest formulier
         const t = this.t.bind(this);
@@ -962,6 +915,11 @@ class LitterManager {
                     font-size: 0.875em;
                     margin-top: 0.25rem;
                 }
+                
+                /* Parent validation styling */
+                .parent-validation-error {
+                    border-color: #dc3545 !important;
+                }
             </style>
         `;
     }
@@ -1069,7 +1027,9 @@ class LitterManager {
                                        placeholder="Begin met typen om te zoeken..."
                                        data-parent-type="father"
                                        autocomplete="off"
+                                       data-valid-parent="false"
                                        required>
+                                <div id="fatherError" class="error-message" style="display: none;"></div>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -1080,7 +1040,9 @@ class LitterManager {
                                        placeholder="Begin met typen om te zoeken..."
                                        data-parent-type="mother"
                                        autocomplete="off"
+                                       data-valid-parent="false"
                                        required>
+                                <div id="motherError" class="error-message" style="display: none;"></div>
                             </div>
                         </div>
                     </div>
@@ -1391,6 +1353,11 @@ class LitterManager {
                     font-size: 0.875em;
                     margin-top: 0.25rem;
                 }
+                
+                /* Parent validation styling */
+                .parent-validation-error {
+                    border-color: #dc3545 !important;
+                }
             </style>
         `;
     }
@@ -1402,27 +1369,10 @@ class LitterManager {
     setupEvents() {
         console.log('LitterManager: setupEvents aangeroepen');
         
-        // Controleer of gebruiker admin is - net zoals in DogManager
-        const isAdmin = this.auth?.isAdmin ? this.auth.isAdmin() : false;
-        
-        if (!isAdmin) {
-            console.log('LitterManager: Gebruiker is geen admin, toegang geweigerd popup wordt getoond');
-            
-            // Voeg event listeners toe voor de knoppen in de modal
-            const modal = document.getElementById('addLitterModal');
-            if (modal) {
-                modal.addEventListener('shown.bs.modal', () => {
-                    console.log('LitterManager modal is nu zichtbaar (toegang geweigerd)');
-                });
-            }
-            return;
-        }
-        
         // Reset de lijst met ingevoerde honden wanneer modal wordt geopend
         this.currentLitterDogs = [];
         this.updateAddedDogsList();
         
-        // Alleen verder gaan als gebruiker admin is
         // Laad honden voor autocomplete
         this.loadAllDogs();
         
@@ -1740,6 +1690,67 @@ class LitterManager {
     }
     
     /**
+     * Controleer of ouders geldig zijn geselecteerd
+     */
+    validateParents() {
+        const t = this.t.bind(this);
+        const fatherInput = document.getElementById('father');
+        const motherInput = document.getElementById('mother');
+        const fatherError = document.getElementById('fatherError');
+        const motherError = document.getElementById('motherError');
+        
+        let isValid = true;
+        
+        // Reset error styling
+        if (fatherInput) {
+            fatherInput.classList.remove('parent-validation-error');
+            fatherInput.setAttribute('data-valid-parent', 'false');
+        }
+        if (motherInput) {
+            motherInput.classList.remove('parent-validation-error');
+            motherInput.setAttribute('data-valid-parent', 'false');
+        }
+        if (fatherError) fatherError.style.display = 'none';
+        if (motherError) motherError.style.display = 'none';
+        
+        // Check vader
+        if (fatherInput && fatherInput.value.trim()) {
+            const vaderIdInput = document.getElementById('vader_id');
+            const hasValidId = vaderIdInput && vaderIdInput.value && !isNaN(parseInt(vaderIdInput.value));
+            
+            if (!hasValidId) {
+                fatherInput.classList.add('parent-validation-error');
+                if (fatherError) {
+                    fatherError.textContent = t('parentNotSelected');
+                    fatherError.style.display = 'block';
+                }
+                isValid = false;
+            } else {
+                fatherInput.setAttribute('data-valid-parent', 'true');
+            }
+        }
+        
+        // Check moeder
+        if (motherInput && motherInput.value.trim()) {
+            const moederIdInput = document.getElementById('moeder_id');
+            const hasValidId = moederIdInput && moederIdInput.value && !isNaN(parseInt(moederIdInput.value));
+            
+            if (!hasValidId) {
+                motherInput.classList.add('parent-validation-error');
+                if (motherError) {
+                    motherError.textContent = t('parentNotSelected');
+                    motherError.style.display = 'block';
+                }
+                isValid = false;
+            } else {
+                motherInput.setAttribute('data-valid-parent', 'true');
+            }
+        }
+        
+        return isValid;
+    }
+    
+    /**
      * Reset alleen de nestdetails velden (niet de ouderdetails)
      */
     resetLitterDetails() {
@@ -1981,7 +1992,19 @@ class LitterManager {
                     if (dropdown) {
                         dropdown.style.display = 'none';
                     }
+                    
+                    // Valideer of de ouder correct is geselecteerd
+                    this.validateParents();
                 }, 200);
+            });
+            
+            // Clear validation error when user starts typing again
+            input.addEventListener('focus', (e) => {
+                input.classList.remove('parent-validation-error');
+                const errorElement = document.getElementById(`${input.id}Error`);
+                if (errorElement) {
+                    errorElement.style.display = 'none';
+                }
             });
         });
         
@@ -2071,6 +2094,14 @@ class LitterManager {
                 
                 if (input) {
                     input.value = displayName;
+                    input.setAttribute('data-valid-parent', 'true');
+                    input.classList.remove('parent-validation-error');
+                    
+                    // Clear error message
+                    const errorElement = document.getElementById(`${parentType}Error`);
+                    if (errorElement) {
+                        errorElement.style.display = 'none';
+                    }
                 }
                 if (idInput) {
                     idInput.value = dogId;
@@ -2095,12 +2126,6 @@ class LitterManager {
             return;
         }
         
-        if (!this.auth.isAdmin()) {
-            console.log('LitterManager: Gebruiker is geen admin');
-            this.showError(this.t('adminOnly'));
-            return;
-        }
-        
         if (!this.db) {
             console.error('LitterManager: Database niet beschikbaar!');
             this.showError('Database niet beschikbaar');
@@ -2110,6 +2135,12 @@ class LitterManager {
         // Valideer datums eerst
         if (!this.validateDates()) {
             this.showError(this.t('dateFormatError'));
+            return;
+        }
+        
+        // Valideer ouders - NIEUWE VALIDATIE
+        if (!this.validateParents()) {
+            this.showError(this.t('parentNotSelected'));
             return;
         }
         
@@ -2232,6 +2263,17 @@ class LitterManager {
         
         if (!dogData.moeder) {
             this.showError('Moeder is verplicht');
+            return;
+        }
+        
+        // NIEUWE VALIDATIE: controleer of ouders correct zijn geselecteerd
+        if (!dogData.vader_id) {
+            this.showError(this.t('parentNotSelected'));
+            return;
+        }
+        
+        if (!dogData.moeder_id) {
+            this.showError(this.t('parentNotSelected'));
             return;
         }
         
@@ -2471,6 +2513,13 @@ class LitterManager {
         const errorMessages = document.querySelectorAll('.error-message');
         errorMessages.forEach(error => {
             error.style.display = 'none';
+        });
+        
+        // Reset parent validation
+        const parentInputs = document.querySelectorAll('.parent-input-wrapper input');
+        parentInputs.forEach(input => {
+            input.classList.remove('parent-validation-error');
+            input.setAttribute('data-valid-parent', 'false');
         });
         
         // Reset de lijst met ingevoerde honden
