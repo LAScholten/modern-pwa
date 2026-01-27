@@ -30,6 +30,36 @@
             background: #0b5ed7;
             transform: translateY(-2px);
         }
+        .btn-register {
+            background: #20c997;
+            border: none;
+            padding: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .btn-register:hover {
+            background: #198754;
+            transform: translateY(-2px);
+        }
+        .tab-button {
+            border: none;
+            background: none;
+            padding: 12px 20px;
+            font-weight: 500;
+            color: #6c757d;
+            border-bottom: 3px solid transparent;
+        }
+        .tab-button.active {
+            color: #0d6efd;
+            border-bottom: 3px solid #0d6efd;
+            font-weight: 600;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -41,35 +71,93 @@
                         <h3 class="mb-2">
                             <i class="bi bi-database"></i> Hondendatabase
                         </h3>
-                        <p class="mb-0">Beheerder Login</p>
+                        <p class="mb-0">Beheerder Login & Registratie</p>
                     </div>
-                    <div class="card-body p-4">
-                        <form id="loginForm">
-                            <div class="mb-4">
-                                <label class="form-label fw-bold">E-mailadres</label>
-                                <input type="email" class="form-control form-control-lg" 
-                                       id="email" required 
-                                       placeholder="voorbeeld@email.nl">
-                            </div>
-                            
-                            <div class="mb-4">
-                                <label class="form-label fw-bold">Wachtwoord</label>
-                                <input type="password" class="form-control form-control-lg" 
-                                       id="password" required 
-                                       placeholder="Je wachtwoord">
-                            </div>
-                            
-                            <button type="submit" class="btn btn-login btn-lg text-white w-100">
-                                <i class="bi bi-box-arrow-in-right"></i> INLOGGEN
+                    
+                    <!-- Tab knoppen -->
+                    <div class="card-header bg-light py-3">
+                        <div class="d-flex justify-content-center">
+                            <button class="tab-button active" data-tab="login">
+                                <i class="bi bi-box-arrow-in-right"></i> Inloggen
                             </button>
-                        </form>
+                            <button class="tab-button" data-tab="register">
+                                <i class="bi bi-person-plus"></i> Registreren
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="card-body p-4">
                         
-                        <div class="mt-4 text-center">
-                            <small class="text-muted">
-                                Gebruik je Supabase e-mail en wachtwoord
-                            </small>
+                        <!-- LOGIN TAB -->
+                        <div id="loginTab" class="tab-content active">
+                            <form id="loginForm">
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold">E-mailadres</label>
+                                    <input type="email" class="form-control form-control-lg" 
+                                           id="loginEmail" required 
+                                           placeholder="voorbeeld@email.nl">
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold">Wachtwoord</label>
+                                    <input type="password" class="form-control form-control-lg" 
+                                           id="loginPassword" required 
+                                           placeholder="Je wachtwoord">
+                                </div>
+                                
+                                <button type="submit" class="btn btn-login btn-lg text-white w-100">
+                                    <i class="bi bi-box-arrow-in-right"></i> INLOGGEN
+                                </button>
+                            </form>
+                            
+                            <div class="mt-4 text-center">
+                                <small class="text-muted">
+                                    Gebruik je Supabase e-mail en wachtwoord
+                                </small>
+                            </div>
                         </div>
                         
+                        <!-- REGISTREER TAB -->
+                        <div id="registerTab" class="tab-content">
+                            <form id="registerForm">
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold">E-mailadres</label>
+                                    <input type="email" class="form-control form-control-lg" 
+                                           id="registerEmail" required 
+                                           placeholder="je@email.nl">
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold">Wachtwoord</label>
+                                    <input type="password" class="form-control form-control-lg" 
+                                           id="registerPassword" required 
+                                           placeholder="Minimaal 6 tekens"
+                                           minlength="6">
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold">Bevestig Wachtwoord</label>
+                                    <input type="password" class="form-control form-control-lg" 
+                                           id="registerConfirmPassword" required 
+                                           placeholder="Herhaal je wachtwoord"
+                                           minlength="6">
+                                </div>
+                                
+                                <div class="alert alert-info">
+                                    <small>
+                                        <i class="bi bi-info-circle"></i> 
+                                        Na registratie ontvang je een verificatie-e-mail. 
+                                        Klik op de link om je account te activeren.
+                                    </small>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-register btn-lg text-white w-100">
+                                    <i class="bi bi-person-plus"></i> ACCOUNT AANMAKEN
+                                </button>
+                            </form>
+                        </div>
+                        
+                        <!-- Berichten weergave -->
                         <div id="loginMessage" class="mt-3"></div>
                     </div>
                 </div>
@@ -81,6 +169,28 @@
         // Supabase configuratie
         const SUPABASE_URL = 'https://owjwkjrktftugjjrcwml.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93andranJrdGZ0dWdqanJjd21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2MzA4OTAsImV4cCI6MjA4NDIwNjg5MH0.oW6HTAlMBkjUu_4e3kn4iozjn5wK-15h4wCKcaHrtp8';
+        
+        // Tab functionaliteit
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', () => {
+                const tabId = button.getAttribute('data-tab');
+                
+                // Update tab knoppen
+                document.querySelectorAll('.tab-button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                button.classList.add('active');
+                
+                // Update tab content
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                document.getElementById(tabId + 'Tab').classList.add('active');
+                
+                // Wis berichten
+                document.getElementById('loginMessage').innerHTML = '';
+            });
+        });
         
         // Laad Supabase dynamisch
         function loadSupabase() {
@@ -115,6 +225,9 @@
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             `;
+            
+            // Scroll naar bericht
+            messageDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
         
         // Normale login
@@ -138,18 +251,14 @@
                 showMessage('✅ Ingelogd! Opslaan gebruikersgegevens...', 'success');
                 
                 // Alleen email en ID opslaan in localStorage
-                // GEEN rol opslaan - die wordt in app.html uit de database gehaald
                 localStorage.setItem('userEmail', data.user.email);
                 localStorage.setItem('userId', data.user.id);
                 
-                // Verwijder eventuele oude rolgegevens (voor zekerheid)
+                // Verwijder eventuele oude rolgegevens
                 localStorage.removeItem('userRole');
                 localStorage.removeItem('isAdmin');
                 
                 // Toon bericht en doorsturen
-                showMessage('✅ Doorsturen naar app...', 'success');
-                
-                // Naar app
                 setTimeout(() => {
                     window.location.href = 'app.html';
                 }, 1500);
@@ -162,12 +271,57 @@
             }
         }
         
-        // Form submit
+        // Registratie functie
+        async function registerUser(email, password) {
+            showMessage('📝 Account aanmaken bij Supabase...', 'info');
+            
+            try {
+                const supabase = await loadSupabase();
+                
+                const { data, error } = await supabase.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        emailRedirectTo: 'https://lascholten.github.io/modern-pwa/auth/callback.html'
+                    }
+                });
+                
+                if (error) {
+                    showMessage(`❌ Fout: ${error.message}`, 'error');
+                    return false;
+                }
+                
+                // SUCCESS
+                if (data.user && data.user.identities && data.user.identities.length > 0) {
+                    showMessage('✅ Account aangemaakt! Check je e-mail voor verificatie.', 'success');
+                    showMessage('📧 <strong>Belangrijk:</strong> Klik op de link in de verificatie-e-mail om je account te activeren.', 'info');
+                    
+                    // Wis formulier
+                    document.getElementById('registerForm').reset();
+                    
+                    // Ga terug naar login tab
+                    setTimeout(() => {
+                        document.querySelector('[data-tab="login"]').click();
+                    }, 3000);
+                    
+                } else {
+                    showMessage('⚠️ Dit e-mailadres is mogelijk al geregistreerd.', 'info');
+                }
+                
+                return true;
+                
+            } catch (error) {
+                showMessage(`❌ Fout: ${error.message}`, 'error');
+                return false;
+            }
+        }
+        
+        // Login form submit
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
             
             if (!email || !password) {
                 showMessage('❌ Vul e-mail en wachtwoord in', 'error');
@@ -181,6 +335,39 @@
             await loginUser(email, password);
             
             btn.innerHTML = '<i class="bi bi-box-arrow-in-right"></i> INLOGGEN';
+            btn.disabled = false;
+        });
+        
+        // Register form submit
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('registerEmail').value.trim();
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('registerConfirmPassword').value;
+            
+            if (!email || !password) {
+                showMessage('❌ Vul alle velden in', 'error');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showMessage('❌ Wachtwoord moet minimaal 6 tekens zijn', 'error');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                showMessage('❌ Wachtwoorden komen niet overeen', 'error');
+                return;
+            }
+            
+            const btn = this.querySelector('button[type="submit"]');
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Registreren...';
+            btn.disabled = true;
+            
+            await registerUser(email, password);
+            
+            btn.innerHTML = '<i class="bi bi-person-plus"></i> ACCOUNT AANMAKEN';
             btn.disabled = false;
         });
         
