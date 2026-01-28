@@ -545,24 +545,84 @@
     
     <!-- App Initialization -->
     <script>
+        // Functie om profile aan te maken als die niet bestaat
+        async function createProfileIfNotExists(userId, userEmail) {
+            try {
+                console.log('🔧 Check/Create profile voor:', userEmail);
+                
+                // Probeer eerst te lezen
+                const { data: existing, error: readError } = await window.supabase
+                    .from('profiles')
+                    .select('user_id')
+                    .eq('user_id', userId)
+                    .maybeSingle();
+                
+                // Als profile niet bestaat: maak aan
+                if (!existing) {
+                    console.log('➕ Profile niet gevonden, maak aan...');
+                    
+                    const { data: newProfile, error: insertError } = await window.supabase
+                        .from('profiles')
+                        .insert({
+                            user_id: userId,
+                            email: userEmail,
+                            role: 'gebruiker',
+                            is_admin: false,
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        });
+                    
+                    if (insertError) {
+                        if (insertError.code === '23505') {
+                            console.log('✅ Profile bestaat al (duplicate key)');
+                            return 'gebruiker'; // Return default role
+                        }
+                        console.error('❌ Fout bij profile insert:', insertError);
+                        return 'gebruiker';
+                    }
+                    
+                    console.log('✅ Nieuwe profile aangemaakt voor:', userEmail);
+                    return 'gebruiker'; // Default role voor nieuwe gebruiker
+                }
+                
+                console.log('✅ Profile bestaat al voor:', userEmail);
+                // Rol wordt opgehaald in getUserRoleFromDatabase
+                return null; // Geen nieuwe role, laat andere functie rol ophalen
+                
+            } catch (error) {
+                console.error('❌ Fout in createProfileIfNotExists:', error);
+                return 'gebruiker';
+            }
+        }
+        
         // Simpele functie om gebruikerrol op te halen uit database
         async function getUserRoleFromDatabase() {
             const userId = localStorage.getItem('userId');
+            const userEmail = localStorage.getItem('userEmail');
             
-            if (!userId) {
-                console.error('❌ Geen userId gevonden');
+            if (!userId || !userEmail) {
+                console.error('❌ Geen userId of userEmail gevonden');
                 return 'gebruiker';
             }
             
             console.log('🔄 Haal rol op voor:', userId);
             
             try {
-                // EENVOUDIGE QUERY - gebruik alleen user_id en .limit(1)
+                // EERST: Zorg dat profile bestaat
+                const defaultRole = await createProfileIfNotExists(userId, userEmail);
+                
+                // Als we een default role terugkregen (nieuwe gebruiker), gebruik die
+                if (defaultRole) {
+                    console.log('🎯 Gebruik default role voor nieuwe gebruiker:', defaultRole);
+                    return defaultRole;
+                }
+                
+                // DAARNA: Probeer rol op te halen
                 const { data, error } = await window.supabase
                     .from('profiles')
                     .select('role, is_admin')
                     .eq('user_id', userId)
-                    .limit(1);
+                    .maybeSingle();
                 
                 if (error) {
                     console.log('⚠️ Query error:', error.message);
@@ -574,9 +634,9 @@
                     return 'gebruiker';
                 }
                 
-                if (data && data.length > 0) {
-                    console.log('✅ Rol gevonden in profiles:', data[0].role);
-                    return data[0].role;
+                if (data && data.role) {
+                    console.log('✅ Rol gevonden in profiles:', data.role);
+                    return data.role;
                 }
                 
                 console.warn('⚠️ Geen rol gevonden in profiles, gebruik standaard');
@@ -590,7 +650,7 @@
         
         // Functie om app te initialiseren met de juiste rol
         async function initializeAppWithRole() {
-            // Haal de rol op uit de database
+            // Haal de rol op uit de database (of maak profile aan)
             const userRole = await getUserRoleFromDatabase();
             
             // Sla de rol op in localStorage
