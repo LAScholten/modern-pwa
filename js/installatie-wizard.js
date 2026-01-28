@@ -1,3 +1,8 @@
+/**
+ * Installatie Wizard voor PWA
+ * Bestand: js/installatie-wizard.js
+ */
+
 class InstallatieWizard {
     constructor() {
         this.deferredPrompt = null;
@@ -5,53 +10,48 @@ class InstallatieWizard {
     }
     
     init() {
+        // Luister naar install prompt
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             this.deferredPrompt = e;
-            this.createDeviceButtons();
+            this.showDeviceList();
         });
         
-        // Toon ook als er al een PWA is
-        setTimeout(() => this.createDeviceButtons(), 1000);
+        // Toon direct
+        this.showDeviceList();
     }
     
-    createDeviceButtons() {
-        // Verwijder oude
-        const old = document.getElementById('device-buttons');
+    showDeviceList() {
+        // Verwijder bestaande
+        const old = document.getElementById('pwa-devices');
         if (old) old.remove();
         
-        const devices = this.getDevices();
+        // Apparaten lijst
+        const devices = ['iPhone/iPad', 'Android', 'Windows', 'Mac'];
         
+        // Maak HTML
         const div = document.createElement('div');
-        div.id = 'device-buttons';
+        div.id = 'pwa-devices';
         div.style.cssText = `
             position: fixed;
-            top: 20px;
-            right: 20px;
+            top: 10px;
+            right: 10px;
             background: white;
-            padding: 10px;
-            border: 1px solid #ccc;
+            border: 1px solid #ddd;
             border-radius: 5px;
-            z-index: 10000;
-            font-family: Arial, sans-serif;
+            padding: 10px;
+            z-index: 9999;
+            font-family: sans-serif;
         `;
         
         div.innerHTML = `
-            <div style="margin-bottom: 10px; font-weight: bold;">Apparaten:</div>
+            <div style="font-weight: bold; margin-bottom: 8px;">Snelkoppeling</div>
             ${devices.map(device => `
-                <div style="margin: 5px 0; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin: 5px 0;">
                     <span>${device}</span>
                     <button 
-                        onclick="window.installWizard.makeShortcut('${device}')"
-                        style="
-                            background: #007bff;
-                            color: white;
-                            border: none;
-                            padding: 4px 8px;
-                            border-radius: 3px;
-                            cursor: pointer;
-                            font-size: 12px;
-                        "
+                        style="background: blue; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer;"
+                        onclick="document.installWizard.install()"
                     >
                         Klik hier
                     </button>
@@ -60,32 +60,15 @@ class InstallatieWizard {
         `;
         
         document.body.appendChild(div);
-        window.installWizard = this;
+        document.installWizard = this;
     }
     
-    getDevices() {
-        const ua = navigator.userAgent.toLowerCase();
-        const devices = [];
-        
-        if (/iphone|ipad|ipod/.test(ua)) devices.push('iPhone/iPad');
-        if (/android/.test(ua)) devices.push('Android');
-        if (/windows/.test(ua)) devices.push('Windows');
-        if (/mac/.test(ua)) devices.push('Mac');
-        
-        if (devices.length === 0) {
-            devices.push('Je apparaat');
-        }
-        
-        return devices;
-    }
-    
-    makeShortcut(device) {
+    install() {
         if (this.deferredPrompt) {
             this.deferredPrompt.prompt();
-        } else {
-            alert(`Voor ${device}: Open browser menu en kies "Toevoegen aan beginscherm"`);
         }
     }
 }
 
+// Start
 new InstallatieWizard();
