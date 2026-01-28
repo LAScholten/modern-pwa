@@ -7,34 +7,115 @@ class InstallatieWizard {
     constructor() {
         this.deferredPrompt = null;
         this.isInstalled = false;
-        this.appName = document.querySelector('meta[name="application-name"]')?.content || 'Mijn App';
+        this.appName = document.querySelector('meta[name="application-name"]')?.content || 
+                      document.querySelector('title')?.textContent || 'Mijn App';
+        this.appIcon = this.findAppIcon(); // Zoek het app icoon
         this.init();
     }
     
     init() {
         console.log('📱 InstallatieWizard geïnitialiseerd');
+        console.log('🎯 Gevonden icoon:', this.appIcon);
         this.setupEventListeners();
         this.setupInstallatieWizard();
         this.checkIfInstalled();
     }
     
+    findAppIcon() {
+        // Probeer verschillende bronnen voor het icoon
+        const iconSources = [
+            // Favicon (meest voorkomend)
+            document.querySelector('link[rel="icon"]')?.href,
+            document.querySelector('link[rel="shortcut icon"]')?.href,
+            document.querySelector('link[rel="apple-touch-icon"]')?.href,
+            
+            // Apple touch icons
+            document.querySelector('link[rel="apple-touch-icon-precomposed"]')?.href,
+            document.querySelector('link[sizes="192x192"]')?.href,
+            document.querySelector('link[sizes="512x512"]')?.href,
+            
+            // Manifest icoon (indien aanwezig)
+            this.getIconFromManifest(),
+            
+            // Open Graph icoon
+            document.querySelector('meta[property="og:image"]')?.content,
+            
+            // Twitter icoon
+            document.querySelector('meta[name="twitter:image"]')?.content,
+            
+            // Default locaties
+            '/favicon.ico',
+            '/apple-touch-icon.png',
+            '/icon.png',
+            '/logo.png',
+            '/img/icon.png',
+            '/img/logo.png',
+            '/assets/img/icon.png',
+            '/images/icon.png'
+        ];
+        
+        // Filter lege waardes en retourneer het eerste geldige icoon
+        const validIcon = iconSources.find(icon => 
+            icon && (typeof icon === 'string') && icon.trim() !== ''
+        );
+        
+        // Als er geen icoon gevonden is, gebruik een fallback
+        return validIcon || this.getFallbackIcon();
+    }
+    
+    getIconFromManifest() {
+        try {
+            const manifestLink = document.querySelector('link[rel="manifest"]');
+            if (manifestLink && manifestLink.href) {
+                return '/icon-192x192.png'; // Default PWA icoon locatie
+            }
+        } catch (e) {
+            console.log('⚠️ Kon manifest niet lezen:', e);
+        }
+        return null;
+    }
+    
+    getFallbackIcon() {
+        // Maak een dynamisch fallback icoon gebaseerd op de app naam
+        const firstLetter = this.appName.charAt(0).toUpperCase();
+        const colors = [
+            '#FF6B6B', '#4ECDC4', '#FFD166', '#06D6A0', 
+            '#118AB2', '#EF476F', '#7B2CBF', '#2A9D8F'
+        ];
+        const colorIndex = this.appName.length % colors.length;
+        
+        // Creëer een data URL voor een eenvoudig icoon
+        const canvas = document.createElement('canvas');
+        canvas.width = 128;
+        canvas.height = 128;
+        const ctx = canvas.getContext('2d');
+        
+        // Achtergrond
+        ctx.fillStyle = colors[colorIndex];
+        ctx.fillRect(0, 0, 128, 128);
+        
+        // Tekst
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 64px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(firstLetter, 64, 64);
+        
+        return canvas.toDataURL('image/png');
+    }
+    
     setupEventListeners() {
-        // Voor browsers die beforeinstallprompt ondersteunen (Chrome, Edge, etc.)
         window.addEventListener('beforeinstallprompt', (e) => {
             console.log('🚀 beforeinstallprompt event triggered');
             e.preventDefault();
             this.deferredPrompt = e;
-            
-            // Laat zien dat er een snelkoppeling kan worden gemaakt
             this.updateInstallButtonText();
             
-            // Toon knop automatisch na 5 seconden
             setTimeout(() => {
                 this.showInstallButton();
             }, 5000);
         });
         
-        // Wanneer app is toegevoegd aan beginscherm
         window.addEventListener('appinstalled', () => {
             console.log('🎉 Snelkoppeling succesvol toegevoegd!');
             this.isInstalled = true;
@@ -42,7 +123,6 @@ class InstallatieWizard {
             this.hideInstallButton();
         });
         
-        // Check of app al in standalone modus draait
         if (window.matchMedia('(display-mode: standalone)').matches || 
             window.navigator.standalone === true) {
             this.isInstalled = true;
@@ -54,7 +134,6 @@ class InstallatieWizard {
         this.injectStyles();
         window.installatieWizard = this;
         
-        // Klik handlers voor installatie knoppen
         document.addEventListener('click', (e) => {
             if (e.target.id === 'pwaInstallBtn' || 
                 e.target.id === 'pwaInstallBtnMobile' ||
@@ -83,35 +162,45 @@ class InstallatieWizard {
                 z-index: 9999;
             }
             .icon-preview {
-                width: 64px;
-                height: 64px;
-                margin: 10px auto;
-                border-radius: 16px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 24px;
-                background: #f8f9fa;
-                border: 2px solid #dee2e6;
+                width: 96px;
+                height: 96px;
+                margin: 20px auto;
+                border-radius: 20px;
+                overflow: hidden;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                background: white;
+                border: 3px solid #dee2e6;
+            }
+            .icon-preview img {
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+                padding: 8px;
             }
             .step {
                 margin-bottom: 15px;
-                padding: 10px;
-                border-left: 3px solid #0d6efd;
+                padding: 12px;
+                border-left: 4px solid #0d6efd;
                 background: #f8f9fa;
                 border-radius: 0 8px 8px 0;
             }
             .step-number {
-                display: inline-block;
-                width: 25px;
-                height: 25px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 28px;
+                height: 28px;
                 background: #0d6efd;
                 color: white;
                 border-radius: 50%;
-                text-align: center;
-                margin-right: 10px;
-                line-height: 25px;
+                margin-right: 12px;
                 font-weight: bold;
+                font-size: 0.9em;
+            }
+            .browser-icon {
+                font-size: 1.5em;
+                margin-right: 8px;
+                vertical-align: middle;
             }
         `;
         document.head.appendChild(style);
@@ -119,14 +208,13 @@ class InstallatieWizard {
     
     checkIfInstalled() {
         if (window.matchMedia('(display-mode: standalone)').matches) {
-            console.log('📱 App draait in standalone modus (snelkoppeling bestaat)');
+            console.log('📱 App draait in standalone modus');
             this.isInstalled = true;
             this.markAsInstalled();
             return;
         }
         
         if (window.navigator.standalone === true) {
-            console.log('📱 iOS snelkoppeling bestaat');
             this.isInstalled = true;
             this.markAsInstalled();
         }
@@ -144,17 +232,16 @@ class InstallatieWizard {
         }
         
         if (this.deferredPrompt) {
-            // Browser ondersteunt native installatie prompt
             this.deferredPrompt.prompt();
             
             this.deferredPrompt.userChoice.then((choiceResult) => {
                 if (choiceResult.outcome === 'accepted') {
-                    console.log('✅ Gebruiker heeft snelkoppeling geaccepteerd');
+                    console.log('✅ Snelkoppeling geaccepteerd');
                     localStorage.setItem('pwaInstalled', 'true');
                     this.isInstalled = true;
                     this.markAsInstalled();
                 } else {
-                    console.log('❌ Gebruiker heeft snelkoppeling geweigerd');
+                    console.log('❌ Snelkoppeling geweigerd');
                     setTimeout(() => {
                         this.showSnelkoppelingInstructions();
                     }, 500);
@@ -162,7 +249,6 @@ class InstallatieWizard {
                 this.deferredPrompt = null;
             });
         } else {
-            // Toon handmatige instructies
             this.showSnelkoppelingInstructions();
         }
     }
@@ -210,7 +296,7 @@ class InstallatieWizard {
         badge.innerHTML = `
             <button class="btn btn-warning btn-lg shadow-lg install-btn-pulse"
                     onclick="installatieWizard.handleInstallClick()">
-                <i class="bi bi-plus-square"></i> Snelkoppeling
+                <i class="bi bi-plus-circle"></i> Snelkoppeling
             </button>
         `;
         badge.id = 'floatingInstallBadge';
@@ -228,172 +314,165 @@ class InstallatieWizard {
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
         const isAndroid = /Android/.test(navigator.userAgent);
-        const isChrome = /Chrome/.test(navigator.userAgent) && !/Edge/.test(navigator.userAgent);
-        const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
-        const isFirefox = /Firefox/.test(navigator.userAgent);
+        const browser = this.detectBrowser();
         
         let stepsHTML = '';
         let title = 'Snelkoppeling Maken';
         
-        // Haal het icoon op uit het manifest
-        const manifestLink = document.querySelector('link[rel="manifest"]');
-        let iconUrl = '/icon-192x192.png'; // Default icoon
+        // Maak icoon preview
         let iconHtml = '';
-        
-        if (manifestLink) {
-            fetch(manifestLink.href)
-                .then(response => response.json())
-                .then(manifest => {
-                    if (manifest.icons && manifest.icons.length > 0) {
-                        // Zoek het beste icoon voor preview
-                        const bestIcon = manifest.icons.sort((a, b) => 
-                            parseInt(b.sizes?.split('x')[0] || 0) - parseInt(a.sizes?.split('x')[0] || 0)
-                        )[0];
-                        
-                        // Update preview in modal
-                        const iconPreview = document.querySelector('.icon-preview');
-                        if (iconPreview) {
-                            iconPreview.innerHTML = `<img src="${bestIcon.src}" alt="${this.appName} icoon" style="width:100%;height:100%;border-radius:12px;">`;
-                        }
-                    }
-                })
-                .catch(console.error);
+        if (this.appIcon.startsWith('data:')) {
+            // Data URL (fallback icoon)
+            iconHtml = `
+                <div class="icon-preview">
+                    <img src="${this.appIcon}" alt="${this.appName} icoon">
+                </div>
+                <p class="text-center small text-muted mb-4">Dit icoon wordt gebruikt voor je snelkoppeling</p>
+            `;
+        } else {
+            // Normale URL
+            iconHtml = `
+                <div class="icon-preview">
+                    <img src="${this.appIcon}" alt="${this.appName} icoon" 
+                         onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIHZpZXdCb3g9IjAgMCA5NiA5NiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIHJ4PSIxNiIgZmlsbD0iIzBENkVGRCIvPjx0ZXh0IHg9IjQ4IiB5PSI1MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjMyIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSI+${btoa(this.appName.charAt(0))}</dGV4dD48L3N2Zz4='">
+                </div>
+                <p class="text-center small text-muted mb-4">Dit icoon wordt gebruikt voor je snelkoppeling</p>
+            `;
         }
-        
-        iconHtml = `
-            <div class="icon-preview">
-                <i class="bi bi-app-indicator text-primary"></i>
-            </div>
-            <p class="text-center small text-muted">Dit icoon wordt gebruikt voor je snelkoppeling</p>
-        `;
         
         if (isMobile) {
             if (isIOS) {
-                title = 'Snelkoppeling op iPhone/iPad';
+                title = `Snelkoppeling op iPhone/iPad`;
                 stepsHTML = `
                     ${iconHtml}
+                    <div class="alert alert-primary">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <strong>Belangrijk:</strong> Gebruik <strong>Safari</strong> voor het maken van een snelkoppeling op iOS
+                    </div>
+                    
                     <div class="step">
                         <span class="step-number">1</span> Open deze pagina in <strong>Safari</strong>
                     </div>
+                    
                     <div class="step">
-                        <span class="step-number">2</span> Tik op het <strong>deel-icoon</strong> <i class="bi bi-share"></i> onderin beeld
+                        <span class="step-number">2</span> Tik op het <strong class="text-primary">deel-icoon</strong> 
+                        <span class="badge bg-primary ms-2"><i class="bi bi-share"></i></span>
                     </div>
+                    
                     <div class="step">
-                        <span class="step-number">3</span> Scroll omlaag en kies <strong>"Voeg toe aan beginscherm"</strong>
+                        <span class="step-number">3</span> Scroll naar beneden en selecteer <strong>"Voeg toe aan beginscherm"</strong>
                     </div>
+                    
                     <div class="step">
-                        <span class="step-number">4</span> Tik op <strong>"Voeg toe"</strong> rechtsboven
+                        <span class="step-number">4</span> Tik op <strong class="text-success">"Voeg toe"</strong> rechtsboven
                     </div>
+                    
                     <div class="step">
-                        <span class="step-number">5</span> Je ziet nu een snelkoppeling met het ${this.appName} icoon op je beginscherm!
-                    </div>
-                    <div class="alert alert-info mt-3">
-                        <i class="bi bi-lightbulb"></i> 
-                        <strong>Belangrijk:</strong> Gebruik altijd Safari voor het beste resultaat. Het icoon komt uit je PWA-instellingen.
+                        <span class="step-number">5</span> Zoek de snelkoppeling op je beginscherm met het <strong>${this.appName}</strong> icoon!
                     </div>
                 `;
             } else if (isAndroid) {
-                title = 'Snelkoppeling op Android';
-                let browserName = 'je browser';
-                let browserIcon = '<i class="bi bi-three-dots-vertical"></i>';
-                let step1 = '';
-                
-                if (isChrome) {
-                    browserName = 'Chrome';
-                    browserIcon = '<i class="bi bi-three-dots-vertical"></i>';
-                    step1 = 'Tik op de 3 puntjes rechtsboven';
-                } else if (isFirefox) {
-                    browserName = 'Firefox';
-                    browserIcon = '<i class="bi bi-three-dots"></i>';
-                    step1 = 'Tik op de 3 puntjes rechtsboven';
-                } else {
-                    step1 = 'Open het menu van je browser';
-                }
+                title = `Snelkoppeling op Android`;
+                const browserInfo = this.getAndroidBrowserInfo(browser);
                 
                 stepsHTML = `
                     ${iconHtml}
+                    
                     <div class="step">
-                        <span class="step-number">1</span> ${step1} ${browserIcon}
+                        <span class="step-number">1</span> ${browserInfo.step1}
                     </div>
+                    
                     <div class="step">
-                        <span class="step-number">2</span> Kies <strong>"Toevoegen aan beginscherm"</strong>
+                        <span class="step-number">2</span> Selecteer <strong>"Toevoegen aan beginscherm"</strong>
                     </div>
+                    
                     <div class="step">
-                        <span class="step-number">3</span> Tik op <strong>"Toevoegen"</strong>
+                        <span class="step-number">3</span> Bevestig met <strong class="text-success">"Toevoegen"</strong>
                     </div>
+                    
                     <div class="step">
-                        <span class="step-number">4</span> Een snelkoppeling met het ${this.appName} icoon verschijnt nu op je beginscherm!
+                        <span class="step-number">4</span> De snelkoppeling verschijnt nu op je beginscherm met het ${this.appName} icoon
                     </div>
+                    
                     <div class="alert alert-success mt-3">
                         <i class="bi bi-check-circle"></i> 
-                        <strong>Tip:</strong> Android gebruikt automatisch het icoon uit je PWA-instellingen.
+                        Android gebruikt automatisch het icoon van deze website.
                     </div>
                 `;
             }
         } else {
             // Desktop instructies
-            title = 'Snelkoppeling op Computer';
+            title = `Snelkoppeling op Computer`;
+            
             stepsHTML = `
                 ${iconHtml}
-                <div class="step">
-                    <span class="step-number">1</span> Zoek in je browser naar de <strong>snelkoppeling optie</strong>:
+                
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>Browser-specifieke instructies:</strong> Kies jouw browser hieronder
                 </div>
                 
-                <div class="row mt-3">
+                <div class="row g-3 mt-2">
+                    <!-- Chrome & Edge -->
                     <div class="col-md-6">
-                        <div class="card mb-3">
+                        <div class="card h-100 border-primary">
                             <div class="card-header bg-primary text-white">
-                                <i class="bi bi-browser-chrome"></i> Chrome / Edge
+                                <i class="bi bi-browser-chrome browser-icon"></i>
+                                Chrome / Edge
                             </div>
                             <div class="card-body">
                                 <div class="step">
-                                    <span class="step-number">A</span> Klik op het <strong>installatie-icoon</strong> <i class="bi bi-download"></i> rechts van de adresbalk
+                                    <span class="step-number">1</span> Klik op <strong class="text-primary">install-icoon</strong> 
+                                    <span class="badge bg-primary ms-1"><i class="bi bi-download"></i></span> rechts in adresbalk
                                 </div>
                                 <div class="step">
-                                    <span class="step-number">B</span> Kies <strong>"Installen"</strong> of <strong>"Toevoegen"</strong>
+                                    <span class="step-number">2</span> Kies <strong>"Installeren"</strong>
                                 </div>
                                 <div class="step">
-                                    <span class="step-number">C</span> De snelkoppeling met ${this.appName} icoon wordt toegevoegd aan je startmenu/bureaublad
+                                    <span class="step-number">3</span> Snelkoppeling wordt toegevoegd aan startmenu/bureaublad
                                 </div>
                             </div>
                         </div>
                     </div>
                     
+                    <!-- Firefox -->
                     <div class="col-md-6">
-                        <div class="card mb-3">
+                        <div class="card h-100 border-success">
                             <div class="card-header bg-success text-white">
-                                <i class="bi bi-browser-firefox"></i> Firefox
+                                <i class="bi bi-browser-firefox browser-icon"></i>
+                                Firefox
                             </div>
                             <div class="card-body">
                                 <div class="step">
-                                    <span class="step-number">A</span> Klik op het <strong>"+"</strong> icoon in de adresbalk
+                                    <span class="step-number">1</span> Klik op <strong class="text-success">"+"</strong> in adresbalk
                                 </div>
                                 <div class="step">
-                                    <span class="step-number">B</span> Kies <strong>"Toevoegen aan bureaublad"</strong>
+                                    <span class="step-number">2</span> Selecteer <strong>"Toevoegen aan bureaublad"</strong>
                                 </div>
                                 <div class="step">
-                                    <span class="step-number">C</span> Klik op <strong>"Toevoegen"</strong>
+                                    <span class="step-number">3</span> Bevestig met <strong>"Toevoegen"</strong>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
                 
-                <div class="step mt-3">
-                    <span class="step-number">2</span> <strong>Handmatig toevoegen (als bovenstaande niet werkt):</strong>
-                    <div class="mt-2">
-                        <ul>
-                            <li>Druk op <kbd>F12</kbd> voor Developer Tools</li>
-                            <li>Ga naar tab <strong>"Application"</strong> → <strong>"Manifest"</strong></li>
-                            <li>Klik op <strong>"Install"</strong> of <strong>"Create shortcut"</strong></li>
-                        </ul>
+                <div class="card mt-3 border-warning">
+                    <div class="card-header bg-warning">
+                        <i class="bi bi-tools browser-icon"></i>
+                        Alternatieve methode
                     </div>
-                </div>
-                
-                <div class="alert alert-warning mt-3">
-                    <i class="bi bi-info-circle"></i> 
-                    <strong>Het icoon:</strong> Alle browsers gebruiken automatisch het icoon dat is ingesteld in je PWA. 
-                    Dit kan een paar seconden duren bij de eerste keer.
+                    <div class="card-body">
+                        <div class="step">
+                            <span class="step-number">A</span> Druk op <kbd>F12</kbd> voor Developer Tools
+                        </div>
+                        <div class="step">
+                            <span class="step-number">B</span> Ga naar <strong>"Application"</strong> → <strong>"Manifest"</strong>
+                        </div>
+                        <div class="step">
+                            <span class="step-number">C</span> Klik op <strong>"Install"</strong> of <strong>"Create shortcut"</strong>
+                        </div>
+                    </div>
                 </div>
             `;
         }
@@ -401,7 +480,7 @@ class InstallatieWizard {
         // Update modal
         const modalTitle = document.querySelector('#installModal .modal-title');
         if (modalTitle) {
-            modalTitle.innerHTML = `<i class="bi bi-link-45deg"></i> ${title}`;
+            modalTitle.innerHTML = `<i class="bi bi-link-45deg me-2"></i>${title}`;
         }
         
         const installStepsElement = document.getElementById('installSteps');
@@ -409,15 +488,50 @@ class InstallatieWizard {
             installStepsElement.innerHTML = stepsHTML;
         }
         
-        // Toon de modal
+        // Toon modal
         const installModal = new bootstrap.Modal(document.getElementById('installModal'));
         installModal.show();
+    }
+    
+    detectBrowser() {
+        const ua = navigator.userAgent;
+        if (ua.includes('Chrome') && !ua.includes('Edge')) return 'Chrome';
+        if (ua.includes('Firefox')) return 'Firefox';
+        if (ua.includes('Safari') && !ua.includes('Chrome')) return 'Safari';
+        if (ua.includes('Edge')) return 'Edge';
+        if (ua.includes('Opera') || ua.includes('OPR')) return 'Opera';
+        return 'Unknown';
+    }
+    
+    getAndroidBrowserInfo(browser) {
+        switch(browser) {
+            case 'Chrome':
+                return {
+                    step1: 'Tik op de <strong class="text-primary">drie puntjes</strong> <i class="bi bi-three-dots-vertical"></i> rechtsboven',
+                    icon: 'bi-browser-chrome'
+                };
+            case 'Firefox':
+                return {
+                    step1: 'Tik op de <strong class="text-success">drie puntjes</strong> <i class="bi bi-three-dots"></i> rechtsboven',
+                    icon: 'bi-browser-firefox'
+                };
+            case 'Samsung':
+                return {
+                    step1: 'Tik op het <strong>menu-icoon</strong> <i class="bi bi-list"></i>',
+                    icon: 'bi-phone'
+                };
+            default:
+                return {
+                    step1: 'Open het <strong>browsermenu</strong>',
+                    icon: 'bi-browser'
+                };
+        }
     }
     
     updateInstallButtonText() {
         const updateButton = (btn) => {
             if (btn && !this.isInstalled) {
-                btn.innerHTML = '<i class="bi bi-plus-square"></i> Snelkoppeling maken';
+                btn.innerHTML = '<i class="bi bi-plus-circle"></i> Snelkoppeling maken';
                 btn.classList.add('btn-warning', 'install-btn-pulse');
                 btn.style.display = 'inline-block';
             }
@@ -430,7 +544,7 @@ class InstallatieWizard {
     markAsInstalled() {
         const updateButton = (btn) => {
             if (btn) {
-                btn.innerHTML = '<i class="bi bi-check-circle"></i> Snelkoppeling bestaat';
+                btn.innerHTML = '<i class="bi bi-check2-circle"></i> Snelkoppeling bestaat';
                 btn.classList.remove('btn-warning', 'install-btn-pulse');
                 btn.classList.add('btn-success');
                 btn.disabled = false;
@@ -441,8 +555,6 @@ class InstallatieWizard {
         updateButton(document.getElementById('pwaInstallBtnMobile'));
         
         this.hideFloatingInstallBadge();
-        
-        // Toon succesmelding
         this.showSuccessMessage();
     }
     
@@ -453,7 +565,7 @@ class InstallatieWizard {
                 <div class="d-flex">
                     <div class="toast-body">
                         <i class="bi bi-check-circle-fill me-2"></i>
-                        Snelkoppeling succesvol toegevoegd!
+                        Snelkoppeling toegevoegd aan je ${/Android|iPhone|iPad/i.test(navigator.userAgent) ? 'beginscherm' : 'bureaublad'}!
                     </div>
                     <button type="button" class="btn-close btn-close-white me-2 m-auto" 
                             data-bs-dismiss="toast" aria-label="Close"></button>
@@ -461,29 +573,25 @@ class InstallatieWizard {
             </div>
         `;
         
-        // Voeg toast toe aan body
         const toastContainer = document.createElement('div');
         toastContainer.innerHTML = toastHTML;
         document.body.appendChild(toastContainer);
         
-        // Toon de toast
         const toastElement = document.getElementById('installSuccessToast');
         const toast = new bootstrap.Toast(toastElement, { delay: 5000 });
         toast.show();
         
-        // Verwijder na animatie
         toastElement.addEventListener('hidden.bs.toast', () => {
             toastElement.remove();
         });
     }
 }
 
-// Auto-initialisatie
+// Initialisatie
 document.addEventListener('DOMContentLoaded', function() {
     new InstallatieWizard();
 });
 
-// Export voor gebruik in andere bestanden
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = InstallatieWizard;
 }
