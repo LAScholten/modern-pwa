@@ -9,140 +9,72 @@ class InstallatieWizard {
         this.isInstalled = false;
         this.appName = '';
         this.appIcon = '';
-        this.manifest = null;
         this.init();
     }
     
     async init() {
         console.log('📱 InstallatieWizard geïnitialiseerd');
         
-        // Laad eerst het manifest en icon
-        await this.loadManifestAndIcon();
+        // Haal PWA informatie op
+        await this.getPWAInfo();
         
         this.setupEventListeners();
         this.setupInstallatieWizard();
         this.checkIfInstalled();
     }
     
-    async loadManifestAndIcon() {
+    async getPWAInfo() {
         try {
-            // Zoek het manifest in de HTML
+            // 1. Haal app naam op uit de pagina
+            this.appName = document.querySelector('title')?.textContent || 
+                          document.querySelector('meta[property="og:site_name"]')?.content ||
+                          'Mijn App';
+            
+            // 2. Vind het manifest
             const manifestLink = document.querySelector('link[rel="manifest"]');
-            
             if (manifestLink && manifestLink.href) {
-                console.log('🔍 Manifest gevonden:', manifestLink.href);
-                
-                // Laad het manifest
-                const response = await fetch(manifestLink.href);
-                this.manifest = await response.json();
-                console.log('📄 Manifest geladen:', this.manifest);
-                
-                // Haal app naam uit manifest
-                this.appName = this.manifest.name || 
-                              this.manifest.short_name || 
-                              document.querySelector('title')?.textContent || 
-                              'Mijn App';
-                
-                // Haal het beste icoon uit het manifest
-                this.appIcon = await this.getBestIconFromManifest();
-                console.log('🎨 Icoon geselecteerd:', this.appIcon.substring(0, 100) + '...');
-                
-            } else {
-                console.log('⚠️ Geen manifest gevonden, gebruik fallback');
-                await this.useFallbackValues();
-            }
-            
-        } catch (error) {
-            console.error('❌ Fout bij laden manifest:', error);
-            await this.useFallbackValues();
-        }
-    }
-    
-    async getBestIconFromManifest() {
-        if (!this.manifest || !this.manifest.icons || !Array.isArray(this.manifest.icons)) {
-            console.log('⚠️ Geen icons in manifest, zoek favicon');
-            return await this.findFavicon();
-        }
-        
-        // Sorteer icons op grootte (grootste eerst)
-        const sortedIcons = [...this.manifest.icons].sort((a, b) => {
-            const sizeA = this.parseIconSize(a.sizes);
-            const sizeB = this.parseIconSize(b.sizes);
-            return sizeB - sizeA;
-        });
-        
-        // Probeer eerst het grootste icoon
-        for (const icon of sortedIcons) {
-            if (!icon.src) continue;
-            
-            const iconUrl = this.makeAbsoluteUrl(icon.src);
-            
-            // Check of icoon bestaat
-            const exists = await this.checkIconExists(iconUrl);
-            if (exists) {
-                console.log('✅ Icoon gevonden:', iconUrl);
-                return iconUrl;
-            }
-        }
-        
-        // Geen werkend icoon gevonden
-        console.log('⚠️ Geen werkend icoon in manifest gevonden');
-        return await this.findFavicon();
-    }
-    
-    parseIconSize(sizeString) {
-        if (!sizeString) return 0;
-        
-        const match = sizeString.match(/(\d+)x(\d+)/);
-        if (match) {
-            return parseInt(match[1], 10);
-        }
-        
-        return 0;
-    }
-    
-    async findFavicon() {
-        console.log('🔍 Zoek naar favicon...');
-        
-        // Zoek naar favicons in de HTML
-        const faviconSelectors = [
-            'link[rel="icon"]',
-            'link[rel="shortcut icon"]',
-            'link[rel="apple-touch-icon"]',
-            'link[rel="apple-touch-icon-precomposed"]'
-        ];
-        
-        for (const selector of faviconSelectors) {
-            const icon = document.querySelector(selector);
-            if (icon && icon.href) {
-                const iconUrl = this.makeAbsoluteUrl(icon.href);
-                console.log('🔍 Favicon gevonden:', iconUrl);
-                
-                // Check of het bestaat
-                const exists = await this.checkIconExists(iconUrl);
-                if (exists) {
-                    return iconUrl;
+                try {
+                    const response = await fetch(manifestLink.href);
+                    const manifest = await response.json();
+                    
+                    // Gebruik naam uit manifest als die er is
+                    if (manifest.name) {
+                        this.appName = manifest.name;
+                    }
+                    
+                    // Zoek het beste icoon uit het manifest
+                    if (manifest.icons && Array.isArray(manifest.icons)) {
+                        // Neem het grootste icoon (meestal het beste voor snelkoppelingen)
+                        const sortedIcons = [...manifest.icons].sort((a, b) => {
+                            const sizeA = this.getIconSize(a.sizes);
+                            const sizeB = this.getIconSize(b.sizes);
+                            return sizeB - sizeA;
+                        });
+                        
+                        const bestIcon = sortedIcons[0];
+                        if (bestIcon && bestIcon.src) {
+                            this.appIcon = this.makeAbsoluteUrl(bestIcon.src);
+                            console.log('✅ PWA icoon gevonden:', this.appIcon);
+                            return;
+                        }
+                    }
+                } catch (error) {
+                    console.log('⚠️ Kon manifest niet laden:', error);
                 }
             }
+            
+            // 3. Als er geen manifest icoon is, zoek dan direct naar PWA icons op je site
+            await this.findPWAIcon();
+            
+        } catch (error) {
+            console.error('❌ Fout bij ophalen PWA info:', error);
         }
-        
-        console.log('⚠️ Geen favicon gevonden, gebruik fallback icoon');
-        return this.createFallbackIcon();
     }
     
-    async checkIconExists(url) {
-        // Skip check voor data URLs
-        if (url.startsWith('data:')) {
-            return true;
-        }
-        
-        try {
-            const response = await fetch(url, { method: 'HEAD' });
-            return response.ok;
-        } catch (error) {
-            console.log('❌ Icoon bestaat niet of error:', url, error);
-            return false;
-        }
+    getIconSize(sizeString) {
+        if (!sizeString) return 0;
+        const match = sizeString.match(/(\d+)x(\d+)/);
+        return match ? parseInt(match[1], 10) : 0;
     }
     
     makeAbsoluteUrl(url) {
@@ -153,56 +85,85 @@ class InstallatieWizard {
             return url;
         }
         
-        // Als het een root-relative URL is
+        // Root-relative URL
         if (url.startsWith('/')) {
             return window.location.origin + url;
         }
         
-        // Relative URL - probeer base URL te vinden
-        const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+        // Relative URL
+        const base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+        return base + url;
+    }
+    
+    async findPWAIcon() {
+        console.log('🔍 Zoek naar PWA iconen...');
         
-        // Verwijder "../" en "./" uit pad
-        const parts = url.split('/');
-        const result = [];
+        // Standaard PWA icon locaties (waarschijnlijk staan jouw icons hier)
+        const pwaIconPaths = [
+            // PWA standaard iconen
+            '/icon-512x512.png',
+            '/icon-192x192.png',
+            '/icons/icon-512x512.png',
+            '/icons/icon-192x192.png',
+            '/img/icon-512x512.png',
+            '/img/icon-192x192.png',
+            '/images/icon-512x512.png',
+            '/images/icon-192x192.png',
+            '/assets/icons/icon-512x512.png',
+            '/assets/icons/icon-192x192.png',
+            
+            // Apple touch icons (ook gebruikt voor PWA)
+            '/apple-touch-icon.png',
+            '/apple-touch-icon-180x180.png',
+            '/apple-touch-icon-152x152.png',
+            
+            // Favicon (laatste optie)
+            '/favicon.ico',
+            '/favicon.png',
+            '/favicon-32x32.png',
+            '/favicon-192x192.png'
+        ];
         
-        for (const part of parts) {
-            if (part === '..') {
-                result.pop();
-            } else if (part !== '.' && part !== '') {
-                result.push(part);
+        // Probeer elk pad
+        for (const iconPath of pwaIconPaths) {
+            const iconUrl = this.makeAbsoluteUrl(iconPath);
+            
+            try {
+                const response = await fetch(iconUrl, { method: 'HEAD' });
+                if (response.ok) {
+                    this.appIcon = iconUrl;
+                    console.log('✅ PWA icoon gevonden op:', iconUrl);
+                    return;
+                }
+            } catch (error) {
+                // Doorgaan naar volgende optie
+                continue;
             }
         }
         
-        const cleanPath = result.join('/');
-        return baseUrl + cleanPath;
-    }
-    
-    createFallbackIcon() {
-        const firstLetter = (this.appName || 'A').charAt(0).toUpperCase();
+        console.log('⚠️ Geen PWA icoon gevonden op standaard locaties');
         
-        // Veilige SVG als data URL
-        const svgContent = `
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-                <rect width="512" height="512" rx="100" fill="#0d6efd"/>
-                <rect x="30" y="30" width="452" height="452" rx="80" fill="#0dcaf0"/>
-                <text x="256" y="280" font-family="Arial, sans-serif" font-size="200" 
-                      font-weight="bold" fill="white" text-anchor="middle" 
-                      dominant-baseline="middle">${firstLetter}</text>
-            </svg>
-        `.trim();
+        // Zoek in HTML voor icon links
+        const iconLinks = [
+            'link[rel="icon"][sizes="512x512"]',
+            'link[rel="icon"][sizes="192x192"]',
+            'link[rel="apple-touch-icon"][sizes="512x512"]',
+            'link[rel="apple-touch-icon"][sizes="192x192"]',
+            'link[rel="apple-touch-icon"]',
+            'link[rel="icon"]'
+        ];
         
-        // Veilige base64 encoding
-        const svgBase64 = btoa(unescape(encodeURIComponent(svgContent)));
-        return 'data:image/svg+xml;base64,' + svgBase64;
-    }
-    
-    async useFallbackValues() {
-        this.appName = document.querySelector('title')?.textContent || 'Mijn App';
-        this.appIcon = await this.findFavicon();
-        console.log('🔄 Fallback waarden gebruikt:', { 
-            name: this.appName, 
-            icon: this.appIcon.substring(0, 100) + '...' 
-        });
+        for (const selector of iconLinks) {
+            const link = document.querySelector(selector);
+            if (link && link.href) {
+                this.appIcon = this.makeAbsoluteUrl(link.href);
+                console.log('✅ Icoon gevonden via HTML:', this.appIcon);
+                return;
+            }
+        }
+        
+        // Geen icoon gevonden - toon geen fallback, maar geef gebruiker info
+        console.log('❌ Geen icoon gevonden voor PWA');
     }
     
     setupEventListeners() {
@@ -286,18 +247,6 @@ class InstallatieWizard {
                 object-fit: contain;
                 padding: 8px;
                 display: block;
-            }
-            .icon-fallback {
-                width: 100%;
-                height: 100%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                background: linear-gradient(135deg, #0d6efd, #0dcaf0);
-                color: white;
-                font-size: 48px;
-                font-weight: bold;
-                font-family: Arial, sans-serif;
             }
             .step {
                 margin-bottom: 15px;
@@ -436,22 +385,32 @@ class InstallatieWizard {
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
         const isAndroid = /Android/.test(navigator.userAgent);
-        const browser = this.detectBrowser();
         
         let stepsHTML = '';
         let title = `${this.appName} - Snelkoppeling`;
         
-        // Veilige icoon preview
-        const firstLetter = this.appName.charAt(0).toUpperCase();
-        const iconHtml = `
-            <div class="icon-preview-container">
-                <div class="icon-preview" id="iconPreview">
-                    <div class="icon-fallback">${firstLetter}</div>
+        // Maak icoon preview - ALLEEN als er een icoon is
+        let iconHtml = '';
+        if (this.appIcon) {
+            iconHtml = `
+                <div class="icon-preview-container">
+                    <div class="icon-preview">
+                        <img src="${this.appIcon}" 
+                             alt="${this.appName} icoon"
+                             style="width:100%;height:100%;object-fit:contain;">
+                    </div>
+                    <h5>${this.appName}</h5>
+                    <p class="text-muted mb-0">Dit PWA-icoon wordt gebruikt voor de snelkoppeling</p>
                 </div>
-                <h5>${this.appName}</h5>
-                <p class="text-muted mb-0">Dit icoon wordt gebruikt voor de snelkoppeling</p>
-            </div>
-        `;
+            `;
+        } else {
+            iconHtml = `
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>PWA icoon:</strong> Het icoon van deze app wordt automatisch gebruikt voor de snelkoppeling.
+                </div>
+            `;
+        }
         
         if (isMobile) {
             if (isIOS) {
@@ -487,13 +446,12 @@ class InstallatieWizard {
                 `;
             } else if (isAndroid) {
                 title = `${this.appName} op Android`;
-                const browserInfo = this.getAndroidBrowserInfo(browser);
                 
                 stepsHTML = `
                     ${iconHtml}
                     
                     <div class="step">
-                        <span class="step-number">1</span> ${browserInfo.step1}
+                        <span class="step-number">1</span> Tik op de <strong>drie puntjes</strong> <i class="bi bi-three-dots-vertical"></i> rechtsboven
                     </div>
                     
                     <div class="step">
@@ -505,12 +463,12 @@ class InstallatieWizard {
                     </div>
                     
                     <div class="step">
-                        <span class="step-number">4</span> De snelkoppeling met het ${this.appName} icoon verschijnt nu op je beginscherm
+                        <span class="step-number">4</span> De snelkoppeling verschijnt nu op je beginscherm met het PWA-icoon
                     </div>
                     
                     <div class="alert alert-success mt-3">
                         <i class="bi bi-phone me-2"></i>
-                        Android gebruikt automatisch het icoon uit je PWA-instellingen
+                        Android gebruikt automatisch het PWA-icoon van deze app
                     </div>
                 `;
             }
@@ -537,11 +495,7 @@ class InstallatieWizard {
                                     <span class="step-number">2</span> Kies <strong>"Installeren"</strong> of <strong>"Toevoegen"</strong>
                                 </div>
                                 <div class="step">
-                                    <span class="step-number">3</span> Snelkoppeling wordt toegevoegd aan:
-                                    <div class="mt-2">
-                                        <span class="badge bg-secondary"><i class="bi bi-windows"></i> Start Menu</span>
-                                        <span class="badge bg-secondary"><i class="bi bi-display"></i> Bureaublad</span>
-                                    </div>
+                                    <span class="step-number">3</span> Snelkoppeling wordt toegevoegd met het PWA-icoon
                                 </div>
                             </div>
                         </div>
@@ -570,7 +524,7 @@ class InstallatieWizard {
                 
                 <div class="alert alert-warning mt-3">
                     <i class="bi bi-exclamation-triangle me-2"></i>
-                    <strong>Let op:</strong> Sommige browsers tonen alleen de installatie knop na meerdere bezoeken
+                    <strong>Het icoon:</strong> Browsers gebruiken automatisch het PWA-icoon dat ingesteld is voor deze app.
                 </div>
             `;
         }
@@ -584,73 +538,11 @@ class InstallatieWizard {
         const installStepsElement = document.getElementById('installSteps');
         if (installStepsElement) {
             installStepsElement.innerHTML = stepsHTML;
-            
-            // Probeer het echte icoon te laden na renderen
-            setTimeout(() => {
-                this.loadIconIntoPreview();
-            }, 100);
         }
         
         // Toon modal
         const installModal = new bootstrap.Modal(document.getElementById('installModal'));
         installModal.show();
-    }
-    
-    loadIconIntoPreview() {
-        const iconPreview = document.getElementById('iconPreview');
-        if (!iconPreview) return;
-        
-        if (this.appIcon && this.appIcon.startsWith('data:')) {
-            // Data URL - veilig om te gebruiken
-            iconPreview.innerHTML = `<img src="${this.appIcon}" alt="${this.appName} icoon" style="width:100%;height:100%;object-fit:contain;">`;
-        } else if (this.appIcon && this.appIcon.startsWith('http')) {
-            // HTTP URL - probeer het te laden
-            const img = new Image();
-            img.onload = () => {
-                iconPreview.innerHTML = `<img src="${this.appIcon}" alt="${this.appName} icoon" style="width:100%;height:100%;object-fit:contain;">`;
-            };
-            img.onerror = () => {
-                // Blijf bij fallback als laden mislukt
-                console.log('❌ Kon icoon niet laden:', this.appIcon);
-            };
-            img.src = this.appIcon;
-        }
-    }
-    
-    detectBrowser() {
-        const ua = navigator.userAgent;
-        if (ua.includes('Chrome') && !ua.includes('Edge')) return 'Chrome';
-        if (ua.includes('Firefox')) return 'Firefox';
-        if (ua.includes('Safari') && !ua.includes('Chrome')) return 'Safari';
-        if (ua.includes('Edge')) return 'Edge';
-        if (ua.includes('Opera') || ua.includes('OPR')) return 'Opera';
-        if (ua.includes('SamsungBrowser')) return 'Samsung';
-        return 'Browser';
-    }
-    
-    getAndroidBrowserInfo(browser) {
-        switch(browser) {
-            case 'Chrome':
-                return {
-                    step1: 'Tik op de <strong class="text-primary">drie puntjes</strong> <i class="bi bi-three-dots-vertical"></i> rechtsboven',
-                    icon: 'bi-browser-chrome'
-                };
-            case 'Firefox':
-                return {
-                    step1: 'Tik op de <strong class="text-success">drie puntjes</strong> <i class="bi bi-three-dots"></i> rechtsboven',
-                    icon: 'bi-browser-firefox'
-                };
-            case 'Samsung':
-                return {
-                    step1: 'Tik op het <strong>menu-icoon</strong> <i class="bi bi-list"></i>',
-                    icon: 'bi-list'
-                };
-            default:
-                return {
-                    step1: 'Open het <strong>browsermenu</strong>',
-                    icon: 'bi-browser'
-                };
-        }
     }
     
     updateInstallButtonText() {
@@ -716,7 +608,7 @@ class InstallatieWizard {
     }
 }
 
-// Initialisatie - wacht op DOM en laad async
+// Initialisatie
 document.addEventListener('DOMContentLoaded', function() {
     new InstallatieWizard();
 });
