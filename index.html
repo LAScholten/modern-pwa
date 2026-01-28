@@ -235,54 +235,41 @@
             messageDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
         
-        // Creëer profile als die niet bestaat - SIMPELE EN BETROUWBARE VERSIE
-        async function ensureProfileExists(userId, userEmail) {
+        // SIMPELE EN BETROUWBARE PROFILE AANMAAK
+        async function createUserProfile(userId, userEmail) {
             try {
                 const supabase = await loadSupabase();
                 
-                // EERST: Probeer profile te lezen
-                const { data: existing, error: readError } = await supabase
+                console.log('🔧 Profile aanmaken voor:', userEmail);
+                
+                // DIRECT INSERT - geen check nodig
+                const { data, error } = await supabase
                     .from('profiles')
-                    .select('user_id')
-                    .eq('user_id', userId)
-                    .maybeSingle();
+                    .insert({
+                        user_id: userId,
+                        email: userEmail,
+                        role: 'gebruiker',
+                        is_admin: false,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    });
                 
-                console.log('Profile check result:', { existing, readError });
-                
-                // ALS profile niet bestaat: maak aan
-                if (!existing) {
-                    console.log('Profile bestaat niet, maak aan voor:', userEmail);
-                    
-                    const { data: newProfile, error: insertError } = await supabase
-                        .from('profiles')
-                        .insert({
-                            user_id: userId,
-                            email: userEmail,
-                            role: 'gebruiker',
-                            is_admin: false,
-                            created_at: new Date().toISOString(),
-                            updated_at: new Date().toISOString()
-                        })
-                        .select()
-                        .single();
-                    
-                    console.log('Profile insert result:', { newProfile, insertError });
-                    
-                    if (insertError) {
-                        if (insertError.code === '23505') {
-                            console.log('Profile bestaat al (duplicate key)');
-                        } else {
-                            console.error('Fout bij profile aanmaak:', insertError);
-                        }
+                if (error) {
+                    if (error.code === '23505') {
+                        console.log('✅ Profile bestaat al (duplicate key)');
+                        return true; // Profile bestaat al, prima
                     } else {
-                        console.log('✅ Profile aangemaakt voor:', userEmail);
+                        console.error('❌ Fout bij profile insert:', error);
+                        return false;
                     }
-                } else {
-                    console.log('✅ Profile bestaat al voor:', userEmail);
                 }
                 
+                console.log('✅ Profile aangemaakt voor:', userEmail);
+                return true;
+                
             } catch (error) {
-                console.error('❌ Fout in ensureProfileExists:', error);
+                console.error('❌ Exception bij profile aanmaak:', error);
+                return false; // Faalt niet bij error
             }
         }
         
@@ -304,12 +291,16 @@
                 }
                 
                 // SUCCESS - gebruiker is ingelogd
-                showMessage('✅ Ingelogd! Profile wordt gecontroleerd...', 'success');
+                showMessage('✅ Ingelogd! Profile wordt aangemaakt...', 'success');
                 
-                // BELANGRIJK: Zorg dat profile bestaat
-                console.log('🚨 Voordat ensureProfileExists wordt aangeroepen');
-                await ensureProfileExists(data.user.id, data.user.email);
-                console.log('🚨 Na ensureProfileExists');
+                // BELANGRIJK: Profile aanmaken
+                const profileCreated = await createUserProfile(data.user.id, data.user.email);
+                
+                if (profileCreated) {
+                    showMessage('✅ Profile klaar! Doorsturen...', 'success');
+                } else {
+                    showMessage('⚠️ Profile kon niet worden aangemaakt (mogelijk bestaat al)', 'info');
+                }
                 
                 // Opslaan in localStorage
                 localStorage.setItem('userEmail', data.user.email);
@@ -318,7 +309,7 @@
                 // Doorsturen naar app
                 setTimeout(() => {
                     window.location.href = 'app.html';
-                }, 1500);
+                }, 2000);
                 
                 return true;
                 
