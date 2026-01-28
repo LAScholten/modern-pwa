@@ -95,14 +95,16 @@
                                     <label class="form-label fw-bold">E-mailadres</label>
                                     <input type="email" class="form-control form-control-lg" 
                                            id="loginEmail" required 
-                                           placeholder="voorbeeld@email.nl">
+                                           placeholder="voorbeeld@email.nl"
+                                           autocomplete="email">
                                 </div>
                                 
                                 <div class="mb-4">
                                     <label class="form-label fw-bold">Wachtwoord</label>
                                     <input type="password" class="form-control form-control-lg" 
                                            id="loginPassword" required 
-                                           placeholder="Je wachtwoord">
+                                           placeholder="Je wachtwoord"
+                                           autocomplete="current-password">
                                 </div>
                                 
                                 <button type="submit" class="btn btn-login btn-lg text-white w-100">
@@ -124,7 +126,8 @@
                                     <label class="form-label fw-bold">E-mailadres</label>
                                     <input type="email" class="form-control form-control-lg" 
                                            id="registerEmail" required 
-                                           placeholder="je@email.nl">
+                                           placeholder="je@email.nl"
+                                           autocomplete="email">
                                 </div>
                                 
                                 <div class="mb-4">
@@ -132,7 +135,8 @@
                                     <input type="password" class="form-control form-control-lg" 
                                            id="registerPassword" required 
                                            placeholder="Minimaal 6 tekens"
-                                           minlength="6">
+                                           minlength="6"
+                                           autocomplete="new-password">
                                 </div>
                                 
                                 <div class="mb-4">
@@ -140,7 +144,8 @@
                                     <input type="password" class="form-control form-control-lg" 
                                            id="registerConfirmPassword" required 
                                            placeholder="Herhaal je wachtwoord"
-                                           minlength="6">
+                                           minlength="6"
+                                           autocomplete="new-password">
                                 </div>
                                 
                                 <div class="alert alert-info">
@@ -230,6 +235,73 @@
             messageDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
         
+        // Creëer of update user profile
+        async function ensureUserProfile(userId, userEmail) {
+            try {
+                const supabase = await loadSupabase();
+                
+                // Check of profile al bestaat
+                const { data: existingProfile, error: fetchError } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .single();
+                
+                if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 = geen rij gevonden
+                    console.error('Fout bij profile check:', fetchError);
+                    return null;
+                }
+                
+                // Als profile niet bestaat, maak nieuwe aan
+                if (!existingProfile) {
+                    const { data: newProfile, error: insertError } = await supabase
+                        .from('profiles')
+                        .insert({
+                            user_id: userId,
+                            email: userEmail,
+                            role: 'gebruiker',
+                            is_admin: false,
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        })
+                        .select()
+                        .single();
+                    
+                    if (insertError) {
+                        console.error('Fout bij profile aanmaak:', insertError);
+                        return null;
+                    }
+                    
+                    showMessage('✅ Profiel aangemaakt', 'success');
+                    return newProfile;
+                }
+                
+                // Profile bestaat al, update email als die veranderd is
+                if (existingProfile.email !== userEmail) {
+                    const { data: updatedProfile, error: updateError } = await supabase
+                        .from('profiles')
+                        .update({
+                            email: userEmail,
+                            updated_at: new Date().toISOString()
+                        })
+                        .eq('user_id', userId)
+                        .select()
+                        .single();
+                    
+                    if (updateError) {
+                        console.error('Fout bij profile update:', updateError);
+                    }
+                    return updatedProfile || existingProfile;
+                }
+                
+                return existingProfile;
+                
+            } catch (error) {
+                console.error('Fout in ensureUserProfile:', error);
+                return null;
+            }
+        }
+        
         // Normale login
         async function loginUser(email, password) {
             showMessage('🔐 Inloggen bij Supabase...', 'info');
@@ -247,21 +319,31 @@
                     return false;
                 }
                 
-                // SUCCESS
-                showMessage('✅ Ingelogd! Opslaan gebruikersgegevens...', 'success');
+                // SUCCESS - gebruiker is ingelogd
+                showMessage('✅ Ingelogd! Profiel wordt gecontroleerd...', 'success');
                 
-                // Alleen email en ID opslaan in localStorage
-                localStorage.setItem('userEmail', data.user.email);
-                localStorage.setItem('userId', data.user.id);
+                // Zorg voor user profile
+                const profile = await ensureUserProfile(data.user.id, data.user.email);
                 
-                // Verwijder eventuele oude rolgegevens
-                localStorage.removeItem('userRole');
-                localStorage.removeItem('isAdmin');
-                
-                // Toon bericht en doorsturen
-                setTimeout(() => {
-                    window.location.href = 'app.html';
-                }, 1500);
+                if (profile) {
+                    // Opslaan in localStorage
+                    localStorage.setItem('userEmail', data.user.email);
+                    localStorage.setItem('userId', data.user.id);
+                    localStorage.setItem('userRole', profile.role);
+                    localStorage.setItem('isAdmin', profile.is_admin);
+                    
+                    showMessage(`✅ Welkom ${profile.role === 'admin' ? 'beheerder' : 'gebruiker'}!`, 'success');
+                    
+                    // Doorsturen naar app
+                    setTimeout(() => {
+                        window.location.href = 'app.html';
+                    }, 1500);
+                } else {
+                    showMessage('⚠️ Profiel kon niet worden aangemaakt. Toch doorsturen...', 'info');
+                    setTimeout(() => {
+                        window.location.href = 'app.html';
+                    }, 2000);
+                }
                 
                 return true;
                 
@@ -372,7 +454,7 @@
         });
         
         // Check of er al ingelogd is
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             if (localStorage.getItem('userId')) {
                 showMessage('Je bent al ingelogd. Doorsturen...', 'info');
                 setTimeout(() => {
@@ -382,4 +464,5 @@
         });
     </script>
 </body>
+</html>
 </html>
