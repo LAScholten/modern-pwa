@@ -7,18 +7,15 @@ class InstallatieWizard {
     constructor() {
         this.deferredPrompt = null;
         this.isInstalled = false;
-        this.appName = '';
-        this.appIcon = '';
+        this.appName = document.querySelector('title')?.textContent || 'Mijn App';
         this.currentBrowser = this.detectBrowser();
         this.init();
     }
     
-    async init() {
+    init() {
         console.log('📱 InstallatieWizard geïnitialiseerd');
         console.log('🌐 Browser:', this.currentBrowser);
-        
-        // Haal PWA informatie op
-        await this.getPWAInfo();
+        console.log('📱 App naam:', this.appName);
         
         this.setupEventListeners();
         this.setupInstallatieWizard();
@@ -28,78 +25,12 @@ class InstallatieWizard {
     detectBrowser() {
         const ua = navigator.userAgent;
         
-        if (ua.includes('Edg/') || ua.includes('Edge/')) {
-            return 'Edge';
-        }
-        if (ua.includes('Chrome') && !ua.includes('Edg/') && !ua.includes('Edge/')) {
-            return 'Chrome';
-        }
-        if (ua.includes('Firefox')) {
-            return 'Firefox';
-        }
-        if (ua.includes('Safari') && !ua.includes('Chrome')) {
-            return 'Safari';
-        }
+        if (ua.includes('Edg/') || ua.includes('Edge/')) return 'Edge';
+        if (ua.includes('Chrome') && !ua.includes('Edg/') && !ua.includes('Edge/')) return 'Chrome';
+        if (ua.includes('Firefox')) return 'Firefox';
+        if (ua.includes('Safari') && !ua.includes('Chrome')) return 'Safari';
         
         return 'Unknown';
-    }
-    
-    async getPWAInfo() {
-        try {
-            // 1. Haal app naam op
-            this.appName = document.querySelector('title')?.textContent || 
-                          document.querySelector('meta[property="og:site_name"]')?.content ||
-                          'Mijn App';
-            
-            console.log('🔍 Zoek PWA icoon in modern-pwa/img/icons/');
-            
-            // 2. DIRECT naar jouw PWA icons zoeken
-            const yourPwaIcons = [
-                'modern-pwa/img/icons/icon-512x512.png',
-                'modern-pwa/img/icons/icon-192x192.png',
-                'modern-pwa/img/icons/icon-256x256.png',
-                'modern-pwa/img/icons/icon.png',
-                'modern-pwa/img/icons/app-icon.png',
-                'modern-pwa/img/icons/logo.png',
-            ];
-            
-            // Probeer elk icoon
-            for (const iconPath of yourPwaIcons) {
-                const iconUrl = this.makeAbsoluteUrl(iconPath);
-                
-                try {
-                    const response = await fetch(iconUrl, { method: 'HEAD' });
-                    if (response.ok) {
-                        this.appIcon = iconUrl;
-                        console.log('✅ JOUW PWA icoon gevonden:', iconUrl);
-                        return;
-                    }
-                } catch (error) {
-                    continue;
-                }
-            }
-            
-            // Geen icoon gevonden
-            console.log('⚠️ Geen icoon gevonden');
-            
-        } catch (error) {
-            console.error('❌ Fout bij ophalen PWA info:', error);
-        }
-    }
-    
-    makeAbsoluteUrl(url) {
-        if (!url) return '';
-        
-        if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
-            return url;
-        }
-        
-        if (url.startsWith('/')) {
-            return window.location.origin + url;
-        }
-        
-        const base = window.location.origin;
-        return base + '/' + url;
     }
     
     setupEventListeners() {
@@ -159,34 +90,9 @@ class InstallatieWizard {
                 right: 20px;
                 z-index: 9999;
             }
-            .icon-preview-container {
-                text-align: center;
-                margin: 20px 0;
-                padding: 20px;
-                background: #f8f9fa;
-                border-radius: 12px;
-                border: 2px solid #dee2e6;
-            }
-            .icon-preview {
-                width: 96px;
-                height: 96px;
-                margin: 0 auto 15px;
-                border-radius: 20px;
-                overflow: hidden;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                background: white;
-                border: 3px solid #dee2e6;
-            }
-            .icon-preview img {
-                width: 100%;
-                height: 100%;
-                object-fit: contain;
-                padding: 8px;
-                display: block;
-            }
             .step {
                 margin-bottom: 15px;
-                padding: 12px;
+                padding: 12px 15px;
                 border-left: 4px solid #0d6efd;
                 background: #f8f9fa;
                 border-radius: 0 8px 8px 0;
@@ -195,8 +101,8 @@ class InstallatieWizard {
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
-                width: 28px;
-                height: 28px;
+                width: 30px;
+                height: 30px;
                 background: #0d6efd;
                 color: white;
                 border-radius: 50%;
@@ -206,7 +112,7 @@ class InstallatieWizard {
             }
             .keyboard-key {
                 display: inline-block;
-                padding: 2px 6px;
+                padding: 2px 8px;
                 font-family: monospace;
                 font-size: 0.9em;
                 background: #e9ecef;
@@ -215,29 +121,39 @@ class InstallatieWizard {
                 box-shadow: 0 2px 0 #adb5bd;
                 margin: 0 2px;
             }
-            .edge-specific {
+            .edge-method {
                 background: #e3f2fd;
                 border-left: 4px solid #0078d7;
-                padding: 12px;
-                margin: 10px 0;
-                border-radius: 0 8px 8px 0;
+                padding: 15px;
+                margin: 15px 0;
+                border-radius: 0 10px 10px 0;
             }
-            .method-tabs {
-                border-bottom: 2px solid #dee2e6;
-                margin-bottom: 20px;
+            .method-card {
+                border: 2px solid #dee2e6;
+                border-radius: 10px;
+                margin-bottom: 15px;
+                overflow: hidden;
             }
-            .method-tab {
-                padding: 10px 20px;
-                background: none;
-                border: none;
-                border-bottom: 3px solid transparent;
-                cursor: pointer;
-            }
-            .method-tab.active {
-                border-bottom: 3px solid #0d6efd;
+            .method-header {
+                background: #f8f9fa;
+                padding: 12px 15px;
+                border-bottom: 1px solid #dee2e6;
                 font-weight: bold;
-                color: #0d6efd;
             }
+            .method-body {
+                padding: 15px;
+            }
+            .browser-badge {
+                padding: 4px 10px;
+                border-radius: 20px;
+                font-size: 0.85em;
+                font-weight: bold;
+                margin-right: 8px;
+            }
+            .edge-badge { background: #0078d7; color: white; }
+            .chrome-badge { background: #4285f4; color: white; }
+            .firefox-badge { background: #ff7139; color: white; }
+            .safari-badge { background: #000000; color: white; }
         `;
         document.head.appendChild(style);
     }
@@ -347,37 +263,110 @@ class InstallatieWizard {
     }
     
     getEdgeInstructions() {
-        // Edge specifieke instructies omdat het icoon vaak niet verschijnt
         return {
-            method1: {
-                title: "Methode 1: Via Developer Tools (meest betrouwbaar)",
-                steps: [
-                    "Druk op <span class='keyboard-key'>F12</span> of <span class='keyboard-key'>Ctrl</span>+<span class='keyboard-key'>Shift</span>+<span class='keyboard-key'>I</span>",
-                    "Klik op het tabblad <strong>'Application'</strong> aan de bovenkant",
-                    "Klik in het linker menu op <strong>'Manifest'</strong>",
-                    "Klik op de knop <button class='btn btn-sm btn-success'><i class='bi bi-download'></i> Install</button>",
-                    "Bevestig het toevoegen van de snelkoppeling"
-                ]
-            },
-            method2: {
-                title: "Methode 2: Via browser instellingen",
-                steps: [
-                    "Klik op de <strong>drie puntjes</strong> <i class='bi bi-three-dots'></i> rechtsboven",
-                    "Ga naar <strong>'Apps'</strong> in het menu",
-                    "Kies <strong>'Deze site installeren'</strong>",
-                    "Volg de instructies om de app toe te voegen"
-                ]
-            },
-            method3: {
-                title: "Methode 3: Via adresbalk (als het icoon verschijnt)",
-                steps: [
-                    "Kijk in de adresbalk voor een <strong>'+' icoon</strong> of <strong>download icoon</strong>",
-                    "Klik erop als het verschijnt",
-                    "Kies <strong>'Installeren'</strong>",
-                    "Let op: Dit icoon verschijnt niet altijd in Edge"
-                ]
-            },
-            warning: "Edge laat het installatie-icoon vaak niet zien. Gebruik Methode 1 voor het beste resultaat."
+            title: "Microsoft Edge (Windows)",
+            methods: [
+                {
+                    title: "Methode 1: Developer Tools (altijd werkend)",
+                    steps: [
+                        "Druk op <span class='keyboard-key'>F12</span>",
+                        "Klik op tabblad <strong>'Application'</strong>",
+                        "Klik op <strong>'Manifest'</strong> in linker menu",
+                        "Klik op <button class='btn btn-sm btn-success'><i class='bi bi-download'></i> Install</button>"
+                    ]
+                },
+                {
+                    title: "Methode 2: Via browser menu",
+                    steps: [
+                        "Klik op <strong>drie puntjes</strong> rechtsboven",
+                        "Ga naar <strong>'Apps'</strong>",
+                        "Kies <strong>'Deze site installeren'</strong>"
+                    ]
+                },
+                {
+                    title: "Methode 3: Handmatig (als bovenstaande niet werkt)",
+                    steps: [
+                        "Ga naar: edge://apps/",
+                        "Klik rechtsboven op <strong>'Sitelijst ophalen uit Microsoft'</strong>",
+                        "Zoek deze site en klik op <strong>'Toevoegen'</strong>"
+                    ]
+                }
+            ],
+            note: "Edge toont vaak geen installatie-icoon in de adresbalk. Gebruik Methode 1."
+        };
+    }
+    
+    getChromeInstructions() {
+        return {
+            title: "Google Chrome",
+            methods: [
+                {
+                    title: "Standaard methode",
+                    steps: [
+                        "Kijk in adresbalk voor <strong>download icoon</strong> <i class='bi bi-download'></i>",
+                        "Klik erop als het verschijnt",
+                        "Kies <strong>'Installeren'</strong>"
+                    ]
+                },
+                {
+                    title: "Alternatief via menu",
+                    steps: [
+                        "Klik op <strong>drie puntjes</strong> rechtsboven",
+                        "Ga naar <strong>'Meer tools'</strong>",
+                        "Kies <strong>'Toevoegen aan bureaublad'</strong>"
+                    ]
+                }
+            ],
+            note: "Chrome toont het icoon vaak pas na meerdere bezoeken."
+        };
+    }
+    
+    getFirefoxInstructions() {
+        return {
+            title: "Mozilla Firefox",
+            methods: [
+                {
+                    title: "Standaard methode",
+                    steps: [
+                        "Kijk in adresbalk voor <strong>'+' icoon</strong>",
+                        "Klik erop als het verschijnt",
+                        "Kies <strong>'Toevoegen'</strong>"
+                    ]
+                },
+                {
+                    title: "Alternatief",
+                    steps: [
+                        "Klik met rechts op pagina",
+                        "Kies <strong>'Toevoegen aan bureaublad'</strong>"
+                    ]
+                }
+            ],
+            note: "Firefox heeft goede PWA ondersteuning."
+        };
+    }
+    
+    getSafariInstructions() {
+        return {
+            title: "Apple Safari (macOS)",
+            methods: [
+                {
+                    title: "Voor macOS",
+                    steps: [
+                        "Ga naar <strong>Bestand</strong> in menubalk",
+                        "Kies <strong>'Toevoegen aan Dock'</strong>",
+                        "Of gebruik <span class='keyboard-key'>Cmd</span>+<span class='keyboard-key'>Shift</span>+<span class='keyboard-key'>D</span>"
+                    ]
+                },
+                {
+                    title: "Voor iOS/iPadOS",
+                    steps: [
+                        "Open in <strong>Safari</strong> (niet andere browser)",
+                        "Tik op <strong>deel icoon</strong> <i class='bi bi-share'></i>",
+                        "Scroll naar <strong>'Voeg toe aan beginscherm'</strong>"
+                    ]
+                }
+            ],
+            note: "Alleen Safari ondersteunt PWA op Apple apparaten."
         };
     }
     
@@ -389,203 +378,189 @@ class InstallatieWizard {
         let stepsHTML = '';
         let title = `${this.appName} - Snelkoppeling`;
         
-        // Toon het gevonden icoon
-        let iconHtml = '';
-        if (this.appIcon) {
-            iconHtml = `
-                <div class="icon-preview-container">
-                    <div class="icon-preview">
-                        <img src="${this.appIcon}" 
-                             alt="${this.appName} icoon"
-                             style="width:100%;height:100%;object-fit:contain;">
+        // Eenvoudige intro
+        const introHtml = `
+            <div class="alert alert-info mb-4">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-info-circle fs-4 me-3"></i>
+                    <div>
+                        <strong>Snelkoppeling maken voor ${this.appName}</strong><br>
+                        <small>Voeg deze webapp toe aan je beginscherm, bureaublad of startmenu voor snelle toegang.</small>
                     </div>
-                    <h5>${this.appName}</h5>
-                    <p class="text-muted mb-0">Dit icoon wordt gebruikt voor de snelkoppeling</p>
                 </div>
-            `;
-        }
+            </div>
+        `;
         
         if (isMobile) {
             if (isIOS) {
                 title = `${this.appName} op iPhone/iPad`;
                 stepsHTML = `
-                    ${iconHtml}
-                    <div class="alert alert-primary">
-                        <i class="bi bi-phone me-2"></i>
-                        <strong>Voor iOS:</strong> Gebruik Safari voor het toevoegen aan beginscherm
+                    ${introHtml}
+                    
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <strong>Belangrijk:</strong> Gebruik <strong>Safari</strong>, andere browsers werken niet voor snelkoppelingen op iOS.
                     </div>
                     
-                    <div class="step">
-                        <span class="step-number">1</span> Open deze pagina in <strong>Safari</strong>
+                    <div class="method-card">
+                        <div class="method-header">
+                            <span class="browser-badge safari-badge">Safari</span> Stappen voor iPhone/iPad
+                        </div>
+                        <div class="method-body">
+                            <div class="step">
+                                <span class="step-number">1</span> Open deze pagina in <strong>Safari</strong>
+                            </div>
+                            <div class="step">
+                                <span class="step-number">2</span> Tik op het <strong>deel-icoon</strong> 
+                                <span class="badge bg-primary ms-1"><i class="bi bi-share"></i></span> onderin beeld
+                            </div>
+                            <div class="step">
+                                <span class="step-number">3</span> Scroll omlaag en kies <strong>"Voeg toe aan beginscherm"</strong>
+                            </div>
+                            <div class="step">
+                                <span class="step-number">4</span> Tik op <strong class="text-success">"Voeg toe"</strong> rechtsboven
+                            </div>
+                        </div>
                     </div>
                     
-                    <div class="step">
-                        <span class="step-number">2</span> Tik op het <strong class="text-primary">deel-icoon</strong> 
-                        <span class="badge bg-primary ms-1"><i class="bi bi-share"></i></span> onderin beeld
-                    </div>
-                    
-                    <div class="step">
-                        <span class="step-number">3</span> Scroll omlaag en kies <strong>"Voeg toe aan beginscherm"</strong>
-                    </div>
-                    
-                    <div class="step">
-                        <span class="step-number">4</span> Bevestig met <strong class="text-success">"Voeg toe"</strong>
+                    <div class="alert alert-success">
+                        <i class="bi bi-check-circle me-2"></i>
+                        De snelkoppeling verschijnt nu op je beginscherm!
                     </div>
                 `;
             } else if (isAndroid) {
                 title = `${this.appName} op Android`;
                 
                 stepsHTML = `
-                    ${iconHtml}
+                    ${introHtml}
                     
-                    <div class="alert alert-info">
-                        <i class="bi bi-android me-2"></i>
-                        <strong>Voor Android:</strong> Werkt in Chrome, Firefox en andere browsers
+                    <div class="method-card">
+                        <div class="method-header">
+                            <span class="browser-badge chrome-badge">Chrome</span> Voor Android (Chrome browser)
+                        </div>
+                        <div class="method-body">
+                            <div class="step">
+                                <span class="step-number">1</span> Tik op de <strong>drie puntjes</strong> 
+                                <span class="badge bg-info ms-1"><i class="bi bi-three-dots-vertical"></i></span> rechtsboven
+                            </div>
+                            <div class="step">
+                                <span class="step-number">2</span> Selecteer <strong>"Toevoegen aan beginscherm"</strong>
+                            </div>
+                            <div class="step">
+                                <span class="step-number">3</span> Bevestig met <strong class="text-success">"Toevoegen"</strong>
+                            </div>
+                        </div>
                     </div>
                     
-                    <div class="step">
-                        <span class="step-number">1</span> Tik op de <strong>drie puntjes</strong> 
-                        <span class="badge bg-info ms-1"><i class="bi bi-three-dots-vertical"></i></span> rechtsboven
-                    </div>
-                    
-                    <div class="step">
-                        <span class="step-number">2</span> Selecteer <strong>"Toevoegen aan beginscherm"</strong>
-                    </div>
-                    
-                    <div class="step">
-                        <span class="step-number">3</span> Bevestig met <strong class="text-success">"Toevoegen"</strong>
+                    <div class="alert alert-info mt-3">
+                        <i class="bi bi-lightbulb me-2"></i>
+                        Werkt ook in Firefox, Samsung Browser en andere Android browsers via hun menu.
                     </div>
                 `;
             }
         } else {
-            // Desktop instructies - SPECIALE VERSIE VOOR EDGE
+            // Desktop instructies - opgedeeld per browser
             title = `${this.appName} op Computer`;
             
-            if (this.currentBrowser === 'Edge') {
-                const edgeInfo = this.getEdgeInstructions();
+            let browserInstructions;
+            let browserBadge;
+            
+            switch(this.currentBrowser) {
+                case 'Edge':
+                    browserInstructions = this.getEdgeInstructions();
+                    browserBadge = `<span class="browser-badge edge-badge">Edge</span>`;
+                    break;
+                case 'Chrome':
+                    browserInstructions = this.getChromeInstructions();
+                    browserBadge = `<span class="browser-badge chrome-badge">Chrome</span>`;
+                    break;
+                case 'Firefox':
+                    browserInstructions = this.getFirefoxInstructions();
+                    browserBadge = `<span class="browser-badge firefox-badge">Firefox</span>`;
+                    break;
+                case 'Safari':
+                    browserInstructions = this.getSafariInstructions();
+                    browserBadge = `<span class="browser-badge safari-badge">Safari</span>`;
+                    break;
+                default:
+                    browserInstructions = this.getEdgeInstructions(); // fallback
+                    browserBadge = `<span class="browser-badge bg-secondary">Browser</span>`;
+            }
+            
+            stepsHTML = `
+                ${introHtml}
                 
-                stepsHTML = `
-                    ${iconHtml}
-                    
-                    <div class="alert alert-info mb-4">
-                        <div class="d-flex align-items-center">
-                            <i class="bi bi-browser-edge fs-4 me-3"></i>
-                            <div>
-                                <strong>Microsoft Edge detecteerd</strong><br>
-                                <small>Edge laat het installatie-icoon vaak niet zien in de adresbalk. Gebruik één van onderstaande methodes:</small>
-                            </div>
-                        </div>
+                <div class="method-card">
+                    <div class="method-header">
+                        ${browserBadge} ${browserInstructions.title}
                     </div>
-                    
-                    <div class="edge-specific">
-                        <h6><i class="bi bi-tools me-2"></i> ${edgeInfo.method1.title}</h6>
-                        ${edgeInfo.method1.steps.map((step, index) => `
-                            <div class="step">
-                                <span class="step-number">${index + 1}</span> ${step}
+                    <div class="method-body">
+                        ${browserInstructions.methods.map((method, methodIndex) => `
+                            <div class="${methodIndex > 0 ? 'mt-4' : ''}">
+                                <h6 class="mb-3">${method.title}</h6>
+                                ${method.steps.map((step, stepIndex) => `
+                                    <div class="step">
+                                        <span class="step-number">${stepIndex + 1}</span> ${step}
+                                    </div>
+                                `).join('')}
                             </div>
                         `).join('')}
-                    </div>
-                    
-                    <div class="mt-4">
-                        <button class="btn btn-outline-secondary btn-sm w-100" 
-                                onclick="this.classList.add('d-none'); document.getElementById('edgeAlternativeMethods').classList.remove('d-none')">
-                            <i class="bi bi-chevron-down"></i> Alternatieve methodes voor Edge
-                        </button>
                         
-                        <div id="edgeAlternativeMethods" class="d-none mt-3">
-                            <div class="card mb-3">
-                                <div class="card-header bg-light">
-                                    <i class="bi bi-gear me-2"></i> ${edgeInfo.method2.title}
-                                </div>
-                                <div class="card-body">
-                                    ${edgeInfo.method2.steps.map((step, index) => `
-                                        <div class="step">
-                                            <span class="step-number">${index + 1}</span> ${step}
-                                        </div>
-                                    `).join('')}
-                                </div>
+                        ${browserInstructions.note ? `
+                            <div class="alert alert-warning mt-3">
+                                <i class="bi bi-info-circle me-2"></i> ${browserInstructions.note}
                             </div>
-                            
-                            <div class="card">
-                                <div class="card-header bg-light">
-                                    <i class="bi bi-link-45deg me-2"></i> ${edgeInfo.method3.title}
-                                </div>
-                                <div class="card-body">
-                                    ${edgeInfo.method3.steps.map((step, index) => `
-                                        <div class="step">
-                                            <span class="step-number">${index + 1}</span> ${step}
-                                        </div>
-                                    `).join('')}
-                                    <div class="alert alert-warning mt-2">
-                                        <i class="bi bi-exclamation-triangle"></i> ${edgeInfo.warning}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        ` : ''}
                     </div>
-                `;
-            } else {
-                // Voor andere browsers (Chrome, Firefox, etc.)
-                const browserName = this.currentBrowser === 'Chrome' ? 'Chrome' : 
-                                  this.currentBrowser === 'Firefox' ? 'Firefox' : 'je browser';
+                </div>
                 
-                stepsHTML = `
-                    ${iconHtml}
+                <!-- Andere browsers -->
+                <div class="mt-4">
+                    <button class="btn btn-outline-secondary btn-sm w-100" 
+                            onclick="this.classList.add('d-none'); document.getElementById('otherBrowsers').classList.remove('d-none')">
+                        <i class="bi bi-browser-edge me-1"></i> Instructies voor andere browsers
+                    </button>
                     
-                    <div class="alert alert-primary mb-4">
-                        <i class="bi bi-${this.currentBrowser === 'Chrome' ? 'browser-chrome' : 'browser-firefox'} me-2"></i>
-                        <strong>${browserName} detecteerd</strong>
-                    </div>
-                    
-                    <div class="step">
-                        <span class="step-number">1</span> Zoek in de adresbalk naar een <strong>install-icoon</strong>
-                    </div>
-                    
-                    <div class="step">
-                        <span class="step-number">2</span> Klik erop en kies <strong>"Installeren"</strong> of <strong>"Toevoegen"</strong>
-                    </div>
-                    
-                    <div class="step">
-                        <span class="step-number">3</span> De snelkoppeling wordt toegevoegd aan:
-                        <div class="mt-2">
-                            <span class="badge bg-secondary"><i class="bi bi-windows"></i> Start Menu</span>
-                            <span class="badge bg-secondary"><i class="bi bi-display"></i> Bureaublad</span>
-                        </div>
-                    </div>
-                    
-                    <div class="alert alert-warning mt-3">
-                        <i class="bi bi-exclamation-triangle me-2"></i>
-                        <strong>Als je geen icoon ziet:</strong> Probeer de pagina te vernieuwen of kom later terug. 
-                        Sommige browsers tonen de knop pas na meerdere bezoeken.
-                    </div>
-                    
-                    <div class="mt-3">
-                        <button class="btn btn-outline-info btn-sm w-100" 
-                                onclick="this.classList.add('d-none'); document.getElementById('devToolsMethod').classList.remove('d-none')">
-                            <i class="bi bi-terminal"></i> Alternatief: Via Developer Tools
-                        </button>
-                        
-                        <div id="devToolsMethod" class="d-none mt-3">
-                            <div class="card">
-                                <div class="card-header bg-light">
-                                    <i class="bi bi-tools me-2"></i> Voor als de knop niet verschijnt
+                    <div id="otherBrowsers" class="d-none mt-3">
+                        ${this.currentBrowser !== 'Chrome' ? `
+                            <div class="method-card">
+                                <div class="method-header">
+                                    <span class="browser-badge chrome-badge">Chrome</span> Google Chrome
                                 </div>
-                                <div class="card-body">
+                                <div class="method-body">
                                     <div class="step">
-                                        <span class="step-number">A</span> Druk op <span class='keyboard-key'>F12</span>
+                                        <span class="step-number">1</span> Zoek download icoon in adresbalk
                                     </div>
                                     <div class="step">
-                                        <span class="step-number">B</span> Ga naar <strong>"Application"</strong> → <strong>"Manifest"</strong>
-                                    </div>
-                                    <div class="step">
-                                        <span class="step-number">C</span> Klik op <button class='btn btn-sm btn-success'><i class='bi bi-download'></i> Install</button>
+                                        <span class="step-number">2</span> Of: Drie puntjes → Meer tools → Toevoegen aan bureaublad
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        ` : ''}
+                        
+                        ${this.currentBrowser !== 'Firefox' ? `
+                            <div class="method-card">
+                                <div class="method-header">
+                                    <span class="browser-badge firefox-badge">Firefox</span> Mozilla Firefox
+                                </div>
+                                <div class="method-body">
+                                    <div class="step">
+                                        <span class="step-number">1</span> Zoek '+' icoon in adresbalk
+                                    </div>
+                                    <div class="step">
+                                        <span class="step-number">2</span> Of: Rechtsklik → Toevoegen aan bureaublad
+                                    </div>
+                                </div>
+                            </div>
+                        ` : ''}
                     </div>
-                `;
-            }
+                </div>
+                
+                <div class="alert alert-success mt-3">
+                    <i class="bi bi-lightbulb me-2"></i>
+                    <strong>Tip:</strong> Na toevoegen verschijnt ${this.appName} in je startmenu, op bureaublad of taakbalk voor snelle toegang.
+                </div>
+            `;
         }
         
         // Update modal
@@ -645,7 +620,7 @@ class InstallatieWizard {
                 <div class="d-flex">
                     <div class="toast-body">
                         <i class="bi bi-check-circle-fill me-2"></i>
-                        <strong>${this.appName}</strong> toegevoegd aan je ${platform === 'computer' ? 'bureaublad' : 'beginscherm'}!
+                        <strong>${this.appName}</strong> toegevoegd!
                     </div>
                     <button type="button" class="btn-close btn-close-white me-2 m-auto" 
                             data-bs-dismiss="toast" aria-label="Close"></button>
