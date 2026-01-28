@@ -8,54 +8,84 @@ class InstallatieWizard {
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             this.deferredPrompt = e;
-            this.showButtons();
+            this.createDeviceButtons();
         });
+        
+        // Toon ook als er al een PWA is
+        setTimeout(() => this.createDeviceButtons(), 1000);
     }
     
-    showButtons() {
+    createDeviceButtons() {
+        // Verwijder oude
+        const old = document.getElementById('device-buttons');
+        if (old) old.remove();
+        
         const devices = this.getDevices();
         
-        const html = `
-            <div style="position:fixed;top:20px;right:20px;background:white;padding:15px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.1);z-index:1000;">
-                <div style="margin-bottom:10px;"><strong>Snelkoppeling maken voor:</strong></div>
-                ${devices.map(device => `
-                    <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;">
-                        <span>${device}</span>
-                        <button onclick="window.installatieWizard.createShortcut()" style="background:#007bff;color:white;border:none;padding:4px 8px;border-radius:3px;cursor:pointer;font-size:12px;">
-                            Klik hier
-                        </button>
-                    </div>
-                `).join('')}
-            </div>
+        const div = document.createElement('div');
+        div.id = 'device-buttons';
+        div.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            z-index: 10000;
+            font-family: Arial, sans-serif;
         `;
         
-        const div = document.createElement('div');
-        div.innerHTML = html;
+        div.innerHTML = `
+            <div style="margin-bottom: 10px; font-weight: bold;">Apparaten:</div>
+            ${devices.map(device => `
+                <div style="margin: 5px 0; display: flex; justify-content: space-between; align-items: center;">
+                    <span>${device}</span>
+                    <button 
+                        onclick="window.installWizard.makeShortcut('${device}')"
+                        style="
+                            background: #007bff;
+                            color: white;
+                            border: none;
+                            padding: 4px 8px;
+                            border-radius: 3px;
+                            cursor: pointer;
+                            font-size: 12px;
+                        "
+                    >
+                        Klik hier
+                    </button>
+                </div>
+            `).join('')}
+        `;
+        
         document.body.appendChild(div);
+        window.installWizard = this;
     }
     
     getDevices() {
-        const ua = navigator.userAgent;
+        const ua = navigator.userAgent.toLowerCase();
         const devices = [];
         
-        if (/iPhone|iPad|iPod/i.test(ua)) devices.push('iPhone/iPad');
-        if (/Android/i.test(ua)) devices.push('Android');
-        if (/Windows/i.test(ua)) devices.push('Windows');
-        if (/Mac/i.test(ua)) devices.push('Mac');
-        if (/Chrome/i.test(ua)) devices.push('Chrome');
-        if (/Firefox/i.test(ua)) devices.push('Firefox');
-        if (/Safari/i.test(ua)) devices.push('Safari');
+        if (/iphone|ipad|ipod/.test(ua)) devices.push('iPhone/iPad');
+        if (/android/.test(ua)) devices.push('Android');
+        if (/windows/.test(ua)) devices.push('Windows');
+        if (/mac/.test(ua)) devices.push('Mac');
+        
+        if (devices.length === 0) {
+            devices.push('Je apparaat');
+        }
         
         return devices;
     }
     
-    createShortcut() {
+    makeShortcut(device) {
         if (this.deferredPrompt) {
             this.deferredPrompt.prompt();
+        } else {
+            alert(`Voor ${device}: Open browser menu en kies "Toevoegen aan beginscherm"`);
         }
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    window.installatieWizard = new InstallatieWizard();
-});
+new InstallatieWizard();
