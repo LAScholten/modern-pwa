@@ -97,7 +97,7 @@ class InstallatieWizard {
         if (ua.includes('firefox')) return 'firefox';
         if (ua.includes('safari') && !ua.includes('chrome')) return 'safari';
         if (ua.includes('samsung')) return 'samsung';
-        if (ua.includes('android')) return 'android';
+        if (/android/.test(ua)) return 'android';
         return 'unknown';
     }
     
@@ -215,6 +215,7 @@ class InstallatieWizard {
         
         const div = document.createElement('div');
         div.innerHTML = html;
+        div.id = 'installatie-wizard-container';
         document.body.appendChild(div);
     }
     
@@ -264,10 +265,10 @@ class InstallatieWizard {
     }
     
     closeWizard() {
-        const wizard = document.querySelector('.installatie-wizard');
-        const overlay = document.querySelector('.wizard-overlay');
-        if (wizard) wizard.remove();
-        if (overlay) overlay.remove();
+        const container = document.getElementById('installatie-wizard-container');
+        if (container) {
+            container.remove();
+        }
     }
 }
 
