@@ -170,14 +170,10 @@
         </div>
     </div>
 
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script>
         // Supabase configuratie
         const SUPABASE_URL = 'https://owjwkjrktftugjjrcwml.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93andranJrdGZ0dWdqanJjd21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2MzA4OTAsImV4cCI6MjA4NDIwNjg5MH0.oW6HTAlMBkjUu_4e3kn4iozjn5wK-15h4wCKcaHrtp8';
-        
-        // Supabase client
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         
         // Tab functionaliteit
         document.querySelectorAll('.tab-button').forEach(button => {
@@ -201,6 +197,24 @@
             });
         });
         
+        // Laad Supabase dynamisch
+        function loadSupabase() {
+            return new Promise((resolve) => {
+                if (window.supabase) {
+                    resolve(window.supabase);
+                    return;
+                }
+                
+                const script = document.createElement('script');
+                script.src = 'https://unpkg.com/@supabase/supabase-js@2';
+                script.onload = () => {
+                    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                    resolve(supabase);
+                };
+                document.head.appendChild(script);
+            });
+        }
+        
         // Toon bericht
         function showMessage(message, type = 'info') {
             const colors = {
@@ -221,24 +235,20 @@
             messageDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
         
-        // Creëer of update user profile
-        async function ensureUserProfile(userId, userEmail) {
+        // Creëer profile als die niet bestaat (NIEUW TOEGEVOEGD)
+        async function ensureProfileExists(userId, userEmail) {
             try {
-                console.log('ensureUserProfile gestart voor:', userId, userEmail);
+                const supabase = await loadSupabase();
                 
-                // Eerst proberen te lezen
-                const { data: profile, error: readError } = await supabase
+                // Check of profile bestaat
+                const { data: existing, error } = await supabase
                     .from('profiles')
-                    .select('*')
+                    .select('user_id')
                     .eq('user_id', userId)
                     .single();
                 
-                console.log('Profile read result:', profile, readError);
-                
-                // Als profile niet bestaat, maak aan
-                if (readError && readError.code === 'PGRST116') {
-                    console.log('Profile bestaat niet, maak nieuw aan');
-                    
+                // Als error en error is "niet gevonden", maak profile aan
+                if (error && error.code === 'PGRST116') {
                     const { data: newProfile, error: insertError } = await supabase
                         .from('profiles')
                         .insert({
@@ -248,31 +258,15 @@
                             is_admin: false,
                             created_at: new Date().toISOString(),
                             updated_at: new Date().toISOString()
-                        })
-                        .select()
-                        .single();
+                        });
                     
-                    console.log('Profile insert result:', newProfile, insertError);
-                    
-                    if (insertError) {
-                        console.error('Insert fout:', insertError);
-                        return null;
+                    if (!insertError) {
+                        console.log('Profile aangemaakt voor:', userEmail);
                     }
-                    return newProfile;
                 }
-                
-                if (readError) {
-                    console.error('Read fout:', readError);
-                    return null;
-                }
-                
-                // Profile bestaat al
-                console.log('Profile bestaat al:', profile);
-                return profile;
-                
-            } catch (error) {
-                console.error('Fout in ensureUserProfile:', error);
-                return null;
+            } catch (e) {
+                console.log('Profile check faalde:', e);
+                // Negeer error, ga door met login
             }
         }
         
@@ -281,6 +275,8 @@
             showMessage('🔐 Inloggen bij Supabase...', 'info');
             
             try {
+                const supabase = await loadSupabase();
+                
                 const { data, error } = await supabase.auth.signInWithPassword({
                     email: email,
                     password: password
@@ -292,30 +288,19 @@
                 }
                 
                 // SUCCESS - gebruiker is ingelogd
-                showMessage('✅ Ingelogd! Profiel wordt gecontroleerd...', 'success');
+                showMessage('✅ Ingelogd!', 'success');
                 
-                // Zorg voor user profile
-                const profile = await ensureUserProfile(data.user.id, data.user.email);
+                // Zorg dat profile bestaat (NIEUW TOEGEVOEGD)
+                await ensureProfileExists(data.user.id, data.user.email);
                 
-                if (profile) {
-                    // Opslaan in localStorage
-                    localStorage.setItem('userEmail', data.user.email);
-                    localStorage.setItem('userId', data.user.id);
-                    localStorage.setItem('userRole', profile.role);
-                    localStorage.setItem('isAdmin', profile.is_admin);
-                    
-                    showMessage(`✅ Welkom ${profile.role === 'admin' ? 'beheerder' : 'gebruiker'}!`, 'success');
-                    
-                    // Doorsturen naar app
-                    setTimeout(() => {
-                        window.location.href = 'app.html';
-                    }, 1500);
-                } else {
-                    showMessage('⚠️ Profiel kon niet worden aangemaakt. Toch doorsturen...', 'info');
-                    setTimeout(() => {
-                        window.location.href = 'app.html';
-                    }, 2000);
-                }
+                // Opslaan in localStorage
+                localStorage.setItem('userEmail', data.user.email);
+                localStorage.setItem('userId', data.user.id);
+                
+                // Doorsturen naar app
+                setTimeout(() => {
+                    window.location.href = 'app.html';
+                }, 1500);
                 
                 return true;
                 
@@ -330,6 +315,8 @@
             showMessage('📝 Account aanmaken bij Supabase...', 'info');
             
             try {
+                const supabase = await loadSupabase();
+                
                 const { data, error } = await supabase.auth.signUp({
                     email: email,
                     password: password,
@@ -424,7 +411,7 @@
         });
         
         // Check of er al ingelogd is
-        document.addEventListener('DOMContentLoaded', async function() {
+        document.addEventListener('DOMContentLoaded', function() {
             if (localStorage.getItem('userId')) {
                 showMessage('Je bent al ingelogd. Doorsturen...', 'info');
                 setTimeout(() => {
