@@ -7,163 +7,181 @@ class InstallatieWizard {
     constructor() {
         this.deferredPrompt = null;
         this.isInstalled = false;
-        this.appName = document.querySelector('meta[name="application-name"]')?.content || 
-                      document.querySelector('title')?.textContent || 'Mijn App';
-        this.appIcon = this.createAndInjectIcon(); // Creëer en injecteer icoon
+        this.appName = '';
+        this.appIcon = '';
+        this.manifest = null;
         this.init();
     }
     
-    init() {
+    async init() {
         console.log('📱 InstallatieWizard geïnitialiseerd');
-        console.log('🎯 App naam:', this.appName);
-        console.log('🎨 Icoon gemaakt:', this.appIcon);
+        
+        // Laad eerst het manifest en icon
+        await this.loadManifestAndIcon();
+        
         this.setupEventListeners();
         this.setupInstallatieWizard();
         this.checkIfInstalled();
     }
     
-    createAndInjectIcon() {
-        // Maak een dynamisch icoon gebaseerd op de app naam
-        const firstLetter = this.appName.charAt(0).toUpperCase();
-        const colors = [
-            ['#FF6B6B', '#C44569'], // Rood
-            ['#4ECDC4', '#2D6A6A'], // Turquoise
-            ['#FFD166', '#FF9E00'], // Geel/Orange
-            ['#06D6A0', '#048A81'], // Groen
-            ['#118AB2', '#0A516B'], // Blauw
-            ['#7B2CBF', '#4A0E7A'], // Paars
-            ['#EF476F', '#B9134F'], // Roze
-            ['#2A9D8F', '#1D6F65']  // Teal
-        ];
-        
-        const colorIndex = this.appName.length % colors.length;
-        const [primaryColor, secondaryColor] = colors[colorIndex];
-        
-        // Maak canvas voor het icoon
-        const canvas = document.createElement('canvas');
-        canvas.width = 512;
-        canvas.height = 512;
-        const ctx = canvas.getContext('2d');
-        
-        // Maak gradient achtergrond
-        const gradient = ctx.createLinearGradient(0, 0, 512, 512);
-        gradient.addColorStop(0, primaryColor);
-        gradient.addColorStop(1, secondaryColor);
-        
-        // Achtergrond met afgeronde hoeken
-        ctx.fillStyle = gradient;
-        this.roundRect(ctx, 0, 0, 512, 512, 100);
-        ctx.fill();
-        
-        // Witte cirkel voor letter
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-        ctx.beginPath();
-        ctx.arc(256, 256, 180, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Letter in het midden
-        ctx.fillStyle = 'white';
-        ctx.font = 'bold 240px Arial, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(firstLetter, 256, 256);
-        
-        // Subtiele schaduw voor diepte
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
-        ctx.shadowBlur = 20;
-        ctx.shadowOffsetY = 10;
-        
-        const dataUrl = canvas.toDataURL('image/png');
-        
-        // Injecteer het icoon in de HTML head
-        this.injectIconIntoHead(dataUrl);
-        
-        return dataUrl;
+    async loadManifestAndIcon() {
+        try {
+            // Zoek het manifest in de HTML
+            const manifestLink = document.querySelector('link[rel="manifest"]');
+            
+            if (manifestLink && manifestLink.href) {
+                console.log('🔍 Manifest gevonden:', manifestLink.href);
+                
+                // Laad het manifest
+                const response = await fetch(manifestLink.href);
+                this.manifest = await response.json();
+                console.log('📄 Manifest geladen:', this.manifest);
+                
+                // Haal app naam uit manifest
+                this.appName = this.manifest.name || 
+                              this.manifest.short_name || 
+                              document.querySelector('title')?.textContent || 
+                              'Mijn App';
+                
+                // Haal het beste icoon uit het manifest
+                this.appIcon = this.getBestIconFromManifest();
+                console.log('🎨 Icoon geselecteerd:', this.appIcon);
+                
+            } else {
+                console.log('⚠️ Geen manifest gevonden, gebruik fallback');
+                this.useFallbackValues();
+            }
+            
+        } catch (error) {
+            console.error('❌ Fout bij laden manifest:', error);
+            this.useFallbackValues();
+        }
     }
     
-    roundRect(ctx, x, y, width, height, radius) {
-        ctx.beginPath();
-        ctx.moveTo(x + radius, y);
-        ctx.lineTo(x + width - radius, y);
-        ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-        ctx.lineTo(x + width, y + height - radius);
-        ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-        ctx.lineTo(x + radius, y + height);
-        ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-        ctx.lineTo(x, y + radius);
-        ctx.quadraticCurveTo(x, y, x + radius, y);
-        ctx.closePath();
+    getBestIconFromManifest() {
+        if (!this.manifest || !this.manifest.icons || !Array.isArray(this.manifest.icons)) {
+            console.log('⚠️ Geen icons in manifest, zoek favicon');
+            return this.findFavicon();
+        }
+        
+        // Sorteer icons op grootte (grootste eerst)
+        const sortedIcons = [...this.manifest.icons].sort((a, b) => {
+            const sizeA = this.parseIconSize(a.sizes);
+            const sizeB = this.parseIconSize(b.sizes);
+            return sizeB - sizeA;
+        });
+        
+        // Kies het beste icoon (minstens 192x192, liever 512x512)
+        const bestIcon = sortedIcons.find(icon => {
+            const size = this.parseIconSize(icon.sizes);
+            return size >= 192;
+        }) || sortedIcons[0];
+        
+        if (!bestIcon) {
+            return this.findFavicon();
+        }
+        
+        // Maak absolute URL van het icoon
+        return this.makeAbsoluteUrl(bestIcon.src);
     }
     
-    injectIconIntoHead(iconDataUrl) {
-        // Verwijder bestaande iconen om conflicten te voorkomen
-        const existingIcons = [
+    parseIconSize(sizeString) {
+        if (!sizeString) return 0;
+        
+        // Voorbeeld: "192x192" of "512x512"
+        const match = sizeString.match(/(\d+)x(\d+)/);
+        if (match) {
+            return parseInt(match[1], 10);
+        }
+        
+        return 0;
+    }
+    
+    findFavicon() {
+        // Zoek naar favicons in de HTML
+        const faviconSelectors = [
             'link[rel="icon"]',
             'link[rel="shortcut icon"]',
             'link[rel="apple-touch-icon"]',
             'link[rel="apple-touch-icon-precomposed"]'
         ];
         
-        existingIcons.forEach(selector => {
-            const el = document.querySelector(selector);
-            if (el) el.remove();
-        });
+        for (const selector of faviconSelectors) {
+            const icon = document.querySelector(selector);
+            if (icon && icon.href) {
+                console.log('🔍 Favicon gevonden:', icon.href);
+                return this.makeAbsoluteUrl(icon.href);
+            }
+        }
         
-        // Maak een favicon link element
-        const favicon = document.createElement('link');
-        favicon.rel = 'icon';
-        favicon.href = iconDataUrl;
-        favicon.type = 'image/png';
-        document.head.appendChild(favicon);
+        // Fallback naar standaard favicon locaties
+        const defaultIcons = [
+            '/favicon.ico',
+            '/icon.png',
+            '/logo.png',
+            '/img/favicon.ico',
+            '/images/favicon.ico',
+            '/assets/favicon.ico'
+        ];
         
-        // Maak een apple touch icon voor iOS
-        const appleIcon = document.createElement('link');
-        appleIcon.rel = 'apple-touch-icon';
-        appleIcon.href = iconDataUrl;
-        appleIcon.sizes = '512x512';
-        document.head.appendChild(appleIcon);
+        for (const iconPath of defaultIcons) {
+            const fullUrl = this.makeAbsoluteUrl(iconPath);
+            console.log('🔍 Probeer standaard icoon:', fullUrl);
+            // Hier zou je kunnen checken of het icoon bestaat, maar dat is complex
+            return fullUrl;
+        }
         
-        // Voeg ook een manifest toe voor PWA ondersteuning
-        this.injectManifest();
-        
-        console.log('✅ Icoon geïnjecteerd in HTML head');
+        // Laatste fallback: maak een icoon
+        console.log('⚠️ Geen icon gevonden, maak fallback');
+        return this.createFallbackIcon();
     }
     
-    injectManifest() {
-        // Verwijder bestaande manifest
-        const existingManifest = document.querySelector('link[rel="manifest"]');
-        if (existingManifest) existingManifest.remove();
+    makeAbsoluteUrl(url) {
+        if (!url) return '';
         
-        // Maak een eenvoudig manifest voor PWA functionaliteit
-        const manifest = {
-            "name": this.appName,
-            "short_name": this.appName.substring(0, 12),
-            "description": `${this.appName} - Snelkoppeling`,
-            "start_url": window.location.origin,
-            "display": "standalone",
-            "background_color": "#ffffff",
-            "theme_color": "#0d6efd",
-            "icons": [
-                {
-                    "src": this.appIcon,
-                    "sizes": "512x512",
-                    "type": "image/png",
-                    "purpose": "any maskable"
-                }
-            ]
-        };
+        // Als het al een absolute URL is
+        if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+            return url;
+        }
         
-        // Maak een data URL van het manifest
-        const manifestString = JSON.stringify(manifest);
-        const manifestDataUrl = 'data:application/manifest+json,' + encodeURIComponent(manifestString);
+        // Als het een root-relative URL is
+        if (url.startsWith('/')) {
+            return window.location.origin + url;
+        }
         
-        // Voeg manifest toe aan head
-        const manifestLink = document.createElement('link');
-        manifestLink.rel = 'manifest';
-        manifestLink.href = manifestDataUrl;
-        document.head.appendChild(manifestLink);
+        // Relative URL
+        const base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+        return base + url;
+    }
+    
+    createFallbackIcon() {
+        const firstLetter = (this.appName || 'A').charAt(0).toUpperCase();
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d');
         
-        console.log('✅ Manifest geïnjecteerd');
+        // Gradient achtergrond
+        const gradient = ctx.createLinearGradient(0, 0, 512, 512);
+        gradient.addColorStop(0, '#0d6efd');
+        gradient.addColorStop(1, '#0dcaf0');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 512, 512);
+        
+        // Letter
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 240px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(firstLetter, 256, 256);
+        
+        return canvas.toDataURL('image/png');
+    }
+    
+    useFallbackValues() {
+        this.appName = document.querySelector('title')?.textContent || 'Mijn App';
+        this.appIcon = this.findFavicon();
+        console.log('🔄 Fallback waarden gebruikt:', { name: this.appName, icon: this.appIcon });
     }
     
     setupEventListeners() {
@@ -183,9 +201,6 @@ class InstallatieWizard {
             this.isInstalled = true;
             this.markAsInstalled();
             this.hideInstallButton();
-            
-            // Toon bedankt bericht
-            this.showThankYouMessage();
         });
         
         if (window.matchMedia('(display-mode: standalone)').matches || 
@@ -226,52 +241,39 @@ class InstallatieWizard {
                 right: 20px;
                 z-index: 9999;
             }
+            .icon-preview-container {
+                text-align: center;
+                margin: 20px 0;
+            }
             .icon-preview {
-                width: 100px;
-                height: 100px;
-                margin: 20px auto;
-                border-radius: 22px;
+                width: 96px;
+                height: 96px;
+                margin: 0 auto 10px;
+                border-radius: 20px;
                 overflow: hidden;
-                box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
                 background: white;
-                border: 4px solid #dee2e6;
-                position: relative;
+                border: 3px solid #dee2e6;
             }
             .icon-preview img {
                 width: 100%;
                 height: 100%;
-                object-fit: cover;
-            }
-            .icon-preview::after {
-                content: '${this.appName.charAt(0).toUpperCase()}';
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 48px;
-                font-weight: bold;
-                color: white;
-                background: linear-gradient(135deg, var(--icon-color1), var(--icon-color2));
-                font-family: Arial, sans-serif;
+                object-fit: contain;
+                padding: 8px;
             }
             .step {
                 margin-bottom: 15px;
-                padding: 12px 15px;
+                padding: 12px;
                 border-left: 4px solid #0d6efd;
                 background: #f8f9fa;
-                border-radius: 0 10px 10px 0;
-                position: relative;
+                border-radius: 0 8px 8px 0;
             }
             .step-number {
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
-                width: 30px;
-                height: 30px;
+                width: 28px;
+                height: 28px;
                 background: #0d6efd;
                 color: white;
                 border-radius: 50%;
@@ -284,17 +286,17 @@ class InstallatieWizard {
                 margin-right: 8px;
                 vertical-align: middle;
             }
-            .device-icon {
-                font-size: 1.2em;
-                margin-right: 8px;
-                color: #6c757d;
+            .icon-loading {
+                width: 96px;
+                height: 96px;
+                border-radius: 20px;
+                background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+                background-size: 200% 100%;
+                animation: loading 1.5s infinite;
             }
-            .screenshot {
-                max-width: 200px;
-                border-radius: 8px;
-                border: 2px solid #dee2e6;
-                margin: 10px auto;
-                display: block;
+            @keyframes loading {
+                0% { background-position: 200% 0; }
+                100% { background-position: -200% 0; }
             }
         `;
         document.head.appendChild(style);
@@ -390,7 +392,7 @@ class InstallatieWizard {
         badge.innerHTML = `
             <button class="btn btn-warning btn-lg shadow-lg install-btn-pulse"
                     onclick="installatieWizard.handleInstallClick()">
-                <i class="bi bi-plus-circle-fill"></i> Snelkoppeling
+                <i class="bi bi-plus-circle"></i> ${this.appName}
             </button>
         `;
         badge.id = 'floatingInstallBadge';
@@ -411,79 +413,64 @@ class InstallatieWizard {
         const browser = this.detectBrowser();
         
         let stepsHTML = '';
-        let title = 'Snelkoppeling Maken';
+        let title = `${this.appName} - Snelkoppeling`;
         
-        // Maak icoon preview met CSS variabelen voor kleur
-        const colors = this.getAppColors();
-        const iconStyle = `--icon-color1: ${colors[0]}; --icon-color2: ${colors[1]};`;
-        
+        // Maak icoon preview - toon loading totdat icoon geladen is
         const iconHtml = `
-            <div class="icon-preview" style="${iconStyle}">
-                <!-- Icoon wordt via CSS weergegeven -->
+            <div class="icon-preview-container">
+                <div class="icon-preview">
+                    <img src="${this.appIcon}" 
+                         alt="${this.appName} icoon"
+                         onload="this.style.opacity='1'"
+                         onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIHZpZXdCb3g9IjAgMCA5NiA5NiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIHJ4PSIxNiIgZmlsbD0iIzBENkVGRCIvPjx0ZXh0IHg9IjQ4IiB5PSI1MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjMyIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSI+${btoa(this.appName.charAt(0))}</dGV4dD48L3N2Zz4='; this.style.opacity='1'"
+                         style="opacity: 0; transition: opacity 0.3s">
+                </div>
+                <p><strong>${this.appName}</strong></p>
+                <small class="text-muted">Dit icoon wordt gebruikt voor de snelkoppeling</small>
             </div>
-            <p class="text-center mb-4">
-                <strong>${this.appName}</strong><br>
-                <small class="text-muted">Dit icoon verschijnt op je beginscherm</small>
-            </p>
         `;
         
         if (isMobile) {
             if (isIOS) {
-                title = `Snelkoppeling op iOS`;
+                title = `${this.appName} op iPhone/iPad`;
                 stepsHTML = `
                     ${iconHtml}
                     <div class="alert alert-primary">
-                        <i class="bi bi-phone device-icon"></i>
-                        <strong>Voor iPhone & iPad:</strong> Gebruik Safari browser
+                        <i class="bi bi-info-circle me-2"></i>
+                        <strong>Gebruik Safari browser</strong> voor het beste resultaat op iOS
                     </div>
                     
                     <div class="step">
                         <span class="step-number">1</span> Open deze pagina in <strong>Safari</strong>
-                        <div class="mt-2">
-                            <span class="badge bg-primary"><i class="bi bi-compass"></i> Safari</span>
-                        </div>
                     </div>
                     
                     <div class="step">
-                        <span class="step-number">2</span> Tik op het <strong>deel-icoon</strong> onderin beeld
-                        <div class="mt-2 text-center">
-                            <span class="badge bg-secondary fs-5"><i class="bi bi-share"></i></span>
-                        </div>
+                        <span class="step-number">2</span> Tik op het <strong class="text-primary">deel-icoon</strong> 
+                        <span class="badge bg-primary ms-1"><i class="bi bi-share"></i></span> onderin beeld
                     </div>
                     
                     <div class="step">
-                        <span class="step-number">3</span> Scroll omlaag en kies <strong class="text-primary">"Voeg toe aan beginscherm"</strong>
+                        <span class="step-number">3</span> Scroll naar beneden en selecteer <strong>"Voeg toe aan beginscherm"</strong>
                     </div>
                     
                     <div class="step">
                         <span class="step-number">4</span> Bevestig met <strong class="text-success">"Voeg toe"</strong>
                     </div>
                     
-                    <div class="step">
-                        <span class="step-number">5</span> Zoek het <strong>${this.appName}</strong> icoon op je beginscherm!
-                    </div>
-                    
-                    <div class="alert alert-success mt-3">
-                        <i class="bi bi-lightbulb"></i> 
-                        <strong>Tip:</strong> Sleep de snelkoppeling naar je favoriete locatie
+                    <div class="alert alert-info mt-3">
+                        <i class="bi bi-check-circle me-2"></i>
+                        Het icoon <strong>${this.appName}</strong> verschijnt automatisch op je beginscherm
                     </div>
                 `;
             } else if (isAndroid) {
-                title = `Snelkoppeling op Android`;
+                title = `${this.appName} op Android`;
                 const browserInfo = this.getAndroidBrowserInfo(browser);
                 
                 stepsHTML = `
                     ${iconHtml}
-                    <div class="alert alert-info">
-                        <i class="bi bi-phone device-icon"></i>
-                        <strong>Voor Android telefoons:</strong> Werkt in Chrome, Firefox en andere browsers
-                    </div>
                     
                     <div class="step">
                         <span class="step-number">1</span> ${browserInfo.step1}
-                        <div class="mt-2">
-                            <span class="badge bg-info"><i class="bi ${browserInfo.icon}"></i> ${browser}</span>
-                        </div>
                     </div>
                     
                     <div class="step">
@@ -491,105 +478,76 @@ class InstallatieWizard {
                     </div>
                     
                     <div class="step">
-                        <span class="step-number">3</span> Klik op <strong class="text-success">"Toevoegen"</strong>
+                        <span class="step-number">3</span> Bevestig met <strong class="text-success">"Toevoegen"</strong>
                     </div>
                     
                     <div class="step">
-                        <span class="step-number">4</span> De snelkoppeling met het ${this.appName} icoon verschijnt nu!
+                        <span class="step-number">4</span> De snelkoppeling met het ${this.appName} icoon verschijnt nu op je beginscherm
                     </div>
                     
-                    <div class="alert alert-warning mt-3">
-                        <i class="bi bi-exclamation-triangle"></i> 
-                        <strong>Let op:</strong> Soms moet je eerst toestemming geven voor "Pop-ups"
+                    <div class="alert alert-success mt-3">
+                        <i class="bi bi-phone me-2"></i>
+                        Android gebruikt automatisch het icoon uit je PWA-instellingen
                     </div>
                 `;
             }
         } else {
             // Desktop instructies
-            title = `Snelkoppeling op Computer`;
+            title = `${this.appName} op Computer`;
             
             stepsHTML = `
                 ${iconHtml}
                 
                 <div class="row g-3">
-                    <!-- Chrome & Edge -->
                     <div class="col-md-6">
                         <div class="card h-100 border-primary">
                             <div class="card-header bg-primary text-white">
-                                <i class="bi bi-laptop device-icon"></i>
+                                <i class="bi bi-browser-chrome browser-icon"></i>
                                 Chrome / Edge
                             </div>
                             <div class="card-body">
                                 <div class="step">
-                                    <span class="step-number">1</span> Zoek het <strong>install-icoon</strong> in de adresbalk
-                                    <div class="mt-2 text-center">
-                                        <span class="badge bg-primary fs-5"><i class="bi bi-download"></i></span>
-                                    </div>
+                                    <span class="step-number">1</span> Klik op het <strong>install-icoon</strong> 
+                                    <span class="badge bg-primary ms-1"><i class="bi bi-download"></i></span> in de adresbalk
                                 </div>
                                 <div class="step">
-                                    <span class="step-number">2</span> Klik op <strong>"Installeren"</strong>
+                                    <span class="step-number">2</span> Kies <strong>"Installeren"</strong> of <strong>"Toevoegen"</strong>
                                 </div>
                                 <div class="step">
                                     <span class="step-number">3</span> Snelkoppeling wordt toegevoegd aan:
                                     <div class="mt-2">
                                         <span class="badge bg-secondary"><i class="bi bi-windows"></i> Start Menu</span>
                                         <span class="badge bg-secondary"><i class="bi bi-display"></i> Bureaublad</span>
-                                        <span class="badge bg-secondary"><i class="bi bi-list-task"></i> Taakbalk</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                     
-                    <!-- Andere browsers -->
                     <div class="col-md-6">
                         <div class="card h-100 border-success">
                             <div class="card-header bg-success text-white">
-                                <i class="bi bi-laptop device-icon"></i>
-                                Andere Browsers
+                                <i class="bi bi-browser-firefox browser-icon"></i>
+                                Firefox
                             </div>
                             <div class="card-body">
                                 <div class="step">
-                                    <span class="step-number">1</span> <strong>Firefox:</strong> Klik op "+" in adresbalk
+                                    <span class="step-number">1</span> Klik op het <strong>"+"</strong> icoon in de adresbalk
                                 </div>
                                 <div class="step">
-                                    <span class="step-number">2</span> <strong>Safari:</strong> Bestand → "Toevoegen aan Dock"
+                                    <span class="step-number">2</span> Selecteer <strong>"Toevoegen aan bureaublad"</strong>
                                 </div>
                                 <div class="step">
-                                    <span class="step-number">3</span> <strong>Alle browsers:</strong> Kijk in browserinstellingen
-                                </div>
-                                <div class="alert alert-info mt-3">
-                                    <i class="bi bi-info-circle"></i>
-                                    Elk icoon wordt automatisch aangemaakt voor deze snelkoppeling
+                                    <span class="step-number">3</span> Bevestig met <strong>"Toevoegen"</strong>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
                 
-                <div class="mt-3">
-                    <button class="btn btn-outline-primary w-100" onclick="this.classList.add('d-none'); document.getElementById('advancedOptions').classList.remove('d-none')">
-                        <i class="bi bi-gear"></i> Geavanceerde opties
-                    </button>
-                    
-                    <div id="advancedOptions" class="d-none">
-                        <div class="card mt-3 border-warning">
-                            <div class="card-header bg-warning">
-                                <i class="bi bi-tools"></i> Handmatig toevoegen
-                            </div>
-                            <div class="card-body">
-                                <div class="step">
-                                    <span class="step-number">A</span> Druk op <kbd>F12</kbd> voor Developer Tools
-                                </div>
-                                <div class="step">
-                                    <span class="step-number">B</span> Ga naar tabblad <strong>"Application"</strong>
-                                </div>
-                                <div class="step">
-                                    <span class="step-number">C</span> Zoek <strong>"Manifest"</strong> en klik op <button class="btn btn-sm btn-success">Install</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <div class="alert alert-warning mt-3">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>Let op:</strong> Sommige browsers tonen alleen de installatie knop na meerdere bezoeken
                 </div>
             `;
         }
@@ -597,7 +555,7 @@ class InstallatieWizard {
         // Update modal
         const modalTitle = document.querySelector('#installModal .modal-title');
         if (modalTitle) {
-            modalTitle.innerHTML = `<i class="bi bi-plus-square me-2"></i>${title}`;
+            modalTitle.innerHTML = `<i class="bi bi-link-45deg me-2"></i>${title}`;
         }
         
         const installStepsElement = document.getElementById('installSteps');
@@ -608,19 +566,6 @@ class InstallatieWizard {
         // Toon modal
         const installModal = new bootstrap.Modal(document.getElementById('installModal'));
         installModal.show();
-    }
-    
-    getAppColors() {
-        // Genereer consistente kleuren gebaseerd op app naam
-        const hash = this.appName.split('').reduce((acc, char) => {
-            return char.charCodeAt(0) + ((acc << 5) - acc);
-        }, 0);
-        
-        const hue = Math.abs(hash % 360);
-        return [
-            `hsl(${hue}, 70%, 60%)`,
-            `hsl(${(hue + 30) % 360}, 80%, 45%)`
-        ];
     }
     
     detectBrowser() {
@@ -638,17 +583,17 @@ class InstallatieWizard {
         switch(browser) {
             case 'Chrome':
                 return {
-                    step1: 'Tik op de <strong>drie puntjes</strong> rechtsboven',
+                    step1: 'Tik op de <strong class="text-primary">drie puntjes</strong> <i class="bi bi-three-dots-vertical"></i> rechtsboven',
                     icon: 'bi-browser-chrome'
                 };
             case 'Firefox':
                 return {
-                    step1: 'Tik op de <strong>drie puntjes</strong> rechtsboven',
+                    step1: 'Tik op de <strong class="text-success">drie puntjes</strong> <i class="bi bi-three-dots"></i> rechtsboven',
                     icon: 'bi-browser-firefox'
                 };
             case 'Samsung':
                 return {
-                    step1: 'Tik op het <strong>menu-icoon</strong> (3 lijnen)',
+                    step1: 'Tik op het <strong>menu-icoon</strong> <i class="bi bi-list"></i>',
                     icon: 'bi-list'
                 };
             default:
@@ -662,10 +607,9 @@ class InstallatieWizard {
     updateInstallButtonText() {
         const updateButton = (btn) => {
             if (btn && !this.isInstalled) {
-                btn.innerHTML = '<i class="bi bi-plus-circle-fill"></i> Snelkoppeling Maken';
+                btn.innerHTML = `<i class="bi bi-plus-circle"></i> ${this.appName}`;
                 btn.classList.add('btn-warning', 'install-btn-pulse');
                 btn.style.display = 'inline-block';
-                btn.title = `Voeg ${this.appName} toe aan je beginscherm`;
             }
         };
         
@@ -680,7 +624,6 @@ class InstallatieWizard {
                 btn.classList.remove('btn-warning', 'install-btn-pulse');
                 btn.classList.add('btn-success');
                 btn.disabled = false;
-                btn.title = `${this.appName} staat op je beginscherm`;
             }
         };
         
@@ -722,49 +665,9 @@ class InstallatieWizard {
             toastElement.remove();
         });
     }
-    
-    showThankYouMessage() {
-        const thankYouHTML = `
-            <div class="modal fade" id="thankYouModal" tabindex="-1">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content">
-                        <div class="modal-header bg-success text-white">
-                            <h5 class="modal-title"><i class="bi bi-check-circle-fill me-2"></i>Bedankt!</h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body text-center">
-                            <div class="icon-preview mx-auto mb-3" style="width: 80px; height: 80px; --icon-color1: #4ECDC4; --icon-color2: #2D6A6A;"></div>
-                            <h4>${this.appName} is toegevoegd!</h4>
-                            <p class="text-muted">
-                                Je kunt de app nu openen vanaf je beginscherm of bureaublad.
-                            </p>
-                            <div class="mt-4">
-                                <button class="btn btn-success" data-bs-dismiss="modal">
-                                    <i class="bi bi-check-lg"></i> Begrepen
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        const modalContainer = document.createElement('div');
-        modalContainer.innerHTML = thankYouHTML;
-        document.body.appendChild(modalContainer);
-        
-        setTimeout(() => {
-            const thankYouModal = new bootstrap.Modal(document.getElementById('thankYouModal'));
-            thankYouModal.show();
-            
-            document.getElementById('thankYouModal').addEventListener('hidden.bs.modal', () => {
-                modalContainer.remove();
-            });
-        }, 1000);
-    }
 }
 
-// Initialisatie
+// Initialisatie - wacht op DOM en laad async
 document.addEventListener('DOMContentLoaded', function() {
     new InstallatieWizard();
 });
