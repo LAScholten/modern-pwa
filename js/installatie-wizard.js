@@ -44,24 +44,24 @@ class InstallatieWizard {
                               'Mijn App';
                 
                 // Haal het beste icoon uit het manifest
-                this.appIcon = this.getBestIconFromManifest();
+                this.appIcon = await this.getBestIconFromManifest();
                 console.log('🎨 Icoon geselecteerd:', this.appIcon);
                 
             } else {
                 console.log('⚠️ Geen manifest gevonden, gebruik fallback');
-                this.useFallbackValues();
+                await this.useFallbackValues();
             }
             
         } catch (error) {
             console.error('❌ Fout bij laden manifest:', error);
-            this.useFallbackValues();
+            await this.useFallbackValues();
         }
     }
     
-    getBestIconFromManifest() {
+    async getBestIconFromManifest() {
         if (!this.manifest || !this.manifest.icons || !Array.isArray(this.manifest.icons)) {
             console.log('⚠️ Geen icons in manifest, zoek favicon');
-            return this.findFavicon();
+            return await this.findFavicon();
         }
         
         // Sorteer icons op grootte (grootste eerst)
@@ -71,18 +71,23 @@ class InstallatieWizard {
             return sizeB - sizeA;
         });
         
-        // Kies het beste icoon (minstens 192x192, liever 512x512)
-        const bestIcon = sortedIcons.find(icon => {
-            const size = this.parseIconSize(icon.sizes);
-            return size >= 192;
-        }) || sortedIcons[0];
-        
-        if (!bestIcon) {
-            return this.findFavicon();
+        // Probeer eerst het grootste icoon
+        for (const icon of sortedIcons) {
+            if (!icon.src) continue;
+            
+            const iconUrl = this.makeAbsoluteUrl(icon.src);
+            
+            // Check of icoon bestaat
+            const exists = await this.checkIconExists(iconUrl);
+            if (exists) {
+                console.log('✅ Icoon gevonden:', iconUrl);
+                return iconUrl;
+            }
         }
         
-        // Maak absolute URL van het icoon
-        return this.makeAbsoluteUrl(bestIcon.src);
+        // Geen werkend icoon gevonden
+        console.log('⚠️ Geen werkend icoon in manifest gevonden');
+        return await this.findFavicon();
     }
     
     parseIconSize(sizeString) {
@@ -97,7 +102,9 @@ class InstallatieWizard {
         return 0;
     }
     
-    findFavicon() {
+    async findFavicon() {
+        console.log('🔍 Zoek naar favicon...');
+        
         // Zoek naar favicons in de HTML
         const faviconSelectors = [
             'link[rel="icon"]',
@@ -109,31 +116,34 @@ class InstallatieWizard {
         for (const selector of faviconSelectors) {
             const icon = document.querySelector(selector);
             if (icon && icon.href) {
-                console.log('🔍 Favicon gevonden:', icon.href);
-                return this.makeAbsoluteUrl(icon.href);
+                const iconUrl = this.makeAbsoluteUrl(icon.href);
+                console.log('🔍 Favicon gevonden:', iconUrl);
+                
+                // Check of het bestaat
+                const exists = await this.checkIconExists(iconUrl);
+                if (exists) {
+                    return iconUrl;
+                }
             }
         }
         
-        // Fallback naar standaard favicon locaties
-        const defaultIcons = [
-            '/favicon.ico',
-            '/icon.png',
-            '/logo.png',
-            '/img/favicon.ico',
-            '/images/favicon.ico',
-            '/assets/favicon.ico'
-        ];
-        
-        for (const iconPath of defaultIcons) {
-            const fullUrl = this.makeAbsoluteUrl(iconPath);
-            console.log('🔍 Probeer standaard icoon:', fullUrl);
-            // Hier zou je kunnen checken of het icoon bestaat, maar dat is complex
-            return fullUrl;
+        console.log('⚠️ Geen favicon gevonden, gebruik fallback icoon');
+        return this.createFallbackIcon();
+    }
+    
+    async checkIconExists(url) {
+        // Skip check voor data URLs
+        if (url.startsWith('data:')) {
+            return true;
         }
         
-        // Laatste fallback: maak een icoon
-        console.log('⚠️ Geen icon gevonden, maak fallback');
-        return this.createFallbackIcon();
+        try {
+            const response = await fetch(url, { method: 'HEAD' });
+            return response.ok;
+        } catch (error) {
+            console.log('❌ Icoon bestaat niet of error:', url, error);
+            return false;
+        }
     }
     
     makeAbsoluteUrl(url) {
@@ -149,39 +159,49 @@ class InstallatieWizard {
             return window.location.origin + url;
         }
         
-        // Relative URL
-        const base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
-        return base + url;
+        // Relative URL - probeer base URL te vinden
+        const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+        
+        // Verwijder "../" en "./" uit pad
+        const parts = url.split('/');
+        const result = [];
+        
+        for (const part of parts) {
+            if (part === '..') {
+                result.pop();
+            } else if (part !== '.' && part !== '') {
+                result.push(part);
+            }
+        }
+        
+        const cleanPath = result.join('/');
+        return baseUrl + cleanPath;
     }
     
     createFallbackIcon() {
         const firstLetter = (this.appName || 'A').charAt(0).toUpperCase();
-        const canvas = document.createElement('canvas');
-        canvas.width = 512;
-        canvas.height = 512;
-        const ctx = canvas.getContext('2d');
         
-        // Gradient achtergrond
-        const gradient = ctx.createLinearGradient(0, 0, 512, 512);
-        gradient.addColorStop(0, '#0d6efd');
-        gradient.addColorStop(1, '#0dcaf0');
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, 512, 512);
+        // Eenvoudige SVG als data URL (geen canvas nodig)
+        const svg = `
+            <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+                <rect width="512" height="512" rx="100" fill="#0d6efd"/>
+                <rect x="30" y="30" width="452" height="452" rx="80" fill="#0dcaf0"/>
+                <text x="256" y="280" font-family="Arial, sans-serif" font-size="200" 
+                      font-weight="bold" fill="white" text-anchor="middle" 
+                      dominant-baseline="middle">${firstLetter}</text>
+            </svg>
+        `;
         
-        // Letter
-        ctx.fillStyle = 'white';
-        ctx.font = 'bold 240px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(firstLetter, 256, 256);
-        
-        return canvas.toDataURL('image/png');
+        return 'data:image/svg+xml,' + encodeURIComponent(svg);
     }
     
-    useFallbackValues() {
+    async useFallbackValues() {
         this.appName = document.querySelector('title')?.textContent || 'Mijn App';
-        this.appIcon = this.findFavicon();
-        console.log('🔄 Fallback waarden gebruikt:', { name: this.appName, icon: this.appIcon });
+        this.appIcon = await this.findFavicon();
+        console.log('🔄 Fallback waarden gebruikt:', { 
+            name: this.appName, 
+            icon: this.appIcon.substring(0, 100) + '...' 
+        });
     }
     
     setupEventListeners() {
@@ -244,11 +264,15 @@ class InstallatieWizard {
             .icon-preview-container {
                 text-align: center;
                 margin: 20px 0;
+                padding: 20px;
+                background: #f8f9fa;
+                border-radius: 12px;
+                border: 2px solid #dee2e6;
             }
             .icon-preview {
                 width: 96px;
                 height: 96px;
-                margin: 0 auto 10px;
+                margin: 0 auto 15px;
                 border-radius: 20px;
                 overflow: hidden;
                 box-shadow: 0 4px 12px rgba(0,0,0,0.15);
@@ -260,6 +284,19 @@ class InstallatieWizard {
                 height: 100%;
                 object-fit: contain;
                 padding: 8px;
+                display: block;
+            }
+            .icon-fallback {
+                width: 100%;
+                height: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: linear-gradient(135deg, #0d6efd, #0dcaf0);
+                color: white;
+                font-size: 48px;
+                font-weight: bold;
+                font-family: Arial, sans-serif;
             }
             .step {
                 margin-bottom: 15px;
@@ -289,6 +326,7 @@ class InstallatieWizard {
             .icon-loading {
                 width: 96px;
                 height: 96px;
+                margin: 0 auto;
                 border-radius: 20px;
                 background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
                 background-size: 200% 100%;
@@ -415,18 +453,22 @@ class InstallatieWizard {
         let stepsHTML = '';
         let title = `${this.appName} - Snelkoppeling`;
         
-        // Maak icoon preview - toon loading totdat icoon geladen is
+        // Maak icoon preview - veilig met fallback
+        const firstLetter = this.appName.charAt(0).toUpperCase();
         const iconHtml = `
             <div class="icon-preview-container">
                 <div class="icon-preview">
-                    <img src="${this.appIcon}" 
-                         alt="${this.appName} icoon"
-                         onload="this.style.opacity='1'"
-                         onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIHZpZXdCb3g9IjAgMCA5NiA5NiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIHJ4PSIxNiIgZmlsbD0iIzBENkVGRCIvPjx0ZXh0IHg9IjQ4IiB5PSI1MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjMyIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSI+${btoa(this.appName.charAt(0))}</dGV4dD48L3N2Zz4='; this.style.opacity='1'"
-                         style="opacity: 0; transition: opacity 0.3s">
+                    ${this.appIcon.startsWith('data:') ? 
+                        `<img src="${this.appIcon}" alt="${this.appName} icoon" style="opacity: 1;">` :
+                        `<img src="${this.appIcon}" 
+                              alt="${this.appName} icoon"
+                              onload="this.style.opacity='1'"
+                              onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'icon-fallback\\'>${firstLetter}</div>';"
+                              style="opacity: 0; transition: opacity 0.3s">`
+                    }
                 </div>
-                <p><strong>${this.appName}</strong></p>
-                <small class="text-muted">Dit icoon wordt gebruikt voor de snelkoppeling</small>
+                <h5>${this.appName}</h5>
+                <p class="text-muted mb-0">Dit icoon wordt gebruikt voor de snelkoppeling</p>
             </div>
         `;
         
