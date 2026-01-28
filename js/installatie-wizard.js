@@ -25,26 +25,70 @@ class InstallatieWizard {
     
     async getPWAInfo() {
         try {
-            // 1. Haal app naam op uit de pagina
+            // 1. Haal app naam op
             this.appName = document.querySelector('title')?.textContent || 
                           document.querySelector('meta[property="og:site_name"]')?.content ||
                           'Mijn App';
             
-            // 2. Vind het manifest
+            console.log('🔍 Zoek PWA icoon in modern-pwa/img/icons/');
+            
+            // 2. DIRECT naar jouw PWA icons zoeken
+            const yourPwaIcons = [
+                // JOUW SPECIFIEKE PWA ICONS
+                'modern-pwa/img/icons/icon-512x512.png',
+                'modern-pwa/img/icons/icon-192x192.png',
+                'modern-pwa/img/icons/icon-256x256.png',
+                'modern-pwa/img/icons/icon-384x384.png',
+                'modern-pwa/img/icons/icon.png',
+                'modern-pwa/img/icons/app-icon.png',
+                'modern-pwa/img/icons/logo.png',
+                
+                // Standaard PWA icon namen in jouw map
+                'modern-pwa/img/icons/512x512.png',
+                'modern-pwa/img/icons/192x192.png',
+                'modern-pwa/img/icons/256x256.png',
+                
+                // Favicon alternatieven
+                'modern-pwa/img/icons/favicon.png',
+                'modern-pwa/img/icons/favicon.ico',
+                'modern-pwa/img/icons/favicon-192x192.png',
+                
+                // Apple touch icons
+                'modern-pwa/img/icons/apple-touch-icon.png',
+                'modern-pwa/img/icons/apple-touch-icon-180x180.png'
+            ];
+            
+            // Probeer elk icoon
+            for (const iconPath of yourPwaIcons) {
+                const iconUrl = this.makeAbsoluteUrl(iconPath);
+                
+                try {
+                    const response = await fetch(iconUrl, { method: 'HEAD' });
+                    if (response.ok) {
+                        this.appIcon = iconUrl;
+                        console.log('✅ JOUW PWA icoon gevonden:', iconUrl);
+                        return;
+                    }
+                } catch (error) {
+                    // Doorgaan naar volgende
+                    continue;
+                }
+            }
+            
+            // 3. Als niet gevonden, check manifest
             const manifestLink = document.querySelector('link[rel="manifest"]');
             if (manifestLink && manifestLink.href) {
                 try {
                     const response = await fetch(manifestLink.href);
                     const manifest = await response.json();
                     
-                    // Gebruik naam uit manifest als die er is
                     if (manifest.name) {
                         this.appName = manifest.name;
                     }
                     
-                    // Zoek het beste icoon uit het manifest
+                    // Zoek icoon uit manifest
                     if (manifest.icons && Array.isArray(manifest.icons)) {
-                        // Neem het grootste icoon (meestal het beste voor snelkoppelingen)
+                        // Neem het grootste icoon
                         const sortedIcons = [...manifest.icons].sort((a, b) => {
                             const sizeA = this.getIconSize(a.sizes);
                             const sizeB = this.getIconSize(b.sizes);
@@ -53,9 +97,19 @@ class InstallatieWizard {
                         
                         const bestIcon = sortedIcons[0];
                         if (bestIcon && bestIcon.src) {
-                            this.appIcon = this.makeAbsoluteUrl(bestIcon.src);
-                            console.log('✅ PWA icoon gevonden:', this.appIcon);
-                            return;
+                            const manifestIconUrl = this.makeAbsoluteUrl(bestIcon.src);
+                            
+                            // Check of dit icoon bestaat
+                            try {
+                                const iconResponse = await fetch(manifestIconUrl, { method: 'HEAD' });
+                                if (iconResponse.ok) {
+                                    this.appIcon = manifestIconUrl;
+                                    console.log('✅ Icoon gevonden via manifest:', manifestIconUrl);
+                                    return;
+                                }
+                            } catch (error) {
+                                console.log('❌ Manifest icoon niet bereikbaar:', error);
+                            }
                         }
                     }
                 } catch (error) {
@@ -63,8 +117,37 @@ class InstallatieWizard {
                 }
             }
             
-            // 3. Als er geen manifest icoon is, zoek dan direct naar PWA icons op je site
-            await this.findPWAIcon();
+            // 4. Laatste poging: zoek in HTML voor icon links
+            const iconLinks = [
+                'link[rel="icon"][sizes="512x512"]',
+                'link[rel="icon"][sizes="192x192"]',
+                'link[rel="apple-touch-icon"][sizes="512x512"]',
+                'link[rel="apple-touch-icon"][sizes="192x192"]',
+                'link[rel="apple-touch-icon"]',
+                'link[rel="icon"]',
+                'link[rel="shortcut icon"]'
+            ];
+            
+            for (const selector of iconLinks) {
+                const link = document.querySelector(selector);
+                if (link && link.href) {
+                    const htmlIconUrl = this.makeAbsoluteUrl(link.href);
+                    
+                    // Check of dit icoon bestaat
+                    try {
+                        const iconResponse = await fetch(htmlIconUrl, { method: 'HEAD' });
+                        if (iconResponse.ok) {
+                            this.appIcon = htmlIconUrl;
+                            console.log('✅ Icoon gevonden via HTML:', htmlIconUrl);
+                            return;
+                        }
+                    } catch (error) {
+                        continue;
+                    }
+                }
+            }
+            
+            console.log('⚠️ Geen icoon gevonden. Toon alleen instructies.');
             
         } catch (error) {
             console.error('❌ Fout bij ophalen PWA info:', error);
@@ -85,85 +168,48 @@ class InstallatieWizard {
             return url;
         }
         
-        // Root-relative URL
+        // Root-relative URL (begint met /)
         if (url.startsWith('/')) {
             return window.location.origin + url;
         }
         
-        // Relative URL
-        const base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
-        return base + url;
-    }
-    
-    async findPWAIcon() {
-        console.log('🔍 Zoek naar PWA iconen...');
+        // Als het een relative URL is zonder leading slash, voeg de huidige base toe
+        // Voor jouw icons: "modern-pwa/img/icons/icon-512x512.png"
+        const base = window.location.origin;
+        const path = window.location.pathname;
         
-        // Standaard PWA icon locaties (waarschijnlijk staan jouw icons hier)
-        const pwaIconPaths = [
-            // PWA standaard iconen
-            '/icon-512x512.png',
-            '/icon-192x192.png',
-            '/icons/icon-512x512.png',
-            '/icons/icon-192x192.png',
-            '/img/icon-512x512.png',
-            '/img/icon-192x192.png',
-            '/images/icon-512x512.png',
-            '/images/icon-192x192.png',
-            '/assets/icons/icon-512x512.png',
-            '/assets/icons/icon-192x192.png',
-            
-            // Apple touch icons (ook gebruikt voor PWA)
-            '/apple-touch-icon.png',
-            '/apple-touch-icon-180x180.png',
-            '/apple-touch-icon-152x152.png',
-            
-            // Favicon (laatste optie)
-            '/favicon.ico',
-            '/favicon.png',
-            '/favicon-32x32.png',
-            '/favicon-192x192.png'
-        ];
+        // Haal de directory van de huidige pagina
+        let currentDir = path.substring(0, path.lastIndexOf('/') + 1);
         
-        // Probeer elk pad
-        for (const iconPath of pwaIconPaths) {
-            const iconUrl = this.makeAbsoluteUrl(iconPath);
+        // Als we in de root zijn, gebruik dan gewoon de root
+        if (currentDir === '/' || currentDir === '') {
+            return base + '/' + url;
+        }
+        
+        // Ga terug naar root als nodig voor "modern-pwa/" pad
+        if (url.startsWith('modern-pwa/')) {
+            // Bepaal het pad naar modern-pwa map
+            const segments = path.split('/');
+            let modernPwaPath = '';
             
-            try {
-                const response = await fetch(iconUrl, { method: 'HEAD' });
-                if (response.ok) {
-                    this.appIcon = iconUrl;
-                    console.log('✅ PWA icoon gevonden op:', iconUrl);
-                    return;
+            // Zoek naar "modern-pwa" in het huidige pad
+            for (let i = 0; i < segments.length; i++) {
+                if (segments[i] === 'modern-pwa') {
+                    modernPwaPath = segments.slice(0, i + 1).join('/') + '/';
+                    break;
                 }
-            } catch (error) {
-                // Doorgaan naar volgende optie
-                continue;
             }
+            
+            if (modernPwaPath) {
+                return base + modernPwaPath + url.substring(url.indexOf('/') + 1);
+            }
+            
+            // Fallback: voeg direct toe aan root
+            return base + '/' + url;
         }
         
-        console.log('⚠️ Geen PWA icoon gevonden op standaard locaties');
-        
-        // Zoek in HTML voor icon links
-        const iconLinks = [
-            'link[rel="icon"][sizes="512x512"]',
-            'link[rel="icon"][sizes="192x192"]',
-            'link[rel="apple-touch-icon"][sizes="512x512"]',
-            'link[rel="apple-touch-icon"][sizes="192x192"]',
-            'link[rel="apple-touch-icon"]',
-            'link[rel="icon"]'
-        ];
-        
-        for (const selector of iconLinks) {
-            const link = document.querySelector(selector);
-            if (link && link.href) {
-                this.appIcon = this.makeAbsoluteUrl(link.href);
-                console.log('✅ Icoon gevonden via HTML:', this.appIcon);
-                return;
-            }
-        }
-        
-        // Geen icoon gevonden - toon geen fallback, maar geef gebruiker info
-        console.log('❌ Geen icoon gevonden voor PWA');
+        // Standaard: voeg toe aan huidige directory
+        return base + currentDir + url;
     }
     
     setupEventListeners() {
@@ -389,7 +435,7 @@ class InstallatieWizard {
         let stepsHTML = '';
         let title = `${this.appName} - Snelkoppeling`;
         
-        // Maak icoon preview - ALLEEN als er een icoon is
+        // Toon het gevonden icoon
         let iconHtml = '';
         if (this.appIcon) {
             iconHtml = `
@@ -400,14 +446,23 @@ class InstallatieWizard {
                              style="width:100%;height:100%;object-fit:contain;">
                     </div>
                     <h5>${this.appName}</h5>
-                    <p class="text-muted mb-0">Dit PWA-icoon wordt gebruikt voor de snelkoppeling</p>
+                    <p class="text-muted mb-0">Dit icoon wordt gebruikt voor de snelkoppeling</p>
+                    <small class="text-info">
+                        <i class="bi bi-info-circle"></i> Icoon gevonden in: modern-pwa/img/icons/
+                    </small>
                 </div>
             `;
         } else {
+            // Als er geen icoon is, toon een simpele instructie
             iconHtml = `
                 <div class="alert alert-info">
-                    <i class="bi bi-info-circle me-2"></i>
-                    <strong>PWA icoon:</strong> Het icoon van deze app wordt automatisch gebruikt voor de snelkoppeling.
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-info-circle fs-4 me-3"></i>
+                        <div>
+                            <strong>PWA Snelkoppeling</strong><br>
+                            <small>De snelkoppeling gebruikt het icoon dat ingesteld is voor deze Progressive Web App.</small>
+                        </div>
+                    </div>
                 </div>
             `;
         }
@@ -418,8 +473,8 @@ class InstallatieWizard {
                 stepsHTML = `
                     ${iconHtml}
                     <div class="alert alert-primary">
-                        <i class="bi bi-info-circle me-2"></i>
-                        <strong>Gebruik Safari browser</strong> voor het beste resultaat op iOS
+                        <i class="bi bi-phone me-2"></i>
+                        <strong>Voor iOS:</strong> Gebruik Safari voor het toevoegen aan beginscherm
                     </div>
                     
                     <div class="step">
@@ -432,16 +487,15 @@ class InstallatieWizard {
                     </div>
                     
                     <div class="step">
-                        <span class="step-number">3</span> Scroll naar beneden en selecteer <strong>"Voeg toe aan beginscherm"</strong>
+                        <span class="step-number">3</span> Scroll omlaag en kies <strong>"Voeg toe aan beginscherm"</strong>
                     </div>
                     
                     <div class="step">
                         <span class="step-number">4</span> Bevestig met <strong class="text-success">"Voeg toe"</strong>
                     </div>
                     
-                    <div class="alert alert-info mt-3">
-                        <i class="bi bi-check-circle me-2"></i>
-                        Het icoon <strong>${this.appName}</strong> verschijnt automatisch op je beginscherm
+                    <div class="step">
+                        <span class="step-number">5</span> Het icoon <strong>${this.appName}</strong> verschijnt op je beginscherm!
                     </div>
                 `;
             } else if (isAndroid) {
@@ -450,8 +504,14 @@ class InstallatieWizard {
                 stepsHTML = `
                     ${iconHtml}
                     
+                    <div class="alert alert-info">
+                        <i class="bi bi-android me-2"></i>
+                        <strong>Voor Android:</strong> Werkt in Chrome, Firefox en andere browsers
+                    </div>
+                    
                     <div class="step">
-                        <span class="step-number">1</span> Tik op de <strong>drie puntjes</strong> <i class="bi bi-three-dots-vertical"></i> rechtsboven
+                        <span class="step-number">1</span> Tik op de <strong>drie puntjes</strong> 
+                        <span class="badge bg-info ms-1"><i class="bi bi-three-dots-vertical"></i></span> rechtsboven
                     </div>
                     
                     <div class="step">
@@ -463,12 +523,7 @@ class InstallatieWizard {
                     </div>
                     
                     <div class="step">
-                        <span class="step-number">4</span> De snelkoppeling verschijnt nu op je beginscherm met het PWA-icoon
-                    </div>
-                    
-                    <div class="alert alert-success mt-3">
-                        <i class="bi bi-phone me-2"></i>
-                        Android gebruikt automatisch het PWA-icoon van deze app
+                        <span class="step-number">4</span> De snelkoppeling verschijnt op je beginscherm met het ${this.appName} icoon
                     </div>
                 `;
             }
@@ -483,19 +538,24 @@ class InstallatieWizard {
                     <div class="col-md-6">
                         <div class="card h-100 border-primary">
                             <div class="card-header bg-primary text-white">
-                                <i class="bi bi-browser-chrome browser-icon"></i>
+                                <i class="bi bi-pc-display-horizontal me-2"></i>
                                 Chrome / Edge
                             </div>
                             <div class="card-body">
                                 <div class="step">
-                                    <span class="step-number">1</span> Klik op het <strong>install-icoon</strong> 
-                                    <span class="badge bg-primary ms-1"><i class="bi bi-download"></i></span> in de adresbalk
+                                    <span class="step-number">1</span> Kijk in de adresbalk voor het 
+                                    <strong class="text-primary">install-icoon</strong>
+                                    <span class="badge bg-primary ms-1"><i class="bi bi-download"></i></span>
                                 </div>
                                 <div class="step">
-                                    <span class="step-number">2</span> Kies <strong>"Installeren"</strong> of <strong>"Toevoegen"</strong>
+                                    <span class="step-number">2</span> Klik erop en kies <strong>"Installeren"</strong>
                                 </div>
                                 <div class="step">
-                                    <span class="step-number">3</span> Snelkoppeling wordt toegevoegd met het PWA-icoon
+                                    <span class="step-number">3</span> De snelkoppeling wordt toegevoegd aan:
+                                    <div class="mt-2">
+                                        <span class="badge bg-secondary"><i class="bi bi-windows"></i> Start Menu</span>
+                                        <span class="badge bg-secondary"><i class="bi bi-display"></i> Bureaublad</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -504,27 +564,28 @@ class InstallatieWizard {
                     <div class="col-md-6">
                         <div class="card h-100 border-success">
                             <div class="card-header bg-success text-white">
-                                <i class="bi bi-browser-firefox browser-icon"></i>
-                                Firefox
+                                <i class="bi bi-pc-display-horizontal me-2"></i>
+                                Andere Browsers
                             </div>
                             <div class="card-body">
                                 <div class="step">
-                                    <span class="step-number">1</span> Klik op het <strong>"+"</strong> icoon in de adresbalk
+                                    <span class="step-number">1</span> <strong>Firefox:</strong> Klik op <strong>"+"</strong> in adresbalk
                                 </div>
                                 <div class="step">
-                                    <span class="step-number">2</span> Selecteer <strong>"Toevoegen aan bureaublad"</strong>
+                                    <span class="step-number">2</span> <strong>Safari:</strong> Bestand → "Toevoegen aan Dock"
                                 </div>
                                 <div class="step">
-                                    <span class="step-number">3</span> Bevestig met <strong>"Toevoegen"</strong>
+                                    <span class="step-number">3</span> Zoek in je browserinstellingen naar "Toevoegen aan bureaublad"
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
                 
-                <div class="alert alert-warning mt-3">
-                    <i class="bi bi-exclamation-triangle me-2"></i>
-                    <strong>Het icoon:</strong> Browsers gebruiken automatisch het PWA-icoon dat ingesteld is voor deze app.
+                <div class="alert alert-secondary mt-3">
+                    <i class="bi bi-lightbulb me-2"></i>
+                    <strong>Tip:</strong> Sommige browsers tonen de installatie knop pas na meerdere bezoeken.
+                    Vernieuw de pagina of kom later terug als je de knop niet ziet.
                 </div>
             `;
         }
@@ -532,7 +593,7 @@ class InstallatieWizard {
         // Update modal
         const modalTitle = document.querySelector('#installModal .modal-title');
         if (modalTitle) {
-            modalTitle.innerHTML = `<i class="bi bi-link-45deg me-2"></i>${title}`;
+            modalTitle.innerHTML = `<i class="bi bi-plus-square me-2"></i>${title}`;
         }
         
         const installStepsElement = document.getElementById('installSteps');
