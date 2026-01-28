@@ -45,7 +45,7 @@ class InstallatieWizard {
                 
                 // Haal het beste icoon uit het manifest
                 this.appIcon = await this.getBestIconFromManifest();
-                console.log('🎨 Icoon geselecteerd:', this.appIcon);
+                console.log('🎨 Icoon geselecteerd:', this.appIcon.substring(0, 100) + '...');
                 
             } else {
                 console.log('⚠️ Geen manifest gevonden, gebruik fallback');
@@ -93,7 +93,6 @@ class InstallatieWizard {
     parseIconSize(sizeString) {
         if (!sizeString) return 0;
         
-        // Voorbeeld: "192x192" of "512x512"
         const match = sizeString.match(/(\d+)x(\d+)/);
         if (match) {
             return parseInt(match[1], 10);
@@ -181,18 +180,20 @@ class InstallatieWizard {
     createFallbackIcon() {
         const firstLetter = (this.appName || 'A').charAt(0).toUpperCase();
         
-        // Eenvoudige SVG als data URL (geen canvas nodig)
-        const svg = `
-            <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+        // Veilige SVG als data URL
+        const svgContent = `
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
                 <rect width="512" height="512" rx="100" fill="#0d6efd"/>
                 <rect x="30" y="30" width="452" height="452" rx="80" fill="#0dcaf0"/>
                 <text x="256" y="280" font-family="Arial, sans-serif" font-size="200" 
                       font-weight="bold" fill="white" text-anchor="middle" 
                       dominant-baseline="middle">${firstLetter}</text>
             </svg>
-        `;
+        `.trim();
         
-        return 'data:image/svg+xml,' + encodeURIComponent(svg);
+        // Veilige base64 encoding
+        const svgBase64 = btoa(unescape(encodeURIComponent(svgContent)));
+        return 'data:image/svg+xml;base64,' + svgBase64;
     }
     
     async useFallbackValues() {
@@ -323,19 +324,6 @@ class InstallatieWizard {
                 margin-right: 8px;
                 vertical-align: middle;
             }
-            .icon-loading {
-                width: 96px;
-                height: 96px;
-                margin: 0 auto;
-                border-radius: 20px;
-                background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-                background-size: 200% 100%;
-                animation: loading 1.5s infinite;
-            }
-            @keyframes loading {
-                0% { background-position: 200% 0; }
-                100% { background-position: -200% 0; }
-            }
         `;
         document.head.appendChild(style);
     }
@@ -453,19 +441,12 @@ class InstallatieWizard {
         let stepsHTML = '';
         let title = `${this.appName} - Snelkoppeling`;
         
-        // Maak icoon preview - veilig met fallback
+        // Veilige icoon preview
         const firstLetter = this.appName.charAt(0).toUpperCase();
         const iconHtml = `
             <div class="icon-preview-container">
-                <div class="icon-preview">
-                    ${this.appIcon.startsWith('data:') ? 
-                        `<img src="${this.appIcon}" alt="${this.appName} icoon" style="opacity: 1;">` :
-                        `<img src="${this.appIcon}" 
-                              alt="${this.appName} icoon"
-                              onload="this.style.opacity='1'"
-                              onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'icon-fallback\\'>${firstLetter}</div>';"
-                              style="opacity: 0; transition: opacity 0.3s">`
-                    }
+                <div class="icon-preview" id="iconPreview">
+                    <div class="icon-fallback">${firstLetter}</div>
                 </div>
                 <h5>${this.appName}</h5>
                 <p class="text-muted mb-0">Dit icoon wordt gebruikt voor de snelkoppeling</p>
@@ -603,11 +584,37 @@ class InstallatieWizard {
         const installStepsElement = document.getElementById('installSteps');
         if (installStepsElement) {
             installStepsElement.innerHTML = stepsHTML;
+            
+            // Probeer het echte icoon te laden na renderen
+            setTimeout(() => {
+                this.loadIconIntoPreview();
+            }, 100);
         }
         
         // Toon modal
         const installModal = new bootstrap.Modal(document.getElementById('installModal'));
         installModal.show();
+    }
+    
+    loadIconIntoPreview() {
+        const iconPreview = document.getElementById('iconPreview');
+        if (!iconPreview) return;
+        
+        if (this.appIcon && this.appIcon.startsWith('data:')) {
+            // Data URL - veilig om te gebruiken
+            iconPreview.innerHTML = `<img src="${this.appIcon}" alt="${this.appName} icoon" style="width:100%;height:100%;object-fit:contain;">`;
+        } else if (this.appIcon && this.appIcon.startsWith('http')) {
+            // HTTP URL - probeer het te laden
+            const img = new Image();
+            img.onload = () => {
+                iconPreview.innerHTML = `<img src="${this.appIcon}" alt="${this.appName} icoon" style="width:100%;height:100%;object-fit:contain;">`;
+            };
+            img.onerror = () => {
+                // Blijf bij fallback als laden mislukt
+                console.log('❌ Kon icoon niet laden:', this.appIcon);
+            };
+            img.src = this.appIcon;
+        }
     }
     
     detectBrowser() {
