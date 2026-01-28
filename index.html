@@ -235,33 +235,54 @@
             messageDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
         
-        // Creëer profile als die niet bestaat - SIMPELE VERSIE
+        // Creëer profile als die niet bestaat - SIMPELE EN BETROUWBARE VERSIE
         async function ensureProfileExists(userId, userEmail) {
             try {
                 const supabase = await loadSupabase();
                 
-                // SIMPELE INSERT - geen check, gewoon proberen
-                const { error } = await supabase
+                // EERST: Probeer profile te lezen
+                const { data: existing, error: readError } = await supabase
                     .from('profiles')
-                    .insert({
-                        user_id: userId,
-                        email: userEmail,
-                        role: 'gebruiker',
-                        is_admin: false,
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString()
-                    });
+                    .select('user_id')
+                    .eq('user_id', userId)
+                    .maybeSingle();
                 
-                if (error && error.code === '23505') {
-                    // Duplicate key - profile bestaat al, prima
-                    console.log('Profile bestaat al');
-                } else if (error) {
-                    console.log('Andere error bij profile insert:', error.message);
+                console.log('Profile check result:', { existing, readError });
+                
+                // ALS profile niet bestaat: maak aan
+                if (!existing) {
+                    console.log('Profile bestaat niet, maak aan voor:', userEmail);
+                    
+                    const { data: newProfile, error: insertError } = await supabase
+                        .from('profiles')
+                        .insert({
+                            user_id: userId,
+                            email: userEmail,
+                            role: 'gebruiker',
+                            is_admin: false,
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        })
+                        .select()
+                        .single();
+                    
+                    console.log('Profile insert result:', { newProfile, insertError });
+                    
+                    if (insertError) {
+                        if (insertError.code === '23505') {
+                            console.log('Profile bestaat al (duplicate key)');
+                        } else {
+                            console.error('Fout bij profile aanmaak:', insertError);
+                        }
+                    } else {
+                        console.log('✅ Profile aangemaakt voor:', userEmail);
+                    }
                 } else {
-                    console.log('Profile aangemaakt voor:', userEmail);
+                    console.log('✅ Profile bestaat al voor:', userEmail);
                 }
-            } catch (e) {
-                console.log('Profile insert faalde:', e);
+                
+            } catch (error) {
+                console.error('❌ Fout in ensureProfileExists:', error);
             }
         }
         
@@ -283,10 +304,12 @@
                 }
                 
                 // SUCCESS - gebruiker is ingelogd
-                showMessage('✅ Ingelogd!', 'success');
+                showMessage('✅ Ingelogd! Profile wordt gecontroleerd...', 'success');
                 
-                // Zorg dat profile bestaat
+                // BELANGRIJK: Zorg dat profile bestaat
+                console.log('🚨 Voordat ensureProfileExists wordt aangeroepen');
                 await ensureProfileExists(data.user.id, data.user.email);
+                console.log('🚨 Na ensureProfileExists');
                 
                 // Opslaan in localStorage
                 localStorage.setItem('userEmail', data.user.email);
