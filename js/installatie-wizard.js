@@ -26,7 +26,7 @@ class InstallatieWizard {
                     </div>
                 </div>
                 
-                <div style="margin-bottom:10px;"><strong>Snelkoppeling maken voor:</strong></div>
+                <div style="margin-bottom:10px;"><strong>SnelDDDkoppeling maken voor:</strong></div>
                 
                 <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #eee;">
                     <span style="font-size:14px;">iPhone/iPad</span>
