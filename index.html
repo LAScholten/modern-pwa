@@ -235,38 +235,33 @@
             messageDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
         
-        // Creëer profile als die niet bestaat (NIEUW TOEGEVOEGD)
+        // Creëer profile als die niet bestaat - SIMPELE VERSIE
         async function ensureProfileExists(userId, userEmail) {
             try {
                 const supabase = await loadSupabase();
                 
-                // Check of profile bestaat
-                const { data: existing, error } = await supabase
+                // SIMPELE INSERT - geen check, gewoon proberen
+                const { error } = await supabase
                     .from('profiles')
-                    .select('user_id')
-                    .eq('user_id', userId)
-                    .single();
+                    .insert({
+                        user_id: userId,
+                        email: userEmail,
+                        role: 'gebruiker',
+                        is_admin: false,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    });
                 
-                // Als error en error is "niet gevonden", maak profile aan
-                if (error && error.code === 'PGRST116') {
-                    const { data: newProfile, error: insertError } = await supabase
-                        .from('profiles')
-                        .insert({
-                            user_id: userId,
-                            email: userEmail,
-                            role: 'gebruiker',
-                            is_admin: false,
-                            created_at: new Date().toISOString(),
-                            updated_at: new Date().toISOString()
-                        });
-                    
-                    if (!insertError) {
-                        console.log('Profile aangemaakt voor:', userEmail);
-                    }
+                if (error && error.code === '23505') {
+                    // Duplicate key - profile bestaat al, prima
+                    console.log('Profile bestaat al');
+                } else if (error) {
+                    console.log('Andere error bij profile insert:', error.message);
+                } else {
+                    console.log('Profile aangemaakt voor:', userEmail);
                 }
             } catch (e) {
-                console.log('Profile check faalde:', e);
-                // Negeer error, ga door met login
+                console.log('Profile insert faalde:', e);
             }
         }
         
@@ -290,7 +285,7 @@
                 // SUCCESS - gebruiker is ingelogd
                 showMessage('✅ Ingelogd!', 'success');
                 
-                // Zorg dat profile bestaat (NIEUW TOEGEVOEGD)
+                // Zorg dat profile bestaat
                 await ensureProfileExists(data.user.id, data.user.email);
                 
                 // Opslaan in localStorage
