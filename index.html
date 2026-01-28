@@ -170,10 +170,14 @@
         </div>
     </div>
 
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script>
         // Supabase configuratie
         const SUPABASE_URL = 'https://owjwkjrktftugjjrcwml.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93andranJrdGZ0dWdqanJjd21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2MzA4OTAsImV4cCI6MjA4NDIwNjg5MH0.oW6HTAlMBkjUu_4e3kn4iozjn5wK-15h4wCKcaHrtp8';
+        
+        // Supabase client
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         
         // Tab functionaliteit
         document.querySelectorAll('.tab-button').forEach(button => {
@@ -196,24 +200,6 @@
                 document.getElementById('loginMessage').innerHTML = '';
             });
         });
-        
-        // Laad Supabase dynamisch
-        function loadSupabase() {
-            return new Promise((resolve) => {
-                if (window.supabase) {
-                    resolve(window.supabase);
-                    return;
-                }
-                
-                const script = document.createElement('script');
-                script.src = 'https://unpkg.com/@supabase/supabase-js@2';
-                script.onload = () => {
-                    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-                    resolve(supabase);
-                };
-                document.head.appendChild(script);
-            });
-        }
         
         // Toon bericht
         function showMessage(message, type = 'info') {
@@ -238,22 +224,21 @@
         // Creëer of update user profile
         async function ensureUserProfile(userId, userEmail) {
             try {
-                const supabase = await loadSupabase();
+                console.log('ensureUserProfile gestart voor:', userId, userEmail);
                 
-                // Check of profile al bestaat
-                const { data: existingProfile, error: fetchError } = await supabase
+                // Eerst proberen te lezen
+                const { data: profile, error: readError } = await supabase
                     .from('profiles')
                     .select('*')
                     .eq('user_id', userId)
                     .single();
                 
-                if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 = geen rij gevonden
-                    console.error('Fout bij profile check:', fetchError);
-                    return null;
-                }
+                console.log('Profile read result:', profile, readError);
                 
-                // Als profile niet bestaat, maak nieuwe aan
-                if (!existingProfile) {
+                // Als profile niet bestaat, maak aan
+                if (readError && readError.code === 'PGRST116') {
+                    console.log('Profile bestaat niet, maak nieuw aan');
+                    
                     const { data: newProfile, error: insertError } = await supabase
                         .from('profiles')
                         .insert({
@@ -267,34 +252,23 @@
                         .select()
                         .single();
                     
+                    console.log('Profile insert result:', newProfile, insertError);
+                    
                     if (insertError) {
-                        console.error('Fout bij profile aanmaak:', insertError);
+                        console.error('Insert fout:', insertError);
                         return null;
                     }
-                    
-                    showMessage('✅ Profiel aangemaakt', 'success');
                     return newProfile;
                 }
                 
-                // Profile bestaat al, update email als die veranderd is
-                if (existingProfile.email !== userEmail) {
-                    const { data: updatedProfile, error: updateError } = await supabase
-                        .from('profiles')
-                        .update({
-                            email: userEmail,
-                            updated_at: new Date().toISOString()
-                        })
-                        .eq('user_id', userId)
-                        .select()
-                        .single();
-                    
-                    if (updateError) {
-                        console.error('Fout bij profile update:', updateError);
-                    }
-                    return updatedProfile || existingProfile;
+                if (readError) {
+                    console.error('Read fout:', readError);
+                    return null;
                 }
                 
-                return existingProfile;
+                // Profile bestaat al
+                console.log('Profile bestaat al:', profile);
+                return profile;
                 
             } catch (error) {
                 console.error('Fout in ensureUserProfile:', error);
@@ -307,8 +281,6 @@
             showMessage('🔐 Inloggen bij Supabase...', 'info');
             
             try {
-                const supabase = await loadSupabase();
-                
                 const { data, error } = await supabase.auth.signInWithPassword({
                     email: email,
                     password: password
@@ -358,8 +330,6 @@
             showMessage('📝 Account aanmaken bij Supabase...', 'info');
             
             try {
-                const supabase = await loadSupabase();
-                
                 const { data, error } = await supabase.auth.signUp({
                     email: email,
                     password: password,
