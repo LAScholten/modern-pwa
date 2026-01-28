@@ -1,652 +1,737 @@
 /**
- * Installatie Wizard voor PWA snelkoppeling instructies
+ * Installatie Wizard voor PWA snelkoppeling maken
  * Bestand: js/installatie-wizard.js
+ * Standalone versie - creëert alle UI elementen zelf
  */
 
 class InstallatieWizard {
     constructor() {
         this.deferredPrompt = null;
         this.isInstalled = false;
-        this.appName = document.querySelector('title')?.textContent || 'Mijn App';
-        this.currentBrowser = this.detectBrowser();
+        this.appName = document.querySelector('meta[name="application-name"]')?.content || 'Mijn App';
+        this.appIcon = null;
+        this.platforms = [];
         this.init();
     }
     
-    init() {
+    async init() {
         console.log('📱 InstallatieWizard geïnitialiseerd');
-        console.log('🌐 Browser:', this.currentBrowser);
-        console.log('📱 App naam:', this.appName);
-        
+        await this.getAppIcon();
+        this.detectPlatforms();
         this.setupEventListeners();
+        this.createUI();
         this.setupInstallatieWizard();
         this.checkIfInstalled();
     }
     
-    detectBrowser() {
-        const ua = navigator.userAgent;
+    async getAppIcon() {
+        // Probeer verschillende iconen locaties
+        const iconLocations = [
+            '/img/icons/icon-512x512.png',
+            '/img/icons/icon-192x192.png',
+            '/img/icons/icon-256x256.png',
+            '/modern-pwa/img/icons/icon-512x512.png',
+            '/modern-pwa/img/icons/icon-192x192.png',
+            '/modern-pwa/img/icons/icon-256x256.png',
+            '/icon-512x512.png',
+            '/icon-192x192.png',
+            '/icons/icon-512x512.png',
+            '/assets/icons/icon-512x512.png',
+            '/pwa/icons/icon-512x512.png'
+        ];
         
-        if (ua.includes('Edg/') || ua.includes('Edge/')) return 'Edge';
-        if (ua.includes('Chrome') && !ua.includes('Edg/') && !ua.includes('Edge/')) return 'Chrome';
-        if (ua.includes('Firefox')) return 'Firefox';
-        if (ua.includes('Safari') && !ua.includes('Chrome')) return 'Safari';
+        for (const iconPath of iconLocations) {
+            const exists = await this.checkImageExists(iconPath);
+            if (exists) {
+                this.appIcon = iconPath;
+                console.log('🎨 App icoon gevonden:', this.appIcon);
+                return;
+            }
+        }
         
-        return 'Unknown';
+        // Probeer manifest icoon
+        try {
+            const manifestLink = document.querySelector('link[rel="manifest"]');
+            if (manifestLink) {
+                const response = await fetch(manifestLink.href);
+                const manifest = await response.json();
+                
+                if (manifest.icons && manifest.icons.length > 0) {
+                    // Sorteer op grootte (grootste eerst)
+                    const sortedIcons = manifest.icons.sort((a, b) => {
+                        const sizeA = parseInt(a.sizes?.split('x')[0] || 0);
+                        const sizeB = parseInt(b.sizes?.split('x')[0] || 0);
+                        return sizeB - sizeA;
+                    });
+                    
+                    // Probeer het grootste icoon
+                    for (const icon of sortedIcons) {
+                        const exists = await this.checkImageExists(icon.src);
+                        if (exists) {
+                            this.appIcon = icon.src;
+                            console.log('🎨 Manifest icoon gevonden:', this.appIcon);
+                            return;
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            console.log('⚠️ Kon manifest niet laden');
+        }
+        
+        // Geen icoon gevonden
+        console.log('⚠️ Geen app icoon gevonden');
+        this.appIcon = null;
+    }
+    
+    checkImageExists(url) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve(true);
+            img.onerror = () => resolve(false);
+            img.src = url;
+            setTimeout(() => resolve(false), 2000);
+        });
+    }
+    
+    detectPlatforms() {
+        const userAgent = navigator.userAgent.toLowerCase();
+        const isMobile = /mobi|android|iphone|ipad|ipod/.test(userAgent);
+        const isIOS = /iphone|ipad|ipod/.test(userAgent);
+        const isAndroid = /android/.test(userAgent);
+        const isChrome = /chrome/.test(userAgent) && !/edge/.test(userAgent);
+        const isFirefox = /firefox/.test(userAgent);
+        const isSafari = /safari/.test(userAgent) && !/chrome/.test(userAgent);
+        const isEdge = /edge/.test(userAgent);
+        const isDesktop = !isMobile;
+        
+        // Reset platforms
+        this.platforms = [];
+        
+        // Automatische detectie (voor browsers met beforeinstallprompt)
+        if (this.deferredPrompt !== null) {
+            this.platforms.push({
+                id: 'auto',
+                name: 'Automatisch',
+                icon: 'bi-magic',
+                description: 'Laat je browser de beste optie kiezen',
+                active: true,
+                badge: 'Aanbevolen'
+            });
+        }
+        
+        // Mobiele platforms
+        if (isMobile) {
+            if (isIOS) {
+                this.platforms.push({
+                    id: 'ios',
+                    name: 'iPhone/iPad',
+                    icon: 'bi-phone',
+                    description: 'Apple iOS apparaten',
+                    active: true,
+                    badge: 'Mobiel'
+                });
+            }
+            if (isAndroid) {
+                this.platforms.push({
+                    id: 'android',
+                    name: 'Android',
+                    icon: 'bi-phone',
+                    description: 'Android telefoons & tablets',
+                    active: true,
+                    badge: 'Mobiel'
+                });
+            }
+        }
+        
+        // Desktop browsers
+        if (isDesktop) {
+            if (isChrome) {
+                this.platforms.push({
+                    id: 'chrome',
+                    name: 'Chrome',
+                    icon: 'bi-browser-chrome',
+                    description: 'Google Chrome browser',
+                    active: true,
+                    badge: 'Desktop'
+                });
+            }
+            if (isFirefox) {
+                this.platforms.push({
+                    id: 'firefox',
+                    name: 'Firefox',
+                    icon: 'bi-browser-firefox',
+                    description: 'Mozilla Firefox browser',
+                    active: true,
+                    badge: 'Desktop'
+                });
+            }
+            if (isSafari) {
+                this.platforms.push({
+                    id: 'safari',
+                    name: 'Safari',
+                    icon: 'bi-browser-safari',
+                    description: 'Apple Safari browser',
+                    active: true,
+                    badge: 'Desktop'
+                });
+            }
+            if (isEdge) {
+                this.platforms.push({
+                    id: 'edge',
+                    name: 'Edge',
+                    icon: 'bi-browser-edge',
+                    description: 'Microsoft Edge browser',
+                    active: true,
+                    badge: 'Desktop'
+                });
+            }
+        }
+        
+        // Windows (alleen desktop)
+        if (isDesktop && /windows/.test(userAgent)) {
+            this.platforms.push({
+                id: 'windows',
+                name: 'Windows',
+                icon: 'bi-windows',
+                description: 'Windows computer',
+                active: true,
+                badge: 'Desktop'
+            });
+        }
+        
+        // Mac (alleen desktop)
+        if (isDesktop && /mac/.test(userAgent)) {
+            this.platforms.push({
+                id: 'mac',
+                name: 'Mac',
+                icon: 'bi-apple',
+                description: 'Apple Mac computer',
+                active: true,
+                badge: 'Desktop'
+            });
+        }
+        
+        // Fallback voor onbekende platforms
+        if (this.platforms.length === 0) {
+            this.platforms.push({
+                id: 'browser',
+                name: 'Browser',
+                icon: 'bi-globe',
+                description: 'Je huidige browser',
+                active: true
+            });
+        }
     }
     
     setupEventListeners() {
+        // Voor browsers die beforeinstallprompt ondersteunen
         window.addEventListener('beforeinstallprompt', (e) => {
             console.log('🚀 beforeinstallprompt event triggered');
             e.preventDefault();
             this.deferredPrompt = e;
-            this.updateInstallButtonText();
+            this.detectPlatforms();
+            this.updateUI();
             
+            // Toon installatie opties na 3 seconden
             setTimeout(() => {
-                this.showInstallButton();
-            }, 5000);
+                this.showInstallOptions();
+            }, 3000);
         });
         
+        // Wanneer app is geïnstalleerd
         window.addEventListener('appinstalled', () => {
             console.log('🎉 Snelkoppeling succesvol toegevoegd!');
             this.isInstalled = true;
-            this.markAsInstalled();
-            this.hideInstallButton();
+            localStorage.setItem('pwaInstalled', 'true');
+            this.updateUI();
+            this.showSuccessMessage();
         });
         
-        if (window.matchMedia('(display-mode: standalone)').matches || 
-            window.navigator.standalone === true) {
+        // Check display mode
+        window.addEventListener('DOMContentLoaded', () => {
+            if (window.matchMedia('(display-mode: standalone)').matches) {
+                console.log('📱 App draait in standalone modus');
+                this.isInstalled = true;
+                this.updateUI();
+            }
+        });
+        
+        // Check op iOS
+        if (window.navigator.standalone === true) {
             this.isInstalled = true;
-            this.markAsInstalled();
+            this.updateUI();
         }
     }
     
     setupInstallatieWizard() {
         this.injectStyles();
         window.installatieWizard = this;
-        
-        document.addEventListener('click', (e) => {
-            if (e.target.id === 'pwaInstallBtn' || 
-                e.target.id === 'pwaInstallBtnMobile' ||
-                e.target.closest('#pwaInstallBtn') || 
-                e.target.closest('#pwaInstallBtnMobile')) {
-                this.handleInstallClick();
-            }
-        });
     }
     
     injectStyles() {
         const style = document.createElement('style');
         style.textContent = `
-            .install-btn-pulse {
-                animation: pulse 2s infinite;
+            .pwa-install-container {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
             }
-            @keyframes pulse {
-                0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
-                70% { box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
-                100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
+            .pwa-icon-preview {
+                text-align: center;
+                padding: 20px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                border-radius: 20px;
+                margin-bottom: 30px;
+                color: white;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.2);
             }
-            .install-badge {
-                position: fixed;
-                bottom: 80px;
-                right: 20px;
-                z-index: 9999;
-            }
-            .step {
-                margin-bottom: 15px;
-                padding: 12px 15px;
-                border-left: 4px solid #0d6efd;
-                background: #f8f9fa;
-                border-radius: 0 8px 8px 0;
-            }
-            .step-number {
-                display: inline-flex;
+            .pwa-icon-img {
+                width: 120px;
+                height: 120px;
+                margin: 0 auto 15px;
+                border-radius: 25px;
+                background: white;
+                display: flex;
                 align-items: center;
                 justify-content: center;
-                width: 30px;
-                height: 30px;
-                background: #0d6efd;
-                color: white;
-                border-radius: 50%;
-                margin-right: 12px;
-                font-weight: bold;
-                font-size: 0.9em;
+                overflow: hidden;
+                box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+                border: 5px solid white;
             }
-            .keyboard-key {
-                display: inline-block;
-                padding: 2px 8px;
-                font-family: monospace;
-                font-size: 0.9em;
-                background: #e9ecef;
-                border: 1px solid #adb5bd;
-                border-radius: 4px;
-                box-shadow: 0 2px 0 #adb5bd;
-                margin: 0 2px;
+            .pwa-icon-img img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
             }
-            .edge-method {
-                background: #e3f2fd;
-                border-left: 4px solid #0078d7;
-                padding: 15px;
-                margin: 15px 0;
-                border-radius: 0 10px 10px 0;
+            .pwa-platforms-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                gap: 20px;
+                margin-top: 30px;
             }
-            .method-card {
-                border: 2px solid #dee2e6;
-                border-radius: 10px;
-                margin-bottom: 15px;
+            .pwa-platform-card {
+                background: white;
+                border-radius: 15px;
+                padding: 25px;
+                border: 2px solid #e0e0e0;
+                transition: all 0.3s ease;
+                cursor: pointer;
+                position: relative;
                 overflow: hidden;
             }
-            .method-header {
-                background: #f8f9fa;
-                padding: 12px 15px;
-                border-bottom: 1px solid #dee2e6;
-                font-weight: bold;
+            .pwa-platform-card:hover {
+                transform: translateY(-5px);
+                border-color: #667eea;
+                box-shadow: 0 15px 35px rgba(102, 126, 234, 0.1);
             }
-            .method-body {
-                padding: 15px;
+            .pwa-platform-card.active {
+                border-color: #667eea;
+                background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
             }
-            .browser-badge {
-                padding: 4px 10px;
+            .pwa-platform-icon {
+                font-size: 40px;
+                color: #667eea;
+                margin-bottom: 15px;
+                text-align: center;
+            }
+            .pwa-platform-badge {
+                position: absolute;
+                top: 15px;
+                right: 15px;
+                background: #667eea;
+                color: white;
+                padding: 4px 12px;
                 border-radius: 20px;
-                font-size: 0.85em;
-                font-weight: bold;
-                margin-right: 8px;
+                font-size: 12px;
+                font-weight: 600;
             }
-            .edge-badge { background: #0078d7; color: white; }
-            .chrome-badge { background: #4285f4; color: white; }
-            .firefox-badge { background: #ff7139; color: white; }
-            .safari-badge { background: #000000; color: white; }
+            .pwa-platform-name {
+                font-size: 20px;
+                font-weight: 600;
+                color: #333;
+                margin-bottom: 8px;
+                text-align: center;
+            }
+            .pwa-platform-desc {
+                color: #666;
+                font-size: 14px;
+                text-align: center;
+                margin-bottom: 20px;
+            }
+            .pwa-install-btn {
+                display: block;
+                width: 100%;
+                padding: 12px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border: none;
+                border-radius: 10px;
+                font-size: 16px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                text-align: center;
+            }
+            .pwa-install-btn:hover {
+                transform: scale(1.02);
+                box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+            }
+            .pwa-install-btn:active {
+                transform: scale(0.98);
+            }
+            .pwa-install-btn.installed {
+                background: #10b981;
+            }
+            .pwa-install-btn.installed:hover {
+                transform: none;
+                box-shadow: none;
+                cursor: default;
+            }
+            .pwa-main-btn {
+                position: fixed;
+                bottom: 30px;
+                right: 30px;
+                z-index: 1000;
+                padding: 15px 25px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border: none;
+                border-radius: 50px;
+                font-size: 16px;
+                font-weight: 600;
+                cursor: pointer;
+                box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .pwa-main-btn:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 15px 35px rgba(102, 126, 234, 0.5);
+            }
+            .pwa-main-btn.hidden {
+                display: none;
+            }
+            .pwa-success-message {
+                position: fixed;
+                top: 30px;
+                right: 30px;
+                background: #10b981;
+                color: white;
+                padding: 15px 25px;
+                border-radius: 10px;
+                box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
+                z-index: 1001;
+                animation: slideIn 0.3s ease;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            @keyframes slideIn {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+            .pwa-loading {
+                text-align: center;
+                padding: 40px;
+                color: #666;
+            }
+            .pwa-no-icon {
+                width: 120px;
+                height: 120px;
+                background: white;
+                border-radius: 25px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 40px;
+                color: #667eea;
+                margin: 0 auto 15px;
+            }
+            .pwa-container-title {
+                font-size: 24px;
+                font-weight: 700;
+                color: #333;
+                margin-bottom: 10px;
+                text-align: center;
+            }
+            .pwa-container-subtitle {
+                color: #666;
+                text-align: center;
+                margin-bottom: 30px;
+                font-size: 16px;
+            }
         `;
         document.head.appendChild(style);
     }
     
-    checkIfInstalled() {
-        if (window.matchMedia('(display-mode: standalone)').matches) {
-            console.log('📱 App draait in standalone modus');
-            this.isInstalled = true;
-            this.markAsInstalled();
-            return;
+    createUI() {
+        // Verwijder bestaande container als die er is
+        const existingContainer = document.querySelector('.pwa-install-container');
+        if (existingContainer) {
+            existingContainer.remove();
         }
         
-        if (window.navigator.standalone === true) {
-            this.isInstalled = true;
-            this.markAsInstalled();
-        }
-        
-        if (localStorage.getItem('pwaInstalled') === 'true') {
-            this.isInstalled = true;
-            this.markAsInstalled();
-        }
-    }
-    
-    handleInstallClick() {
-        if (this.isInstalled) {
-            this.showSnelkoppelingInstructions();
-            return;
-        }
-        
-        if (this.deferredPrompt) {
-            this.deferredPrompt.prompt();
-            
-            this.deferredPrompt.userChoice.then((choiceResult) => {
-                if (choiceResult.outcome === 'accepted') {
-                    console.log('✅ Snelkoppeling geaccepteerd');
-                    localStorage.setItem('pwaInstalled', 'true');
-                    this.isInstalled = true;
-                    this.markAsInstalled();
-                } else {
-                    console.log('❌ Snelkoppeling geweigerd');
-                    setTimeout(() => {
-                        this.showSnelkoppelingInstructions();
-                    }, 500);
-                }
-                this.deferredPrompt = null;
-            });
-        } else {
-            this.showSnelkoppelingInstructions();
-        }
-    }
-    
-    showInstallButton() {
-        if (this.isInstalled) return;
-        
-        const buttons = [
-            document.getElementById('pwaInstallBtn'),
-            document.getElementById('pwaInstallBtnMobile')
-        ];
-        
-        buttons.forEach(btn => {
-            if (btn) {
-                btn.style.display = 'inline-block';
-                btn.classList.add('install-btn-pulse');
-            }
-        });
-        
-        if (/Mobi|Android/i.test(navigator.userAgent)) {
-            this.showFloatingInstallBadge();
-        }
-    }
-    
-    hideInstallButton() {
-        const buttons = [
-            document.getElementById('pwaInstallBtn'),
-            document.getElementById('pwaInstallBtnMobile')
-        ];
-        
-        buttons.forEach(btn => {
-            if (btn) {
-                btn.style.display = 'none';
-            }
-        });
-        
-        this.hideFloatingInstallBadge();
-    }
-    
-    showFloatingInstallBadge() {
-        this.hideFloatingInstallBadge();
-        
-        const badge = document.createElement('div');
-        badge.className = 'install-badge';
-        badge.innerHTML = `
-            <button class="btn btn-warning btn-lg shadow-lg install-btn-pulse"
-                    onclick="installatieWizard.handleInstallClick()">
-                <i class="bi bi-plus-circle"></i> ${this.appName}
-            </button>
-        `;
-        badge.id = 'floatingInstallBadge';
-        document.body.appendChild(badge);
-    }
-    
-    hideFloatingInstallBadge() {
-        const badge = document.getElementById('floatingInstallBadge');
-        if (badge) {
-            badge.remove();
-        }
-    }
-    
-    getEdgeInstructions() {
-        return {
-            title: "Microsoft Edge (Windows)",
-            methods: [
-                {
-                    title: "Methode 1: Developer Tools (altijd werkend)",
-                    steps: [
-                        "Druk op <span class='keyboard-key'>F12</span>",
-                        "Klik op tabblad <strong>'Application'</strong>",
-                        "Klik op <strong>'Manifest'</strong> in linker menu",
-                        "Klik op <button class='btn btn-sm btn-success'><i class='bi bi-download'></i> Install</button>"
-                    ]
-                },
-                {
-                    title: "Methode 2: Via browser menu",
-                    steps: [
-                        "Klik op <strong>drie puntjes</strong> rechtsboven",
-                        "Ga naar <strong>'Apps'</strong>",
-                        "Kies <strong>'Deze site installeren'</strong>"
-                    ]
-                },
-                {
-                    title: "Methode 3: Handmatig (als bovenstaande niet werkt)",
-                    steps: [
-                        "Ga naar: edge://apps/",
-                        "Klik rechtsboven op <strong>'Sitelijst ophalen uit Microsoft'</strong>",
-                        "Zoek deze site en klik op <strong>'Toevoegen'</strong>"
-                    ]
-                }
-            ],
-            note: "Edge toont vaak geen installatie-icoon in de adresbalk. Gebruik Methode 1."
-        };
-    }
-    
-    getChromeInstructions() {
-        return {
-            title: "Google Chrome",
-            methods: [
-                {
-                    title: "Standaard methode",
-                    steps: [
-                        "Kijk in adresbalk voor <strong>download icoon</strong> <i class='bi bi-download'></i>",
-                        "Klik erop als het verschijnt",
-                        "Kies <strong>'Installeren'</strong>"
-                    ]
-                },
-                {
-                    title: "Alternatief via menu",
-                    steps: [
-                        "Klik op <strong>drie puntjes</strong> rechtsboven",
-                        "Ga naar <strong>'Meer tools'</strong>",
-                        "Kies <strong>'Toevoegen aan bureaublad'</strong>"
-                    ]
-                }
-            ],
-            note: "Chrome toont het icoon vaak pas na meerdere bezoeken."
-        };
-    }
-    
-    getFirefoxInstructions() {
-        return {
-            title: "Mozilla Firefox",
-            methods: [
-                {
-                    title: "Standaard methode",
-                    steps: [
-                        "Kijk in adresbalk voor <strong>'+' icoon</strong>",
-                        "Klik erop als het verschijnt",
-                        "Kies <strong>'Toevoegen'</strong>"
-                    ]
-                },
-                {
-                    title: "Alternatief",
-                    steps: [
-                        "Klik met rechts op pagina",
-                        "Kies <strong>'Toevoegen aan bureaublad'</strong>"
-                    ]
-                }
-            ],
-            note: "Firefox heeft goede PWA ondersteuning."
-        };
-    }
-    
-    getSafariInstructions() {
-        return {
-            title: "Apple Safari (macOS)",
-            methods: [
-                {
-                    title: "Voor macOS",
-                    steps: [
-                        "Ga naar <strong>Bestand</strong> in menubalk",
-                        "Kies <strong>'Toevoegen aan Dock'</strong>",
-                        "Of gebruik <span class='keyboard-key'>Cmd</span>+<span class='keyboard-key'>Shift</span>+<span class='keyboard-key'>D</span>"
-                    ]
-                },
-                {
-                    title: "Voor iOS/iPadOS",
-                    steps: [
-                        "Open in <strong>Safari</strong> (niet andere browser)",
-                        "Tik op <strong>deel icoon</strong> <i class='bi bi-share'></i>",
-                        "Scroll naar <strong>'Voeg toe aan beginscherm'</strong>"
-                    ]
-                }
-            ],
-            note: "Alleen Safari ondersteunt PWA op Apple apparaten."
-        };
-    }
-    
-    showSnelkoppelingInstructions() {
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
-        const isAndroid = /Android/.test(navigator.userAgent);
-        
-        let stepsHTML = '';
-        let title = `${this.appName} - Snelkoppeling`;
-        
-        // Eenvoudige intro
-        const introHtml = `
-            <div class="alert alert-info mb-4">
-                <div class="d-flex align-items-center">
-                    <i class="bi bi-info-circle fs-4 me-3"></i>
-                    <div>
-                        <strong>Snelkoppeling maken voor ${this.appName}</strong><br>
-                        <small>Voeg deze webapp toe aan je beginscherm, bureaublad of startmenu voor snelle toegang.</small>
-                    </div>
+        // Maak hoofdcontainer
+        const container = document.createElement('div');
+        container.className = 'pwa-install-container';
+        container.style.display = 'none';
+        container.innerHTML = `
+            <div class="pwa-icon-preview">
+                <div class="pwa-icon-img">
+                    ${this.appIcon ? 
+                        `<img src="${this.appIcon}" alt="${this.appName}">` : 
+                        '<div class="pwa-no-icon"><i class="bi bi-app"></i></div>'
+                    }
                 </div>
+                <h2 class="pwa-container-title">${this.appName}</h2>
+                <p class="pwa-container-subtitle">Zo ziet je snelkoppeling er uit</p>
+            </div>
+            
+            <h3 style="margin-bottom: 20px; color: #333; text-align: center;">Kies je apparaat</h3>
+            
+            <div class="pwa-platforms-grid" id="pwaPlatformsGrid">
+                <!-- Platforms worden hier ingevoegd -->
             </div>
         `;
         
-        if (isMobile) {
-            if (isIOS) {
-                title = `${this.appName} op iPhone/iPad`;
-                stepsHTML = `
-                    ${introHtml}
-                    
-                    <div class="alert alert-warning">
-                        <i class="bi bi-exclamation-triangle me-2"></i>
-                        <strong>Belangrijk:</strong> Gebruik <strong>Safari</strong>, andere browsers werken niet voor snelkoppelingen op iOS.
-                    </div>
-                    
-                    <div class="method-card">
-                        <div class="method-header">
-                            <span class="browser-badge safari-badge">Safari</span> Stappen voor iPhone/iPad
-                        </div>
-                        <div class="method-body">
-                            <div class="step">
-                                <span class="step-number">1</span> Open deze pagina in <strong>Safari</strong>
-                            </div>
-                            <div class="step">
-                                <span class="step-number">2</span> Tik op het <strong>deel-icoon</strong> 
-                                <span class="badge bg-primary ms-1"><i class="bi bi-share"></i></span> onderin beeld
-                            </div>
-                            <div class="step">
-                                <span class="step-number">3</span> Scroll omlaag en kies <strong>"Voeg toe aan beginscherm"</strong>
-                            </div>
-                            <div class="step">
-                                <span class="step-number">4</span> Tik op <strong class="text-success">"Voeg toe"</strong> rechtsboven
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="alert alert-success">
-                        <i class="bi bi-check-circle me-2"></i>
-                        De snelkoppeling verschijnt nu op je beginscherm!
-                    </div>
+        // Voeg toe aan body
+        document.body.appendChild(container);
+        
+        // Maak vlotterende knop
+        this.createFloatingButton();
+        
+        // Update de UI
+        this.updateUI();
+    }
+    
+    createFloatingButton() {
+        // Verwijder bestaande knop
+        const existingBtn = document.querySelector('.pwa-main-btn');
+        if (existingBtn) {
+            existingBtn.remove();
+        }
+        
+        // Maak nieuwe vlotterende knop
+        const floatingBtn = document.createElement('button');
+        floatingBtn.className = `pwa-main-btn ${this.isInstalled ? 'hidden' : ''}`;
+        floatingBtn.id = 'pwaFloatingBtn';
+        floatingBtn.innerHTML = `
+            <i class="bi bi-plus-circle"></i>
+            <span>Snelkoppeling maken</span>
+        `;
+        
+        floatingBtn.addEventListener('click', () => {
+            this.showInstallOptions();
+        });
+        
+        document.body.appendChild(floatingBtn);
+    }
+    
+    updateUI() {
+        const container = document.querySelector('.pwa-install-container');
+        const floatingBtn = document.querySelector('#pwaFloatingBtn');
+        const platformsGrid = document.getElementById('pwaPlatformsGrid');
+        
+        if (!container || !platformsGrid) return;
+        
+        // Update floating button
+        if (floatingBtn) {
+            if (this.isInstalled) {
+                floatingBtn.innerHTML = `
+                    <i class="bi bi-check-circle"></i>
+                    <span>Snelkoppeling gemaakt</span>
                 `;
-            } else if (isAndroid) {
-                title = `${this.appName} op Android`;
-                
-                stepsHTML = `
-                    ${introHtml}
-                    
-                    <div class="method-card">
-                        <div class="method-header">
-                            <span class="browser-badge chrome-badge">Chrome</span> Voor Android (Chrome browser)
-                        </div>
-                        <div class="method-body">
-                            <div class="step">
-                                <span class="step-number">1</span> Tik op de <strong>drie puntjes</strong> 
-                                <span class="badge bg-info ms-1"><i class="bi bi-three-dots-vertical"></i></span> rechtsboven
-                            </div>
-                            <div class="step">
-                                <span class="step-number">2</span> Selecteer <strong>"Toevoegen aan beginscherm"</strong>
-                            </div>
-                            <div class="step">
-                                <span class="step-number">3</span> Bevestig met <strong class="text-success">"Toevoegen"</strong>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="alert alert-info mt-3">
-                        <i class="bi bi-lightbulb me-2"></i>
-                        Werkt ook in Firefox, Samsung Browser en andere Android browsers via hun menu.
-                    </div>
-                `;
+                floatingBtn.classList.add('installed');
+                floatingBtn.disabled = true;
+            } else {
+                floatingBtn.classList.remove('hidden');
             }
+        }
+        
+        // Update icon preview
+        const iconImg = container.querySelector('.pwa-icon-img');
+        if (iconImg && this.appIcon) {
+            iconImg.innerHTML = `<img src="${this.appIcon}" alt="${this.appName}">`;
+        }
+        
+        // Update platforms grid
+        platformsGrid.innerHTML = this.platforms.map(platform => `
+            <div class="pwa-platform-card ${platform.active ? 'active' : ''}" 
+                 data-platform="${platform.id}"
+                 onclick="installatieWizard.handlePlatformClick('${platform.id}')">
+                ${platform.badge ? `<span class="pwa-platform-badge">${platform.badge}</span>` : ''}
+                <div class="pwa-platform-icon">
+                    <i class="bi ${platform.icon}"></i>
+                </div>
+                <div class="pwa-platform-name">${platform.name}</div>
+                <div class="pwa-platform-desc">${platform.description}</div>
+                <button class="pwa-install-btn ${this.isInstalled ? 'installed' : ''}"
+                        data-platform="${platform.id}">
+                    ${this.isInstalled ? 
+                        '<i class="bi bi-check-circle"></i> Snelkoppeling gemaakt' : 
+                        '<i class="bi bi-download"></i> Klik hier voor snelkoppeling'
+                    }
+                </button>
+            </div>
+        `).join('');
+    }
+    
+    showInstallOptions() {
+        if (this.isInstalled) {
+            this.showSuccessMessage();
+            return;
+        }
+        
+        const container = document.querySelector('.pwa-install-container');
+        if (container) {
+            container.style.display = 'block';
+            
+            // Scroll naar container
+            container.scrollIntoView({ behavior: 'smooth' });
+            
+            // Voeg close button toe als die er niet is
+            if (!container.querySelector('.pwa-close-btn')) {
+                const closeBtn = document.createElement('button');
+                closeBtn.className = 'pwa-close-btn';
+                closeBtn.innerHTML = '<i class="bi bi-x-lg"></i>';
+                closeBtn.style.cssText = `
+                    position: absolute;
+                    top: 20px;
+                    right: 20px;
+                    background: none;
+                    border: none;
+                    font-size: 24px;
+                    color: white;
+                    cursor: pointer;
+                    z-index: 1;
+                `;
+                closeBtn.onclick = () => {
+                    container.style.display = 'none';
+                };
+                container.querySelector('.pwa-icon-preview').appendChild(closeBtn);
+            }
+        }
+    }
+    
+    handlePlatformClick(platformId) {
+        if (this.isInstalled) {
+            this.showSuccessMessage();
+            return;
+        }
+        
+        console.log(`📱 Platform geselecteerd: ${platformId}`);
+        
+        if (platformId === 'auto' && this.deferredPrompt) {
+            this.triggerNativeInstall();
         } else {
-            // Desktop instructies - opgedeeld per browser
-            title = `${this.appName} op Computer`;
-            
-            let browserInstructions;
-            let browserBadge;
-            
-            switch(this.currentBrowser) {
-                case 'Edge':
-                    browserInstructions = this.getEdgeInstructions();
-                    browserBadge = `<span class="browser-badge edge-badge">Edge</span>`;
-                    break;
-                case 'Chrome':
-                    browserInstructions = this.getChromeInstructions();
-                    browserBadge = `<span class="browser-badge chrome-badge">Chrome</span>`;
-                    break;
-                case 'Firefox':
-                    browserInstructions = this.getFirefoxInstructions();
-                    browserBadge = `<span class="browser-badge firefox-badge">Firefox</span>`;
-                    break;
-                case 'Safari':
-                    browserInstructions = this.getSafariInstructions();
-                    browserBadge = `<span class="browser-badge safari-badge">Safari</span>`;
-                    break;
-                default:
-                    browserInstructions = this.getEdgeInstructions(); // fallback
-                    browserBadge = `<span class="browser-badge bg-secondary">Browser</span>`;
-            }
-            
-            stepsHTML = `
-                ${introHtml}
-                
-                <div class="method-card">
-                    <div class="method-header">
-                        ${browserBadge} ${browserInstructions.title}
-                    </div>
-                    <div class="method-body">
-                        ${browserInstructions.methods.map((method, methodIndex) => `
-                            <div class="${methodIndex > 0 ? 'mt-4' : ''}">
-                                <h6 class="mb-3">${method.title}</h6>
-                                ${method.steps.map((step, stepIndex) => `
-                                    <div class="step">
-                                        <span class="step-number">${stepIndex + 1}</span> ${step}
-                                    </div>
-                                `).join('')}
-                            </div>
-                        `).join('')}
-                        
-                        ${browserInstructions.note ? `
-                            <div class="alert alert-warning mt-3">
-                                <i class="bi bi-info-circle me-2"></i> ${browserInstructions.note}
-                            </div>
-                        ` : ''}
-                    </div>
-                </div>
-                
-                <!-- Andere browsers -->
-                <div class="mt-4">
-                    <button class="btn btn-outline-secondary btn-sm w-100" 
-                            onclick="this.classList.add('d-none'); document.getElementById('otherBrowsers').classList.remove('d-none')">
-                        <i class="bi bi-browser-edge me-1"></i> Instructies voor andere browsers
-                    </button>
-                    
-                    <div id="otherBrowsers" class="d-none mt-3">
-                        ${this.currentBrowser !== 'Chrome' ? `
-                            <div class="method-card">
-                                <div class="method-header">
-                                    <span class="browser-badge chrome-badge">Chrome</span> Google Chrome
-                                </div>
-                                <div class="method-body">
-                                    <div class="step">
-                                        <span class="step-number">1</span> Zoek download icoon in adresbalk
-                                    </div>
-                                    <div class="step">
-                                        <span class="step-number">2</span> Of: Drie puntjes → Meer tools → Toevoegen aan bureaublad
-                                    </div>
-                                </div>
-                            </div>
-                        ` : ''}
-                        
-                        ${this.currentBrowser !== 'Firefox' ? `
-                            <div class="method-card">
-                                <div class="method-header">
-                                    <span class="browser-badge firefox-badge">Firefox</span> Mozilla Firefox
-                                </div>
-                                <div class="method-body">
-                                    <div class="step">
-                                        <span class="step-number">1</span> Zoek '+' icoon in adresbalk
-                                    </div>
-                                    <div class="step">
-                                        <span class="step-number">2</span> Of: Rechtsklik → Toevoegen aan bureaublad
-                                    </div>
-                                </div>
-                            </div>
-                        ` : ''}
-                    </div>
-                </div>
-                
-                <div class="alert alert-success mt-3">
-                    <i class="bi bi-lightbulb me-2"></i>
-                    <strong>Tip:</strong> Na toevoegen verschijnt ${this.appName} in je startmenu, op bureaublad of taakbalk voor snelle toegang.
-                </div>
-            `;
+            // Voor andere platforms, gebruik dezelfde methode
+            // (in een echte implementatie zou je hier platform-specifieke logica toevoegen)
+            this.triggerNativeInstall();
         }
-        
-        // Update modal
-        const modalTitle = document.querySelector('#installModal .modal-title');
-        if (modalTitle) {
-            modalTitle.innerHTML = `<i class="bi bi-plus-square me-2"></i>${title}`;
-        }
-        
-        const installStepsElement = document.getElementById('installSteps');
-        if (installStepsElement) {
-            installStepsElement.innerHTML = stepsHTML;
-        }
-        
-        // Toon modal
-        const installModal = new bootstrap.Modal(document.getElementById('installModal'));
-        installModal.show();
     }
     
-    updateInstallButtonText() {
-        const updateButton = (btn) => {
-            if (btn && !this.isInstalled) {
-                btn.innerHTML = `<i class="bi bi-plus-circle"></i> ${this.appName}`;
-                btn.classList.add('btn-warning', 'install-btn-pulse');
-                btn.style.display = 'inline-block';
-            }
-        };
+    triggerNativeInstall() {
+        if (!this.deferredPrompt) {
+            console.log('⚠️ Geen native installatie beschikbaar');
+            this.showManualInstructions();
+            return;
+        }
         
-        updateButton(document.getElementById('pwaInstallBtn'));
-        updateButton(document.getElementById('pwaInstallBtnMobile'));
+        this.deferredPrompt.prompt();
+        
+        this.deferredPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') {
+                console.log('✅ Gebruiker heeft snelkoppeling geaccepteerd');
+                this.isInstalled = true;
+                localStorage.setItem('pwaInstalled', 'true');
+                this.updateUI();
+                this.showSuccessMessage();
+            } else {
+                console.log('❌ Gebruiker heeft snelkoppeling geweigerd');
+                this.showManualInstructions();
+            }
+            this.deferredPrompt = null;
+        });
     }
     
-    markAsInstalled() {
-        const updateButton = (btn) => {
-            if (btn) {
-                btn.innerHTML = `<i class="bi bi-check2-circle"></i> ${this.appName}`;
-                btn.classList.remove('btn-warning', 'install-btn-pulse');
-                btn.classList.add('btn-success');
-                btn.disabled = false;
-            }
-        };
+    showManualInstructions() {
+        // Toon een eenvoudig bericht
+        const message = document.createElement('div');
+        message.className = 'pwa-success-message';
+        message.style.background = '#f59e0b';
+        message.innerHTML = `
+            <i class="bi bi-info-circle"></i>
+            <span>Gebruik het menu van je browser om een snelkoppeling te maken</span>
+        `;
         
-        updateButton(document.getElementById('pwaInstallBtn'));
-        updateButton(document.getElementById('pwaInstallBtnMobile'));
+        document.body.appendChild(message);
         
-        this.hideFloatingInstallBadge();
-        this.showSuccessMessage();
+        setTimeout(() => {
+            message.remove();
+        }, 5000);
+    }
+    
+    checkIfInstalled() {
+        // Check localStorage
+        if (localStorage.getItem('pwaInstalled') === 'true') {
+            this.isInstalled = true;
+            this.updateUI();
+        }
+        
+        // Check standalone mode
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            this.isInstalled = true;
+            this.updateUI();
+        }
+        
+        // Check iOS standalone
+        if (window.navigator.standalone === true) {
+            this.isInstalled = true;
+            this.updateUI();
+        }
     }
     
     showSuccessMessage() {
-        const platform = /Android/i.test(navigator.userAgent) ? 'Android' :
-                        /iPhone|iPad/i.test(navigator.userAgent) ? 'iOS' :
-                        'computer';
-        
-        const toastHTML = `
-            <div class="toast align-items-center text-white bg-success border-0" 
-                 role="alert" aria-live="assertive" aria-atomic="true" id="installSuccessToast">
-                <div class="d-flex">
-                    <div class="toast-body">
-                        <i class="bi bi-check-circle-fill me-2"></i>
-                        <strong>${this.appName}</strong> toegevoegd!
-                    </div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" 
-                            data-bs-dismiss="toast" aria-label="Close"></button>
-                </div>
-            </div>
+        const message = document.createElement('div');
+        message.className = 'pwa-success-message';
+        message.innerHTML = `
+            <i class="bi bi-check-circle"></i>
+            <span>Snelkoppeling succesvol gemaakt!</span>
         `;
         
-        const toastContainer = document.createElement('div');
-        toastContainer.innerHTML = toastHTML;
-        document.body.appendChild(toastContainer);
+        document.body.appendChild(message);
         
-        const toastElement = document.getElementById('installSuccessToast');
-        const toast = new bootstrap.Toast(toastElement, { delay: 5000 });
-        toast.show();
+        // Verberg de container
+        const container = document.querySelector('.pwa-install-container');
+        if (container) {
+            container.style.display = 'none';
+        }
         
-        toastElement.addEventListener('hidden.bs.toast', () => {
-            toastElement.remove();
-        });
+        setTimeout(() => {
+            message.style.animation = 'slideIn 0.3s ease reverse';
+            setTimeout(() => {
+                message.remove();
+            }, 300);
+        }, 3000);
     }
 }
 
-// Initialisatie
+// Auto-initialisatie
 document.addEventListener('DOMContentLoaded', function() {
-    new InstallatieWizard();
+    // Wacht even om Bootstrap te laden als dat nodig is
+    setTimeout(() => {
+        new InstallatieWizard();
+    }, 1000);
 });
 
+// Export voor gebruik in andere bestanden
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = InstallatieWizard;
 }
