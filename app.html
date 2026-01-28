@@ -47,7 +47,7 @@
             width: 100%;
         }
         
-        /* Disclaimer knop styling */
+        /* Disclaimer knop styling -->
         #disclaimerBtn {
             background-color: #6c757d;
             border-color: #6c757d;
@@ -64,7 +64,7 @@
             transform: translateY(-2px);
         }
         
-        /* BEVEILIGINGSSECTIE - LETTERGROOTTE 70% */
+        /* BEVEILIGINGSSECTIE - LETTERGROOTTE 70% -->
         .security-section {
             font-size: 70% !important;
         }
@@ -93,7 +93,7 @@
             margin-bottom: 0.25rem !important;
         }
         
-        /* Mobile-specifieke aanpassingen */
+        <!-- Mobile-specifieke aanpassingen -->
         @media (max-width: 768px) {
             .mobile-actions {
                 display: flex;
@@ -110,17 +110,17 @@
                 font-size: 0.9rem;
             }
             
-            /* Verberg de normale layout op mobiel */
+            <!-- Verberg de normale layout op mobiel -->
             .action-buttons-row {
                 display: none !important;
             }
             
-            /* Toon mobiele layout */
+            <!-- Toon mobiele layout -->
             .action-buttons-column {
                 display: flex !important;
             }
             
-            /* Pas navigatie aan voor mobiel */
+            <!-- Pas navigatie aan voor mobiel -->
             .navbar .container-fluid {
                 flex-wrap: wrap;
             }
@@ -131,19 +131,19 @@
                 margin-top: 10px;
             }
             
-            /* Maak taal selector compacter op mobiel */
+            <!-- Maak taal selector compacter op mobiel -->
             .btn-group.btn-group-sm {
                 margin-right: 0 !important;
             }
             
-            /* Disclaimer knop op mobiel */
+            <!-- Disclaimer knop op mobiel -->
             #disclaimerBtn {
                 width: 100%;
                 margin-top: 10px;
             }
         }
         
-        /* Desktop: verberg mobiele layout -->
+        <!-- Desktop: verberg mobiele layout -->
         @media (min-width: 769px) {
             .action-buttons-column {
                 display: none !important;
@@ -153,7 +153,7 @@
                 display: flex !important;
             }
             
-            /* Disclaimer knop op desktop -->
+            <!-- Disclaimer knop op desktop -->
             #disclaimerBtn {
                 display: inline-block;
             }
@@ -557,35 +557,29 @@
             console.log('🔄 Haal rol op voor:', userId);
             
             try {
-                // Probeer verschillende mogelijke kolomnamen
-                const possibleColumns = ['user_id', 'auth_id', 'auth_user_id', 'user_uuid', 'uuid', 'supabase_uid'];
+                // EENVOUDIGE QUERY - gebruik alleen user_id en .limit(1)
+                const { data, error } = await window.supabase
+                    .from('profiles')
+                    .select('role, is_admin')
+                    .eq('user_id', userId)
+                    .limit(1);
                 
-                for (const column of possibleColumns) {
-                    console.log(`ℹ️ Probeer met kolom: ${column}`);
-                    
-                    const { data, error } = await window.supabase
-                        .from('profiles')
-                        .select('role')
-                        .eq(column, userId)
-                        .single();
-                    
-                    if (!error && data && data.role) {
-                        console.log(`✅ Rol gevonden via kolom ${column}:`, data.role);
-                        return data.role;
+                if (error) {
+                    console.log('⚠️ Query error:', error.message);
+                    // Gebruik auth.js rol als fallback
+                    if (window.auth && window.auth.user && window.auth.user.role) {
+                        console.log('✅ Rol gevonden via auth.js:', window.auth.user.role);
+                        return window.auth.user.role;
                     }
-                    
-                    if (error && !error.message.includes('invalid input syntax')) {
-                        console.log(`⚠️ Geen data via kolom ${column}:`, error.message);
-                    }
+                    return 'gebruiker';
                 }
                 
-                // Laatste poging: gebruik de auth.js rol als die beschikbaar is
-                if (window.auth && window.auth.user && window.auth.user.role) {
-                    console.log('✅ Rol gevonden via auth.js:', window.auth.user.role);
-                    return window.auth.user.role;
+                if (data && data.length > 0) {
+                    console.log('✅ Rol gevonden in profiles:', data[0].role);
+                    return data[0].role;
                 }
                 
-                console.warn('⚠️ Geen rol kunnen vinden, gebruik standaard "gebruiker"');
+                console.warn('⚠️ Geen rol gevonden in profiles, gebruik standaard');
                 return 'gebruiker';
                 
             } catch (error) {
@@ -741,9 +735,9 @@
                 adminRole: "Administrator",
                 adminRights: "Volle Rechte.",
                 userPlusRole: "Benutzer+",
-                userPlusRights: "Kann Hunde ansehen, Zuchtpläne erstellen en eigene Hunde/Würfe hinzufügen of bearbeiten, vorausgesetzt die ouders sind bereits in der Datenbank.",
+                userPlusRights: "Kann Hunde ansehen, Zuchtpläne erstellen en eigene Hunde/Würfe hinzufügen of bearbeiten, vorausgesetzt die ouders zijn bereits in der Datenbank.",
                 userRole: "Benutzer",
-                userRights: "Kann Hunde ansehen, aber keine eigenen Zuchtpläne erstellen und geen eigenen Hunde/Würfe hinzufügen of bearbeiten.",
+                userRights: "Kann Hunde ansehen, maar keine eigenen Zuchtpläne erstellen en geen eigenen Hunde/Würfe hinzufügen of bearbeiten.",
                 disclaimerBtn: "Disclaimer/Information zur COI Berechnung",
                 installPWA: "Verknüpfung erstellen"
             }
