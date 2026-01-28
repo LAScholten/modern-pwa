@@ -84,9 +84,9 @@
                         localStorage.setItem('userId', session.user.id);
                         
                         // Doorsturen naar app
-                        setTimeout(() => {
+                        if (session && session.user) {
                             window.location.href = '../app.html';
-                        }, 2000);
+                        }
                         
                     } else if (event === 'TOKEN_REFRESHED') {
                         // Ook goed
