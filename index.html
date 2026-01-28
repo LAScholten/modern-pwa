@@ -170,14 +170,10 @@
         </div>
     </div>
 
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script>
         // Supabase configuratie
         const SUPABASE_URL = 'https://owjwkjrktftugjjrcwml.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93andranJrdGZ0dWdqanJjd21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2MzA4OTAsImV4cCI6MjA4NDIwNjg5MH0.oW6HTAlMBkjUu_4e3kn4iozjn5wK-15h4wCKcaHrtp8';
-        
-        // Supabase client initialiseren
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         
         // Tab functionaliteit
         document.querySelectorAll('.tab-button').forEach(button => {
@@ -200,6 +196,24 @@
                 document.getElementById('loginMessage').innerHTML = '';
             });
         });
+        
+        // Laad Supabase dynamisch
+        function loadSupabase() {
+            return new Promise((resolve) => {
+                if (window.supabase) {
+                    resolve(window.supabase);
+                    return;
+                }
+                
+                const script = document.createElement('script');
+                script.src = 'https://unpkg.com/@supabase/supabase-js@2';
+                script.onload = () => {
+                    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                    resolve(supabase);
+                };
+                document.head.appendChild(script);
+            });
+        }
         
         // Toon bericht
         function showMessage(message, type = 'info') {
@@ -226,6 +240,8 @@
             showMessage('🔐 Inloggen bij Supabase...', 'info');
             
             try {
+                const supabase = await loadSupabase();
+                
                 const { data, error } = await supabase.auth.signInWithPassword({
                     email: email,
                     password: password
@@ -261,6 +277,8 @@
             showMessage('📝 Account aanmaken bij Supabase...', 'info');
             
             try {
+                const supabase = await loadSupabase();
+                
                 const { data, error } = await supabase.auth.signUp({
                     email: email,
                     password: password,
