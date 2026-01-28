@@ -37,6 +37,11 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        .timer {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -48,6 +53,7 @@
         
         <div id="message" style="margin-top: 20px;">
             <p>Even geduld a.u.b.</p>
+            <p class="timer">Terug naar login over: <span id="countdown">15</span> seconden</p>
         </div>
     </div>
 
@@ -58,7 +64,48 @@
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93andranJrdGZ0dWdqanJjd21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2MzA4OTAsImV4cCI6MjA4NDIwNjg5MH0.oW6HTAlMBkjUu_4e3kn4iozjn5wK-15h4wCKcaHrtp8';
         
         // Supabase client initialiseren
-            const supabase = window.supabase;
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
+        // Timer voor terug naar login
+        let countdown = 15;
+        const countdownElement = document.getElementById('countdown');
+        const countdownInterval = setInterval(() => {
+            countdown--;
+            countdownElement.textContent = countdown;
+            
+            if (countdown <= 0) {
+                clearInterval(countdownInterval);
+                redirectToLogin();
+            }
+        }, 1000);
+        
+        // Functie om terug te gaan naar login
+        function redirectToLogin() {
+            document.getElementById('message').innerHTML = `
+                <div style="color: orange;">
+                    ⏱️ Verificatie timeout
+                </div>
+                <p>Je wordt nu terug gestuurd naar de login pagina...</p>
+            `;
+            
+            setTimeout(() => {
+                window.location.href = '../index.html';
+            }, 2000);
+        }
+        
+        // Functie om door te sturen naar app
+        function redirectToApp() {
+            document.getElementById('message').innerHTML = `
+                <div style="color: green; font-weight: bold;">
+                    ✅ E-mail succesvol geverifieerd!
+                </div>
+                <p>Je wordt nu doorgestuurd naar de app...</p>
+            `;
+            
+            setTimeout(() => {
+                window.location.href = '../app.html';
+            }, 2000);
+        }
         
         // Verwerk de verificatie
         async function handleVerification() {
@@ -72,57 +119,47 @@
                     
                     if (event === 'SIGNED_IN') {
                         // SUCCESS - gebruiker is geverifieerd
-                        messageDiv.innerHTML = `
-                            <div style="color: green; font-weight: bold;">
-                                ✅ E-mail succesvol geverifieerd!
-                            </div>
-                            <p>Je wordt nu doorgestuurd naar de app...</p>
-                        `;
+                        clearInterval(countdownInterval);
                         
                         // Opslaan in localStorage (zelfde als bij login)
                         localStorage.setItem('userEmail', session.user.email);
                         localStorage.setItem('userId', session.user.id);
                         
-                        // Doorsturen naar app
-                        if (session && session.user) {
-                            window.location.href = '../app.html';
-                        }
+                        redirectToApp();
                         
                     } else if (event === 'TOKEN_REFRESHED') {
                         // Ook goed
-                        messageDiv.innerHTML = `<p>✅ Sessie vernieuwd, doorsturen...</p>`;
-                        setTimeout(() => {
-                            window.location.href = '../app.html';
-                        }, 1000);
+                        clearInterval(countdownInterval);
+                        redirectToApp();
                         
                     } else {
-                        // Error of geen sessie
+                        // Error of geen sessie - toon bericht
                         messageDiv.innerHTML = `
                             <div style="color: orange;">
                                 ⚠️ Even geduld, verificatie wordt verwerkt...
                             </div>
+                            <p class="timer">Terug naar login over: <span id="countdown">${countdown}</span> seconden</p>
                         `;
-                        
-                        // Na 5 seconden naar login als nog niets gebeurd
-                        setTimeout(() => {
-                            messageDiv.innerHTML = `
-                                <div style="color: red;">
-                                    ❌ Automatische verificatie mislukt.
-                                </div>
-                                <p>Ga naar <a href="../">login pagina</a> om handmatig in te loggen.</p>
-                            `;
-                        }, 5000);
                     }
                 });
+                
+                // Forceer een sessie refresh
+                setTimeout(() => {
+                    supabase.auth.refreshSession();
+                }, 1000);
                 
             } catch (error) {
                 console.error('Verificatie fout:', error);
                 messageDiv.innerHTML = `
                     <div style="color: red;">
-                        ❌ Fout bij verificatie: ${error.message}
+                        ❌ Fout bij verificatie
                     </div>
-                    <p>Ga naar <a href="../">login pagina</a> om opnieuw te proberen.</p>
+                    <p>Je wordt terug gestuurd naar login...</p>
                 `;
+                
+                setTimeout(() => {
+                    window.location.href = '../index.html';
+                }, 3000);
             }
         }
         
