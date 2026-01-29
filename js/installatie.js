@@ -3,11 +3,11 @@
 
 console.log('🔧 Installatie script laden...');
 
-// 0. MANIFEST SETUP MET EIGEN BLOB
+// 0. MANIFEST SETUP MET EIGEN DATA URL
 (function setupPWAManifest() {
     'use strict';
     
-    console.log('📄 PWA manifest setup MET BLOB...');
+    console.log('📄 PWA manifest setup MET DATA URL...');
     
     // Verwijder eerst bestaande manifest
     const existingManifest = document.querySelector('link[rel="manifest"]');
@@ -15,12 +15,12 @@ console.log('🔧 Installatie script laden...');
         existingManifest.parentNode.removeChild(existingManifest);
     }
     
-    // Maak eigen manifest BLOB
+    // Maak eigen manifest data
     const manifestData = {
         "name": "Eurasier E.I. Database",
         "short_name": "E.F.I. Db",
         "description": "Beheer je honden database",
-        "start_url": "/",
+        "start_url": ".",
         "display": "standalone",
         "theme_color": "#1e40af",
         "background_color": "#ffffff",
@@ -38,9 +38,8 @@ console.log('🔧 Installatie script laden...');
         ]
     };
     
-    // Maak BLOB URL
-    const blob = new Blob([JSON.stringify(manifestData)], {type: 'application/json'});
-    const manifestUrl = URL.createObjectURL(blob);
+    // Maak DATA URL (werkt beter dan BLOB voor manifest)
+    const manifestUrl = 'data:application/manifest+json,' + encodeURIComponent(JSON.stringify(manifestData));
     
     // Voeg manifest link toe
     const manifestLink = document.createElement('link');
@@ -48,7 +47,7 @@ console.log('🔧 Installatie script laden...');
     manifestLink.href = manifestUrl;
     document.head.appendChild(manifestLink);
     
-    console.log('✅ Eigen manifest blob toegevoegd');
+    console.log('✅ Eigen manifest data URL toegevoegd');
     
     // Voeg basis meta tags toe
     const metaTags = [
@@ -134,13 +133,13 @@ const translations = {
         androidSub: "Chrome/Edge: Menu → Add to Home",
         ios: "iPhone/iPad",
         iosSub: "Safari: Share icon → Add to Home",
-        desktop: "Computer",
+        desktop: "Desktop",
         desktopSub: "Chrome/Edge: Menu → Install",
         close: "Close",
         androidHelp: "📱 ANDROID:\n\n1. Open Chrome or Edge on your phone\n2. Tap menu (⋮) top right\n3. Choose 'Add to Home Screen'\n4. Tap 'Add'\n\n✅ The app appears on your home screen!",
         iosHelp: "🍎 IPHONE/IPAD:\n\n1. Open this page in SAFARI (not Chrome!)\n2. Tap the share icon (📤) at the bottom\n3. Scroll to 'Add to Home Screen'\n4. Tap 'Add'\n\n✅ The app appears on your home screen!",
-        desktopHelp: "💻 COMPUTER:\n\n1. Open Chrome, Edge or Firefox\n2. Click menu (⋮) top right\n3. Look for 'Install' or similar option\n4. Click 'Install'\n\n✅ The app is installed on your computer!",
-        installButton: "Create shortcutt",
+        desktopHelp: "💻 DESKTOP:\n\n1. Open Chrome, Edge or Firefox\n2. Click menu (⋮) top right\n3. Look for 'Install' or similar option\n4. Click 'Install'\n\n✅ The app is installed on your computer!",
+        installButton: "Create shortcut",
         installed: "Installed",
         installPrompt: "Look in your browser menu for 'Install' or 'Add to Home Screen'"
     },
@@ -161,8 +160,8 @@ const translations = {
         desktopSub: "Chrome/Edge: Menü → Installieren",
         close: "Schließen",
         androidHelp: "📱 ANDROID:\n\n1. Öffnen Sie Chrome oder Edge auf Ihrem Telefon\n2. Tippen Sie auf Menü (⋮) oben rechts\n3. Wählen Sie 'Zum Startbildschirm hinzufügen'\n4. Tippen Sie 'Hinzufügen'\n\n✅ Die App erscheint auf Ihrem Startbildschirm!",
-        iosHelp: "🍎 IPHONE/IPAD:\n\n1. Öffnen Sie diese Seite in SAFARI (nicht Chrome!)\n2. Tippen Sie auf das Teilen-Symbol (📤) unten\n3. Scrollen Sie zu 'Zum Home-Bildschirm hinzufügen'\n4. Tippen Sie 'Hinzufügen'\n\n✅ Die App erscheint auf Ihrem Startbildschirm!",
-        desktopHelp: "💻 COMPUTER:\n\n1. Öffnen Sie Chrome, Edge oder Firefox\n2. Klicken Sie auf Menü (⋮) oben rechts\n3. Suchen Sie nach 'Installieren' of ähnlicher Option\n4. Klicken Sie 'Installieren'\n\n✅ Die App wird auf Ihrem Computer installiert!",
+        iosHelp: "🍎 IPHONE/IPAD:\n\n1. Öffnen Sie diese pagina in SAFARI (nicht Chrome!)\n2. Tippen Sie auf das Teilen-Symbol (📤) unten\n3. Scrollen Sie zu 'Zum Home-Bildschirm hinzufügen'\n4. Tippen Sie 'Hinzufügen'\n\n✅ Die App erscheint auf Ihrem Startbildschirm!",
+        desktopHelp: "💻 COMPUTER:\n\n1. Öffnen Sie Chrome, Edge oder Firefox\n2. Klicken Sie auf Menü (⋮) oben rechts\n3. Suchen Sie nach 'Installieren' of ähnlicher Option\n4. Klicken Sie 'Installieren'\n\n✅ Die App wordt auf Ihrem Computer installiert!",
         installButton: "Verknüpfung erstellen",
         installed: "Installiert",
         installPrompt: "Suchen Sie in Ihrem Browser-Menü nach 'Installeren' oder 'Zum Startbildschirm hinzufügen'"
