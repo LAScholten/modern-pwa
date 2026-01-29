@@ -1,6 +1,6 @@
 {
-  "name": "Hondendatabase Desktop",
-  "short_name": "HondenDB Desktop",
+  "name": "Eurasier F.I. Database",
+  "short_name": "E.F.I. DB",
   "description": "Desktop editie met lokale bestandsopslag - Werkt volledig offline",
   "start_url": "/desktop/index.html",
   "display": "standalone",
