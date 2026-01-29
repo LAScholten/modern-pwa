@@ -1,5 +1,5 @@
 // ✅ installatie.js - MET VERTALINGEN NL/EN/DE
-// LAATSTE - 29 januari 2024 - MET TAALONDERSTEUNING
+// LAATSTE - 29 januari 2026 - MET TAALONDERSTEUNING
 
 console.log('🔧 Installatie script laden...');
 
@@ -127,8 +127,8 @@ const translations = {
         desktop: "Computer",
         desktopSub: "Chrome/Edge: Menü → Installieren",
         close: "Schließen",
-        androidHelp: "📱 ANDROID:\n\n1. Öffnen Sie Chrome oder Edge auf Ihrem Telefon\n2. Tippen Sie auf Menü (⋮) oben rechts\n3. Wählen Sie 'Zum Startbildschirm hinzufügen'\n4. Tippen Sie 'Hinzufügen'\n\n✅ Die App erscheint auf Ihrem Startbildschirm!",
-        iosHelp: "🍎 IPHONE/IPAD:\n\n1. Öffnen Sie deze Seite in SAFARI (nicht Chrome!)\n2. Tippen Sie auf das Teilen-Symbol (📤) unten\n3. Scrollen Sie zu 'Zum Home-Bildschirm hinzufügen'\n4. Tippen Sie 'Hinzufügen'\n\n✅ Die App erscheint auf Ihrem Startbildschirm!",
+        androidHelp: "📱 ANDROID:\n\n1. Öffnen Sie Chrome oder Edge auf Ihrem Telefon\n2. Tippen Sie auf Menü (⋮) oben rechts\n3. Wählen Sie 'Zum Startbildschirm hinzufügen'\n4. Tippen Sie 'Hinzufügen'\n\n✅ Die App erscheint op uw Startbildschirm!",
+        iosHelp: "🍎 IPHONE/IPAD:\n\n1. Öffnen Sie diese Seite in SAFARI (nicht Chrome!)\n2. Tippen Sie auf das Teilen-Symbol (📤) unten\n3. Scrollen Sie zu 'Zum Home-Bildschirm hinzufügen'\n4. Tippen Sie 'Hinzufügen'\n\n✅ Die App erscheint op uw Startbildschirm!",
         desktopHelp: "💻 COMPUTER:\n\n1. Öffnen Sie Chrome, Edge oder Firefox\n2. Klicken Sie auf Menü (⋮) oben rechts\n3. Suchen Sie nach 'Installieren' of ähnlicher Option\n4. Klicken Sie 'Installieren'\n\n✅ Die App wird auf Ihrem Computer installiert!",
         installButton: "⚡ App Installieren",
         installed: "Installiert",
@@ -197,8 +197,9 @@ class SimpleInstaller {
             const btn = document.getElementById(id);
             if (btn) {
                 btn.innerHTML = `<i class="bi bi-download"></i> ${text}`;
-                btn.classList.add('btn-warning');
-                btn.classList.remove('btn-success');
+                btn.classList.add('btn-success');
+                btn.classList.remove('btn-warning');
+                btn.classList.remove('btn-primary');
             }
         });
     }
