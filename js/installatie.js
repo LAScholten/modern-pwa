@@ -28,13 +28,13 @@ console.log('🔧 Installatie script laden...');
             "theme_color": "#007bff",
             "icons": [
                 {
-                    "src": "/modern-pwa/img/icons/icon-192x192.png",
+                    "src": "img/icons/icon-192x192.png",
                     "sizes": "192x192",
                     "type": "image/png",
                     "purpose": "any maskable"
                 },
                 {
-                    "src": "/modern-pwa/img/icons/icon-512x512.png",
+                    "src": "img/icons/icon-512x512.png",
                     "sizes": "512x512",
                     "type": "image/png"
                 }
@@ -79,8 +79,8 @@ console.log('🔧 Installatie script laden...');
         
         // Voeg icon links toe
         const iconLinks = [
-            { rel: 'icon', href: '/modern-pwa/img/icons/icon-192x192.png', sizes: '192x192' },
-            { rel: 'apple-touch-icon', href: '/modern-pwa/img/icons/icon-192x192.png', sizes: '180x180' }
+            { rel: 'icon', href: 'img/icons/icon-192x192.png', sizes: '192x192' },
+            { rel: 'apple-touch-icon', href: 'img/icons/icon-192x192.png', sizes: '180x180' }
         ];
         
         iconLinks.forEach(link => {
