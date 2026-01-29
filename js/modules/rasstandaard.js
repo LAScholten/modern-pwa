@@ -19,7 +19,7 @@ const rasstandaardTranslations = {
 
 <h6>FCI-classificatie:</h6>
 <p>Groep 5 Spits- en oertypen.<br>
-Sectie 5 Aziatische Spitzen und verwante rassen.<br>
+Sectie 5 Aziatische Spitzen en verwante rassen.<br>
 Geen werkrpoef.</p>
 
 <h6>Korte historische samenvatting:</h6>
