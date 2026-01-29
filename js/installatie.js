@@ -3,37 +3,96 @@
 
 console.log('🔧 Installatie script laden...');
 
-// 0. EENVOUDIGE MANIFEST SETUP ZONDER BLOB
-(function setupPWAManifest() {
+// 0. EERST: Maak manifest INLINE aan
+(function createInlineManifest() {
     'use strict';
     
-    console.log('📄 PWA manifest setup...');
+    console.log('📄 Inline manifest maken...');
     
-    // Voeg manifest.json link toe als die nog niet bestaat
-    if (!document.querySelector('link[rel="manifest"]')) {
-        const manifestLink = document.createElement('link');
-        manifestLink.rel = 'manifest';
-        manifestLink.href = 'manifest.json';
-        document.head.appendChild(manifestLink);
-        console.log('✅ Manifest link toegevoegd');
+    // Verwijder bestaande manifest (als die er is)
+    const oldManifest = document.querySelector('link[rel="manifest"]');
+    if (oldManifest) {
+        oldManifest.remove();
+        console.log('🗑️ Oude manifest verwijderd');
     }
     
-    // Voeg basis meta tags toe
-    const metaTags = [
-        { name: 'theme-color', content: '#007bff' },
-        { name: 'apple-mobile-web-app-capable', content: 'yes' }
-    ];
+    // Maak een BLOB manifest die we inline kunnen gebruiken
+    try {
+        const manifestData = {
+            "name": document.title || "Hondendatabase PWA",
+            "short_name": "Hondendatabase",
+            "description": "Hondendatabase Progressive Web App",
+            "start_url": window.location.pathname,
+            "display": "standalone",
+            "background_color": "#ffffff",
+            "theme_color": "#007bff",
+            "icons": [
+                {
+                    "src": "/modern-pwa/img/icons/icon-192x192.png",
+                    "sizes": "192x192",
+                    "type": "image/png",
+                    "purpose": "any maskable"
+                },
+                {
+                    "src": "/modern-pwa/img/icons/icon-512x512.png",
+                    "sizes": "512x512",
+                    "type": "image/png"
+                }
+            ]
+        };
+        
+        // Maak een data URL van het manifest
+        const manifestString = JSON.stringify(manifestData);
+        const manifestBlob = new Blob([manifestString], {type: 'application/json'});
+        const manifestUrl = URL.createObjectURL(manifestBlob);
+        
+        // Voeg manifest link toe
+        const manifestLink = document.createElement('link');
+        manifestLink.rel = 'manifest';
+        manifestLink.href = manifestUrl;
+        document.head.appendChild(manifestLink);
+        
+        console.log('✅ Inline manifest aangemaakt:', manifestData.name);
+        
+    } catch (error) {
+        console.error('❌ Fout bij maken manifest:', error);
+        createMetaTagsFallback();
+    }
     
-    metaTags.forEach(tag => {
-        if (!document.querySelector(`meta[name="${tag.name}"]`)) {
+    // Fallback functie voor meta tags
+    function createMetaTagsFallback() {
+        console.log('🔄 Fallback: maak meta tags');
+        
+        // Voeg PWA meta tags toe
+        const metaTags = [
+            { name: 'application-name', content: document.title || 'Hondendatabase' },
+            { name: 'theme-color', content: '#007bff' },
+            { name: 'mobile-web-app-capable', content: 'yes' }
+        ];
+        
+        metaTags.forEach(tag => {
             const meta = document.createElement('meta');
             meta.name = tag.name;
             meta.content = tag.content;
             document.head.appendChild(meta);
-        }
-    });
-    
-    console.log('✅ Meta tags setup voltooid');
+        });
+        
+        // Voeg icon links toe
+        const iconLinks = [
+            { rel: 'icon', href: '/modern-pwa/img/icons/icon-192x192.png', sizes: '192x192' },
+            { rel: 'apple-touch-icon', href: '/modern-pwa/img/icons/icon-192x192.png', sizes: '180x180' }
+        ];
+        
+        iconLinks.forEach(link => {
+            const linkEl = document.createElement('link');
+            linkEl.rel = link.rel;
+            linkEl.href = link.href;
+            if (link.sizes) linkEl.sizes = link.sizes;
+            document.head.appendChild(linkEl);
+        });
+        
+        console.log('✅ Meta tags en icons toegevoegd');
+    }
 })();
 
 // 1. VERWIJDER ALLES WAT AL BESTAAT
@@ -119,7 +178,7 @@ const translations = {
         directInstall: "⚡ Direkt Installieren (PWA)",
         withYourIcon: "Mit Ihrem eigenen App-Symbol",
         forPwa: "Für PWA (mit Symbol): Chrome/Edge auf Desktop oder Android verwenden",
-        platformInstructions: "Platform Anleitungen:",
+        platformInstructions: "Plattform Anleitungen:",
         android: "Android",
         androidSub: "Chrome/Edge: Menü → Zum Startbildschirm",
         ios: "iPhone/iPad",
@@ -128,11 +187,11 @@ const translations = {
         desktopSub: "Chrome/Edge: Menü → Installieren",
         close: "Schließen",
         androidHelp: "📱 ANDROID:\n\n1. Öffnen Sie Chrome oder Edge auf Ihrem Telefon\n2. Tippen Sie auf Menü (⋮) oben rechts\n3. Wählen Sie 'Zum Startbildschirm hinzufügen'\n4. Tippen Sie 'Hinzufügen'\n\n✅ Die App erscheint auf Ihrem Startbildschirm!",
-        iosHelp: "🍎 IPHONE/IPAD:\n\n1. Öffnen Sie deze Seite in SAFARI (nicht Chrome!)\n2. Tippen Sie auf das Teilen-Symbol (📤) unten\n3. Scrollen Sie zu 'Zum Home-Bildschirm hinzufügen'\n4. Tippen Sie 'Hinzufügen'\n\n✅ Die App erscheint auf Ihrem Startbildschirm!",
-        desktopHelp: "💻 COMPUTER:\n\n1. Öffnen Sie Chrome, Edge oder Firefox\n2. Klicken Sie auf Menü (⋮) oben rechts\n3. Suchen Sie nach 'Installieren' of ähnlicher Option\n4. Klicken Sie 'Installieren'\n\n✅ Die App wird auf Ihrem Computer installiert!",
+        iosHelp: "🍎 IPHONE/IPAD:\n\n1. Öffnen Sie diese Seite in SAFARI (nicht Chrome!)\n2. Tippen Sie auf das Teilen-Symbol (📤) unten\n3. Scrollen Sie zu 'Zum Home-Bildschirm hinzufügen'\n4. Tippen Sie 'Hinzufügen'\n\n✅ Die App erscheint auf Ihrem Startbildschirm!",
+        desktopHelp: "💻 COMPUTER:\n\n1. Öffnen Sie Chrome, Edge oder Firefox\n2. Klicken Sie auf Menü (⋮) oben rechts\n3. Suchen Sie nach 'Installieren' oder ähnlicher Option\n4. Klicken Sie 'Installieren'\n\n✅ Die App wird auf Ihrem Computer installiert!",
         installButton: "⚡ App Installieren",
         installed: "Installiert",
-        installPrompt: "Suchen Sie in Ihrem Browser-Menü nach 'Installeren' oder 'Zum Startbildschirm hinzufügen'"
+        installPrompt: "Suchen Sie in Ihrem Browser-Menü nach 'Installieren' oder 'Zum Startbildschirm hinzufügen'"
     }
 };
 
@@ -159,7 +218,7 @@ class SimpleInstaller {
         console.log('🆕 SimpleInstaller aangemaakt');
         this.prompt = null;
         this.appName = document.title || 'Hondendatabase';
-        this.iconPath = 'img/icons/icon-192x192.png';
+        this.iconPath = '/modern-pwa/img/icons/icon-192x192.png';
         this.currentLang = getCurrentLanguage();
         this.t = translations[this.currentLang];
         this.setup();
@@ -287,7 +346,8 @@ class SimpleInstaller {
                         border-radius: 16px; 
                         margin-bottom: 15px;
                         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                     ">
+                     "
+                     onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iODAiIGhlaWdodD0iODAiIHJ4PSIxNiIgZmlsbD0iIzAwNzBGRiIvPjx0ZXh0IHg9IjQwIiB5PSI0NSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC13ZWlnaHQ9ImJvbGQiPkRvZzwvdGV4dD48L3N2Zz4=';">
                 <div style="font-size: 18px; font-weight: bold; color: #212529;">${appName}</div>
                 <div style="color: #6c757d; margin-top: 5px; font-size: 14px;">
                     ${this.prompt ? this.t.pwaAvailable : this.t.websiteShortcut}
