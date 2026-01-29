@@ -39,7 +39,7 @@ function translateDashboardModule(lang) {
     const translations = {
         nl: {
             dashboard: "Dashboard",
-            welcomeTitle: "Welkom bij de Eurasier Friends International PWA"
+            welcomeTitle: "Welkom bij de Eurasier END Friends International PWA"
         },
         en: {
             dashboard: "Dashboard", 
