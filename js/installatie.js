@@ -1,26 +1,15 @@
-// ✅ installatie.js - VOOR GITHUB PAGES ZONDER FAVICON
-// LAATSTE - 29 januari 2026 - OPTIMIZED FOR GITHUB PAGES
+// ✅ installatie.js - VOOR ROOT FOLDER (geen desktop/)
+// LAATSTE - 29 januari 2026 - OPTIMIZED FOR ROOT DIRECTORY
 
 console.log('🔧 Installatie script laden...');
 
-// 0. MANIFEST SETUP VOOR GITHUB PAGES
+// 0. MANIFEST SETUP VOOR ROOT DIRECTORY
 (function setupPWAManifest() {
     'use strict';
     
-    console.log('📄 PWA manifest setup voor GitHub Pages...');
-    
-    // Bepaal base path voor GitHub Pages
-    const getBasePath = () => {
-        const path = window.location.pathname;
-        // Voor GitHub Pages project sites: /repository-name/
-        if (path.includes('/modern-pwa/')) {
-            return '/modern-pwa/';
-        }
-        return '/';
-    };
-    
-    const basePath = getBasePath();
-    console.log('📍 Base path:', basePath);
+    console.log('📄 PWA manifest setup voor root directory...');
+    console.log('📍 Huidige URL:', window.location.href);
+    console.log('📍 Pathname:', window.location.pathname);
     
     // Verwijder bestaande manifest link
     const existingManifest = document.querySelector('link[rel="manifest"]');
@@ -28,10 +17,10 @@ console.log('🔧 Installatie script laden...');
         existingManifest.remove();
     }
     
-    // Voeg nieuwe manifest toe met correcte paden
+    // Voeg nieuwe manifest toe - relatief pad
     const manifestLink = document.createElement('link');
     manifestLink.rel = 'manifest';
-    manifestLink.href = `${basePath}manifest.json`;
+    manifestLink.href = 'manifest.json'; // Relatief pad vanaf huidige pagina
     document.head.appendChild(manifestLink);
     console.log('✅ Manifest link toegevoegd:', manifestLink.href);
     
@@ -44,7 +33,7 @@ console.log('🔧 Installatie script laden...');
     // Voeg correcte meta tags toe
     const metaTags = [
         { name: 'mobile-web-app-capable', content: 'yes' },
-        { name: 'theme-color', content: '#007bff' },
+        { name: 'theme-color', content: '#1e40af' },
         { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' }
     ];
     
@@ -57,43 +46,23 @@ console.log('🔧 Installatie script laden...');
         }
     });
     
-    // Voeg ENKEL de icons toe die je wel hebt
+    // Voeg icons toe met RELATIEVE paden
     const icons = [
-        // PWA icons (die je WEL hebt)
-        { rel: 'icon', type: 'image/png', sizes: '192x192', href: `${basePath}img/icons/icon-192x192.png` },
-        { rel: 'icon', type: 'image/png', sizes: '512x512', href: `${basePath}img/icons/icon-512x512.png` },
-        
-        // Gebruik dezelfde icon voor apple-touch-icon (optioneel)
-        { rel: 'apple-touch-icon', href: `${basePath}img/icons/icon-192x192.png` }
+        // PWA icons - relatieve paden
+        { rel: 'icon', type: 'image/png', sizes: '192x192', href: 'img/icons/icon-192x192.png' },
+        { rel: 'icon', type: 'image/png', sizes: '512x512', href: 'img/icons/icon-512x512.png' },
+        { rel: 'apple-touch-icon', href: 'img/icons/icon-192x192.png' }
     ];
     
     icons.forEach(icon => {
-        // Verwijder bestaande
-        const selector = icon.sizes 
-            ? `link[rel="${icon.rel}"][sizes="${icon.sizes}"]`
-            : `link[rel="${icon.rel}"]`;
-        
-        const existing = document.querySelector(selector);
-        if (existing) {
-            existing.remove();
-        }
-        
         const link = document.createElement('link');
         link.rel = icon.rel;
         if (icon.type) link.type = icon.type;
         if (icon.sizes) link.sizes = icon.sizes;
         link.href = icon.href;
         document.head.appendChild(link);
-        
         console.log(`📁 Icon toegevoegd: ${icon.href}`);
     });
-    
-    // Verwijder favicon.ico link als die bestaat (om 404 te voorkomen)
-    const faviconLink = document.querySelector('link[rel="icon"][href$="favicon.ico"]');
-    if (faviconLink) {
-        faviconLink.remove();
-        console.log('🗑️ favicon.ico link verwijderd');
-    }
     
     console.log('✅ Meta tags setup voltooid');
 })();
@@ -123,7 +92,7 @@ console.log('🔧 Installatie script laden...');
     console.log('✅ Oude elementen verwijderd');
 })();
 
-// 2. VERTALINGEN (onveranderd)
+// 2. VERTALINGEN
 const translations = {
     nl: {
         installTitle: "📱 App Installeren",
@@ -147,7 +116,7 @@ const translations = {
         installButton: "⚡ Installeer App",
         installed: "Geïnstalleerd",
         installPrompt: "Zoek in je browser menu naar 'Installeren' of 'Toevoegen aan beginscherm'",
-        installWarning: "⚠️ Na installatie opent de app vanaf de hoofdpagina."
+        installWarning: "⚠️ Na installatie opent de app vanaf index.html"
     },
     en: {
         installTitle: "📱 Install App",
@@ -171,7 +140,7 @@ const translations = {
         installButton: "⚡ Install App",
         installed: "Installed",
         installPrompt: "Look in your browser menu for 'Install' or 'Add to Home Screen'",
-        installWarning: "⚠️ After installation, the app opens from the main page."
+        installWarning: "⚠️ After installation, the app opens from index.html"
     },
     de: {
         installTitle: "📱 App Installieren",
@@ -190,16 +159,16 @@ const translations = {
         desktopSub: "Chrome/Edge: Menü → Installieren",
         close: "Schließen",
         androidHelp: "📱 ANDROID:\n\n1. Öffnen Sie Chrome oder Edge auf Ihrem Telefon\n2. Tippen Sie auf Menü (⋮) oben rechts\n3. Wählen Sie 'Zum Startbildschirm hinzufügen'\n4. Tippen Sie 'Hinzufügen'\n\n✅ Die App erscheint auf Ihrem Startbildschirm!",
-        iosHelp: "🍎 IPHONE/IPAD:\n\n1. Öffnen Sie deze pagina in SAFARI (nicht Chrome!)\n2. Tippen Sie auf das Teilen-Symbol (📤) unten\n3. Scrollen Sie zu 'Zum Home-Bildschirm hinzufügen'\n4. Tippen Sie 'Hinzufügen'\n\n✅ Die App erscheint auf Ihrem Startbildschirm!",
+        iosHelp: "🍎 IPHONE/IPAD:\n\n1. Öffnen Sie diese pagina in SAFARI (nicht Chrome!)\n2. Tippen Sie auf das Teilen-Symbol (📤) unten\n3. Scrollen Sie zu 'Zum Home-Bildschirm hinzufügen'\n4. Tippen Sie 'Hinzufügen'\n\n✅ Die App erscheint auf Ihrem Startbildschirm!",
         desktopHelp: "💻 COMPUTER:\n\n1. Öffnen Sie Chrome, Edge oder Firefox\n2. Klicken Sie auf Menü (⋮) oben rechts\n3. Suchen Sie nach 'Installieren' of ähnlicher Option\n4. Klicken Sie 'Installieren'\n\n✅ Die App wordt op Ihrem Computer installiert!",
         installButton: "⚡ App Installieren",
         installed: "Installiert",
         installPrompt: "Suchen Sie in Ihrem Browser-Menü nach 'Installeren' oder 'Zum Startbildschirm hinzufügen'",
-        installWarning: "⚠️ Nach der Installation öffnet sich die App von der Hauptseite."
+        installWarning: "⚠️ Nach der Installation öffnet sich die App von index.html"
     }
 };
 
-// 3. TAAL BEPALEN (onveranderd)
+// 3. TAAL BEPALEN
 function getCurrentLanguage() {
     const savedLang = localStorage.getItem('appLanguage');
     if (savedLang && translations[savedLang]) {
@@ -213,24 +182,19 @@ function getCurrentLanguage() {
     return 'en';
 }
 
-// 4. SIMPLE INSTALLER (onveranderd behalve favicon verwijdering)
+// 4. SIMPLE INSTALLER VOOR ROOT
 class SimpleInstaller {
     constructor() {
         console.log('🆕 SimpleInstaller aangemaakt');
         
-        // Bepaal base path
-        this.basePath = window.location.pathname.includes('/modern-pwa/') 
-            ? '/modern-pwa/' 
-            : '/';
-        
         this.prompt = null;
-        this.appName = document.title || 'Eurasier Friends';
-        this.iconPath = `${this.basePath}img/icons/icon-192x192.png`;
+        this.appName = "Eurasier F.I. Database";
+        this.iconPath = 'img/icons/icon-192x192.png'; // Relatief pad
         this.currentLang = getCurrentLanguage();
         this.t = translations[this.currentLang];
         
-        console.log('📍 Base path:', this.basePath);
         console.log('📍 Icon path:', this.iconPath);
+        console.log('📍 Current URL:', window.location.href);
         
         this.setup();
     }
@@ -240,8 +204,6 @@ class SimpleInstaller {
         window.addEventListener('beforeinstallprompt', (e) => {
             console.log('📱 PWA install prompt beschikbaar');
             this.prompt = e;
-            
-            // Update knop
             this.updateInstallButton(this.t.installButton);
         });
         
@@ -251,27 +213,11 @@ class SimpleInstaller {
             this.markAsInstalled();
         });
         
-        // Check if already installed
-        this.checkIfInstalled();
-        
         // Bind buttons
         this.bindButtons();
         
         window.simpleInstaller = this;
         console.log(`✅ Installer setup voltooid (taal: ${this.currentLang})`);
-    }
-    
-    checkIfInstalled() {
-        // Display mode check
-        if (window.matchMedia('(display-mode: standalone)').matches ||
-            window.matchMedia('(display-mode: fullscreen)').matches ||
-            window.matchMedia('(display-mode: minimal-ui)').matches) {
-            console.log('📱 App draait in standalone mode');
-            this.markAsInstalled();
-            return true;
-        }
-        
-        return false;
     }
     
     updateInstallButton(text) {
@@ -292,7 +238,6 @@ class SimpleInstaller {
         ['pwaInstallBtn', 'pwaInstallBtnMobile'].forEach(id => {
             const btn = document.getElementById(id);
             if (btn) {
-                // Clone om events te resetten
                 const newBtn = btn.cloneNode(true);
                 btn.parentNode.replaceChild(newBtn, btn);
                 
@@ -380,9 +325,6 @@ class SimpleInstaller {
                     <div style="color: #28a745; margin-bottom: 5px;">
                         <i class="bi bi-check-circle"></i> ${this.t.withYourIcon}
                     </div>
-                    <div style="color: #856404; font-size: 12px;">
-                        <i class="bi bi-info-circle"></i> ${this.t.installWarning}
-                    </div>
                 </div>
             ` : `
                 <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px; font-size: 14px;">
@@ -439,7 +381,6 @@ class SimpleInstaller {
         document.body.appendChild(overlay);
         document.body.appendChild(dialog);
         
-        // Bind install button
         if (this.prompt) {
             setTimeout(() => {
                 const installBtn = document.getElementById('installBtnAction');
@@ -491,7 +432,7 @@ class SimpleInstaller {
             desktop: this.t.desktopHelp
         };
         
-        alert(`${helpTexts[type]}\n\n${this.t.installWarning}`);
+        alert(helpTexts[type]);
         this.closeDialog();
     }
     
