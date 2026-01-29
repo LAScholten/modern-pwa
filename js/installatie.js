@@ -15,59 +15,29 @@ console.log('🔧 Installatie script laden...');
         existingManifest.parentNode.removeChild(existingManifest);
     }
     
-    // Maak eigen manifest data
-    const manifestData = {
-        "name": "Eurasier E.I. Database",
-        "short_name": "E.F.I. Db",
-        "description": "Beheer je honden database",
-        "start_url": ".",
-        "display": "standalone",
-        "theme_color": "#1e40af",
-        "background_color": "#ffffff",
-        "icons": [
-            {
-                "src": "img/icons/icon-192x192.png",
-                "sizes": "192x192",
-                "type": "image/png"
-            },
-            {
-                "src": "img/icons/icon-512x512.png",
-                "sizes": "512x512",
-                "type": "image/png"
-            }
-        ]
-    };
+// 0. MANIFEST SETUP - SIMPEL
+(function setupPWAManifest() {
+    'use strict';
     
-    // Maak DATA URL (werkt beter dan BLOB voor manifest)
-    const manifestUrl = 'data:application/manifest+json,' + encodeURIComponent(JSON.stringify(manifestData));
+    console.log('📄 PWA manifest setup...');
     
-    // Voeg manifest link toe
+    const existingManifest = document.querySelector('link[rel="manifest"]');
+    if (existingManifest) existingManifest.remove();
+    
     const manifestLink = document.createElement('link');
     manifestLink.rel = 'manifest';
-    manifestLink.href = manifestUrl;
+    manifestLink.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify({
+        "name": "Eurasier E.I. Database",
+        "short_name": "E.F.I. Db",
+        "icons": [
+            {"src": "img/icons/icon-192x192.png", "sizes": "192x192", "type": "image/png"},
+            {"src": "img/icons/icon-512x512.png", "sizes": "512x512", "type": "image/png"}
+        ]
+    }));
+    
     document.head.appendChild(manifestLink);
-    
-    console.log('✅ Eigen manifest data URL toegevoegd');
-    
-    // Voeg basis meta tags toe
-    const metaTags = [
-        { name: 'theme-color', content: '#1e40af' },
-        { name: 'apple-mobile-web-app-capable', content: 'yes' },
-        { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' }
-    ];
-    
-    metaTags.forEach(tag => {
-        if (!document.querySelector(`meta[name="${tag.name}"]`)) {
-            const meta = document.createElement('meta');
-            meta.name = tag.name;
-            meta.content = tag.content;
-            document.head.appendChild(meta);
-        }
-    });
-    
-    console.log('✅ Meta tags setup voltooid');
+    console.log('✅ Manifest toegevoegd');
 })();
-
 // 1. VERWIJDER ALLES WAT AL BESTAAT
 (function cleanupOld() {
     'use strict';
