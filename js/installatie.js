@@ -1,127 +1,98 @@
-// ✅ installatie.js - MET MANIFEST CREATIE
-// LAATSTE - 29 januari 2024 - MET ICON FIX
+// ✅ installatie.js - COMPLEET MET INLINE MANIFEST
+// LAATSTE - 29 januari 2024 - ZONDER 404 FOUT
 
 console.log('🔧 Installatie script laden...');
 
-// 0. EERST: Maak manifest.json aan als die niet bestaat
-(function createManifest() {
+// 0. EERST: Maak manifest INLINE aan
+(function createInlineManifest() {
     'use strict';
     
-    console.log('📄 Controleren manifest...');
+    console.log('📄 Inline manifest maken...');
     
-    // Check of er al een manifest link is
-    const existingManifest = document.querySelector('link[rel="manifest"]');
-    if (existingManifest) {
-        console.log('✅ Manifest al aanwezig');
-        return;
+    // Verwijder bestaande manifest (als die er is)
+    const oldManifest = document.querySelector('link[rel="manifest"]');
+    if (oldManifest) {
+        oldManifest.remove();
+        console.log('🗑️ Oude manifest verwijderd');
     }
     
-    // Maak manifest.json link
-    const manifestLink = document.createElement('link');
-    manifestLink.rel = 'manifest';
-    manifestLink.href = '/modern-pwa/manifest.json';
-    document.head.appendChild(manifestLink);
+    // Maak een BLOB manifest die we inline kunnen gebruiken
+    try {
+        const manifestData = {
+            "name": document.title || "Hondendatabase PWA",
+            "short_name": "Hondendatabase",
+            "description": "Hondendatabase Progressive Web App",
+            "start_url": window.location.pathname,
+            "display": "standalone",
+            "background_color": "#ffffff",
+            "theme_color": "#007bff",
+            "icons": [
+                {
+                    "src": "/modern-pwa/img/icons/icon-192x192.png",
+                    "sizes": "192x192",
+                    "type": "image/png",
+                    "purpose": "any maskable"
+                },
+                {
+                    "src": "/modern-pwa/img/icons/icon-512x512.png",
+                    "sizes": "512x512",
+                    "type": "image/png"
+                }
+            ]
+        };
+        
+        // Maak een data URL van het manifest
+        const manifestString = JSON.stringify(manifestData);
+        const manifestBlob = new Blob([manifestString], {type: 'application/json'});
+        const manifestUrl = URL.createObjectURL(manifestBlob);
+        
+        // Voeg manifest link toe
+        const manifestLink = document.createElement('link');
+        manifestLink.rel = 'manifest';
+        manifestLink.href = manifestUrl;
+        document.head.appendChild(manifestLink);
+        
+        console.log('✅ Inline manifest aangemaakt:', manifestData.name);
+        
+    } catch (error) {
+        console.error('❌ Fout bij maken manifest:', error);
+        createMetaTagsFallback();
+    }
     
-    console.log('➕ Manifest link toegevoegd');
-    
-    // Probeer manifest.json te laden, maak aan als niet bestaat
-    fetch('/modern-pwa/manifest.json')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Manifest not found, creating...');
-            }
-            return response.json();
-        })
-        .catch(error => {
-            console.log('⚠️ Manifest niet gevonden, maak aan...');
-            
-            // Maak manifest.json object
-            const manifest = {
-                "name": document.title || "Hondendatabase PWA",
-                "short_name": "Hondendatabase",
-                "description": "Hondendatabase Progressive Web App",
-                "start_url": "/modern-pwa/",
-                "display": "standalone",
-                "background_color": "#ffffff",
-                "theme_color": "#007bff",
-                "icons": [
-                    {
-                        "src": "/modern-pwa/img/icons/icon-72x72.png",
-                        "sizes": "72x72",
-                        "type": "image/png"
-                    },
-                    {
-                        "src": "/modern-pwa/img/icons/icon-96x96.png",
-                        "sizes": "96x96",
-                        "type": "image/png"
-                    },
-                    {
-                        "src": "/modern-pwa/img/icons/icon-128x128.png",
-                        "sizes": "128x128",
-                        "type": "image/png"
-                    },
-                    {
-                        "src": "/modern-pwa/img/icons/icon-144x144.png",
-                        "sizes": "144x144",
-                        "type": "image/png"
-                    },
-                    {
-                        "src": "/modern-pwa/img/icons/icon-152x152.png",
-                        "sizes": "152x152",
-                        "type": "image/png"
-                    },
-                    {
-                        "src": "/modern-pwa/img/icons/icon-192x192.png",
-                        "sizes": "192x192",
-                        "type": "image/png",
-                        "purpose": "any maskable"
-                    },
-                    {
-                        "src": "/modern-pwa/img/icons/icon-384x384.png",
-                        "sizes": "384x384",
-                        "type": "image/png"
-                    },
-                    {
-                        "src": "/modern-pwa/img/icons/icon-512x512.png",
-                        "sizes": "512x512",
-                        "type": "image/png"
-                    }
-                ]
-            };
-            
-            // Sla manifest op via fetch (POST naar server) - alleen als je server API hebt
-            // Voor nu: voeg meta tags toe als fallback
-            console.log('📝 Gebruik meta tags als fallback voor manifest');
-            
-            // Voeg meta tags toe voor PWA
-            const metaTags = [
-                { name: 'application-name', content: document.title || 'Hondendatabase' },
-                { name: 'theme-color', content: '#007bff' },
-                { name: 'apple-mobile-web-app-capable', content: 'yes' },
-                { name: 'apple-mobile-web-app-status-bar-style', content: 'black' },
-                { name: 'apple-mobile-web-app-title', content: document.title || 'Hondendatabase' },
-                { name: 'mobile-web-app-capable', content: 'yes' }
-            ];
-            
-            metaTags.forEach(tag => {
-                const meta = document.createElement('meta');
-                meta.name = tag.name;
-                meta.content = tag.content;
-                document.head.appendChild(meta);
-            });
-            
-            // Apple touch icons
-            const iconSizes = [57, 60, 72, 76, 114, 120, 144, 152, 180];
-            iconSizes.forEach(size => {
-                const link = document.createElement('link');
-                link.rel = 'apple-touch-icon';
-                link.sizes = `${size}x${size}`;
-                link.href = `/modern-pwa/img/icons/icon-${size}x${size}.png`;
-                document.head.appendChild(link);
-            });
-            
-            console.log('✅ Meta tags en icons toegevoegd');
+    // Fallback functie voor meta tags
+    function createMetaTagsFallback() {
+        console.log('🔄 Fallback: maak meta tags');
+        
+        // Voeg PWA meta tags toe
+        const metaTags = [
+            { name: 'application-name', content: document.title || 'Hondendatabase' },
+            { name: 'theme-color', content: '#007bff' },
+            { name: 'mobile-web-app-capable', content: 'yes' }
+        ];
+        
+        metaTags.forEach(tag => {
+            const meta = document.createElement('meta');
+            meta.name = tag.name;
+            meta.content = tag.content;
+            document.head.appendChild(meta);
         });
+        
+        // Voeg icon links toe
+        const iconLinks = [
+            { rel: 'icon', href: '/modern-pwa/img/icons/icon-192x192.png', sizes: '192x192' },
+            { rel: 'apple-touch-icon', href: '/modern-pwa/img/icons/icon-192x192.png', sizes: '180x180' }
+        ];
+        
+        iconLinks.forEach(link => {
+            const linkEl = document.createElement('link');
+            linkEl.rel = link.rel;
+            linkEl.href = link.href;
+            if (link.sizes) linkEl.sizes = link.sizes;
+            document.head.appendChild(linkEl);
+        });
+        
+        console.log('✅ Meta tags en icons toegevoegd');
+    }
 })();
 
 // 1. VERWIJDER ALLES WAT AL BESTAAT
@@ -284,7 +255,7 @@ class SimpleInstaller {
                         margin-bottom: 15px;
                         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
                      "
-                     onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iODAiIGhlaWdodD0iODAiIHJ4PSIxNiIgZmlsbD0iIzAwNzBGRiIvPHRleHQgeD0iNDAiIHk9IjQ1IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXdlaWdodD0iYm9sZCI+RG9nPC90ZXh0Pjwvc3ZnPg==';">
+                     onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iODAiIGhlaWdodD0iODAiIHJ4PSIxNiIgZmlsbD0iIzAwNzBGRiIvPjx0ZXh0IHg9IjQwIiB5PSI0NSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC13ZWlnaHQ9ImJvbGQiPkRvZzwvdGV4dD48L3N2Zz4=';">
                 <div style="font-size: 18px; font-weight: bold; color: #212529;">${appName}</div>
                 <div style="color: #6c757d; margin-top: 5px; font-size: 14px;">
                     ${this.prompt ? 'PWA - Werkt offline' : 'Website snelkoppeling'}
@@ -324,7 +295,7 @@ class SimpleInstaller {
                 ">
                     <div style="color: #495057; font-size: 14px;">
                         <i class="bi bi-info-circle"></i> 
-                        Voor een app-achtige ervaring met icoon:
+                        Voor PWA (met icoon): gebruik Chrome/Edge op desktop of Android
                     </div>
                 </div>
             `}
@@ -334,7 +305,7 @@ class SimpleInstaller {
             </div>
             
             <div style="display: grid; gap: 10px; margin-bottom: 20px;">
-                <button onclick="simpleInstaller.showHelp('android')" 
+                <button onclick="simpleInstaller.handlePlatform('android')" 
                         style="
                             padding: 12px;
                             background: #f8f9fa;
@@ -352,11 +323,11 @@ class SimpleInstaller {
                     <span style="font-size: 20px;">📱</span>
                     <div>
                         <div style="font-weight: bold; color: #212529;">Android</div>
-                        <div style="font-size: 12px; color: #6c757d;">Menu → Toevoegen aan beginscherm</div>
+                        <div style="font-size: 12px; color: #6c757d;">Chrome/Edge: Menu → Toevoegen</div>
                     </div>
                 </button>
                 
-                <button onclick="simpleInstaller.showHelp('ios')" 
+                <button onclick="simpleInstaller.handlePlatform('ios')" 
                         style="
                             padding: 12px;
                             background: #f8f9fa;
@@ -374,11 +345,11 @@ class SimpleInstaller {
                     <span style="font-size: 20px;">🍎</span>
                     <div>
                         <div style="font-weight: bold; color: #212529;">iPhone/iPad</div>
-                        <div style="font-size: 12px; color: #6c757d;">Safari → Deel-icoon → Toevoegen</div>
+                        <div style="font-size: 12px; color: #6c757d;">Safari: Deel-icoon → Toevoegen</div>
                     </div>
                 </button>
                 
-                <button onclick="simpleInstaller.showHelp('desktop')" 
+                <button onclick="simpleInstaller.handlePlatform('desktop')" 
                         style="
                             padding: 12px;
                             background: #f8f9fa;
@@ -396,7 +367,7 @@ class SimpleInstaller {
                     <span style="font-size: 20px;">💻</span>
                     <div>
                         <div style="font-weight: bold; color: #212529;">Computer</div>
-                        <div style="font-size: 12px; color: #6c757d;">Browser menu → Installeren</div>
+                        <div style="font-size: 12px; color: #6c757d;">Chrome/Edge: Menu → Installeren</div>
                     </div>
                 </button>
             </div>
@@ -439,6 +410,18 @@ class SimpleInstaller {
         console.log('✅ Dialog geopend');
     }
     
+    handlePlatform(type) {
+        console.log(`🖱️ Platform gekozen: ${type}`);
+        
+        if (this.prompt && (type === 'android' || type === 'desktop')) {
+            // Voor Android en Desktop: gebruik PWA install als beschikbaar
+            this.install();
+        } else {
+            // Voor iOS of geen PWA: toon instructies
+            this.showHelp(type);
+        }
+    }
+    
     install() {
         console.log('⚡ PWA installeren...');
         
@@ -457,7 +440,7 @@ class SimpleInstaller {
                 this.prompt = null;
             });
         } else {
-            console.log('ℹ️ Geen PWA prompt, toon instructies');
+            console.log('ℹ️ Geen PWA prompt, toon desktop instructies');
             this.showHelp('desktop');
         }
         
@@ -468,9 +451,9 @@ class SimpleInstaller {
         console.log(`ℹ️ Toon help voor: ${type}`);
         
         const messages = {
-            android: '📱 ANDROID:\n\n1. Open Chrome of Edge op je telefoon\n2. Tik op menu (⋮)\n3. Kies "Toevoegen aan beginscherm"\n4. Tik "Toevoegen"\n\n✅ De app verschijnt op je beginscherm met icoon!',
-            ios: '🍎 IPHONE/IPAD:\n\n1. Open deze pagina in SAFARI (niet Chrome!)\n2. Tik op het deel-icoon (📤) onderaan\n3. Scroll naar "Toevoegen aan beginscherm"\n4. Tik "Toevoegen"\n\n✅ De app verschijnt op je beginscherm met icoon!',
-            desktop: '💻 COMPUTER:\n\n1. Open Chrome, Edge of Firefox\n2. Klik op menu (⋮) rechtsboven\n3. Zoek naar "Installeren" of soortgelijke optie\n4. Klik "Installeren"\n\n✅ De app wordt geïnstalleerd met icoon op je bureaublad/startmenu!'
+            android: '📱 ANDROID:\n\n1. Open Chrome of Edge op je telefoon\n2. Tik op menu (⋮) rechtsboven\n3. Kies "Toevoegen aan beginscherm"\n4. Tik "Toevoegen"\n\n✅ De app verschijnt op je beginscherm!',
+            ios: '🍎 IPHONE/IPAD:\n\n1. Open deze pagina in SAFARI (niet Chrome!)\n2. Tik op het deel-icoon (📤) onderaan\n3. Scroll naar "Toevoegen aan beginscherm"\n4. Tik "Toevoegen"\n\n✅ De app verschijnt op je beginscherm!',
+            desktop: '💻 COMPUTER:\n\n1. Open Chrome, Edge of Firefox\n2. Klik op menu (⋮) rechtsboven\n3. Zoek naar "Installeren" of soortgelijke optie\n4. Klik "Installeren"\n\n✅ De app wordt geïnstalleerd op je computer!'
         };
         
         alert(messages[type] || 'Kijk in je browser menu naar "Installeren" of "Toevoegen aan beginscherm"');
@@ -499,15 +482,12 @@ class SimpleInstaller {
         console.log('🔒 Dialog sluiten...');
         
         // Verwijder ALLE dialoog elementen
-        document.querySelectorAll('[style*="z-index: 9998"], [style*="z-index: 9999"]').forEach(el => {
+        const elements = document.querySelectorAll('div[style*="z-index: 999"], div[style*="fixed"][style*="top: 0"][style*="left: 0"]');
+        elements.forEach(el => {
             if (el && el.parentNode) {
                 el.parentNode.removeChild(el);
             }
         });
-        
-        // Verwijder ook op andere manieren
-        const overlays = document.querySelectorAll('div[style*="rgba(0,0,0,0.7)"], div[style*="background: rgba(0,0,0,0.7)"]');
-        overlays.forEach(el => el.remove());
         
         console.log('✅ Dialog gesloten');
     }
@@ -526,5 +506,4 @@ if (document.readyState === 'loading') {
     window.simpleInstaller = new SimpleInstaller();
 }
 
-// Maak een manifest.json bestand in je /modern-pwa/ map voor beste resultaten
-console.log('💡 Tip: Maak een manifest.json bestand in /modern-pwa/ voor de beste PWA ervaring!');
+console.log('✅ Installatie script geladen en klaar!');
