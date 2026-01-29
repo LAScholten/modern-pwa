@@ -1,5 +1,5 @@
-// ✅ installatie.js - MET VERTALINGEN NL/EN/DE
-// LAATSTE - 29 januari 2026 - MET TAALONDERSTEUNING
+// ✅ installatie.js - MET VERTALINGEN NL/EN/DE EN 404 FIX
+// LAATSTE - 29 januari 2026 - MET TAALONDERSTEUNING EN PWA FIX
 
 console.log('🔧 Installatie script laden...');
 
@@ -9,19 +9,38 @@ console.log('🔧 Installatie script laden...');
     
     console.log('📄 PWA manifest setup...');
     
-    // Voeg manifest.json link toe als die nog niet bestaat
-    if (!document.querySelector('link[rel="manifest"]')) {
+    // Zorg dat de PWA altijd naar de root startpagina verwijst
+    const updateManifestLinks = () => {
+        // Verwijder bestaande manifest link
+        const existingManifest = document.querySelector('link[rel="manifest"]');
+        if (existingManifest) {
+            existingManifest.remove();
+        }
+        
+        // Voeg nieuwe manifest toe met absolute URL
         const manifestLink = document.createElement('link');
         manifestLink.rel = 'manifest';
-        manifestLink.href = 'manifest.json';
+        
+        // Gebruik altijd de root van de website voor de PWA
+        if (window.location.pathname.includes('/pages/')) {
+            // Als we in een subdirectory zijn, ga terug naar root
+            manifestLink.href = '/manifest.json';
+        } else {
+            // Anders gebruik huidige locatie
+            manifestLink.href = 'manifest.json';
+        }
+        
         document.head.appendChild(manifestLink);
-        console.log('✅ Manifest link toegevoegd');
-    }
+        console.log('✅ Manifest link toegevoegd:', manifestLink.href);
+    };
+    
+    updateManifestLinks();
     
     // Voeg basis meta tags toe
     const metaTags = [
         { name: 'theme-color', content: '#007bff' },
-        { name: 'apple-mobile-web-app-capable', content: 'yes' }
+        { name: 'apple-mobile-web-app-capable', content: 'yes' },
+        { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' }
     ];
     
     metaTags.forEach(tag => {
@@ -30,6 +49,33 @@ console.log('🔧 Installatie script laden...');
             meta.name = tag.name;
             meta.content = tag.content;
             document.head.appendChild(meta);
+        }
+    });
+    
+    // Voeg iOS touch icons toe
+    const iosIcons = [
+        { rel: 'apple-touch-icon', sizes: '180x180', href: '/img/icons/apple-touch-icon.png' },
+        { rel: 'apple-touch-icon', sizes: '152x152', href: '/img/icons/apple-touch-icon-152x152.png' },
+        { rel: 'apple-touch-icon', sizes: '144x144', href: '/img/icons/apple-touch-icon-144x144.png' },
+        { rel: 'apple-touch-icon', sizes: '120x120', href: '/img/icons/apple-touch-icon-120x120.png' },
+        { rel: 'apple-touch-icon', sizes: '114x114', href: '/img/icons/apple-touch-icon-114x114.png' },
+        { rel: 'apple-touch-icon', sizes: '76x76', href: '/img/icons/apple-touch-icon-76x76.png' },
+        { rel: 'apple-touch-icon', sizes: '72x72', href: '/img/icons/apple-touch-icon-72x72.png' },
+        { rel: 'apple-touch-icon', sizes: '60x60', href: '/img/icons/apple-touch-icon-60x60.png' },
+        { rel: 'apple-touch-icon', sizes: '57x57', href: '/img/icons/apple-touch-icon-57x57.png' },
+        { rel: 'icon', type: 'image/png', sizes: '192x192', href: '/img/icons/icon-192x192.png' },
+        { rel: 'icon', type: 'image/png', sizes: '512x512', href: '/img/icons/icon-512x512.png' },
+        { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }
+    ];
+    
+    iosIcons.forEach(icon => {
+        if (!document.querySelector(`link[rel="${icon.rel}"][sizes="${icon.sizes}"]`)) {
+            const link = document.createElement('link');
+            link.rel = icon.rel;
+            if (icon.sizes) link.sizes = icon.sizes;
+            if (icon.type) link.type = icon.type;
+            link.href = icon.href;
+            document.head.appendChild(link);
         }
     });
     
@@ -86,7 +132,8 @@ const translations = {
         desktopHelp: "💻 COMPUTER:\n\n1. Open Chrome, Edge of Firefox\n2. Klik op menu (⋮) rechtsboven\n3. Zoek naar 'Installeren' of soortgelijke optie\n4. Klik 'Installeren'\n\n✅ De app wordt geïnstalleerd op je computer!",
         installButton: "⚡ Installeer App",
         installed: "Geïnstalleerd",
-        installPrompt: "Zoek in je browser menu naar 'Installeren' of 'Toevoegen aan beginscherm'"
+        installPrompt: "Zoek in je browser menu naar 'Installeren' of 'Toevoegen aan beginscherm'",
+        installWarning: "⚠️ Let op: Na installatie opent de app vanaf de hoofdpagina (index.html). Dit is normaal gedrag voor PWA's."
     },
     en: {
         installTitle: "📱 Install App",
@@ -109,7 +156,8 @@ const translations = {
         desktopHelp: "💻 COMPUTER:\n\n1. Open Chrome, Edge or Firefox\n2. Click menu (⋮) top right\n3. Look for 'Install' or similar option\n4. Click 'Install'\n\n✅ The app is installed on your computer!",
         installButton: "⚡ Install App",
         installed: "Installed",
-        installPrompt: "Look in your browser menu for 'Install' or 'Add to Home Screen'"
+        installPrompt: "Look in your browser menu for 'Install' or 'Add to Home Screen'",
+        installWarning: "⚠️ Note: After installation, the app opens from the main page (index.html). This is normal behavior for PWAs."
     },
     de: {
         installTitle: "📱 App Installieren",
@@ -128,11 +176,12 @@ const translations = {
         desktopSub: "Chrome/Edge: Menü → Installieren",
         close: "Schließen",
         androidHelp: "📱 ANDROID:\n\n1. Öffnen Sie Chrome oder Edge auf Ihrem Telefon\n2. Tippen Sie auf Menü (⋮) oben rechts\n3. Wählen Sie 'Zum Startbildschirm hinzufügen'\n4. Tippen Sie 'Hinzufügen'\n\n✅ Die App erscheint auf Ihrem Startbildschirm!",
-        iosHelp: "🍎 IPHONE/IPAD:\n\n1. Öffnen Sie deze Seite in SAFARI (nicht Chrome!)\n2. Tippen Sie auf das Teilen-Symbol (📤) unten\n3. Scrollen Sie zu 'Zum Home-Bildschirm hinzufügen'\n4. Tippen Sie 'Hinzufügen'\n\n✅ Die App erscheint auf Ihrem Startbildschirm!",
+        iosHelp: "🍎 IPHONE/IPAD:\n\n1. Öffnen Sie diese Seite in SAFARI (nicht Chrome!)\n2. Tippen Sie auf das Teilen-Symbol (📤) unten\n3. Scrollen Sie zu 'Zum Home-Bildschirm hinzufügen'\n4. Tippen Sie 'Hinzufügen'\n\n✅ Die App erscheint auf Ihrem Startbildschirm!",
         desktopHelp: "💻 COMPUTER:\n\n1. Öffnen Sie Chrome, Edge oder Firefox\n2. Klicken Sie auf Menü (⋮) oben rechts\n3. Suchen Sie nach 'Installieren' of ähnlicher Option\n4. Klicken Sie 'Installieren'\n\n✅ Die App wird auf Ihrem Computer installiert!",
         installButton: "⚡ App Installieren",
         installed: "Installiert",
-        installPrompt: "Suchen Sie in Ihrem Browser-Menü nach 'Installeren' oder 'Zum Startbildschirm hinzufügen'"
+        installPrompt: "Suchen Sie in Ihrem Browser-Menü nach 'Installeren' oder 'Zum Startbildschirm hinzufügen'",
+        installWarning: "⚠️ Hinweis: Nach der Installation öffnet sich die App von der Hauptseite (index.html). Dies ist normales Verhalten für PWAs."
     }
 };
 
@@ -153,7 +202,21 @@ function getCurrentLanguage() {
     return 'en';
 }
 
-// 4. NIEUWE INSTALLER KLASSE MET VERTALINGEN
+// 4. URL FIX VOOR PWA
+function getBaseUrl() {
+    // Bepaal de basis URL voor PWA installatie
+    const currentPath = window.location.pathname;
+    
+    // Als we in een subdirectory zijn (zoals /pages/)
+    if (currentPath.includes('/pages/')) {
+        return window.location.origin + '/';
+    }
+    
+    // Anders gebruik huidige directory
+    return window.location.origin + currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
+}
+
+// 5. NIEUWE INSTALLER KLASSE MET VERTALINGEN EN URL FIX
 class SimpleInstaller {
     constructor() {
         console.log('🆕 SimpleInstaller aangemaakt');
@@ -162,6 +225,11 @@ class SimpleInstaller {
         this.iconPath = 'img/icons/icon-192x192.png';
         this.currentLang = getCurrentLanguage();
         this.t = translations[this.currentLang];
+        this.baseUrl = getBaseUrl();
+        
+        console.log('🌐 Basis URL voor PWA:', this.baseUrl);
+        console.log('🌐 Huidige locatie:', window.location.href);
+        
         this.setup();
     }
     
@@ -174,13 +242,33 @@ class SimpleInstaller {
             
             // Update knop tekst als PWA beschikbaar is
             this.updateInstallButton(this.t.installButton);
+            
+            // Toon waarschuwing voor PWA gedrag
+            console.log('⚠️ PWA zal starten vanaf hoofdpagina (index.html)');
         });
         
         // App geïnstalleerd event
-        window.addEventListener('appinstalled', () => {
+        window.addEventListener('appinstalled', (evt) => {
             console.log('🎉 App succesvol geïnstalleerd!');
+            
+            // Log de geïnstalleerde app details
+            console.log('📦 Geïnstalleerde app info:', {
+                platform: navigator.platform,
+                userAgent: navigator.userAgent,
+                installedFrom: window.location.href
+            });
+            
+            // Markeer als geïnstalleerd
             this.markAsInstalled();
+            
+            // Toon bevestiging
+            setTimeout(() => {
+                alert('✅ App succesvol geïnstalleerd!\n\nDe app start automatisch vanaf de hoofdpagina.');
+            }, 500);
         });
+        
+        // Check of app al geïnstalleerd is
+        this.checkIfInstalled();
         
         // Bind knoppen
         this.bindButtons();
@@ -191,6 +279,26 @@ class SimpleInstaller {
         console.log(`✅ SimpleInstaller setup voltooid (taal: ${this.currentLang})`);
     }
     
+    checkIfInstalled() {
+        // Check display mode
+        if (window.matchMedia('(display-mode: standalone)').matches ||
+            window.matchMedia('(display-mode: fullscreen)').matches ||
+            window.matchMedia('(display-mode: minimal-ui)').matches) {
+            console.log('📱 App draait in standalone mode (geïnstalleerd)');
+            this.markAsInstalled();
+            return true;
+        }
+        
+        // Check of localStorage zegt dat het geïnstalleerd is
+        if (localStorage.getItem('pwaInstalled') === 'true') {
+            console.log('📱 App gemarkeerd als geïnstalleerd in localStorage');
+            this.markAsInstalled();
+            return true;
+        }
+        
+        return false;
+    }
+    
     updateInstallButton(text) {
         const buttons = ['pwaInstallBtn', 'pwaInstallBtnMobile'];
         buttons.forEach(id => {
@@ -199,6 +307,7 @@ class SimpleInstaller {
                 btn.innerHTML = `<i class="bi bi-download"></i> ${text}`;
                 btn.classList.add('btn-warning');
                 btn.classList.remove('btn-success');
+                btn.disabled = false;
             }
         });
     }
@@ -252,6 +361,7 @@ class SimpleInstaller {
             bottom: 0;
             background: rgba(0,0,0,0.7);
             z-index: 9998;
+            backdrop-filter: blur(3px);
         `;
         overlay.onclick = () => this.closeDialog();
         
@@ -267,10 +377,12 @@ class SimpleInstaller {
             border-radius: 20px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.5);
             z-index: 9999;
-            width: 400px;
+            width: 420px;
             max-width: 90%;
             text-align: center;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-height: 90vh;
+            overflow-y: auto;
         `;
         
         dialog.innerHTML = `
@@ -307,15 +419,28 @@ class SimpleInstaller {
                             width: 100%;
                             margin-bottom: 15px;
                             cursor: pointer;
-                            transition: transform 0.2s;
+                            transition: all 0.3s;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            gap: 8px;
                         "
-                        onmouseover="this.style.transform='translateY(-2px)'"
-                        onmouseout="this.style.transform='translateY(0)'">
+                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(40,167,69,0.4)'"
+                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                    <i class="bi bi-download"></i>
                     ${this.t.directInstall}
                 </button>
                 
-                <div style="color: #28a745; font-size: 13px; margin-bottom: 15px;">
-                    <i class="bi bi-check-circle"></i> ${this.t.withYourIcon}
+                <div style="color: #28a745; font-size: 13px; margin-bottom: 15px; display: flex; align-items: center; gap: 5px;">
+                    <i class="bi bi-check-circle"></i> 
+                    <span>${this.t.withYourIcon}</span>
+                </div>
+                
+                <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 10px; margin: 15px 0; text-align: left;">
+                    <div style="color: #856404; font-size: 13px; display: flex; gap: 8px;">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <span>${this.t.installWarning}</span>
+                    </div>
                 </div>
             ` : `
                 <div style="
@@ -325,9 +450,9 @@ class SimpleInstaller {
                     margin-bottom: 20px;
                     border-left: 4px solid #6c757d;
                 ">
-                    <div style="color: #495057; font-size: 14px;">
+                    <div style="color: #495057; font-size: 14px; display: flex; gap: 8px;">
                         <i class="bi bi-info-circle"></i> 
-                        ${this.t.forPwa}
+                        <span>${this.t.forPwa}</span>
                     </div>
                 </div>
             `}
@@ -348,12 +473,12 @@ class SimpleInstaller {
                             display: flex;
                             align-items: center;
                             gap: 10px;
-                            transition: background 0.2s;
+                            transition: all 0.2s;
                         "
-                        onmouseover="this.style.background='#e9ecef'"
-                        onmouseout="this.style.background='#f8f9fa'">
-                    <span style="font-size: 20px;">📱</span>
-                    <div>
+                        onmouseover="this.style.background='#e9ecef'; this.style.transform='translateX(5px)'"
+                        onmouseout="this.style.background='#f8f9fa'; this.style.transform='translateX(0)'">
+                    <span style="font-size: 24px;">📱</span>
+                    <div style="flex: 1;">
                         <div style="font-weight: bold; color: #212529;">${this.t.android}</div>
                         <div style="font-size: 12px; color: #6c757d;">${this.t.androidSub}</div>
                     </div>
@@ -370,12 +495,12 @@ class SimpleInstaller {
                             display: flex;
                             align-items: center;
                             gap: 10px;
-                            transition: background 0.2s;
+                            transition: all 0.2s;
                         "
-                        onmouseover="this.style.background='#e9ecef'"
-                        onmouseout="this.style.background='#f8f9fa'">
-                    <span style="font-size: 20px;">🍎</span>
-                    <div>
+                        onmouseover="this.style.background='#e9ecef'; this.style.transform='translateX(5px)'"
+                        onmouseout="this.style.background='#f8f9fa'; this.style.transform='translateX(0)'">
+                    <span style="font-size: 24px;">🍎</span>
+                    <div style="flex: 1;">
                         <div style="font-weight: bold; color: #212529;">${this.t.ios}</div>
                         <div style="font-size: 12px; color: #6c757d;">${this.t.iosSub}</div>
                     </div>
@@ -392,12 +517,12 @@ class SimpleInstaller {
                             display: flex;
                             align-items: center;
                             gap: 10px;
-                            transition: background 0.2s;
+                            transition: all 0.2s;
                         "
-                        onmouseover="this.style.background='#e9ecef'"
-                        onmouseout="this.style.background='#f8f9fa'">
-                    <span style="font-size: 20px;">💻</span>
-                    <div>
+                        onmouseover="this.style.background='#e9ecef'; this.style.transform='translateX(5px)'"
+                        onmouseout="this.style.background='#f8f9fa'; this.style.transform='translateX(0)'">
+                    <span style="font-size: 24px;">💻</span>
+                    <div style="flex: 1;">
                         <div style="font-weight: bold; color: #212529;">${this.t.desktop}</div>
                         <div style="font-size: 12px; color: #6c757d;">${this.t.desktopSub}</div>
                     </div>
@@ -414,11 +539,16 @@ class SimpleInstaller {
                         width: 100%;
                         cursor: pointer;
                         font-weight: 500;
-                        transition: background 0.2s;
+                        transition: all 0.2s;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 8px;
                     "
-                    onmouseover="this.style.background='#5a6268'"
-                    onmouseout="this.style.background='#6c757d'">
-                <i class="bi bi-x-circle"></i> ${this.t.close}
+                    onmouseover="this.style.background='#5a6268'; this.style.transform='translateY(-1px)'"
+                    onmouseout="this.style.background='#6c757d'; this.style.transform='translateY(0)'">
+                <i class="bi bi-x-circle"></i> 
+                ${this.t.close}
             </button>
         `;
         
@@ -433,6 +563,7 @@ class SimpleInstaller {
                 if (installBtn) {
                     installBtn.onclick = (e) => {
                         e.stopPropagation();
+                        e.preventDefault();
                         this.install();
                     };
                 }
@@ -456,24 +587,36 @@ class SimpleInstaller {
     
     install() {
         console.log('⚡ PWA installeren...');
+        console.log('📍 Installeren vanaf:', this.baseUrl);
         
         if (this.prompt) {
-            this.prompt.prompt();
-            
-            this.prompt.userChoice.then(result => {
-                console.log(`Gebruiker keuze: ${result.outcome}`);
+            try {
+                this.prompt.prompt();
                 
-                if (result.outcome === 'accepted') {
-                    console.log('✅ Gebruiker heeft geïnstalleerd');
-                    localStorage.setItem('pwaInstalled', 'true');
-                    this.markAsInstalled();
-                }
-                
-                this.prompt = null;
-            });
+                this.prompt.userChoice.then(result => {
+                    console.log(`Gebruiker keuze: ${result.outcome}`);
+                    
+                    if (result.outcome === 'accepted') {
+                        console.log('✅ Gebruiker heeft geïnstalleerd');
+                        localStorage.setItem('pwaInstalled', 'true');
+                        localStorage.setItem('pwaInstallDate', new Date().toISOString());
+                        this.markAsInstalled();
+                    } else {
+                        console.log('❌ Gebruiker heeft geannuleerd');
+                    }
+                    
+                    this.prompt = null;
+                }).catch(error => {
+                    console.error('❌ Fout bij installatie:', error);
+                    this.showHelp('desktop');
+                });
+            } catch (error) {
+                console.error('❌ Fout bij prompt:', error);
+                this.showHelp('desktop');
+            }
         } else {
             console.log('ℹ️ Geen PWA prompt, toon instructies');
-            alert(this.t.installPrompt);
+            this.showHelp('desktop');
         }
         
         this.closeDialog();
@@ -488,7 +631,9 @@ class SimpleInstaller {
             desktop: this.t.desktopHelp
         };
         
-        alert(helpTexts[type] || this.t.installPrompt);
+        // Toon help in een mooie alert
+        const helpMessage = `${helpTexts[type]}\n\n⚠️ ${this.t.installWarning}`;
+        alert(helpMessage);
         this.closeDialog();
     }
     
@@ -504,6 +649,7 @@ class SimpleInstaller {
                 btn.disabled = true;
                 btn.style.cursor = 'default';
                 btn.style.opacity = '0.8';
+                btn.style.pointerEvents = 'none';
             }
         });
         
@@ -525,17 +671,34 @@ class SimpleInstaller {
     }
 }
 
-// 5. START DE INSTALLER
+// 6. START DE INSTALLER
 console.log('🚀 Installer starten...');
+
+// Functie om te controleren of we op de juiste pagina zijn
+function isInstallPage() {
+    const currentPage = window.location.pathname;
+    return currentPage.includes('app.html') || 
+           currentPage.includes('index.html') || 
+           currentPage.endsWith('/') ||
+           currentPage.includes('/pages/');
+}
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         console.log('✅ DOM ready - Installer starten');
-        window.simpleInstaller = new SimpleInstaller();
+        if (isInstallPage()) {
+            window.simpleInstaller = new SimpleInstaller();
+        } else {
+            console.log('⚠️ Niet op installatie pagina, installer niet gestart');
+        }
     });
 } else {
     console.log('⚡ DOM al klaar - Installer direct starten');
-    window.simpleInstaller = new SimpleInstaller();
+    if (isInstallPage()) {
+        window.simpleInstaller = new SimpleInstaller();
+    } else {
+        console.log('⚠️ Niet op installatie pagina, installer niet gestart');
+    }
 }
 
 console.log('✅ Installatie script geladen en klaar!');
