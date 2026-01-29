@@ -1,43 +1,41 @@
 // ✅ installatie.js - MET VERTALINGEN NL/EN/DE
-// LAATSTE - 29 januari 2026 - MET EIGEN MANIFEST
+// LAATSTE - 29 januari 2024 - MET TAALONDERSTEUNING
 
 console.log('🔧 Installatie script laden...');
 
-// 0. MANIFEST SETUP MET EIGEN DATA URL
-(function setupPWAManifest() {
-    'use strict';
-    
-    console.log('📄 PWA manifest setup MET DATA URL...');
-    
-    // Verwijder eerst bestaande manifest
-    const existingManifest = document.querySelector('link[rel="manifest"]');
-    if (existingManifest) {
-        existingManifest.parentNode.removeChild(existingManifest);
-    }
-    
-// 0. MANIFEST SETUP - SIMPEL
+// 0. EENVOUDIGE MANIFEST SETUP ZONDER BLOB
 (function setupPWAManifest() {
     'use strict';
     
     console.log('📄 PWA manifest setup...');
     
-    const existingManifest = document.querySelector('link[rel="manifest"]');
-    if (existingManifest) existingManifest.remove();
+    // Voeg manifest.json link toe als die nog niet bestaat
+    if (!document.querySelector('link[rel="manifest"]')) {
+        const manifestLink = document.createElement('link');
+        manifestLink.rel = 'manifest';
+        manifestLink.href = 'manifest.json';
+        document.head.appendChild(manifestLink);
+        console.log('✅ Manifest link toegevoegd');
+    }
     
-    const manifestLink = document.createElement('link');
-    manifestLink.rel = 'manifest';
-    manifestLink.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify({
-        "name": "Eurasier E.I. Database",
-        "short_name": "E.F.I. Db",
-        "icons": [
-            {"src": "img/icons/icon-192x192.png", "sizes": "192x192", "type": "image/png"},
-            {"src": "img/icons/icon-512x512.png", "sizes": "512x512", "type": "image/png"}
-        ]
-    }));
+    // Voeg basis meta tags toe
+    const metaTags = [
+        { name: 'theme-color', content: '#007bff' },
+        { name: 'apple-mobile-web-app-capable', content: 'yes' }
+    ];
     
-    document.head.appendChild(manifestLink);
-    console.log('✅ Manifest toegevoegd');
+    metaTags.forEach(tag => {
+        if (!document.querySelector(`meta[name="${tag.name}"]`)) {
+            const meta = document.createElement('meta');
+            meta.name = tag.name;
+            meta.content = tag.content;
+            document.head.appendChild(meta);
+        }
+    });
+    
+    console.log('✅ Meta tags setup voltooid');
 })();
+
 // 1. VERWIJDER ALLES WAT AL BESTAAT
 (function cleanupOld() {
     'use strict';
@@ -86,7 +84,7 @@ const translations = {
         androidHelp: "📱 ANDROID:\n\n1. Open Chrome of Edge op je telefoon\n2. Tik op menu (⋮) rechtsboven\n3. Kies 'Toevoegen aan beginscherm'\n4. Tik 'Toevoegen'\n\n✅ De app verschijnt op je beginscherm!",
         iosHelp: "🍎 IPHONE/IPAD:\n\n1. Open deze pagina in SAFARI (niet Chrome!)\n2. Tik op het deel-icoon (📤) onderaan\n3. Scroll naar 'Toevoegen aan beginscherm'\n4. Tik 'Toevoegen'\n\n✅ De app verschijnt op je beginscherm!",
         desktopHelp: "💻 COMPUTER:\n\n1. Open Chrome, Edge of Firefox\n2. Klik op menu (⋮) rechtsboven\n3. Zoek naar 'Installeren' of soortgelijke optie\n4. Klik 'Installeren'\n\n✅ De app wordt geïnstalleerd op je computer!",
-        installButton: "Snelkoppeling maken",
+        installButton: "⚡ Installeer App",
         installed: "Geïnstalleerd",
         installPrompt: "Zoek in je browser menu naar 'Installeren' of 'Toevoegen aan beginscherm'"
     },
@@ -103,13 +101,13 @@ const translations = {
         androidSub: "Chrome/Edge: Menu → Add to Home",
         ios: "iPhone/iPad",
         iosSub: "Safari: Share icon → Add to Home",
-        desktop: "Desktop",
+        desktop: "Computer",
         desktopSub: "Chrome/Edge: Menu → Install",
         close: "Close",
         androidHelp: "📱 ANDROID:\n\n1. Open Chrome or Edge on your phone\n2. Tap menu (⋮) top right\n3. Choose 'Add to Home Screen'\n4. Tap 'Add'\n\n✅ The app appears on your home screen!",
         iosHelp: "🍎 IPHONE/IPAD:\n\n1. Open this page in SAFARI (not Chrome!)\n2. Tap the share icon (📤) at the bottom\n3. Scroll to 'Add to Home Screen'\n4. Tap 'Add'\n\n✅ The app appears on your home screen!",
-        desktopHelp: "💻 DESKTOP:\n\n1. Open Chrome, Edge or Firefox\n2. Click menu (⋮) top right\n3. Look for 'Install' or similar option\n4. Click 'Install'\n\n✅ The app is installed on your computer!",
-        installButton: "Create shortcut",
+        desktopHelp: "💻 COMPUTER:\n\n1. Open Chrome, Edge or Firefox\n2. Click menu (⋮) top right\n3. Look for 'Install' or similar option\n4. Click 'Install'\n\n✅ The app is installed on your computer!",
+        installButton: "⚡ Install App",
         installed: "Installed",
         installPrompt: "Look in your browser menu for 'Install' or 'Add to Home Screen'"
     },
@@ -130,9 +128,9 @@ const translations = {
         desktopSub: "Chrome/Edge: Menü → Installieren",
         close: "Schließen",
         androidHelp: "📱 ANDROID:\n\n1. Öffnen Sie Chrome oder Edge auf Ihrem Telefon\n2. Tippen Sie auf Menü (⋮) oben rechts\n3. Wählen Sie 'Zum Startbildschirm hinzufügen'\n4. Tippen Sie 'Hinzufügen'\n\n✅ Die App erscheint auf Ihrem Startbildschirm!",
-        iosHelp: "🍎 IPHONE/IPAD:\n\n1. Öffnen Sie diese pagina in SAFARI (nicht Chrome!)\n2. Tippen Sie auf das Teilen-Symbol (📤) unten\n3. Scrollen Sie zu 'Zum Home-Bildschirm hinzufügen'\n4. Tippen Sie 'Hinzufügen'\n\n✅ Die App erscheint auf Ihrem Startbildschirm!",
-        desktopHelp: "💻 COMPUTER:\n\n1. Öffnen Sie Chrome, Edge oder Firefox\n2. Klicken Sie auf Menü (⋮) oben rechts\n3. Suchen Sie nach 'Installieren' of ähnlicher Option\n4. Klicken Sie 'Installieren'\n\n✅ Die App wordt auf Ihrem Computer installiert!",
-        installButton: "Verknüpfung erstellen",
+        iosHelp: "🍎 IPHONE/IPAD:\n\n1. Öffnen Sie deze Seite in SAFARI (nicht Chrome!)\n2. Tippen Sie auf das Teilen-Symbol (📤) unten\n3. Scrollen Sie zu 'Zum Home-Bildschirm hinzufügen'\n4. Tippen Sie 'Hinzufügen'\n\n✅ Die App erscheint auf Ihrem Startbildschirm!",
+        desktopHelp: "💻 COMPUTER:\n\n1. Öffnen Sie Chrome, Edge oder Firefox\n2. Klicken Sie auf Menü (⋮) oben rechts\n3. Suchen Sie nach 'Installieren' of ähnlicher Option\n4. Klicken Sie 'Installieren'\n\n✅ Die App wird auf Ihrem Computer installiert!",
+        installButton: "⚡ App Installieren",
         installed: "Installiert",
         installPrompt: "Suchen Sie in Ihrem Browser-Menü nach 'Installeren' oder 'Zum Startbildschirm hinzufügen'"
     }
@@ -199,6 +197,8 @@ class SimpleInstaller {
             const btn = document.getElementById(id);
             if (btn) {
                 btn.innerHTML = `<i class="bi bi-download"></i> ${text}`;
+                btn.classList.add('btn-warning');
+                btn.classList.remove('btn-success');
             }
         });
     }
