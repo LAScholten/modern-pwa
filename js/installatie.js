@@ -218,7 +218,7 @@ class SimpleInstaller {
         console.log('🆕 SimpleInstaller aangemaakt');
         this.prompt = null;
         this.appName = document.title || 'Hondendatabase';
-        this.iconPath = '/modern-pwa/img/icons/icon-192x192.png';
+        this.iconPath = 'img/icons/icon-192x192.png';
         this.currentLang = getCurrentLanguage();
         this.t = translations[this.currentLang];
         this.setup();
