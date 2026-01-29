@@ -3,16 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hondendatabase - Login</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <title>Eurasier Friends International</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    
     <style>
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
+        /* PWA Installatie knop styling */
+        #pwaInstallBtn {
+            transition: all 0.3s ease;
+        }
+        
+        #pwaInstallBtn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            transform: translateY(-1px);
+        }
+        
+        /* Responsieve layout voor actieknoppen */
+        .navbar-actions {
             display: flex;
             align-items: center;
+            gap: 10px;
         }
+        
+        /* Standaard layout (desktop): knoppen naast elkaar */
+        .action-buttons-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        /* Mobiele layout: knoppen onder elkaar */
+        .action-buttons-column {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            width: 100%;
+        }
+        
+        /* Login scherm styling (zelfde als originele index) */
         .login-card {
             background: white;
             border-radius: 15px;
@@ -60,328 +95,798 @@
         .tab-content.active {
             display: block;
         }
+        
+        /* Mobile-specifieke aanpassingen */
+        @media (max-width: 768px) {
+            .mobile-actions {
+                display: flex;
+                flex-direction: column;
+                gap: 5px;
+                margin-top: 5px;
+                width: 100%;
+            }
+            
+            .mobile-actions .btn {
+                width: 100%;
+                justify-content: center;
+                padding: 6px 12px;
+                font-size: 0.9rem;
+            }
+            
+            /* Verberg de normale layout op mobiel */
+            .action-buttons-row {
+                display: none !important;
+            }
+            
+            /* Toon mobiele layout */
+            .action-buttons-column {
+                display: flex !important;
+            }
+            
+            /* Pas navigatie aan voor mobiel */
+            .navbar .container-fluid {
+                flex-wrap: wrap;
+            }
+            
+            .navbar-actions {
+                width: 100%;
+                order: 3;
+                margin-top: 10px;
+            }
+            
+            /* Maak taal selector compacter op mobiel */
+            .btn-group.btn-group-sm {
+                margin-right: 0 !important;
+            }
+        }
+        
+        /* Desktop: verberg mobiele layout */
+        @media (min-width: 769px) {
+            .action-buttons-column {
+                display: none !important;
+            }
+            
+            .action-buttons-row {
+                display: flex !important;
+            }
+        }
+        
+        /* Module styling */
+        .module-content {
+            min-height: 400px;
+            padding: 20px;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-6 col-lg-5">
-                <div class="card login-card">
-                    <div class="card-header text-white text-center py-4" style="background: #0d6efd; border-radius: 15px 15px 0 0;">
-                        <h3 class="mb-2">
-                            <i class="bi bi-database"></i> Hondendatabase
-                        </h3>
-                        <p class="mb-0">Beheerder Login & Registratie</p>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#" id="homeBtn">
+                <i class="bi bi-house-door"></i> 
+                <span class="app-text" data-key="appTitle">Eurasier Friends International</span>
+            </a>
+
+            
+            <div class="navbar-actions">
+                <!-- Taal selector in navigatie -->
+                <div class="me-3">
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-light app-lang-btn active" data-lang="nl" title="Nederlands">
+                            🇳🇱
+                        </button>
+                        <button class="btn btn-outline-light app-lang-btn" data-lang="en" title="English">
+                            🇬🇧
+                        </button>
+                        <button class="btn btn-outline-light app-lang-btn" data-lang="de" title="Deutsch">
+                            🇩🇪
+                        </button>
                     </div>
-                    
-                    <!-- Tab knoppen -->
-                    <div class="card-header bg-light py-3">
-                        <div class="d-flex justify-content-center">
-                            <button class="tab-button active" data-tab="login">
-                                <i class="bi bi-box-arrow-in-right"></i> Inloggen
-                            </button>
-                            <button class="tab-button" data-tab="register">
-                                <i class="bi bi-person-plus"></i> Registreren
-                            </button>
+                </div>
+                
+                <!-- Desktop layout: knoppen naast elkaar -->
+                <div class="action-buttons-row">
+                    <!-- Snelkoppeling Knop - ALTIJD ZICHTBAAR -->
+                    <button class="btn btn-success btn-sm me-2" id="pwaInstallBtn">
+                        <i class="bi bi-link"></i> Maak Snelkoppeling
+                    </button>
+                </div>
+                
+                <!-- Mobile layout: knoppen onder elkaar -->
+                <div class="action-buttons-column d-none">
+                    <!-- Snelkoppeling Knop voor mobiel -->
+                    <button class="btn btn-success btn-sm" id="pwaInstallBtnMobile">
+                        <i class="bi bi-link"></i> Maak Snelkoppeling
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Main Content -->
+    <div class="container-fluid mt-3">
+        <div class="row">
+            <!-- Sidebar Menu -->
+            <div class="col-lg-3 col-md-4 mb-3">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="bi bi-menu-button"></i> <span class="app-text" data-key="menu">Menu</span></h5>
+                    </div>
+                    <div class="list-group list-group-flush">
+                        <button class="list-group-item list-group-item-action" id="historyBtn">
+                            <i class="bi bi-clock-history"></i> <span class="app-text" data-key="history">Historie</span>
+                        </button>
+                        <button class="list-group-item list-group-item-action" id="breedStandardBtn">
+                            <i class="bi bi-file-earmark-text"></i> <span class="app-text" data-key="breedStandard">Rasstandaard</span>
+                        </button>
+                        <button class="list-group-item list-group-item-action" id="databaseBtn">
+                            <i class="bi bi-database"></i> <span class="app-text" data-key="database">Database</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Main Content Area -->
+            <div class="col-lg-9 col-md-8" id="mainContent">
+                <!-- Dashboard (standaard zichtbaar) -->
+                <div id="dashboardContent">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h4 class="mb-0"><i class="bi bi-house-door"></i> <span class="app-text" data-key="dashboard">Dashboard</span></h4>
                         </div>
-                    </div>
-                    
-                    <div class="card-body p-4">
-                        
-                        <!-- LOGIN TAB -->
-                        <div id="loginTab" class="tab-content active">
-                            <form id="loginForm">
-                                <div class="mb-4">
-                                    <label class="form-label fw-bold">E-mailadres</label>
-                                    <input type="email" class="form-control form-control-lg" 
-                                           id="loginEmail" required 
-                                           placeholder="voorbeeld@email.nl"
-                                           autocomplete="email">
-                                </div>
-                                
-                                <div class="mb-4">
-                                    <label class="form-label fw-bold">Wachtwoord</label>
-                                    <input type="password" class="form-control form-control-lg" 
-                                           id="loginPassword" required 
-                                           placeholder="Je wachtwoord"
-                                           autocomplete="current-password">
-                                </div>
-                                
-                                <button type="submit" class="btn btn-login btn-lg text-white w-100">
-                                    <i class="bi bi-box-arrow-in-right"></i> INLOGGEN
-                                </button>
-                            </form>
-                            
-                            <div class="mt-4 text-center">
-                                <small class="text-muted">
-                                    Gebruik je Supabase e-mail en wachtwoord
-                                </small>
+                        <div class="card-body">
+                            <div class="alert alert-success">
+                                <h5><i class="bi bi-check-circle"></i> <span class="app-text" data-key="welcomeTitle">Welkom bij de Eurasier Friends International PWA</span></h5>
                             </div>
                         </div>
-                        
-                        <!-- REGISTREER TAB -->
-                        <div id="registerTab" class="tab-content">
-                            <form id="registerForm">
-                                <div class="mb-4">
-                                    <label class="form-label fw-bold">E-mailadres</label>
-                                    <input type="email" class="form-control form-control-lg" 
-                                           id="registerEmail" required 
-                                           placeholder="je@email.nl"
-                                           autocomplete="email">
-                                </div>
-                                
-                                <div class="mb-4">
-                                    <label class="form-label fw-bold">Wachtwoord</label>
-                                    <input type="password" class="form-control form-control-lg" 
-                                           id="registerPassword" required 
-                                           placeholder="Minimaal 6 tekens"
-                                           minlength="6"
-                                           autocomplete="new-password">
-                                </div>
-                                
-                                <div class="mb-4">
-                                    <label class="form-label fw-bold">Bevestig Wachtwoord</label>
-                                    <input type="password" class="form-control form-control-lg" 
-                                           id="registerConfirmPassword" required 
-                                           placeholder="Herhaal je wachtwoord"
-                                           minlength="6"
-                                           autocomplete="new-password">
-                                </div>
-                                
-                                <div class="alert alert-info">
-                                    <small>
-                                        <i class="bi bi-info-circle"></i> 
-                                        Na registratie ontvang je een verificatie-e-mail. 
-                                        Klik op de link om je account te activeren.
-                                    </small>
-                                </div>
-                                
-                                <button type="submit" class="btn btn-register btn-lg text-white w-100">
-                                    <i class="bi bi-person-plus"></i> ACCOUNT AANMAKEN
-                                </button>
-                            </form>
-                        </div>
-                        
-                        <!-- Berichten weergave -->
-                        <div id="loginMessage" class="mt-3"></div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
+    
+    <!-- Database Login Modal -->
+    <div class="modal fade" id="databaseLoginModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content login-card">
+                <div class="modal-header text-white text-center py-4" style="background: #0d6efd; border-radius: 15px 15px 0 0;">
+                    <h3 class="mb-2">
+                        <i class="bi bi-database"></i> Database Login
+                    </h3>
+                    <p class="mb-0">Beheerder Login & Registratie</p>
+                </div>
+                
+                <!-- Tab knoppen -->
+                <div class="modal-header bg-light py-3">
+                    <div class="d-flex justify-content-center">
+                        <button class="tab-button active" data-tab="login">
+                            <i class="bi bi-box-arrow-in-right"></i> Inloggen
+                        </button>
+                        <button class="tab-button" data-tab="register">
+                            <i class="bi bi-person-plus"></i> Registreren
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="modal-body p-4">
+                    
+                    <!-- LOGIN TAB -->
+                    <div id="loginTab" class="tab-content active">
+                        <form id="loginForm">
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">E-mailadres</label>
+                                <input type="email" class="form-control form-control-lg" 
+                                       id="loginEmail" required 
+                                       placeholder="voorbeeld@email.nl"
+                                       autocomplete="email">
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Wachtwoord</label>
+                                <input type="password" class="form-control form-control-lg" 
+                                       id="loginPassword" required 
+                                       placeholder="Je wachtwoord"
+                                       autocomplete="current-password">
+                            </div>
+                            
+                            <button type="submit" class="btn btn-login btn-lg text-white w-100">
+                                <i class="bi bi-box-arrow-in-right"></i> INLOGGEN
+                            </button>
+                        </form>
+                        
+                        <div class="mt-4 text-center">
+                            <small class="text-muted">
+                                Gebruik je Supabase e-mail en wachtwoord
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <!-- REGISTREER TAB -->
+                    <div id="registerTab" class="tab-content">
+                        <form id="registerForm">
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">E-mailadres</label>
+                                <input type="email" class="form-control form-control-lg" 
+                                       id="registerEmail" required 
+                                       placeholder="je@email.nl"
+                                       autocomplete="email">
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Wachtwoord</label>
+                                <input type="password" class="form-control form-control-lg" 
+                                       id="registerPassword" required 
+                                       placeholder="Minimaal 6 tekens"
+                                       minlength="6"
+                                       autocomplete="new-password">
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Bevestig Wachtwoord</label>
+                                <input type="password" class="form-control form-control-lg" 
+                                       id="registerConfirmPassword" required 
+                                       placeholder="Herhaal je wachtwoord"
+                                       minlength="6"
+                                       autocomplete="new-password">
+                            </div>
+                            
+                            <div class="alert alert-info">
+                                <small>
+                                    <i class="bi bi-info-circle"></i> 
+                                    Na registratie ontvang je een verificatie-e-mail. 
+                                    Klik op de link om je account te activeren.
+                                </small>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-register btn-lg text-white w-100">
+                                <i class="bi bi-person-plus"></i> ACCOUNT AANMAKEN
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <!-- Berichten weergave -->
+                    <div id="loginMessage" class="mt-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scripts -->
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Snelkoppeling installatie script -->
+    <script src="js/installatie.js"></script>
+    
+    <!-- Module scripts -->
+    <script src="js/modules/historie.js"></script>
+    <script src="js/modules/rasstandaard.js"></script>
+    
+    <!-- App Initialization -->
     <script>
-        // Supabase configuratie
-        const SUPABASE_URL = 'https://owjwkjrktftugjjrcwml.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93andranJrdGZ0dWdqanJjd21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2MzA4OTAsImV4cCI6MjA4NDIwNjg5MH0.oW6HTAlMBkjUu_4e3kn4iozjn5wK-15h4wCKcaHrtp8';
+        // Laad taal uit localStorage
+        const appLanguage = localStorage.getItem('appLanguage') || 'nl';
         
-        // Tab functionaliteit
-        document.querySelectorAll('.tab-button').forEach(button => {
-            button.addEventListener('click', () => {
-                const tabId = button.getAttribute('data-tab');
-                
-                // Update tab knoppen
-                document.querySelectorAll('.tab-button').forEach(btn => {
-                    btn.classList.remove('active');
-                });
-                button.classList.add('active');
-                
-                // Update tab content
-                document.querySelectorAll('.tab-content').forEach(content => {
-                    content.classList.remove('active');
-                });
-                document.getElementById(tabId + 'Tab').classList.add('active');
-                
-                // Wis berichten
-                document.getElementById('loginMessage').innerHTML = '';
+        // Vertalingen
+        const appTranslations = {
+            nl: {
+                appTitle: "Eurasier Friends International",
+                logout: "Uitloggen",
+                menu: "Menu",
+                history: "Historie",
+                breedStandard: "Rasstandaard",
+                database: "Database",
+                quickOverview: "Snel Overzicht",
+                dogs: "Honden",
+                photos: "Foto's",
+                refresh: "Vernieuwen",
+                dashboard: "Dashboard",
+                welcomeTitle: "Welkom bij de Eurasier Friends International PWA",
+                comingSoon: "Binnenkort beschikbaar",
+                close: "Sluiten",
+                loading: "Bezig met laden...",
+                installPWA: "Maak Snelkoppeling"
+            },
+            en: {
+                appTitle: "Eurasier Friends International",
+                logout: "Logout",
+                menu: "Menu",
+                history: "History",
+                breedStandard: "Breed Standard",
+                database: "Database",
+                quickOverview: "Quick Overview",
+                dogs: "Dogs",
+                photos: "Photos",
+                refresh: "Refresh",
+                dashboard: "Dashboard",
+                welcomeTitle: "Welcome to the Eurasier Friends International PWA",
+                comingSoon: "Coming Soon",
+                close: "Close",
+                loading: "Loading...",
+                installPWA: "Create Shortcut"
+            },
+            de: {
+                appTitle: "Eurasier Friends International",
+                logout: "Abmelden",
+                menu: "Menü",
+                history: "Geschichte",
+                breedStandard: "Rassestandard",
+                database: "Datenbank",
+                quickOverview: "Schnellübersicht",
+                dogs: "Hunde",
+                photos: "Fotos",
+                refresh: "Aktualisieren",
+                dashboard: "Dashboard",
+                welcomeTitle: "Willkommen bei der Eurasier Friends International PWA",
+                comingSoon: "Demnächst verfügbar",
+                close: "Schließen",
+                loading: "Wird geladen...",
+                installPWA: "Verknüpfung erstellen"
+            }
+        };
+
+        // Pagina tekst vertalen
+        function translateAppPage(lang) {
+            // Update app teksten
+            const elements = document.querySelectorAll('.app-text');
+            elements.forEach(element => {
+                const key = element.getAttribute('data-key');
+                if (appTranslations[lang] && appTranslations[lang][key]) {
+                    element.textContent = appTranslations[lang][key];
+                }
+            });
+            
+            // Update actieve vlag
+            document.querySelectorAll('.app-lang-btn').forEach(btn => {
+                if (btn.getAttribute('data-lang') === lang) {
+                    btn.classList.add('active');
+                    btn.classList.remove('btn-outline-light');
+                    btn.classList.add('btn-light');
+                } else {
+                    btn.classList.remove('active', 'btn-light');
+                    btn.classList.add('btn-outline-light');
+                }
+            });
+            
+            // Update HTML lang attribuut
+            document.documentElement.lang = lang;
+            
+            // Update pagina titel
+            const titles = {
+                nl: "Eurasier Friends International",
+                en: "Eurasier Friends International",
+                de: "Eurasier Friends International"
+            };
+            document.title = titles[lang] || titles.nl;
+            
+            // Update snelkoppeling knop tekst
+            const installButtons = ['pwaInstallBtn', 'pwaInstallBtnMobile'];
+            installButtons.forEach(btnId => {
+                const btn = document.getElementById(btnId);
+                if (btn) {
+                    const text = appTranslations[lang]?.installPWA || appTranslations.nl.installPWA;
+                    btn.innerHTML = `<i class="bi bi-link"></i> ${text}`;
+                }
+            });
+            
+            // Update module titels als ze zichtbaar zijn
+            if (typeof translateHistorieModule === 'function' && document.getElementById('historieTitle')) {
+                translateHistorieModule(lang);
+            }
+            
+            if (typeof translateRasstandaardModule === 'function' && document.getElementById('rasstandaardTitle')) {
+                translateRasstandaardModule(lang);
+            }
+        }
+
+        // Event listeners voor vlaggetjes
+        document.querySelectorAll('.app-lang-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const lang = this.getAttribute('data-lang');
+                localStorage.setItem('appLanguage', lang);
+                translateAppPage(lang);
             });
         });
-        
-        // Laad Supabase dynamisch
-        function loadSupabase() {
-            return new Promise((resolve) => {
-                if (window.supabase) {
-                    resolve(window.supabase);
+
+        // HOOFD LOGIN FUNCTIONALITEIT (exact zoals in de originele index)
+        function initLoginForm() {
+            console.log('Initializing login form...');
+            
+            // Supabase configuratie
+            const SUPABASE_URL = 'https://owjwkjrktftugjjrcwml.supabase.co';
+            const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93andranJrdGZ0dWdqanJjd21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2MzA4OTAsImV4cCI6MjA4NDIwNjg5MH0.oW6HTAlMBkjUu_4e3kn4iozjn5wK-15h4wCKcaHrtp8';
+            
+            // Tab functionaliteit
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.addEventListener('click', () => {
+                    const tabId = button.getAttribute('data-tab');
+                    
+                    // Update tab knoppen
+                    document.querySelectorAll('.tab-button').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    button.classList.add('active');
+                    
+                    // Update tab content
+                    document.querySelectorAll('.tab-content').forEach(content => {
+                        content.classList.remove('active');
+                    });
+                    document.getElementById(tabId + 'Tab').classList.add('active');
+                    
+                    // Wis berichten
+                    document.getElementById('loginMessage').innerHTML = '';
+                });
+            });
+            
+            // Laad Supabase dynamisch
+            function loadSupabase() {
+                return new Promise((resolve) => {
+                    if (window.supabase) {
+                        resolve(window.supabase);
+                        return;
+                    }
+                    
+                    const script = document.createElement('script');
+                    script.src = 'https://unpkg.com/@supabase/supabase-js@2';
+                    script.onload = () => {
+                        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                        resolve(supabase);
+                    };
+                    document.head.appendChild(script);
+                });
+            }
+            
+            // Toon bericht
+            function showMessage(message, type = 'info') {
+                const colors = {
+                    'info': 'alert-info',
+                    'success': 'alert-success',
+                    'error': 'alert-danger'
+                };
+                
+                const messageDiv = document.getElementById('loginMessage');
+                messageDiv.innerHTML = `
+                    <div class="alert ${colors[type]} alert-dismissible fade show">
+                        ${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `;
+                
+                // Scroll naar bericht
+                messageDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+            
+            // Normale login
+            async function loginUser(email, password) {
+                showMessage('🔐 Inloggen bij Supabase...', 'info');
+                
+                try {
+                    const supabase = await loadSupabase();
+                    
+                    const { data, error } = await supabase.auth.signInWithPassword({
+                        email: email,
+                        password: password
+                    });
+                    
+                    if (error) {
+                        showMessage(`❌ Fout: ${error.message}`, 'error');
+                        return false;
+                    }
+                    
+                    // SUCCESS - gebruiker is ingelogd
+                    showMessage('✅ Ingelogd! Doorsturen...', 'success');
+                    
+                    // Opslaan in localStorage
+                    localStorage.setItem('userEmail', data.user.email);
+                    localStorage.setItem('userId', data.user.id);
+                    
+                    // Doorsturen naar app
+                    setTimeout(() => {
+                        window.location.href = 'app.html';
+                    }, 1500);
+                    
+                    return true;
+                    
+                } catch (error) {
+                    showMessage(`❌ Fout: ${error.message}`, 'error');
+                    return false;
+                }
+            }
+            
+            // Registratie functie
+            async function registerUser(email, password) {
+                showMessage('📝 Account aanmaken bij Supabase...', 'info');
+                
+                try {
+                    const supabase = await loadSupabase();
+                    
+                    const { data, error } = await supabase.auth.signUp({
+                        email: email,
+                        password: password,
+                        options: {
+                            emailRedirectTo: 'https://lascholten.github.io/modern-pwa/auth/callback.html'
+                        }
+                    });
+                    
+                    if (error) {
+                        showMessage(`❌ Fout: ${error.message}`, 'error');
+                        return false;
+                    }
+                    
+                    // SUCCESS
+                    if (data.user && data.user.identities && data.user.identities.length > 0) {
+                        showMessage('✅ Account aangemaakt! Check je e-mail voor verificatie.', 'success');
+                        showMessage('📧 <strong>Belangrijk:</strong> Klik op de link in de verificatie-e-mail om je account te activeren.', 'info');
+                        
+                        // Wis formulier
+                        document.getElementById('registerForm').reset();
+                        
+                        // Ga terug naar login tab
+                        setTimeout(() => {
+                            document.querySelector('[data-tab="login"]').click();
+                        }, 3000);
+                        
+                    } else {
+                        showMessage('⚠️ Dit e-mailadres is mogelijk al geregistreerd.', 'info');
+                    }
+                    
+                    return true;
+                    
+                } catch (error) {
+                    showMessage(`❌ Fout: ${error.message}`, 'error');
+                    return false;
+                }
+            }
+            
+            // Login form submit
+            document.getElementById('loginForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const email = document.getElementById('loginEmail').value.trim();
+                const password = document.getElementById('loginPassword').value;
+                
+                if (!email || !password) {
+                    showMessage('❌ Vul e-mail en wachtwoord in', 'error');
                     return;
                 }
                 
-                const script = document.createElement('script');
-                script.src = 'https://unpkg.com/@supabase/supabase-js@2';
-                script.onload = () => {
-                    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-                    resolve(supabase);
-                };
-                document.head.appendChild(script);
+                const btn = this.querySelector('button[type="submit"]');
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Inloggen...';
+                btn.disabled = true;
+                
+                await loginUser(email, password);
+                
+                btn.innerHTML = '<i class="bi bi-box-arrow-in-right"></i> INLOGGEN';
+                btn.disabled = false;
             });
-        }
-        
-        // Toon bericht
-        function showMessage(message, type = 'info') {
-            const colors = {
-                'info': 'alert-info',
-                'success': 'alert-success',
-                'error': 'alert-danger'
-            };
             
-            const messageDiv = document.getElementById('loginMessage');
-            messageDiv.innerHTML = `
-                <div class="alert ${colors[type]} alert-dismissible fade show">
-                    ${message}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            `;
-            
-            // Scroll naar bericht
-            messageDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-        
-        // Normale login
-        async function loginUser(email, password) {
-            showMessage('🔐 Inloggen bij Supabase...', 'info');
-            
-            try {
-                const supabase = await loadSupabase();
+            // Register form submit
+            document.getElementById('registerForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
                 
-                const { data, error } = await supabase.auth.signInWithPassword({
-                    email: email,
-                    password: password
-                });
+                const email = document.getElementById('registerEmail').value.trim();
+                const password = document.getElementById('registerPassword').value;
+                const confirmPassword = document.getElementById('registerConfirmPassword').value;
                 
-                if (error) {
-                    showMessage(`❌ Fout: ${error.message}`, 'error');
-                    return false;
+                if (!email || !password) {
+                    showMessage('❌ Vul alle velden in', 'error');
+                    return;
                 }
                 
-                // SUCCESS - gebruiker is ingelogd
-                showMessage('✅ Ingelogd! Doorsturen...', 'success');
-                
-                // Opslaan in localStorage
-                localStorage.setItem('userEmail', data.user.email);
-                localStorage.setItem('userId', data.user.id);
-                
-                // Doorsturen naar app
-                setTimeout(() => {
-                    window.location.href = 'app.html';
-                }, 1500);
-                
-                return true;
-                
-            } catch (error) {
-                showMessage(`❌ Fout: ${error.message}`, 'error');
-                return false;
-            }
-        }
-        
-        // Registratie functie
-        async function registerUser(email, password) {
-            showMessage('📝 Account aanmaken bij Supabase...', 'info');
-            
-            try {
-                const supabase = await loadSupabase();
-                
-                const { data, error } = await supabase.auth.signUp({
-                    email: email,
-                    password: password,
-                    options: {
-                        emailRedirectTo: 'https://lascholten.github.io/modern-pwa/auth/callback.html'
-                    }
-                });
-                
-                if (error) {
-                    showMessage(`❌ Fout: ${error.message}`, 'error');
-                    return false;
+                if (password.length < 6) {
+                    showMessage('❌ Wachtwoord moet minimaal 6 tekens zijn', 'error');
+                    return;
                 }
                 
-                // SUCCESS
-                if (data.user && data.user.identities && data.user.identities.length > 0) {
-                    showMessage('✅ Account aangemaakt! Check je e-mail voor verificatie.', 'success');
-                    showMessage('📧 <strong>Belangrijk:</strong> Klik op de link in de verificatie-e-mail om je account te activeren.', 'info');
-                    
-                    // Wis formulier
-                    document.getElementById('registerForm').reset();
-                    
-                    // Ga terug naar login tab
-                    setTimeout(() => {
-                        document.querySelector('[data-tab="login"]').click();
-                    }, 3000);
-                    
-                } else {
-                    showMessage('⚠️ Dit e-mailadres is mogelijk al geregistreerd.', 'info');
+                if (password !== confirmPassword) {
+                    showMessage('❌ Wachtwoorden komen niet overeen', 'error');
+                    return;
                 }
                 
-                return true;
+                const btn = this.querySelector('button[type="submit"]');
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Registreren...';
+                btn.disabled = true;
                 
-            } catch (error) {
-                showMessage(`❌ Fout: ${error.message}`, 'error');
-                return false;
-            }
-        }
-        
-        // Login form submit
-        document.getElementById('loginForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
+                await registerUser(email, password);
+                
+                btn.innerHTML = '<i class="bi bi-person-plus"></i> ACCOUNT AANMAKEN';
+                btn.disabled = false;
+            });
             
-            const email = document.getElementById('loginEmail').value.trim();
-            const password = document.getElementById('loginPassword').value;
-            
-            if (!email || !password) {
-                showMessage('❌ Vul e-mail en wachtwoord in', 'error');
-                return;
-            }
-            
-            const btn = this.querySelector('button[type="submit"]');
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Inloggen...';
-            btn.disabled = true;
-            
-            await loginUser(email, password);
-            
-            btn.innerHTML = '<i class="bi bi-box-arrow-in-right"></i> INLOGGEN';
-            btn.disabled = false;
-        });
-        
-        // Register form submit
-        document.getElementById('registerForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const email = document.getElementById('registerEmail').value.trim();
-            const password = document.getElementById('registerPassword').value;
-            const confirmPassword = document.getElementById('registerConfirmPassword').value;
-            
-            if (!email || !password) {
-                showMessage('❌ Vul alle velden in', 'error');
-                return;
-            }
-            
-            if (password.length < 6) {
-                showMessage('❌ Wachtwoord moet minimaal 6 tekens zijn', 'error');
-                return;
-            }
-            
-            if (password !== confirmPassword) {
-                showMessage('❌ Wachtwoorden komen niet overeen', 'error');
-                return;
-            }
-            
-            const btn = this.querySelector('button[type="submit"]');
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Registreren...';
-            btn.disabled = true;
-            
-            await registerUser(email, password);
-            
-            btn.innerHTML = '<i class="bi bi-person-plus"></i> ACCOUNT AANMAKEN';
-            btn.disabled = false;
-        });
-        
-        // Check of er al ingelogd is
-        document.addEventListener('DOMContentLoaded', function() {
+            // Check of er al ingelogd is
             if (localStorage.getItem('userId')) {
                 showMessage('Je bent al ingelogd. Doorsturen...', 'info');
                 setTimeout(() => {
                     window.location.href = 'app.html';
                 }, 1000);
             }
+        }
+
+        // Hoofd init functie voor de app
+        function initApp() {
+            console.log('Initializing Eurasier Friends International app...');
+            
+            // Initialiseer taal
+            translateAppPage(appLanguage);
+            
+            // Setup event listeners voor menu knoppen
+            setupMenuEventListeners();
+            
+            // Setup andere event listeners
+            setupOtherEventListeners();
+            
+            // Setup responsieve layout
+            setupResponsiveLayout();
+        }
+        
+        function setupMenuEventListeners() {
+            console.log('Setting up menu event listeners');
+            
+            // Home knop
+            const homeBtn = document.getElementById('homeBtn');
+            if (homeBtn) {
+                homeBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('Home knop geklikt');
+                    showDashboard();
+                });
+            }
+            
+            // Historie knop
+            const historyBtn = document.getElementById('historyBtn');
+            if (historyBtn) {
+                historyBtn.addEventListener('click', function() {
+                    console.log('Historie knop geklikt');
+                    showHistorie();
+                });
+            }
+            
+            // Rasstandaard knop
+            const breedStandardBtn = document.getElementById('breedStandardBtn');
+            if (breedStandardBtn) {
+                breedStandardBtn.addEventListener('click', function() {
+                    console.log('Rasstandaard knop geklikt');
+                    showRasstandaard();
+                });
+            }
+            
+            // Database knop
+            const databaseBtn = document.getElementById('databaseBtn');
+            if (databaseBtn) {
+                databaseBtn.addEventListener('click', function() {
+                    console.log('Database knop geklikt');
+                    const modal = new bootstrap.Modal(document.getElementById('databaseLoginModal'));
+                    modal.show();
+                    
+                    // Initialiseer het login formulier na een korte delay
+                    setTimeout(() => {
+                        initLoginForm();
+                    }, 100);
+                });
+            }
+        }
+        
+        // Functie om dashboard te tonen
+        function showDashboard() {
+            const mainContent = document.getElementById('mainContent');
+            mainContent.innerHTML = `
+                <div id="dashboardContent">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h4 class="mb-0"><i class="bi bi-house-door"></i> <span class="app-text" data-key="dashboard">Dashboard</span></h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-success">
+                                <h5><i class="bi bi-check-circle"></i> <span class="app-text" data-key="welcomeTitle">Welkom bij de Eurasier Friends International PWA</span></h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Update vertalingen
+            translateAppPage(appLanguage);
+        }
+        
+        // Functie om historie te tonen
+        function showHistorie() {
+            const mainContent = document.getElementById('mainContent');
+            
+            if (typeof initHistorieModule === 'function') {
+                mainContent.innerHTML = initHistorieModule();
+                
+                // Update vertalingen
+                const currentLang = localStorage.getItem('appLanguage') || 'nl';
+                translateHistorieModule(currentLang);
+            } else {
+                console.error('Historie module niet gevonden');
+                mainContent.innerHTML = '<div class="alert alert-danger">Historie module kon niet geladen worden</div>';
+            }
+        }
+        
+        // Functie om rasstandaard te tonen
+        function showRasstandaard() {
+            const mainContent = document.getElementById('mainContent');
+            
+            if (typeof initRasstandaardModule === 'function') {
+                mainContent.innerHTML = initRasstandaardModule();
+                
+                // Update vertalingen
+                const currentLang = localStorage.getItem('appLanguage') || 'nl';
+                translateRasstandaardModule(currentLang);
+            } else {
+                console.error('Rasstandaard module niet gevonden');
+                mainContent.innerHTML = '<div class="alert alert-danger">Rasstandaard module kon niet geladen worden</div>';
+            }
+        }
+        
+        function setupOtherEventListeners() {
+            console.log('Setting up other event listeners');
+            
+            // Snelkoppeling knoppen verwijzen naar het externe script
+            const snelkoppelingBtn = document.getElementById('pwaInstallBtn');
+            if (snelkoppelingBtn) {
+                snelkoppelingBtn.addEventListener('click', function() {
+                    // Roep de functie aan uit installatie.js als deze beschikbaar is
+                    if (typeof showPWAInstallModal === 'function') {
+                        showPWAInstallModal();
+                    } else {
+                        console.warn('PWA install functie niet beschikbaar');
+                        alert('Snelkoppeling functionaliteit wordt geladen...');
+                    }
+                });
+            }
+            
+            const snelkoppelingBtnMobile = document.getElementById('pwaInstallBtnMobile');
+            if (snelkoppelingBtnMobile) {
+                snelkoppelingBtnMobile.addEventListener('click', function() {
+                    // Roep de functie aan uit installatie.js als deze beschikbaar is
+                    if (typeof showPWAInstallModal === 'function') {
+                        showPWAInstallModal();
+                    } else {
+                        console.warn('PWA install functie niet beschikbaar');
+                        alert('Snelkoppeling functionaliteit wordt geladen...');
+                    }
+                });
+            }
+            
+            // Setup responsieve layout
+            setupResponsiveLayout();
+        }
+        
+        // Responsieve layout management
+        function setupResponsiveLayout() {
+            // Controleer initieel of mobiel
+            checkScreenSize();
+            
+            // Luister naar window resize
+            window.addEventListener('resize', checkScreenSize);
+        }
+        
+        function checkScreenSize() {
+            const isMobile = window.innerWidth <= 768;
+            
+            // Zoek de knoppen containers
+            const columnLayout = document.querySelector('.action-buttons-column');
+            const rowLayout = document.querySelector('.action-buttons-row');
+            
+            if (isMobile) {
+                // Mobiel: toon kolom layout
+                if (columnLayout) columnLayout.classList.remove('d-none');
+                if (rowLayout) rowLayout.classList.add('d-none');
+            } else {
+                // Desktop: toon rij layout
+                if (columnLayout) columnLayout.classList.add('d-none');
+                if (rowLayout) rowLayout.classList.remove('d-none');
+            }
+        }
+        
+        // Start de app initialisatie wanneer de DOM geladen is
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM geladen, start app initialisatie...');
+            initApp();
         });
     </script>
+    
 </body>
-</html>
 </html>

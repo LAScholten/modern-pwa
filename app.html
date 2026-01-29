@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hondendatabase PWA - Desktop Edition</title>
+    <title>Eurasier Friends International - Database</title>
     
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -15,7 +15,7 @@
     <link rel="stylesheet" href="css/style.css">
     
     <style>
-        /* PWA Installatie knop styling */
+        /* PWA Installatie knop styling -->
         #pwaInstallBtn {
             transition: all 0.3s ease;
         }
@@ -39,7 +39,7 @@
             gap: 10px;
         }
         
-        /* Mobiele layout: knoppen onder elkaar */
+        /* Mobiele layout: knoppen onder elkaar -->
         .action-buttons-column {
             display: flex;
             flex-direction: column;
@@ -47,24 +47,7 @@
             width: 100%;
         }
         
-        /* Disclaimer knop styling -->
-        #disclaimerBtn {
-            background-color: #6c757d;
-            border-color: #6c757d;
-            color: white;
-            font-size: 0.9rem;
-            padding: 6px 12px;
-            margin-top: 10px;
-            transition: all 0.3s ease;
-        }
-        
-        #disclaimerBtn:hover {
-            background-color: #5a6268;
-            border-color: #545b62;
-            transform: translateY(-2px);
-        }
-        
-        /* BEVEILIGINGSSECTIE - LETTERGROOTTE 70% -->
+        <!-- BEVEILIGINGSSECTIE - LETTERGROOTTE 70% -->
         .security-section {
             font-size: 70% !important;
         }
@@ -193,11 +176,18 @@
         <div class="container-fluid">
             <a class="navbar-brand" href="#">
                 <i class="bi bi-database"></i> 
-                <span class="app-text" data-key="appTitle">Hondendatabase PWA - Desktop Edition</span>
+                <span class="app-text" data-key="appTitle">Eurasier Friends International - Database</span>
             </a>
 
             
             <div class="navbar-actions">
+                <!-- Home knop -->
+                <div class="me-2">
+                    <a href="index.html" class="btn btn-outline-light btn-sm" title="Terug naar Hoofdpagina">
+                        <i class="bi bi-house-door"></i> Home
+                    </a>
+                </div>
+                
                 <!-- Taal selector in navigatie -->
                 <div class="me-3">
                     <div class="btn-group btn-group-sm">
@@ -322,7 +312,7 @@
                     </div>
                     <div class="card-body">
                         <div class="alert alert-success">
-                            <h5><i class="bi bi-check-circle"></i> <span class="app-text" data-key="welcomeTitle">Welkom bij de Hondendatabase PWA - Desktop Edition</span></h5>
+                            <h5><i class="bi bi-check-circle"></i> <span class="app-text" data-key="welcomeTitle">Welkom bij de Eurasier Friends International PWA - Database</span></h5>
                             <p class="app-text" data-key="welcomeText">Kies een optie uit het menu om te beginnen. De interactieve Database online.</p>
                             
                             <!-- DISCLAIMER KNOOP - Wordt nu afgehandeld door disclaimer.js -->
@@ -676,7 +666,7 @@
         // Vertalingen - NU COMPLEET MET ALLE BESCHRIJVINGEN
         const appTranslations = {
             nl: {
-                appTitle: "Hondendatabase PWA - Desktop Edition",
+                appTitle: "Eurasier Friends International - Database",
                 logout: "Uitloggen",
                 menu: "Menu",
                 dataManagement: "Data Beheer",
@@ -692,7 +682,7 @@
                 photos: "Foto's",
                 refresh: "Vernieuwen",
                 dashboard: "Dashboard",
-                welcomeTitle: "Welkom bij de Hondendatabase PWA - Desktop Edition",
+                welcomeTitle: "Welkom bij de Eurasier Friends International PWA - Database",
                 welcomeText: "Kies een optie uit het menu om te beginnen..",
                 aboutApp: "Over deze PWA",
                 appDescription: "Deze Progressive Web App heeft verschillende mogelijkheden:",
@@ -718,7 +708,7 @@
                 installPWA: "Maak Snelkoppeling"
             },
             en: {
-                appTitle: "Dog Database PWA - Desktop Edition",
+                appTitle: "Eurasier Friends International - Database",
                 logout: "Logout",
                 menu: "Menu",
                 dataManagement: "Data Management",
@@ -734,7 +724,7 @@
                 photos: "Photos",
                 refresh: "Refresh",
                 dashboard: "Dashboard",
-                welcomeTitle: "Welcome to the Dog Database PWA - Desktop Edition",
+                welcomeTitle: "Welcome to the Eurasier Friends International PWA - Database",
                 welcomeText: "Choose an option from the menu to start.",
                 aboutApp: "About this PWA",
                 appDescription: "This Progressive Web App has several features:",
@@ -760,7 +750,7 @@
                 installPWA: "Create Shortcut"
             },
             de: {
-                appTitle: "Hundendatenbank PWA - Desktop Edition",
+                appTitle: "Eurasier Friends International - Datenbank",
                 logout: "Abmelden",
                 menu: "Menü",
                 dataManagement: "Datenverwaltung",
@@ -776,7 +766,7 @@
                 photos: "Fotos",
                 refresh: "Aktualisieren",
                 dashboard: "Dashboard",
-                welcomeTitle: "Willkommen bei der Hundendatenbank PWA - Desktop Edition",
+                welcomeTitle: "Willkommen bei der Eurasier Friends International PWA - Datenbank",
                 welcomeText: "Wählen Sie eine option aus dem menü, um zu beginnen.",
                 aboutApp: "Über deze PWA",
                 appDescription: "Diese Progressive Web App hat verschiedene mogelijkkeiten:",
@@ -787,17 +777,17 @@
                 feature3: "⚡ Schnelle Arbeit:",
                 feature3Desc: "Direkter Zugriff auf Ihre Daten",
                 feature4: "🔒 Sichere Speicherung:",
-                feature4Desc: "Private informatie zijn alleen voor de person zichtbaar, die ze heeft ingevoerd.",
-                feature5: "Hunde hinzufügen en verwalten",
+                feature4Desc: "Private informatie zijn alleen voor de person zichtbaar, die sie hat ingevoerd.",
+                feature5: "Hunde hinzufügen und verwalten",
                 feature6: "Daten importieren/exportieren",
                 security: "Sicherheit",
-                roleBasedAccess: "Die App gebruikt rollenbasierte Zugriffe:",
+                roleBasedAccess: "Die App verwendet rollenbasierte Zugriffe:",
                 adminRole: "Administrator",
                 adminRights: "Volle Rechte.",
                 userPlusRole: "Benutzer+",
-                userPlusRights: "Kann Hunde ansehen, Zuchtpläne erstellen en eigene Hunde/Würfe hinzufügen of bearbeiten, vorausgesetzt die ouders zijn bereits in der Datenbank.",
+                userPlusRights: "Kann Hunde ansehen, Zuchtpläne erstellen en eigene Hunde/Würfe hinzufügen of bearbeiten, vorausgesetzt die Eltern sind bereits in der Datenbank.",
                 userRole: "Benutzer",
-                userRights: "Kann Hunde ansehen, maar keine eigenen Zuchtpläne erstellen en geen eigenen Hunde/Würfe hinzufügen of bearbeiten.",
+                userRights: "Kann Hunde ansehen, aber keine eigenen Zuchtpläne erstellen und keine eigenen Hunde/Würfe hinzufügen oder bearbeiten.",
                 disclaimerBtn: "Disclaimer/Information zur COI Berechnung",
                 installPWA: "Verknüpfung erstellen"
             }
@@ -831,9 +821,9 @@
             
             // Update pagina titel
             const titles = {
-                nl: "Hondendatabase PWA - Desktop Edition",
-                en: "Dog Database PWA - Desktop Edition",
-                de: "Hundendatenbank PWA - Desktop Edition"
+                nl: "Eurasier Friends International - Database",
+                en: "Eurasier Friends International - Database",
+                de: "Eurasier Friends International - Datenbank"
             };
             document.title = titles[lang] || titles.nl;
             
