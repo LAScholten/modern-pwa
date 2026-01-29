@@ -18,12 +18,12 @@ const rasstandaardTranslations = {
 <p>Gezelschapshond.</p>
 
 <h6>FCI-classificatie:</h6>
-<p>Groep 5 Spitze und Hunde vom Urtyp.<br>
-Sectie 5 Asiatische Spitze und verwandte Rassen.<br>
-Ohne Arbeitsprüfung.</p>
+<p>Groep 5 Spits- en oertypen.<br>
+Sectie 5 Aziatische Spitzen und verwante rassen.<br>
+Geen werkrpoef.</p>
 
 <h6>Korte historische samenvatting:</h6>
-<p>1960 ontstond door kruising van Chow-Chow en Wolfspitz een hondenras, dat eerst « Wolf-Chow » genoemd werd en na inkruising van de Samojed in 1973 in « Eurasier » werd omgedoopt en door de F.C.I. erkend werd. Rassegründer was Julius Wipfel.</p>
+<p>1960 ontstond door kruising van Chow-Chow en Wolfspitz een hondenras, dat eerst « Wolf-Chow » genoemd werd en na inkruising van de Samojeed in 1973 in « Eurasier » werd omgedoopt en door de F.C.I. erkend werd. Rasgrondlegger was Julius Wipfel.</p>
 
 <h6>Algemeen voorkomen:</h6>
 <p>Harmonisch opgebouwde, middelgrote, spitsachtige hond met staande oren in verschillende kleurslagen; met een haarlengte die de proporties van het lichaam nog laat herkennen; middelswaar beenderstelsel.</p>
@@ -38,104 +38,102 @@ Ohne Arbeitsprüfung.</p>
 <p>Harmonische, niet te brede schedel, kopvorm van boven en van opzij gezien wigvormig, neusrug en hersenschedel parallel.</p>
 
 <h6>Bovenschedel:</h6>
-<p><strong>Schädel:</strong> Platte voorhoofdspartij met goed herkenbare voorhoofdsgroeve; uitgesproken achterhoofdsknobbel.</p>
-<p><strong>Stop:</strong> Weinig uitgesproken.</p>
+<p><strong>Schädel:</strong> Vlakke schedel met goed herkenbare voorhoofdsgroeve; uitgesproken achterhoofdsknobbel.</p>
+<p><strong>Stop:</strong> Niet duidelijk uitgesproken.</p>
 
-<h6>Voorschedel:</h6>
+<h6>Aangezicht:</h6>
 <p><strong>Neusspiegel:</strong> Middelgroot, neusspiegel zwart gepigmenteerd.</p>
-<p><strong>Voorsnuit:</strong> Noch te grof noch te spits; zich naar voren tot aan de neusspiegel versmallend; rechte neusrug en rechte onderkaaktakken.</p>
+<p><strong>Voorsnuit:</strong> Noch te grof noch te spits; word naar de neusspiegel toe geleidelijk smaller; rechte neusrug en rechte onderkaak.</p>
 <p><strong>Lippen:</strong> Lippenranden strak en zwart gepigmenteerd.</p>
-<p><strong>Kaken / Tanden:</strong> Kaken krachtig; brede onderkaakboog. Krachtig, volledig gebit (42 tanden volgens de tandformule); gebitssluiting ofwel schaar- of tanggebit; bovenste snijtanden grijpen ofwel nauw over onderste snijtanden of op elkaar; premolaren en molaren in een lijn zonder openingen; alle tanden staan loodrecht in de kaak.</p>
-<p><strong>Wangen:</strong> Weinig benadrukt.</p>
+<p><strong>Gebit:</strong> krachtige kaak en brede onderkaakboog. Krachtig volledig ontwikkeld gebit(42 tanden volgens de tandformule). schaar- of tanggebit; de bovenste snijtanden staan of net voor of op de onderste snijtanden; premolaren en molaren staan op één lijn onder openingen. Alle tanden staan recht in de kaak..</p>
+<p><strong>Wangen:</strong> matig ontwikkeld.</p>
 
 <h6>Ogen:</h6>
-<p>Donker, middelgroot, niet te diepliggend of uitpuilend; licht schuin geplaatste oogspleten; oogranden zwart gepigmenteerd en strak aanliggend.</p>
+<p>Donker van kleur, middelgroot, niet te diep liggend of uitpuilend. Iets schuin geplaatst ooglid. Oogranden goed aanliggend en zwart gepigmenteerd.</p>
 
 <h6>Oren:</h6>
-<p>Ongeveer één oorbreedtebasis van elkaar aangezet; middelgroot en driehoekig; staande oren met licht afgeronde toppen. Oortoppen en middelpunt van de stop vormen een bijna gelijkzijdige driehoek.</p>
+<p>Staan ongeveer de breedte van een oorbasis uit elkaar, middelgroot en driehoekig. Staande oren met iets afgeronde toppen. De toppen 
+van de oren en het midden van de stop vormen een bijna gelijkzijdige driehoek.</p>
 
 <h6>Hals:</h6>
-<p>Van middelmatige lengte, in harmonie met het totale beeld, goed bespierd; strak aanliggende keelhuid. Vloeiende overgang naar het lichaam.</p>
+<p>Van gemiddelde lengte, in harmonie met het totaalbeeld, goed gespierd. Keelhuid droog zonder plooien. Vloeiende overgang naar het lichaam.</p>
 
 <h6>Lichaam:</h6>
-<p><strong>Bovenbelijning:</strong> Krachtig, niet te kort.</p>
-<p><strong>Schofthoogte:</strong> Benadrukt.</p>
+<p><strong>Bovenbelijning:</strong> Krachtige, niet te korte romp</p>
+<p><strong>Schoft:</strong> Goed afgetekend.</p>
 <p><strong>Rug:</strong> Stevig en recht; zeer goed bespierd.</p>
 <p><strong>Lendenen:</strong> Van goede lengte en breedte, zeer goed bespierd.</p>
-<p><strong>Kruis:</strong> Bijna recht, breed en krachtig.</p>
-<p><strong>Borst:</strong> Tot aan de ellebogen reikend; met ovale ribwelving; goed ontwikkelde voorborst, zonder echter benadrukt te zijn; lang, ver naar achteren reikend borstbeen.</p>
-<p><strong>Onderbelijning en buik:</strong> In het buikgebied licht opgetrokken; flanken licht ingetrokken.</p>
+<p><strong>Croupe:</strong> Bijna recht, breed en krachtig.</p>
+<p><strong>Borst:</strong> Tot de ellebogen reikend met ovale ribbenwelving, goed ontwikkelde 
+en niet te sterk afgetekende voorborst. Lang, flink naar achter doorlopend borstbeen.</p>
+<p><strong>Onderbelijning:</strong> Licht opgetrokken. Flanken licht afgetekend.</p>
 
 <h6>Staart:</h6>
-<p>Hoge aanzet, rond en stevig, van goede dikte, zich naar het einde toe versmallend, tot aan de spronggewrichten reikend; bossig behaard, aangelegd - naar voren over de rug of licht zijwaarts gebogen of opgerold gedragen.</p>
+<p>Hoog aangezet, rond en stevig, van goede dikte, naar het eind toe geleidelijk dunner wordend, dicht behaard, over de rug gekruld of licht zijwaarts over de rug gekruld naar voren gedragen. Reikt hangend tot aan het spronggewricht. In stand mag de staart hangen. Bij de eerste pas, als de hond gaat lopen, moet de staart weer terug op de rug komen.</p>
 
 <h6>Ledematen:</h6>
 <h6>Voorhand:</h6>
-<p><strong>Algemeen:</strong> Van voren gezien recht en parallel gesteld; van opzij bekeken goed gehoekt; opperarm en onderarm bijna van gelijke lengte.</p>
+<p><strong>Algemeen:</strong> Van voren gezien rechte en parallel staande benen, van opzij gezien goed gehoekt. Opper- en onderarm zijn vrijwel even lang.</p>
 <p><strong>Schouder:</strong> Goed bespierd, schouderblad iets schuin liggend.</p>
 <p><strong>Opperarm:</strong> Middellang en goed bespierd.</p>
-<p><strong>Ellebogen:</strong> Aan de borstkas aanliggend.</p>
-<p><strong>Onderarm:</strong> Middellang; goed bespierd.</p>
-<p><strong>Voormiddenvoet:</strong> Middellang, krachtig, van voren gezien volledig recht; van opzij gezien licht naar voren gericht.</p>
-<p><strong>Voorvoeten:</strong> Ovaal; dicht bij elkaar liggende, matig gewelfde tenen; krachtige, donker gepigmenteerde nagels; vaste, goed gepolsterde, zwart gepigmenteerde voetzolen. Dichte beharing tussen de voetzolen.</p>
+<p><strong>Ellebogen:</strong> Goed aanliggend tegen de borstkas</p>
+<p><strong>Onderarm:</strong> Middelmatig lang en goed bespierd</p>
+<p><strong>Voormiddenvoet:</strong> Middelmatig lang, krachtig. Van voren gezien recht, van opzij gezien iets geveerd.</p>
+<p><strong>Voorvoeten:</strong> Ovaal, gesloten, matig gewelfd, sterke, donkere nagels, goed ontwikkelde zwarte voetzolen. Dichte beharing tussen de voetzolen.</p>
 
 <h6>Achterhand:</h6>
-<p><strong>Algemeen:</strong> Van achteren gezien recht en parallel gesteld, van opzij bekeken goed gehoekt. Boven- en onderbeen bijna van gelijke lengte.</p>
+<p><strong>Algemeen:</strong> Van achter gezien rechte en parallel staande benen, van opzij gezien goed gehoekt. Dijbeen en onderbeen zijn vrijwel even lang.</p>
 <p><strong>Bekken:</strong> Licht schuin geplaatst.</p>
 <p><strong>Bovenbeen:</strong> Middellang en sterk bespierd.</p>
 <p><strong>Knie:</strong> Stabiel, hoek niet te sterk geopend.</p>
 <p><strong>Onderbeen:</strong> Middellang, goed bespierd.</p>
-<p><strong>Spronggewricht:</strong> Niet te diep aangezet, noch naar binnen noch naar buiten gericht, stabiel, niet naar voren doorzakkend.</p>
-<p><strong>Achtermiddenvoet:</strong> Goed lang en breed; van opzij bekeken loodrecht gesteld.</p>
-<p><strong>Achtervoeten:</strong> Ovaal, gesloten, matig gewelfd; krachtige, donker gepigmenteerde teennagels; vaste, goed gepolsterde, zwart gepigmenteerde voetzolen. Dichte beharing tussen de voetzolen.</p>
+<p><strong>Spronggewricht:</strong> Niet te laag aangezet. Niet naar binnen noch naar buiten gedraaid. Stabiel en niet naar voren doorknikkend</p>
+<p><strong>Achtermiddenvoet:</strong> Goed lang en breed en van opzij gezien loodrecht/haaks staand.</p>
+<p><strong>Achtervoeten:</strong> Ovaal, gesloten, matig gewelfd, sterke, donkere nagels, goed ontwikkelde zwarte voetzolen. Dichte beharing tussen de voetzolen. </p>
 
 <h6>Gangwerk:</h6>
-<p>Ruimtebesparend en harmonisch met krachtige stuwkracht en goede voortbeweging. Rug in beweging stevig en in goede evenwichtspositie; voor- en achterhand recht tredend, bij toenemende loopsnelheid nauwer wordend.</p>
+<p>Ruim uitgrijpend, harmonieus met veel stuwkracht en goede voorwaartse beweging. Strakke rug tijdens de beweging met goede balans. Voor- en achterbenen recht tijdens de beweging. Bij hogere snelheid eensporig. Voorgebracht in draf.</p>
 <p><strong>Voorkeursgang:</strong> Draf.</p>
 
 <h6>Huid:</h6>
 <p>Strak; gepigmenteerd.</p>
 
 <h6>Vacht:</h6>
-<p><strong>Haar:</strong> Over het gehele lichaam dichte ondervacht en middelmatig lang, los aanliggend dekhaar; voorsnuit, gezicht, oren en voorkant van de benen kortharig; staart, achterkant van de voorbenen (vlaggen) en achterbenen (broek) langer behaard. Dekhaar aan de hals slechts matig langer dan aan het lichaam, geen manen vormend.</p>
-<p><strong>Kleur:</strong> Alle kleuren en kleurcombinaties zijn toegestaan, uitgezonderd zuiverwit, bont.</p>
+<p><strong>Haar:</strong> Beharing op het gehele lichaam. Dichte onderwol met middellang los aanliggende bovenvacht. Beharing op snuit, gezicht, oren en voorzijde van de poten is kort. Staart en achterzijde van de voor- en achterbenen zijn begroeid met lange haren. De beharing op de hals is iets langer dan op het lichaam, maar mag geen manen vormen</p>
+<p><strong>Kleur:</strong> Alle kleuren en kleurcombinaties zijn toegestaan met uitzondering van egaal wit, wit gevlekt.</p>
 
 <h6>Grootte en gewicht:</h6>
 <p><strong>Reuen:</strong> 52 - 60 cm, 22 - 30 kg</p>
 <p><strong>Teven:</strong> 48 - 56 cm, 18 - 26 kg</p>
-<p>Van belang is de evenwichtigheid van de proporties, maar de na te streven ideaalwaarden zijn de gewichtsgegevens.</p>
+<p>Van belang is de evenwichtigheid van de proporties, en de na te streven ideaalwaarden zijn de gewichtsgegevens.</p>
 
 <h6>Fouten:</h6>
 <p>Elke afwijking van de voornoemde punten moet als fout worden beschouwd, waarvan de beoordeling in exacte verhouding moet staan tot de mate van afwijking en waarvan de invloed op de gezondheid en het welzijn van de hond moet worden opgemerkt.</p>
 
 <h6>Ernstige fouten:</h6>
 <ul>
-<li>Sterke pigmentverliezen.</li>
-<li>Sterke stop en/of sterk gewelfde bovenschedel.</li>
+<li>Sterke pigmentverlies.</li>
+<li>Sterk gewelfd voorhoofd en/of sterk gewelfde schedel.</li>
 <li>Steile achterhand.</li>
-<li>Sterk doorzakkend voorvoetwortelgewricht.</li>
-<li>Zakrug en karperrug.</li>
-<li>Verlies van drie of vier P2.</li>
-<li>Verlies van een of meerdere P1 en gelijktijdig twee of meerdere P2.</li>
-<li>Zichtbaar open, niet aangelegde staart.</li>
+<li>Zwakke voorvoetgewrichten.</li>
+<li>Zwakke rug, karperrug.</li>
+<li>Missen van 3 of 4 keer de premolaar 2.</li>
+<li>Het missen van 1 of meer van de premolaar 1 gelijktijdig met het missen van 2 of meer premolaren 2.</li>
+<li>Duidelijk open en niet op de rug liggende staart.</li>
 <li>Korte staart.</li>
-<li>Ontbrekend geslachtskenmerk.</li>
+<li>Gebrek aan geslachtskenmerken.</li>
 </ul>
 
 <h6>Diskwalificerende fouten:</h6>
 <ul>
-<li>Aggressieve of overmatig angstige honden.</li>
-<li>Honden, die duidelijk fysieke abnormaliteiten of gedragsstoornissen vertonen.</li>
-<li>Ontbreken van een snij- of hoektand, ook meerdere.</li>
-<li>Ontbreken van een of meerdere premolaren 3 of 4.</li>
-<li>Ontbreken van een of meerdere molaren 1 of 2.</li>
-<li>Gebitsafwijkingen.</li>
-<li>Ectropion, entropion; te diepliggende of te kleine ogen.</li>
-<li>Kanteloren, hangoren.</li>
-<li>Knikkestaart.</li>
-<li>Onstabiel spronggewricht: abnormale beweeglijkheid naar voren of naar opzij bij de staande hond.</li>
-<li>Bonte kleurvorming.</li>
-<li>Zuiverwit.</li>
+<li>Agressiviteit of overmatig angstig</li>
+<li>Duidelijk lichamelijke afwijkingen of het hebben van een gedragsstoornis.</li>
+<li>Ontbreken van een snij- of hoektand, het ontbreken van één of meerdere premolaren 3 of 4 of meerdere molaren 1 of 2, andere gebitsafwijkingen.</li>
+<li>Ectropion, entropion, te diep liggende of te kleine ogen</li>
+<li>Tip- of hangoren.</li>
+<li>Knikstaart.</li>
+<li>Instabiel spronggewricht: abnormale mobiliteit na, voor, of naast de staande hond.</li>
+<li>De kleuren wit en gevlekt. </li>
 </ul>
 
 <h6>N.B.</h6>
