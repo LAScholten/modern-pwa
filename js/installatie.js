@@ -1,5 +1,5 @@
-// ✅ installatie.js - COMPLEET MET INLINE MANIFEST
-// LAATSTE - 29 januari 2024 - ZONDER 404 FOUT
+// ✅ installatie.js - MET VERTALINGEN NL/EN/DE
+// LAATSTE - 29 januari 2024 - MET TAALONDERSTEUNING
 
 console.log('🔧 Installatie script laden...');
 
@@ -122,13 +122,105 @@ console.log('🔧 Installatie script laden...');
     console.log('✅ Oude elementen verwijderd');
 })();
 
-// 2. NIEUWE INSTALLER KLASSE
+// 2. VERTALINGEN VOOR ALLE TALEN
+const translations = {
+    nl: {
+        installTitle: "📱 App Installeren",
+        shortcutTitle: "📱 Snelkoppeling Maken",
+        pwaAvailable: "PWA - Werkt offline",
+        websiteShortcut: "Website snelkoppeling",
+        directInstall: "⚡ Direct Installeren (PWA)",
+        withYourIcon: "Met jouw eigen app icoon",
+        forPwa: "Voor PWA (met icoon): gebruik Chrome/Edge op desktop of Android",
+        platformInstructions: "Platform instructies:",
+        android: "Android",
+        androidSub: "Chrome/Edge: Menu → Toevoegen",
+        ios: "iPhone/iPad",
+        iosSub: "Safari: Deel-icoon → Toevoegen",
+        desktop: "Computer",
+        desktopSub: "Chrome/Edge: Menu → Installeren",
+        close: "Sluiten",
+        androidHelp: "📱 ANDROID:\n\n1. Open Chrome of Edge op je telefoon\n2. Tik op menu (⋮) rechtsboven\n3. Kies 'Toevoegen aan beginscherm'\n4. Tik 'Toevoegen'\n\n✅ De app verschijnt op je beginscherm!",
+        iosHelp: "🍎 IPHONE/IPAD:\n\n1. Open deze pagina in SAFARI (niet Chrome!)\n2. Tik op het deel-icoon (📤) onderaan\n3. Scroll naar 'Toevoegen aan beginscherm'\n4. Tik 'Toevoegen'\n\n✅ De app verschijnt op je beginscherm!",
+        desktopHelp: "💻 COMPUTER:\n\n1. Open Chrome, Edge of Firefox\n2. Klik op menu (⋮) rechtsboven\n3. Zoek naar 'Installeren' of soortgelijke optie\n4. Klik 'Installeren'\n\n✅ De app wordt geïnstalleerd op je computer!",
+        installButton: "⚡ Installeer App",
+        installed: "Geïnstalleerd",
+        installPrompt: "Zoek in je browser menu naar 'Installeren' of 'Toevoegen aan beginscherm'"
+    },
+    en: {
+        installTitle: "📱 Install App",
+        shortcutTitle: "📱 Create Shortcut",
+        pwaAvailable: "PWA - Works offline",
+        websiteShortcut: "Website shortcut",
+        directInstall: "⚡ Direct Install (PWA)",
+        withYourIcon: "With your own app icon",
+        forPwa: "For PWA (with icon): use Chrome/Edge on desktop or Android",
+        platformInstructions: "Platform instructions:",
+        android: "Android",
+        androidSub: "Chrome/Edge: Menu → Add to Home",
+        ios: "iPhone/iPad",
+        iosSub: "Safari: Share icon → Add to Home",
+        desktop: "Computer",
+        desktopSub: "Chrome/Edge: Menu → Install",
+        close: "Close",
+        androidHelp: "📱 ANDROID:\n\n1. Open Chrome or Edge on your phone\n2. Tap menu (⋮) top right\n3. Choose 'Add to Home Screen'\n4. Tap 'Add'\n\n✅ The app appears on your home screen!",
+        iosHelp: "🍎 IPHONE/IPAD:\n\n1. Open this page in SAFARI (not Chrome!)\n2. Tap the share icon (📤) at the bottom\n3. Scroll to 'Add to Home Screen'\n4. Tap 'Add'\n\n✅ The app appears on your home screen!",
+        desktopHelp: "💻 COMPUTER:\n\n1. Open Chrome, Edge or Firefox\n2. Click menu (⋮) top right\n3. Look for 'Install' or similar option\n4. Click 'Install'\n\n✅ The app is installed on your computer!",
+        installButton: "⚡ Install App",
+        installed: "Installed",
+        installPrompt: "Look in your browser menu for 'Install' or 'Add to Home Screen'"
+    },
+    de: {
+        installTitle: "📱 App Installieren",
+        shortcutTitle: "📱 Verknüpfung Erstellen",
+        pwaAvailable: "PWA - Funktioniert offline",
+        websiteShortcut: "Website Verknüpfung",
+        directInstall: "⚡ Direkt Installieren (PWA)",
+        withYourIcon: "Mit Ihrem eigenen App-Symbol",
+        forPwa: "Für PWA (mit Symbol): Chrome/Edge auf Desktop oder Android verwenden",
+        platformInstructions: "Plattform Anleitungen:",
+        android: "Android",
+        androidSub: "Chrome/Edge: Menü → Zum Startbildschirm",
+        ios: "iPhone/iPad",
+        iosSub: "Safari: Teilen-Symbol → Zum Startbildschirm",
+        desktop: "Computer",
+        desktopSub: "Chrome/Edge: Menü → Installieren",
+        close: "Schließen",
+        androidHelp: "📱 ANDROID:\n\n1. Öffnen Sie Chrome oder Edge auf Ihrem Telefon\n2. Tippen Sie auf Menü (⋮) oben rechts\n3. Wählen Sie 'Zum Startbildschirm hinzufügen'\n4. Tippen Sie 'Hinzufügen'\n\n✅ Die App erscheint auf Ihrem Startbildschirm!",
+        iosHelp: "🍎 IPHONE/IPAD:\n\n1. Öffnen Sie diese Seite in SAFARI (nicht Chrome!)\n2. Tippen Sie auf das Teilen-Symbol (📤) unten\n3. Scrollen Sie zu 'Zum Home-Bildschirm hinzufügen'\n4. Tippen Sie 'Hinzufügen'\n\n✅ Die App erscheint auf Ihrem Startbildschirm!",
+        desktopHelp: "💻 COMPUTER:\n\n1. Öffnen Sie Chrome, Edge oder Firefox\n2. Klicken Sie auf Menü (⋮) oben rechts\n3. Suchen Sie nach 'Installieren' oder ähnlicher Option\n4. Klicken Sie 'Installieren'\n\n✅ Die App wird auf Ihrem Computer installiert!",
+        installButton: "⚡ App Installieren",
+        installed: "Installiert",
+        installPrompt: "Suchen Sie in Ihrem Browser-Menü nach 'Installieren' oder 'Zum Startbildschirm hinzufügen'"
+    }
+};
+
+// 3. FUNCTIE OM HUIDIGE TAAL TE BEPALEN
+function getCurrentLanguage() {
+    // Eerst: check localStorage (wordt ingesteld door app.html)
+    const savedLang = localStorage.getItem('appLanguage');
+    if (savedLang && translations[savedLang]) {
+        return savedLang;
+    }
+    
+    // Dan: check browser taal
+    const browserLang = navigator.language || navigator.userLanguage;
+    if (browserLang.startsWith('nl')) return 'nl';
+    if (browserLang.startsWith('de')) return 'de';
+    
+    // Standaard: Engels
+    return 'en';
+}
+
+// 4. NIEUWE INSTALLER KLASSE MET VERTALINGEN
 class SimpleInstaller {
     constructor() {
         console.log('🆕 SimpleInstaller aangemaakt');
         this.prompt = null;
         this.appName = document.title || 'Hondendatabase';
         this.iconPath = '/modern-pwa/img/icons/icon-192x192.png';
+        this.currentLang = getCurrentLanguage();
+        this.t = translations[this.currentLang];
         this.setup();
     }
     
@@ -140,7 +232,7 @@ class SimpleInstaller {
             this.prompt = e;
             
             // Update knop tekst als PWA beschikbaar is
-            this.updateInstallButton('⚡ Installeer App');
+            this.updateInstallButton(this.t.installButton);
         });
         
         // App geïnstalleerd event
@@ -155,7 +247,7 @@ class SimpleInstaller {
         // Maak globaal beschikbaar
         window.simpleInstaller = this;
         
-        console.log('✅ SimpleInstaller setup voltooid');
+        console.log(`✅ SimpleInstaller setup voltooid (taal: ${this.currentLang})`);
     }
     
     updateInstallButton(text) {
@@ -222,7 +314,7 @@ class SimpleInstaller {
         `;
         overlay.onclick = () => this.closeDialog();
         
-        // Maak dialoog
+        // Maak dialoog met vertaalde tekst
         const dialog = document.createElement('div');
         dialog.style.cssText = `
             position: fixed;
@@ -242,7 +334,7 @@ class SimpleInstaller {
         
         dialog.innerHTML = `
             <h2 style="margin-top: 0; color: #333; font-size: 24px;">
-                📱 ${this.prompt ? 'App Installeren' : 'Snelkoppeling Maken'}
+                ${this.prompt ? this.t.installTitle : this.t.shortcutTitle}
             </h2>
             
             <div style="margin: 25px 0;">
@@ -258,7 +350,7 @@ class SimpleInstaller {
                      onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iODAiIGhlaWdodD0iODAiIHJ4PSIxNiIgZmlsbD0iIzAwNzBGRiIvPjx0ZXh0IHg9IjQwIiB5PSI0NSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC13ZWlnaHQ9ImJvbGQiPkRvZzwvdGV4dD48L3N2Zz4=';">
                 <div style="font-size: 18px; font-weight: bold; color: #212529;">${appName}</div>
                 <div style="color: #6c757d; margin-top: 5px; font-size: 14px;">
-                    ${this.prompt ? 'PWA - Werkt offline' : 'Website snelkoppeling'}
+                    ${this.prompt ? this.t.pwaAvailable : this.t.websiteShortcut}
                 </div>
             </div>
             
@@ -279,11 +371,11 @@ class SimpleInstaller {
                         "
                         onmouseover="this.style.transform='translateY(-2px)'"
                         onmouseout="this.style.transform='translateY(0)'">
-                    ⚡ Direct Installeren (PWA)
+                    ${this.t.directInstall}
                 </button>
                 
                 <div style="color: #28a745; font-size: 13px; margin-bottom: 15px;">
-                    <i class="bi bi-check-circle"></i> Met jouw eigen app icoon
+                    <i class="bi bi-check-circle"></i> ${this.t.withYourIcon}
                 </div>
             ` : `
                 <div style="
@@ -295,13 +387,13 @@ class SimpleInstaller {
                 ">
                     <div style="color: #495057; font-size: 14px;">
                         <i class="bi bi-info-circle"></i> 
-                        Voor PWA (met icoon): gebruik Chrome/Edge op desktop of Android
+                        ${this.t.forPwa}
                     </div>
                 </div>
             `}
             
             <div style="color: #666; font-size: 14px; margin: 20px 0; font-weight: 500;">
-                Platform instructies:
+                ${this.t.platformInstructions}
             </div>
             
             <div style="display: grid; gap: 10px; margin-bottom: 20px;">
@@ -322,8 +414,8 @@ class SimpleInstaller {
                         onmouseout="this.style.background='#f8f9fa'">
                     <span style="font-size: 20px;">📱</span>
                     <div>
-                        <div style="font-weight: bold; color: #212529;">Android</div>
-                        <div style="font-size: 12px; color: #6c757d;">Chrome/Edge: Menu → Toevoegen</div>
+                        <div style="font-weight: bold; color: #212529;">${this.t.android}</div>
+                        <div style="font-size: 12px; color: #6c757d;">${this.t.androidSub}</div>
                     </div>
                 </button>
                 
@@ -344,8 +436,8 @@ class SimpleInstaller {
                         onmouseout="this.style.background='#f8f9fa'">
                     <span style="font-size: 20px;">🍎</span>
                     <div>
-                        <div style="font-weight: bold; color: #212529;">iPhone/iPad</div>
-                        <div style="font-size: 12px; color: #6c757d;">Safari: Deel-icoon → Toevoegen</div>
+                        <div style="font-weight: bold; color: #212529;">${this.t.ios}</div>
+                        <div style="font-size: 12px; color: #6c757d;">${this.t.iosSub}</div>
                     </div>
                 </button>
                 
@@ -366,8 +458,8 @@ class SimpleInstaller {
                         onmouseout="this.style.background='#f8f9fa'">
                     <span style="font-size: 20px;">💻</span>
                     <div>
-                        <div style="font-weight: bold; color: #212529;">Computer</div>
-                        <div style="font-size: 12px; color: #6c757d;">Chrome/Edge: Menu → Installeren</div>
+                        <div style="font-weight: bold; color: #212529;">${this.t.desktop}</div>
+                        <div style="font-size: 12px; color: #6c757d;">${this.t.desktopSub}</div>
                     </div>
                 </button>
             </div>
@@ -386,7 +478,7 @@ class SimpleInstaller {
                     "
                     onmouseover="this.style.background='#5a6268'"
                     onmouseout="this.style.background='#6c757d'">
-                <i class="bi bi-x-circle"></i> Sluiten
+                <i class="bi bi-x-circle"></i> ${this.t.close}
             </button>
         `;
         
@@ -407,7 +499,7 @@ class SimpleInstaller {
             }, 100);
         }
         
-        console.log('✅ Dialog geopend');
+        console.log(`✅ Dialog geopend (taal: ${this.currentLang})`);
     }
     
     handlePlatform(type) {
@@ -440,8 +532,8 @@ class SimpleInstaller {
                 this.prompt = null;
             });
         } else {
-            console.log('ℹ️ Geen PWA prompt, toon desktop instructies');
-            this.showHelp('desktop');
+            console.log('ℹ️ Geen PWA prompt, toon instructies');
+            alert(this.t.installPrompt);
         }
         
         this.closeDialog();
@@ -450,13 +542,13 @@ class SimpleInstaller {
     showHelp(type) {
         console.log(`ℹ️ Toon help voor: ${type}`);
         
-        const messages = {
-            android: '📱 ANDROID:\n\n1. Open Chrome of Edge op je telefoon\n2. Tik op menu (⋮) rechtsboven\n3. Kies "Toevoegen aan beginscherm"\n4. Tik "Toevoegen"\n\n✅ De app verschijnt op je beginscherm!',
-            ios: '🍎 IPHONE/IPAD:\n\n1. Open deze pagina in SAFARI (niet Chrome!)\n2. Tik op het deel-icoon (📤) onderaan\n3. Scroll naar "Toevoegen aan beginscherm"\n4. Tik "Toevoegen"\n\n✅ De app verschijnt op je beginscherm!',
-            desktop: '💻 COMPUTER:\n\n1. Open Chrome, Edge of Firefox\n2. Klik op menu (⋮) rechtsboven\n3. Zoek naar "Installeren" of soortgelijke optie\n4. Klik "Installeren"\n\n✅ De app wordt geïnstalleerd op je computer!'
+        const helpTexts = {
+            android: this.t.androidHelp,
+            ios: this.t.iosHelp,
+            desktop: this.t.desktopHelp
         };
         
-        alert(messages[type] || 'Kijk in je browser menu naar "Installeren" of "Toevoegen aan beginscherm"');
+        alert(helpTexts[type] || this.t.installPrompt);
         this.closeDialog();
     }
     
@@ -467,7 +559,7 @@ class SimpleInstaller {
         buttons.forEach(id => {
             const btn = document.getElementById(id);
             if (btn) {
-                btn.innerHTML = '<i class="bi bi-check-circle"></i> Geïnstalleerd';
+                btn.innerHTML = `<i class="bi bi-check-circle"></i> ${this.t.installed}`;
                 btn.className = 'btn btn-success';
                 btn.disabled = true;
                 btn.style.cursor = 'default';
@@ -493,7 +585,7 @@ class SimpleInstaller {
     }
 }
 
-// 3. START DE INSTALLER
+// 5. START DE INSTALLER
 console.log('🚀 Installer starten...');
 
 if (document.readyState === 'loading') {
