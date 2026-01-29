@@ -361,6 +361,7 @@
     <!-- Module scripts -->
     <script src="js/modules/historie.js"></script>
     <script src="js/modules/rasstandaard.js"></script>
+    <script src="js/modules/dashboard.js"></script> <!-- DIT IS DE ENIGE TOEVOEGING -->
     
     <!-- App Initialization -->
     <script>
@@ -476,6 +477,10 @@
             
             if (typeof translateRasstandaardModule === 'function' && document.getElementById('rasstandaardTitle')) {
                 translateRasstandaardModule(lang);
+            }
+            
+            if (typeof translateDashboardModule === 'function' && document.getElementById('dashboardContent')) {
+                translateDashboardModule(lang);
             }
         }
 
@@ -769,23 +774,29 @@
         // Functie om dashboard te tonen
         function showDashboard() {
             const mainContent = document.getElementById('mainContent');
-            mainContent.innerHTML = `
-                <div id="dashboardContent">
-                    <div class="card">
-                        <div class="card-header bg-light">
-                            <h4 class="mb-0"><i class="bi bi-house-door"></i> <span class="app-text" data-key="dashboard">Dashboard</span></h4>
-                        </div>
-                        <div class="card-body">
-                            <div class="alert alert-success">
-                                <h5><i class="bi bi-check-circle"></i> <span class="app-text" data-key="welcomeTitle">Welkom bij de Eurasier Friends International PWA</span></h5>
+            if (typeof initDashboardModule === 'function') {
+                mainContent.innerHTML = initDashboardModule();
+                
+                // Update vertalingen
+                const currentLang = localStorage.getItem('appLanguage') || 'nl';
+                translateDashboardModule(currentLang);
+            } else {
+                console.error('Dashboard module niet gevonden');
+                mainContent.innerHTML = `
+                    <div id="dashboardContent">
+                        <div class="card">
+                            <div class="card-header bg-light">
+                                <h4 class="mb-0"><i class="bi bi-house-door"></i> Dashboard</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-success">
+                                    <h5><i class="bi bi-check-circle"></i> Welkom bij de Eurasier Friends International PWA</h5>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            `;
-            
-            // Update vertalingen
-            translateAppPage(appLanguage);
+                `;
+            }
         }
         
         // Functie om historie te tonen
