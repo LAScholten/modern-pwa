@@ -12,6 +12,9 @@ class LitterManager {
         this.allDogs = []; // Voor autocomplete van ouders
         this.currentLitterDogs = []; // Houdt de ingevoerde honden van het huidige nest bij
         
+        // NIEUW: Huidige gebruiker ID voor priveinfo
+        this.currentUserId = null;
+        
         // GEBRUIK WINDOW OBJECT VOOR DEPENDENCIES
         this.db = window.hondenService;
         this.auth = window.auth;
@@ -420,11 +423,127 @@ class LitterManager {
     }
     
     /**
+     * Haal huidige gebruiker ID op voor priveinfo
+     */
+    async getCurrentUserId() {
+        try {
+            // Controleer of de gebruiker ID direct beschikbaar is in de console output
+            // Uit je logs: 🆔 User ID: cb9d6f82-e0e2-4822-9167-945ee9ef5916
+            
+            // Methode 1: Check window.auth (vanuit je logs)
+            if (window.auth && window.auth.currentUser && window.auth.currentUser.id) {
+                console.log('LitterManager: Gebruiker ID gevonden via window.auth:', window.auth.currentUser.id);
+                return window.auth.currentUser.id;
+            }
+            
+            // Methode 2: Check Supabase auth
+            if (window.supabase && window.supabase.auth) {
+                const { data: { user } } = await window.supabase.auth.getUser();
+                if (user && user.id) {
+                    console.log('LitterManager: Gebruiker ID gevonden via Supabase auth:', user.id);
+                    return user.id;
+                }
+            }
+            
+            // Methode 3: Check localStorage voor auth data
+            const authData = localStorage.getItem('sb-auth-token') || localStorage.getItem('supabase.auth.token');
+            if (authData) {
+                try {
+                    const parsed = JSON.parse(authData);
+                    if (parsed && parsed.user && parsed.user.id) {
+                        console.log('LitterManager: Gebruiker ID gevonden via localStorage:', parsed.user.id);
+                        return parsed.user.id;
+                    }
+                } catch (e) {
+                    console.error('Fout bij parsen auth data:', e);
+                }
+            }
+            
+            // Methode 4: Check voor globale variabele
+            if (window.currentUserId) {
+                console.log('LitterManager: Gebruiker ID gevonden via window.currentUserId:', window.currentUserId);
+                return window.currentUserId;
+            }
+            
+            // Methode 5: Haal uit je app.html logs - er is een globale auth object
+            if (window.authService && window.authService.getCurrentUser) {
+                const user = await window.authService.getCurrentUser();
+                if (user && user.id) {
+                    console.log('LitterManager: Gebruiker ID gevonden via authService:', user.id);
+                    return user.id;
+                }
+            }
+            
+            console.warn('LitterManager: Geen gebruiker ID gevonden voor priveinfo - controleer authenticatie');
+            return null;
+            
+        } catch (error) {
+            console.error('Fout bij ophalen gebruiker ID:', error);
+            return null;
+        }
+    }
+    
+    /**
+     * Methode om priveinfo voor een hond op te halen (NIEUW)
+     */
+    async getPrivateInfoForDog(stamboomnr) {
+        if (!this.currentUserId || !stamboomnr) {
+            console.log('LitterManager: Geen gebruiker ID of stamboomnr voor priveinfo:', { 
+                userId: this.currentUserId, 
+                stamboomnr: stamboomnr 
+            });
+            return null;
+        }
+        
+        try {
+            if (!window.priveInfoService) {
+                console.warn('PriveInfoService niet beschikbaar');
+                return null;
+            }
+            
+            console.log('LitterManager: Ophalen priveinfo voor:', {
+                stamboomnr: stamboomnr,
+                userId: this.currentUserId
+            });
+            
+            const result = await window.priveInfoService.getPriveInfoMetPaginatie(1, 1000);
+            
+            if (!result || !result.priveInfo) {
+                console.log('Geen priveinfo gevonden in resultaat');
+                return null;
+            }
+            
+            console.log(`LitterManager: ${result.priveInfo.length} priveinfo records gevonden`);
+            
+            // Zoek priveinfo voor deze hond EN deze gebruiker
+            const priveInfo = result.priveInfo.find(info => 
+                info.stamboomnr === stamboomnr && 
+                info.toegevoegd_door === this.currentUserId
+            );
+            
+            if (priveInfo) {
+                console.log(`Priveinfo gevonden voor hond ${stamboomnr} en gebruiker ${this.currentUserId}`);
+                return priveInfo.privatenotes || '';
+            } else {
+                console.log(`Geen priveinfo voor hond ${stamboomnr} en gebruiker ${this.currentUserId}`);
+                return null;
+            }
+            
+        } catch (error) {
+            console.error('Fout bij ophalen priveinfo voor hond:', stamboomnr, error);
+            return null;
+        }
+    }
+    
+    /**
      * Haal de volledige modal HTML op voor nest toevoegen/bewerken
      * Dit is de methode die DogManager gebruikt om de modal te tonen
      */
     getModalHTML(isEdit = false, litterData = null) {
         console.log('LitterManager: getModalHTML aangeroepen');
+        
+        // Haal huidige gebruiker ID op voor priveinfo
+        this.currentUserId = this.getCurrentUserId();
         
         // Als gebruiker admin is, toon het nest formulier
         const t = this.t.bind(this);
@@ -594,7 +713,7 @@ class LitterManager {
                         border-radius: 8px;
                         padding: 20px !important;
                         margin-bottom: 20px;
-                        background-color: #f9f9f9;
+                        background-color: #f9f9fa;
                     }
                     
                     .container-title {
@@ -1369,6 +1488,12 @@ class LitterManager {
     setupEvents() {
         console.log('LitterManager: setupEvents aangeroepen');
         
+        // Haal huidige gebruiker ID op voor priveinfo
+        this.getCurrentUserId().then(userId => {
+            this.currentUserId = userId;
+            console.log('LitterManager: Huidige gebruiker ID opgehaald:', this.currentUserId);
+        });
+        
         // Reset de lijst met ingevoerde honden wanneer modal wordt geopend
         this.currentLitterDogs = [];
         this.updateAddedDogsList();
@@ -1670,7 +1795,7 @@ class LitterManager {
                 isValid = false;
             }
         }
-        
+            
         // Valideer dat overlijdensdatum niet voor geboortedatum is (alleen als beide ingevuld zijn)
         if (birthValue && deathValue) {
             const birthDate = new Date(birthValue);
