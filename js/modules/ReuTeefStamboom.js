@@ -2967,7 +2967,7 @@ class ReuTeefStamboom {
                 <div class="rtc-info-section mb-2">
                     <h6><i class="bi bi-lock me-1"></i> ${this.t('privateInfo')}</h6>
                     <div class="text-muted">
-                        <i>${this.t('Geen informatie')}</i>
+                        <i>${this.t('privateInfoOwnerOnly')}</i>
                     </div>
                 </div>
             `;
