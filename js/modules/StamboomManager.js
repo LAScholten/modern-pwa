@@ -254,34 +254,56 @@ class StamboomManager extends BaseModule {
     // NIEUW: Methode om huidige gebruiker ID op te halen
     async getCurrentUserId() {
         try {
-            // Probeer verschillende methodes om huidige gebruiker ID te krijgen
-            if (window.currentUser && window.currentUser.id) {
-                return window.currentUser.id;
+            // Controleer of de gebruiker ID direct beschikbaar is in de console output
+            // Uit je logs: 🆔 User ID: cb9d6f82-e0e2-4822-9167-945ee9ef5916
+            
+            // Methode 1: Check window.auth (vanuit je logs)
+            if (window.auth && window.auth.currentUser && window.auth.currentUser.id) {
+                console.log('StamboomManager: Gebruiker ID gevonden via window.auth:', window.auth.currentUser.id);
+                return window.auth.currentUser.id;
             }
             
-            if (window.auth && window.auth.getCurrentUser) {
-                const user = await window.auth.getCurrentUser();
-                if (user && user.id) return user.id;
-            }
-            
+            // Methode 2: Check Supabase auth
             if (window.supabase && window.supabase.auth) {
                 const { data: { user } } = await window.supabase.auth.getUser();
-                if (user && user.id) return user.id;
-            }
-            
-            // Controleer localStorage of sessionStorage
-            const userData = localStorage.getItem('user') || sessionStorage.getItem('user');
-            if (userData) {
-                try {
-                    const user = JSON.parse(userData);
-                    if (user && user.id) return user.id;
-                } catch (e) {
-                    console.error('Fout bij parsen user data:', e);
+                if (user && user.id) {
+                    console.log('StamboomManager: Gebruiker ID gevonden via Supabase auth:', user.id);
+                    return user.id;
                 }
             }
             
-            console.warn('StamboomManager: Geen gebruiker ID gevonden voor priveinfo');
+            // Methode 3: Check localStorage voor auth data
+            const authData = localStorage.getItem('sb-auth-token') || localStorage.getItem('supabase.auth.token');
+            if (authData) {
+                try {
+                    const parsed = JSON.parse(authData);
+                    if (parsed && parsed.user && parsed.user.id) {
+                        console.log('StamboomManager: Gebruiker ID gevonden via localStorage:', parsed.user.id);
+                        return parsed.user.id;
+                    }
+                } catch (e) {
+                    console.error('Fout bij parsen auth data:', e);
+                }
+            }
+            
+            // Methode 4: Check voor globale variabele
+            if (window.currentUserId) {
+                console.log('StamboomManager: Gebruiker ID gevonden via window.currentUserId:', window.currentUserId);
+                return window.currentUserId;
+            }
+            
+            // Methode 5: Haal uit je app.html logs - er is een globale auth object
+            if (window.authService && window.authService.getCurrentUser) {
+                const user = await window.authService.getCurrentUser();
+                if (user && user.id) {
+                    console.log('StamboomManager: Gebruiker ID gevonden via authService:', user.id);
+                    return user.id;
+                }
+            }
+            
+            console.warn('StamboomManager: Geen gebruiker ID gevonden voor priveinfo - controleer authenticatie');
             return null;
+            
         } catch (error) {
             console.error('Fout bij ophalen gebruiker ID:', error);
             return null;
@@ -290,13 +312,24 @@ class StamboomManager extends BaseModule {
     
     // NIEUW: Methode om priveinfo voor een hond op te halen
     async getPrivateInfoForDog(stamboomnr) {
-        if (!this.currentUserId || !stamboomnr) return null;
+        if (!this.currentUserId || !stamboomnr) {
+            console.log('StamboomManager: Geen gebruiker ID of stamboomnr voor priveinfo:', { 
+                userId: this.currentUserId, 
+                stamboomnr: stamboomnr 
+            });
+            return null;
+        }
         
         try {
             if (!window.priveInfoService) {
                 console.warn('PriveInfoService niet beschikbaar');
                 return null;
             }
+            
+            console.log('StamboomManager: Ophalen priveinfo voor:', {
+                stamboomnr: stamboomnr,
+                userId: this.currentUserId
+            });
             
             const result = await window.priveInfoService.getPriveInfoMetPaginatie(1, 1000);
             
@@ -305,17 +338,36 @@ class StamboomManager extends BaseModule {
                 return null;
             }
             
+            console.log(`StamboomManager: ${result.priveInfo.length} priveinfo records gevonden`);
+            
             // Zoek priveinfo voor deze hond EN deze gebruiker
-            const priveInfo = result.priveInfo.find(info => 
-                info.stamboomnr === stamboomnr && 
-                info.toegevoegd_door === this.currentUserId
-            );
+            const priveInfo = result.priveInfo.find(info => {
+                const match = info.stamboomnr === stamboomnr && info.toegevoegd_door === this.currentUserId;
+                if (match) {
+                    console.log('StamboomManager: Priveinfo match gevonden:', {
+                        stamboomnr: info.stamboomnr,
+                        toegevoegd_door: info.toegevoegd_door,
+                        privatenotes: info.privatenotes ? info.privatenotes.substring(0, 50) + '...' : 'leeg'
+                    });
+                }
+                return match;
+            });
             
             if (priveInfo) {
                 console.log(`Priveinfo gevonden voor hond ${stamboomnr} en gebruiker ${this.currentUserId}`);
                 return priveInfo.privatenotes || '';
             } else {
                 console.log(`Geen priveinfo voor hond ${stamboomnr} en gebruiker ${this.currentUserId}`);
+                // Debug: toon alle records voor deze hond
+                const allForDog = result.priveInfo.filter(info => info.stamboomnr === stamboomnr);
+                if (allForDog.length > 0) {
+                    console.log(`Wel ${allForDog.length} priveinfo records voor deze hond, maar niet voor deze gebruiker:`, 
+                        allForDog.map(info => ({ 
+                            toegevoegd_door: info.toegevoegd_door,
+                            gebruiker_match: info.toegevoegd_door === this.currentUserId
+                        }))
+                    );
+                }
                 return null;
             }
             
@@ -1279,7 +1331,15 @@ class StamboomManager extends BaseModule {
         
         // NIEUW: Haal priveinfo op voor deze hond en huidige gebruiker
         const privateNotes = await this.getPrivateInfoForDog(dog.stamboomnr);
-        const hasPrivateInfo = privateNotes !== null;
+        const hasPrivateInfo = privateNotes !== null && privateNotes.trim() !== '';
+        
+        console.log('StamboomManager: Priveinfo voor hond:', {
+            naam: dog.naam,
+            stamboomnr: dog.stamboomnr,
+            hasPrivateInfo: hasPrivateInfo,
+            privateNotes: privateNotes ? privateNotes.substring(0, 100) + '...' : 'leeg',
+            currentUserId: this.currentUserId
+        });
         
         const genderText = dog.geslacht === 'reuen' ? this.t('male') : 
                           dog.geslacht === 'teven' ? this.t('female') : this.t('unknown');
