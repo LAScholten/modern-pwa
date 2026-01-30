@@ -225,6 +225,10 @@
                         <button class="list-group-item list-group-item-action" id="databaseBtn">
                             <i class="bi bi-database"></i> <span class="app-text" data-key="database">Database</span>
                         </button>
+                        <!-- NIEUWE GEZONDHEID KNOOP - HIER -->
+                        <button class="list-group-item list-group-item-action" id="healthBtn">
+                            <i class="bi bi-heart-pulse"></i> <span class="app-text" data-key="health">Gezondheid</span>
+                        </button>
                         <a href="https://www.facebook.com/groups/1068612343281007/" 
                            class="list-group-item list-group-item-action" 
                            target="_blank" 
@@ -382,6 +386,8 @@
     <script src="js/modules/rasstandaard.js"></script>
     <script src="js/modules/dashboard.js"></script>
     <script src="js/modules/boek.js"></script>
+    <!-- NIEUWE GEZONDHEID MODULE REFERENTIE - HIER -->
+    <script src="js/modules/gezondheid.js"></script>
     
     <!-- App Initialization -->
     <script>
@@ -397,6 +403,7 @@
                 history: "Historie",
                 breedStandard: "Rasstandaard",
                 database: "Database",
+                health: "Gezondheid", // NIEUWE VERTALING
                 quickOverview: "Snel Overzicht",
                 dogs: "Honden",
                 photos: "Foto's",
@@ -418,6 +425,7 @@
                 history: "History",
                 breedStandard: "Breed Standard",
                 database: "Database",
+                health: "Health", // NIEUWE VERTALING
                 quickOverview: "Quick Overview",
                 dogs: "Dogs",
                 photos: "Photos",
@@ -439,6 +447,7 @@
                 history: "Geschichte",
                 breedStandard: "Rassestandard",
                 database: "Datenbank",
+                health: "Gesundheit", // NIEUWE VERTALING
                 quickOverview: "Schnellübersicht",
                 dogs: "Hunde",
                 photos: "Fotos",
@@ -514,6 +523,11 @@
             
             if (typeof translateBookModule === 'function' && document.getElementById('bookTitle')) {
                 translateBookModule(lang);
+            }
+            
+            // NIEUWE GEZONDHEID MODULE VERTALING
+            if (typeof translateGezondheidModule === 'function' && document.getElementById('healthTitle')) {
+                translateGezondheidModule(lang);
             }
         }
 
@@ -812,6 +826,15 @@
                 });
             }
             
+            // NIEUWE GEZONDHEID KNOOP
+            const healthBtn = document.getElementById('healthBtn');
+            if (healthBtn) {
+                healthBtn.addEventListener('click', function() {
+                    console.log('Gezondheid knop geklikt');
+                    showGezondheid();
+                });
+            }
+            
             // Home menu knop
             const homeMenuBtn = document.getElementById('homeMenuBtn');
             if (homeMenuBtn) {
@@ -895,6 +918,22 @@
             } else {
                 console.error('Book module niet gevonden');
                 mainContent.innerHTML = '<div class="alert alert-danger">Boek module kon niet geladen worden</div>';
+            }
+        }
+        
+        // NIEUWE FUNCTIE: Gezondheid module tonen
+        function showGezondheid() {
+            const mainContent = document.getElementById('mainContent');
+            
+            if (typeof initGezondheidModule === 'function') {
+                mainContent.innerHTML = initGezondheidModule();
+                
+                // Update vertalingen
+                const currentLang = localStorage.getItem('appLanguage') || 'nl';
+                translateGezondheidModule(currentLang);
+            } else {
+                console.error('Gezondheid module niet gevonden');
+                mainContent.innerHTML = '<div class="alert alert-danger">Gezondheid module kon niet geladen worden</div>';
             }
         }
         
