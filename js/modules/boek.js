@@ -16,9 +16,9 @@ const boekTranslations = {
     }
 };
 
-// Functie om boek module te initialiseren
-function initBoekModule() {
-    console.log('Boek module initialiseren...');
+// Functie om boek module te initialiseren - gebruik originele naam
+function initBookModule() {
+    console.log('Book module initialiseren...');
     
     // Creëer de module HTML
     const boekHTML = `
@@ -42,8 +42,8 @@ function initBoekModule() {
     return boekHTML;
 }
 
-// Functie om boek module te vertalen
-function translateBoekModule(lang) {
+// Functie om boek module te vertalen - gebruik originele naam
+function translateBookModule(lang) {
     const boekTitle = document.getElementById('boekTitle');
     const boekContent = document.getElementById('boekContent');
     
@@ -59,8 +59,15 @@ function translateBoekModule(lang) {
 // Exporteer functies
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
-        initBoekModule,
-        translateBoekModule,
+        initBookModule,      // Originele naam
+        translateBookModule, // Originele naam
         boekTranslations
     };
+}
+
+// Maak functies globaal beschikbaar voor browser
+if (typeof window !== 'undefined') {
+    window.initBookModule = initBookModule;
+    window.translateBookModule = translateBookModule;
+    window.boekTranslations = boekTranslations;
 }
