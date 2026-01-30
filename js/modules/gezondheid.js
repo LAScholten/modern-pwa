@@ -1,91 +1,76 @@
-/**
- * Gezondheid Module voor Eurasier Friends International
- * Dit bestand bevat de functionaliteit voor de Gezondheid module
- */
+// modules/gezondheid.js
 
-/**
- * Initialiseer de Gezondheid module
- * @returns {string} HTML voor de gezondheid module
- */
+// Gezondheid module vertalingen
+const gezondheidTranslations = {
+    nl: {
+        title: "Gezondheid",
+        content: `
+            <div class="gezondheid-content">
+                <p>GEZONDHEID</p>
+            </div>
+        `
+    },
+    en: {
+        title: "Health",
+        content: `
+            <div class="gezondheid-content">
+                <p>HEALTH</p>
+            </div>
+        `
+    },
+    de: {
+        title: "Gesundheit",
+        content: `
+            <div class="gezondheid-content">
+                <p>GESUNDHEIT</p>
+            </div>
+        `
+    }
+};
+
+// Functie om gezondheid module te initialiseren
 function initGezondheidModule() {
-    console.log('Initializing Gezondheid module...');
+    console.log('Gezondheid module initialiseren...');
     
-    const moduleHTML = `
-        <div class="health-module">
-            <div class="card">
-                <div class="card-header bg-light">
-                    <h4 class="mb-0" id="healthTitle">
-                        <i class="bi bi-heart-pulse"></i> Gezondheid
-                    </h4>
+    // Creëer de module HTML - exact dezelfde structuur als boek.js
+    const gezondheidHTML = `
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-heart-pulse"></i> 
+                        <span id="gezondheidTitle">Gezondheid</span>
+                    </h5>
                 </div>
-                <div class="card-body">
-                    <div class="alert alert-info">
-                        <h5><i class="bi bi-info-circle"></i> <span id="healthIntroText">Gezondheid</span></h5>
-                    </div>
-                    
-                    <div class="health-content">
-                        <p id="healthContentText">
-                            gezondheid
-                        </p>
-                    </div>
-                </div>
+            </div>
+            <div class="card-body module-content">
+                <div id="gezondheidContent">${gezondheidTranslations.nl.content}</div>
             </div>
         </div>
     `;
     
-    return moduleHTML;
+    return gezondheidHTML;
 }
 
-/**
- * Vertaal de Gezondheid module
- * @param {string} lang - De taalcode (nl, en, de)
- */
+// Functie om gezondheid module te vertalen
 function translateGezondheidModule(lang) {
-    console.log('Translating Gezondheid module to:', lang);
+    const gezondheidTitle = document.getElementById('gezondheidTitle');
+    const gezondheidContent = document.getElementById('gezondheidContent');
     
-    // Vertalingen voor de gezondheid module
-    const translations = {
-        nl: {
-            healthTitle: "Gezondheid",
-            healthIntroText: "Gezondheid",
-            healthContentText: "gezondheid"
-        },
-        en: {
-            healthTitle: "Health",
-            healthIntroText: "Health",
-            healthContentText: "health"
-        },
-        de: {
-            healthTitle: "Gesundheit",
-            healthIntroText: "Gesundheit",
-            healthContentText: "gesundheit"
-        }
-    };
-    
-    // Selecteer de juiste vertalingen
-    const t = translations[lang] || translations.nl;
-    
-    // Pas alle teksten aan in de module
-    const titleElement = document.getElementById('healthTitle');
-    if (titleElement) {
-        titleElement.innerHTML = `<i class="bi bi-heart-pulse"></i> ${t.healthTitle}`;
+    if (gezondheidTitle && gezondheidTranslations[lang]) {
+        gezondheidTitle.textContent = gezondheidTranslations[lang].title;
     }
     
-    const introElement = document.getElementById('healthIntroText');
-    if (introElement) {
-        introElement.textContent = t.healthIntroText;
-    }
-    
-    const contentElement = document.getElementById('healthContentText');
-    if (contentElement) {
-        contentElement.textContent = t.healthContentText;
+    if (gezondheidContent && gezondheidTranslations[lang]) {
+        gezondheidContent.innerHTML = gezondheidTranslations[lang].content;
     }
 }
 
-// Exporteer de functies zodat ze beschikbaar zijn voor andere scripts
+// Exporteer functies
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         initGezondheidModule,
-        translateGezondheidModule
+        translateGezondheidModule,
+        gezondheidTranslations
     };
 }
