@@ -219,8 +219,20 @@
                         <button class="list-group-item list-group-item-action" id="breedStandardBtn">
                             <i class="bi bi-file-earmark-text"></i> <span class="app-text" data-key="breedStandard">Rasstandaard</span>
                         </button>
+                        <button class="list-group-item list-group-item-action" id="bookBtn">
+                            <i class="bi bi-book"></i> <span class="app-text" data-key="book">Boek</span>
+                        </button>
                         <button class="list-group-item list-group-item-action" id="databaseBtn">
                             <i class="bi bi-database"></i> <span class="app-text" data-key="database">Database</span>
+                        </button>
+                        <a href="https://www.facebook.com/groups/1068612343281007/" 
+                           class="list-group-item list-group-item-action" 
+                           target="_blank" 
+                           id="facebookBtn">
+                            <i class="bi bi-facebook"></i> <span class="app-text" data-key="facebook">Facebook</span>
+                        </a>
+                        <button class="list-group-item list-group-item-action" id="homeMenuBtn">
+                            <i class="bi bi-house"></i> <span class="app-text" data-key="home">Home</span>
                         </button>
                     </div>
                 </div>
@@ -368,7 +380,8 @@
     <!-- Module scripts -->
     <script src="js/modules/historie.js"></script>
     <script src="js/modules/rasstandaard.js"></script>
-    <script src="js/modules/dashboard.js"></script> <!-- DIT IS DE ENIGE TOEVOEGING -->
+    <script src="js/modules/dashboard.js"></script>
+    <script src="js/modules/boek.js"></script>
     
     <!-- App Initialization -->
     <script>
@@ -393,7 +406,10 @@
                 comingSoon: "Binnenkort beschikbaar",
                 close: "Sluiten",
                 loading: "Bezig met laden...",
-                installPWA: "Maak Snelkoppeling"
+                installPWA: "Maak Snelkoppeling",
+                book: "Boek",
+                facebook: "Facebook",
+                home: "Home"
             },
             en: {
                 appTitle: "Eurasier Friends International",
@@ -411,7 +427,10 @@
                 comingSoon: "Coming Soon",
                 close: "Close",
                 loading: "Loading...",
-                installPWA: "Create Shortcut"
+                installPWA: "Create Shortcut",
+                book: "Book",
+                facebook: "Facebook",
+                home: "Home"
             },
             de: {
                 appTitle: "Eurasier Friends International",
@@ -429,7 +448,10 @@
                 comingSoon: "Demnächst verfügbar",
                 close: "Schließen",
                 loading: "Wird geladen...",
-                installPWA: "Verknüpfung erstellen"
+                installPWA: "Verknüpfung erstellen",
+                book: "Buch",
+                facebook: "Facebook",
+                home: "Home"
             }
         };
 
@@ -488,6 +510,10 @@
             
             if (typeof translateDashboardModule === 'function' && document.getElementById('dashboardContent')) {
                 translateDashboardModule(lang);
+            }
+            
+            if (typeof translateBookModule === 'function' && document.getElementById('bookTitle')) {
+                translateBookModule(lang);
             }
         }
 
@@ -762,6 +788,15 @@
                 });
             }
             
+            // Boek knop
+            const bookBtn = document.getElementById('bookBtn');
+            if (bookBtn) {
+                bookBtn.addEventListener('click', function() {
+                    console.log('Boek knop geklikt');
+                    showBook();
+                });
+            }
+            
             // Database knop
             const databaseBtn = document.getElementById('databaseBtn');
             if (databaseBtn) {
@@ -774,6 +809,15 @@
                     setTimeout(() => {
                         initLoginForm();
                     }, 100);
+                });
+            }
+            
+            // Home menu knop
+            const homeMenuBtn = document.getElementById('homeMenuBtn');
+            if (homeMenuBtn) {
+                homeMenuBtn.addEventListener('click', function() {
+                    console.log('Home menu knop geklikt');
+                    showDashboard();
                 });
             }
         }
@@ -835,6 +879,22 @@
             } else {
                 console.error('Rasstandaard module niet gevonden');
                 mainContent.innerHTML = '<div class="alert alert-danger">Rasstandaard module kon niet geladen worden</div>';
+            }
+        }
+        
+        // Functie om boek module te tonen
+        function showBook() {
+            const mainContent = document.getElementById('mainContent');
+            
+            if (typeof initBookModule === 'function') {
+                mainContent.innerHTML = initBookModule();
+                
+                // Update vertalingen
+                const currentLang = localStorage.getItem('appLanguage') || 'nl';
+                translateBookModule(currentLang);
+            } else {
+                console.error('Book module niet gevonden');
+                mainContent.innerHTML = '<div class="alert alert-danger">Boek module kon niet geladen worden</div>';
             }
         }
         
