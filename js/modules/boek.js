@@ -6,7 +6,15 @@ const boekTranslations = {
         title: "Boek",
         content: `
             <div class="boek-content">
-                <p>BOEK</p>
+                <div class="row">
+                    <div class="col-md-4">
+                        <img src="img/nederlands.jpg" alt="Boek in het Nederlands" class="img-fluid rounded shadow">
+                    </div>
+                    <div class="col-md-8">
+                        <h3>Mijn Boek</h3>
+                        <p>Hebt u interesse in het boek? Stuur een email naar: <strong>leoneurasier@gmail.com</strong></p>
+                    </div>
+                </div>
             </div>
         `
     },
@@ -14,7 +22,15 @@ const boekTranslations = {
         title: "Book",
         content: `
             <div class="boek-content">
-                <p>BOOK</p>
+                <div class="row">
+                    <div class="col-md-4">
+                        <img src="img/engels.jpg" alt="Book in English" class="img-fluid rounded shadow">
+                    </div>
+                    <div class="col-md-8">
+                        <h3>My Book</h3>
+                        <p>Are you interested in the book? Send an email to: <strong>leoneurasier@gmail.com</strong></p>
+                    </div>
+                </div>
             </div>
         `
     },
@@ -22,7 +38,15 @@ const boekTranslations = {
         title: "Buch",
         content: `
             <div class="boek-content">
-                <p>BUCH</p>
+                <div class="row">
+                    <div class="col-md-4">
+                        <img src="img/duits.jpg" alt="Buch auf Deutsch" class="img-fluid rounded shadow">
+                    </div>
+                    <div class="col-md-8">
+                        <h3>Mein Buch</h3>
+                        <p>Haben Sie Interesse an dem Buch? Senden Sie eine E-Mail an: <strong>leoneurasier@gmail.com</strong></p>
+                    </div>
+                </div>
             </div>
         `
     }
