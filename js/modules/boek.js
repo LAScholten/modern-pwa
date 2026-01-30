@@ -44,7 +44,7 @@ const boekTranslations = {
                     </div>
                     <div class="col-md-8">
                         <h3>Mein Buch</h3>
-                        <p>Haben Sie Interesse an dem Buch? Senden Sie eine E-Mail an: <strong>leoneurasier@gmail.com</strong></p>
+                        <p>Haben Sie Interesse an dem Buch? Leider noch niecht vorhanden</strong></p>
                     </div>
                 </div>
             </div>
