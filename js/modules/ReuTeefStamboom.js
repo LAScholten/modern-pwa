@@ -3,6 +3,7 @@
  * Bevat alle stamboom functionaliteit voor toekomstige pup
  * **FOTOFUNCTIE GECORRIGEERD** - Gebruikt nu EXACT DEZELFDE LOGICA ALS STAMBOOMMANAGER
  * **COICALCULATOR VOLLEDIG GECORRIGEERD** - Gebruikt nu exact dezelfde COI-berekeningen voor ALLE honden
+ * **PRIVEINFO TOEGEVOEGD** - Toont nu ook priveinfo zoals StamboomManager
  */
 
 class ReuTeefStamboom {
@@ -14,6 +15,9 @@ class ReuTeefStamboom {
         this.allHonden = mainModule.allHonden;
         this.selectedTeef = null;
         this.selectedReu = null;
+        
+        // NIEUW: Huidige gebruiker ID voor priveinfo
+        this.currentUserId = null;
         
         // **BELANGRIJK: Gebruik dezelfde COICalculator als StamboomManager**
         this.allDogs = [...this.allHonden]; // Kopie van alle honden
@@ -29,6 +33,141 @@ class ReuTeefStamboom {
         // **EXACT DEZELFDE REFERENTIE ALS STAMBOOMMANAGER**
         this.hondenService = window.hondenService;
         this.fotoService = window.fotoService;
+    }
+    
+    // NIEUW: Initialiseer gebruiker ID voor priveinfo
+    async initialize() {
+        try {
+            // Haal huidige gebruiker ID op voor priveinfo - ZELFDE ALS STAMBOOMMANAGER
+            this.currentUserId = await this.getCurrentUserId();
+            console.log('ReuTeefStamboom: Huidige gebruiker ID:', this.currentUserId);
+        } catch (error) {
+            console.error('Fout bij initialiseren gebruiker ID voor ReuTeefStamboom:', error);
+            this.currentUserId = null;
+        }
+    }
+    
+    // NIEUW: Methode om huidige gebruiker ID op te halen - ZELFDE ALS STAMBOOMMANAGER
+    async getCurrentUserId() {
+        try {
+            // Methode 1: Check window.auth (vanuit je logs)
+            if (window.auth && window.auth.currentUser && window.auth.currentUser.id) {
+                console.log('ReuTeefStamboom: Gebruiker ID gevonden via window.auth:', window.auth.currentUser.id);
+                return window.auth.currentUser.id;
+            }
+            
+            // Methode 2: Check Supabase auth
+            if (window.supabase && window.supabase.auth) {
+                const { data: { user } } = await window.supabase.auth.getUser();
+                if (user && user.id) {
+                    console.log('ReuTeefStamboom: Gebruiker ID gevonden via Supabase auth:', user.id);
+                    return user.id;
+                }
+            }
+            
+            // Methode 3: Check localStorage voor auth data
+            const authData = localStorage.getItem('sb-auth-token') || localStorage.getItem('supabase.auth.token');
+            if (authData) {
+                try {
+                    const parsed = JSON.parse(authData);
+                    if (parsed && parsed.user && parsed.user.id) {
+                        console.log('ReuTeefStamboom: Gebruiker ID gevonden via localStorage:', parsed.user.id);
+                        return parsed.user.id;
+                    }
+                } catch (e) {
+                    console.error('Fout bij parsen auth data:', e);
+                }
+            }
+            
+            // Methode 4: Check voor globale variabele
+            if (window.currentUserId) {
+                console.log('ReuTeefStamboom: Gebruiker ID gevonden via window.currentUserId:', window.currentUserId);
+                return window.currentUserId;
+            }
+            
+            // Methode 5: Haal uit je app.html logs - er is een globale auth object
+            if (window.authService && window.authService.getCurrentUser) {
+                const user = await window.authService.getCurrentUser();
+                if (user && user.id) {
+                    console.log('ReuTeefStamboom: Gebruiker ID gevonden via authService:', user.id);
+                    return user.id;
+                }
+            }
+            
+            console.warn('ReuTeefStamboom: Geen gebruiker ID gevonden voor priveinfo - controleer authenticatie');
+            return null;
+            
+        } catch (error) {
+            console.error('Fout bij ophalen gebruiker ID in ReuTeefStamboom:', error);
+            return null;
+        }
+    }
+    
+    // NIEUW: Methode om priveinfo voor een hond op te halen - ZELFDE ALS STAMBOOMMANAGER
+    async getPrivateInfoForDog(stamboomnr) {
+        if (!this.currentUserId || !stamboomnr) {
+            console.log('ReuTeefStamboom: Geen gebruiker ID of stamboomnr voor priveinfo:', { 
+                userId: this.currentUserId, 
+                stamboomnr: stamboomnr 
+            });
+            return null;
+        }
+        
+        try {
+            if (!window.priveInfoService) {
+                console.warn('PriveInfoService niet beschikbaar in ReuTeefStamboom');
+                return null;
+            }
+            
+            console.log('ReuTeefStamboom: Ophalen priveinfo voor:', {
+                stamboomnr: stamboomnr,
+                userId: this.currentUserId
+            });
+            
+            const result = await window.priveInfoService.getPriveInfoMetPaginatie(1, 1000);
+            
+            if (!result || !result.priveInfo) {
+                console.log('ReuTeefStamboom: Geen priveinfo gevonden in resultaat');
+                return null;
+            }
+            
+            console.log(`ReuTeefStamboom: ${result.priveInfo.length} priveinfo records gevonden`);
+            
+            // Zoek priveinfo voor deze hond EN deze gebruiker - ZELFDE LOGICA ALS STAMBOOMMANAGER
+            const priveInfo = result.priveInfo.find(info => {
+                const match = info.stamboomnr === stamboomnr && info.toegevoegd_door === this.currentUserId;
+                if (match) {
+                    console.log('ReuTeefStamboom: Priveinfo match gevonden:', {
+                        stamboomnr: info.stamboomnr,
+                        toegevoegd_door: info.toegevoegd_door,
+                        privatenotes: info.privatenotes ? info.privatenotes.substring(0, 50) + '...' : 'leeg'
+                    });
+                }
+                return match;
+            });
+            
+            if (priveInfo) {
+                console.log(`ReuTeefStamboom: Priveinfo gevonden voor hond ${stamboomnr} en gebruiker ${this.currentUserId}`);
+                return priveInfo.privatenotes || '';
+            } else {
+                console.log(`ReuTeefStamboom: Geen priveinfo voor hond ${stamboomnr} en gebruiker ${this.currentUserId}`);
+                // Debug: toon alle records voor deze hond
+                const allForDog = result.priveInfo.filter(info => info.stamboomnr === stamboomnr);
+                if (allForDog.length > 0) {
+                    console.log(`ReuTeefStamboom: Wel ${allForDog.length} priveinfo records voor deze hond, maar niet voor deze gebruiker:`, 
+                        allForDog.map(info => ({ 
+                            toegevoegd_door: info.toegevoegd_door,
+                            gebruiker_match: info.toegevoegd_door === this.currentUserId
+                        }))
+                    );
+                }
+                return null;
+            }
+            
+        } catch (error) {
+            console.error('ReuTeefStamboom: Fout bij ophalen priveinfo voor hond:', stamboomnr, error);
+            return null;
+        }
     }
     
     initializeCOICalculator() {
@@ -206,6 +345,11 @@ class ReuTeefStamboom {
     }
     
     async showFuturePuppyPedigree(selectedTeef, selectedReu) {
+        // NIEUW: Initialiseer gebruiker ID als dit nog niet gebeurd is
+        if (!this.currentUserId) {
+            await this.initialize();
+        }
+        
         // Bewaar de geselecteerde honden
         this.selectedTeef = selectedTeef;
         this.selectedReu = selectedReu;
@@ -2698,49 +2842,6 @@ class ReuTeefStamboom {
         `;
     }
     
-    // **EXACT DEZELFDE METHODE ALS STAMBOOMMANAGER: Foto's ophalen voor een hond**
-    async getDogPhotos(dogId) {
-        if (!dogId || dogId === 0) return [];
-        
-        const dog = this.allHonden.find(d => d.id === dogId);
-        if (!dog || !dog.stamboomnr) return [];
-        
-        // Check cache
-        const cacheKey = `${dogId}_${dog.stamboomnr}`;
-        if (this.dogPhotosCache.has(cacheKey)) {
-            return this.dogPhotosCache.get(cacheKey);
-        }
-        
-        try {
-            // **EXACT DEZELFDE QUERY ALS STAMBOOMMANAGER**
-            const { data: fotos, error } = await window.supabase
-                .from('fotos')
-                .select('*')
-                .eq('stamboomnr', dog.stamboomnr)
-                .order('uploaded_at', { ascending: false });
-            
-            if (error) {
-                console.error('Supabase error bij ophalen foto\'s:', error);
-                return [];
-            }
-            
-            console.log(`ReuTeefStamboom: ${fotos?.length || 0} foto's gevonden voor hond ${dogId} (${dog.stamboomnr})`);
-            
-            this.dogPhotosCache.set(cacheKey, fotos || []);
-            return fotos || [];
-            
-        } catch (error) {
-            console.error('Fout bij ophalen foto\'s voor hond:', dogId, error);
-            return [];
-        }
-    }
-    
-    // **EXACT DEZELFDE METHODE ALS STAMBOOMMANAGER: Check of een hond foto's heeft**
-    async checkDogHasPhotos(dogId) {
-        const photos = await this.getDogPhotos(dogId);
-        return photos.length > 0;
-    }
-    
     setupCardClickEvents() {
         const cards = document.querySelectorAll('.rtc-pedigree-card-compact.horizontal:not(.empty)');
         cards.forEach(card => {
@@ -2764,7 +2865,7 @@ class ReuTeefStamboom {
     }
     
     async showDogDetailPopup(dog, relation) {
-        // Gebruik de identieke popup als StamboomManager
+        // NIEUW: Gebruik de identieke popup als StamboomManager MET PRIVEINFO
         const popupHTML = await this.getDogDetailPopupHTML(dog, relation);
         
         this.ensurePopupContainer();
@@ -2779,8 +2880,21 @@ class ReuTeefStamboom {
         }
     }
     
+    // NIEUW: Aangepaste getDogDetailPopupHTML methode MET PRIVEINFO - ZELFDE ALS STAMBOOMMANAGER
     async getDogDetailPopupHTML(dog, relation = '') {
         if (!dog) return '';
+        
+        // NIEUW: Haal priveinfo op voor deze hond en huidige gebruiker - ZELFDE ALS STAMBOOMMANAGER
+        const privateNotes = await this.getPrivateInfoForDog(dog.stamboomnr);
+        const hasPrivateInfo = privateNotes !== null && privateNotes.trim() !== '';
+        
+        console.log('ReuTeefStamboom: Priveinfo voor hond:', {
+            naam: dog.naam,
+            stamboomnr: dog.stamboomnr,
+            hasPrivateInfo: hasPrivateInfo,
+            privateNotes: privateNotes ? privateNotes.substring(0, 100) + '...' : 'leeg',
+            currentUserId: this.currentUserId
+        });
         
         const genderText = dog.geslacht === 'reuen' ? this.t('male') : 
                           dog.geslacht === 'teven' ? this.t('female') : this.t('unknown');
@@ -2832,6 +2946,28 @@ class ReuTeefStamboom {
                     </div>
                     <div class="photo-hint">
                         <small class="text-muted"><i class="bi bi-info-circle me-1"></i> ${this.t('clickToEnlarge')}</small>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // NIEUW: Priveinfo HTML sectie - EXACT ZELFDE ALS STAMBOOMMANAGER
+        let privateInfoHTML = '';
+        if (hasPrivateInfo) {
+            privateInfoHTML = `
+                <div class="rtc-info-section mb-2">
+                    <h6><i class="bi bi-lock-fill me-1"></i> ${this.t('privateInfo')}</h6>
+                    <div class="rtc-remarks-box" style="background-color: #fff3cd; border-color: #ffeaa7;">
+                        ${privateNotes}
+                    </div>
+                </div>
+            `;
+        } else {
+            privateInfoHTML = `
+                <div class="rtc-info-section mb-2">
+                    <h6><i class="bi bi-lock me-1"></i> ${this.t('privateInfo')}</h6>
+                    <div class="text-muted">
+                        <i>${this.t('privateInfoOwnerOnly')}</i>
                     </div>
                 </div>
             `;
@@ -3036,6 +3172,9 @@ class ReuTeefStamboom {
                         <div class="text-muted">${this.t('noRemarks')}</div>
                     </div>
                     `}
+                    
+                    <!-- NIEUW: Priveinfo sectie - EXACT ZELFDE ALS STAMBOOMMANAGER -->
+                    ${privateInfoHTML}
                 </div>
                 <div class="rtc-popup-footer">
                     <button type="button" class="btn btn-secondary rtc-popup-close-btn">
