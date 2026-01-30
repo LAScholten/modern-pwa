@@ -78,7 +78,7 @@ class StamboomManager extends BaseModule {
                 closePhoto: "Sluiten",
                 loadFailed: "Fout bij laden: ",
                 privateInfo: "Prive Informatie", // NIEUW
-                privateInfoOwnerOnly: "Alleen zichtbaar voor eigenaar" // NIEUW
+                privateInfoOwnerOnly: "Geen informatie" // NIEUW
             },
             en: {
                 pedigreeTitle: "Pedigree of {name}",
@@ -139,7 +139,7 @@ class StamboomManager extends BaseModule {
                 closePhoto: "Close",
                 loadFailed: "Loading failed: ",
                 privateInfo: "Private Information", // NIEUW
-                privateInfoOwnerOnly: "Visible to owner only" // NIEUW
+                privateInfoOwnerOnly: "No information" // NIEUW
             },
             de: {
                 pedigreeTitle: "Ahnentafel von {name}",
@@ -200,7 +200,7 @@ class StamboomManager extends BaseModule {
                 closePhoto: "Schließen",
                 loadFailed: "Fehler beim Laden: ",
                 privateInfo: "Private Informationen", // NIEUW
-                privateInfoOwnerOnly: "Nur für den Eigentümer sichtbar" // NIEUW
+                privateInfoOwnerOnly: "Kein information" // NIEUW
             }
         };
         
