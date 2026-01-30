@@ -219,6 +219,9 @@
                         <button class="list-group-item list-group-item-action" id="breedStandardBtn">
                             <i class="bi bi-file-earmark-text"></i> <span class="app-text" data-key="breedStandard">Rasstandaard</span>
                         </button>
+                        <button class="list-group-item list-group-item-action" id="characterBtn">
+                            <i class="bi bi-person-heart"></i> <span class="app-text" data-key="character">Karakter</span>
+                        </button>
                         <button class="list-group-item list-group-item-action" id="bookBtn">
                             <i class="bi bi-book"></i> <span class="app-text" data-key="book">Boek</span>
                         </button>
@@ -374,6 +377,7 @@
     <script src="js/modules/rasstandaard.js"></script>
     <script src="js/modules/dashboard.js"></script>
     <script src="js/modules/boek.js"></script>
+    <script src="js/modules/karakter.js"></script>
     <!-- NIEUWE GEZONDHEID MODULE REFERENTIE - HIER -->
     <script src="js/modules/gezondheid.js"></script>
     
@@ -392,6 +396,7 @@
                 breedStandard: "Rasstandaard",
                 database: "Database",
                 health: "Gezondheid", // NIEUWE VERTALING
+                character: "Karakter", // NIEUWE VERTALING
                 quickOverview: "Snel Overzicht",
                 dogs: "Honden",
                 photos: "Foto's",
@@ -414,6 +419,7 @@
                 breedStandard: "Breed Standard",
                 database: "Database",
                 health: "Health", // NIEUWE VERTALING
+                character: "Character", // NIEUWE VERTALING
                 quickOverview: "Quick Overview",
                 dogs: "Dogs",
                 photos: "Photos",
@@ -436,6 +442,7 @@
                 breedStandard: "Rassestandard",
                 database: "Datenbank",
                 health: "Gesundheit", // NIEUWE VERTALING
+                character: "Charakter", // NIEUWE VERTALING
                 quickOverview: "Schnellübersicht",
                 dogs: "Hunde",
                 photos: "Fotos",
@@ -511,6 +518,10 @@
             
             if (typeof translateBookModule === 'function' && document.getElementById('bookTitle')) {
                 translateBookModule(lang);
+            }
+            
+            if (typeof translateKarakterModule === 'function' && document.getElementById('karakterTitle')) {
+                translateKarakterModule(lang);
             }
             
             // NIEUWE GEZONDHEID MODULE VERTALING
@@ -802,6 +813,15 @@
                 });
             }
             
+            // Karakter knop
+            const characterBtn = document.getElementById('characterBtn');
+            if (characterBtn) {
+                characterBtn.addEventListener('click', function() {
+                    console.log('Karakter knop geklikt');
+                    showKarakter();
+                });
+            }
+            
             // Database knop
             const databaseBtn = document.getElementById('databaseBtn');
             if (databaseBtn) {
@@ -909,6 +929,22 @@
             } else {
                 console.error('Book module niet gevonden');
                 mainContent.innerHTML = '<div class="alert alert-danger">Boek module kon niet geladen worden</div>';
+            }
+        }
+        
+        // Functie om karakter module te tonen
+        function showKarakter() {
+            const mainContent = document.getElementById('mainContent');
+            
+            if (typeof initKarakterModule === 'function') {
+                mainContent.innerHTML = initKarakterModule();
+                
+                // Update vertalingen
+                const currentLang = localStorage.getItem('appLanguage') || 'nl';
+                translateKarakterModule(currentLang);
+            } else {
+                console.error('Karakter module niet gevonden');
+                mainContent.innerHTML = '<div class="alert alert-danger">Karakter module kon niet geladen worden</div>';
             }
         }
         
