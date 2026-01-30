@@ -29,28 +29,81 @@ class PrivateInfoManager extends BaseModule {
                 loadingDogs: "Honden laden...",
                 noDogsFound: "Geen honden gevonden",
                 typeToSearch: "Begin met typen om te zoeken"
+            },
+            en: {
+                privateInfo: "Private Information",
+                privateNotes: "Private Notes",
+                notesPlaceholder: "Enter all confidential information here...",
+                selectDog: "Select Dog",
+                dog: "Dog",
+                typeDogName: "Type dog name...",
+                loadInfo: "Load Info",
+                securityInfo: "Security Information",
+                privateStorage: "All information is securely stored",
+                privateNote: "These notes are only visible to you",
+                clear: "Clear",
+                save: "Save",
+                selectDogFirst: "Select a dog first",
+                loadingInfo: "Loading private info...",
+                noInfoFound: "No private information found",
+                savingInfo: "Saving private info...",
+                saveSuccess: "Private information saved!",
+                clearConfirm: "Are you sure you want to clear all notes?",
+                loadingDogs: "Loading dogs...",
+                noDogsFound: "No dogs found",
+                typeToSearch: "Start typing to search"
+            },
+            de: {
+                privateInfo: "Private Informationen",
+                privateNotes: "Private Notizen",
+                notesPlaceholder: "Geben Sie hier alle vertraulichen Informationen ein...",
+                selectDog: "Hund auswählen",
+                dog: "Hund",
+                typeDogName: "Hundename eingeben...",
+                loadInfo: "Info Laden",
+                securityInfo: "Sicherheitsinformationen",
+                privateStorage: "Alle Informationen werden sicher gespeichert",
+                privateNote: "Diese Notizen sind nur für Sie sichtbar",
+                clear: "Löschen",
+                save: "Speichern",
+                selectDogFirst: "Zuerst einen Hund auswählen",
+                loadingInfo: "Private Informationen werden geladen...",
+                noInfoFound: "Keine privaten Informationen gefunden",
+                savingInfo: "Private Informationen werden gespeichert...",
+                saveSuccess: "Private Informationen gespeichert!",
+                clearConfirm: "Sind Sie sicher, dass Sie alle Notizen löschen möchten?",
+                loadingDogs: "Hunde werden geladen...",
+                noDogsFound: "Keine Hunde gefunden",
+                typeToSearch: "Beginnen Sie mit der Eingabe, um zu suchen"
             }
         };
     }
     
-    t(key) { return this.translations[this.currentLang][key] || key; }
+    t(key) { 
+        const langTranslations = this.translations[this.currentLang];
+        if (langTranslations && langTranslations[key]) {
+            return langTranslations[key];
+        }
+        // Fallback naar Nederlands als de vertaling niet bestaat
+        return this.translations['nl'][key] || key; 
+    }
     
     async loadSearchData() {
         if (this.isLoading) return;
         
         try {
             this.isLoading = true;
-            this.showProgress("Honden laden... (0 geladen)");
+            this.showProgress(this.t('loadingDogs') + " (0 " + this.t('loaded') + ")");
             
             this.allDogs = await this.loadAllDogsWithPaginationDogDataManagerStyle();
             
             this.allDogs.sort((a, b) => (a.naam || '').localeCompare(b.naam || ''));
             
-            console.log(`PrivateInfoManager: ${this.allDogs.length} honden geladen`);
+            console.log(`PrivateInfoManager: ${this.allDogs.length} ${this.t('dogsLoaded')}`);
             
         } catch (error) {
-            console.error('PrivateInfoManager: Fout bij laden honden:', error);
-            this.showError(`Laden mislukt: ${error.message}`);
+            console.error('PrivateInfoManager: Error loading dogs:', error);
+            this.showError(`${this.t('loadFailed')}: ${error.message}`);
             this.allDogs = [];
         } finally {
             this.isLoading = false;
@@ -73,7 +126,7 @@ class PrivateInfoManager extends BaseModule {
                     allDogs = allDogs.concat(result.honden);
                     totalLoaded += result.honden.length;
                     
-                    this.showProgress(`Honden laden... (${totalLoaded} geladen)`);
+                    this.showProgress(`${this.t('loadingDogs')}... (${totalLoaded} ${this.t('loaded')})`);
                     
                     hasMorePages = result.heeftVolgende;
                     
@@ -89,7 +142,7 @@ class PrivateInfoManager extends BaseModule {
             return allDogs;
             
         } catch (error) {
-            console.error('PrivateInfoManager: Fout bij laden honden:', error);
+            console.error('PrivateInfoManager: Error loading dogs:', error);
             throw error;
         }
     }
@@ -163,7 +216,7 @@ class PrivateInfoManager extends BaseModule {
                             </div>
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Sluiten</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">${t('close')}</button>
                         </div>
                     </div>
                 </div>
@@ -275,7 +328,7 @@ class PrivateInfoManager extends BaseModule {
         this.showProgress(this.t('loadingInfo'));
         
         try {
-            if (!window.priveInfoService) throw new Error('Privé info service niet beschikbaar');
+            if (!window.priveInfoService) throw new Error(this.t('serviceNotAvailable'));
             
             const result = await window.priveInfoService.getPriveInfoMetPaginatie(1, 1000);
             const priveInfo = result.priveInfo?.find(info => info.stamboomnr === stamboomnr);
@@ -289,9 +342,9 @@ class PrivateInfoManager extends BaseModule {
             this.displayPrivateInfo();
             
         } catch (error) {
-            console.error('Fout bij laden privé info:', error);
+            console.error('Error loading private info:', error);
             this.hideProgress();
-            this.showError('Fout bij laden: ' + error.message);
+            this.showError(this.t('loadError') + ': ' + error.message);
         }
     }
     
@@ -315,7 +368,7 @@ class PrivateInfoManager extends BaseModule {
         this.showProgress(this.t('savingInfo'));
         
         try {
-            if (!window.priveInfoService) throw new Error('Privé info service niet beschikbaar');
+            if (!window.priveInfoService) throw new Error(this.t('serviceNotAvailable'));
             
             const priveInfo = { stamboomnr: stamboomnr, privateNotes: notes };
             await window.priveInfoService.bewaarPriveInfo(priveInfo);
@@ -325,16 +378,16 @@ class PrivateInfoManager extends BaseModule {
             this.showSuccess(this.t('saveSuccess'));
             
         } catch (error) {
-            console.error('Fout bij opslaan:', error);
+            console.error('Error saving:', error);
             this.hideProgress();
-            this.showError('Opslaan mislukt: ' + error.message);
+            this.showError(this.t('saveError') + ': ' + error.message);
         }
     }
     
     clearPrivateInfo() {
         if (confirm(this.t('clearConfirm'))) {
             document.getElementById('privateNotes').value = '';
-            this.showSuccess('Notities gewist');
+            this.showSuccess(this.t('notesCleared'));
         }
     }
     
