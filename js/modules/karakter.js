@@ -9,13 +9,6 @@ const karakterTranslations = {
         title: "Karakter",
         content: `
             <div class="karakter-content">
-                <div class="row">
-                    <div class="col-md-12 text-center mb-5">
-                        <h1 class="display-1 fw-bold">karakter</h1>
-                        <p class="lead mt-3">De essentie van het karakter van de Eurasier</p>
-                    </div>
-                </div>
-                
                 <div class="row mb-5">
                     <div class="col-md-12">
                         <h2 class="h3 mb-4 text-primary">Algemene karaktereigenschappen</h2>
@@ -71,13 +64,6 @@ const karakterTranslations = {
         title: "Character",
         content: `
             <div class="karakter-content">
-                <div class="row">
-                    <div class="col-md-12 text-center mb-5">
-                        <h1 class="display-1 fw-bold">character</h1>
-                        <p class="lead mt-3">The essence of the Eurasier character</p>
-                    </div>
-                </div>
-                
                 <div class="row mb-5">
                     <div class="col-md-12">
                         <h2 class="h3 mb-4 text-primary">General Character Traits</h2>
@@ -133,13 +119,6 @@ const karakterTranslations = {
         title: "Charakter",
         content: `
             <div class="karakter-content">
-                <div class="row">
-                    <div class="col-md-12 text-center mb-5">
-                        <h1 class="display-1 fw-bold">charakter</h1>
-                        <p class="lead mt-3">Die Essenz des Eurasier-Charakters</p>
-                    </div>
-                </div>
-                
                 <div class="row mb-5">
                     <div class="col-md-12">
                         <h2 class="h3 mb-4 text-primary">Allgemeine Charaktereigenschaften</h2>
