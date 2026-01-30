@@ -136,8 +136,6 @@ class ReuTeefCombinatie {
                 noPhotos: "Geen foto's beschikbaar",
                 clickToEnlarge: "Klik om te vergroten",
                 closePhoto: "Sluiten",
-                privateInfo: "Prive Informatie",
-                privateInfoOwnerOnly: "Geen informatie"
                 male: "Reu",
                 female: "Teef",
                 breed: "Ras",
@@ -258,8 +256,6 @@ class ReuTeefCombinatie {
                 noPhotos: "No photos available",
                 clickToEnlarge: "Click to enlarge",
                 closePhoto: "Close",
-                privateInfo: "Private Information",
-                privateInfoOwnerOnly: "No information"
                 male: "Male",
                 female: "Female",
                 breed: "Breed",
@@ -380,8 +376,6 @@ class ReuTeefCombinatie {
                 noPhotos: "Keine Fotos verfügbaar",
                 clickToEnlarge: "Klicken zum Vergrößern",
                 closePhoto: "Schließen",
-                privateInfo: "Private Informationen",
-                privateInfoOwnerOnly: "Kein information"
                 male: "Rüde",
                 female: "Hündin",
                 breed: "Rasse",
