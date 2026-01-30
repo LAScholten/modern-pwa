@@ -3,6 +3,7 @@
  * Beheert 5-generatie stambomen voor honden - GECORRIGEERDE VERSIE
  * Werkt samen met Supabase services via window object
  * **FOTO PROBLEEM OPGELOST** - Gebruikt nu EXACT DEZELFDE LOGICA als SearchManager
+ * **PRIVEINFO TOEGEVOEGD** - Toont priveinfo als huidige gebruiker eigenaar is
  */
 
 class StamboomManager extends BaseModule {
@@ -13,6 +14,7 @@ class StamboomManager extends BaseModule {
         this.currentLang = currentLang;
         this.allDogs = [];
         this.coiCalculator = null;
+        this.currentUserId = null; // NIEUW: Huidige gebruiker ID voor priveinfo
         
         this.dogPhotosCache = new Map(); // Cache voor hondenfoto's - ZELFDE ALS SEARCHMANAGER
         
@@ -74,7 +76,9 @@ class StamboomManager extends BaseModule {
                 noPhotos: "Geen foto's beschikbaar",
                 clickToEnlarge: "Klik om te vergroten",
                 closePhoto: "Sluiten",
-                loadFailed: "Fout bij laden: "
+                loadFailed: "Fout bij laden: ",
+                privateInfo: "Prive Informatie", // NIEUW
+                privateInfoOwnerOnly: "Alleen zichtbaar voor eigenaar" // NIEUW
             },
             en: {
                 pedigreeTitle: "Pedigree of {name}",
@@ -133,7 +137,9 @@ class StamboomManager extends BaseModule {
                 noPhotos: "No photos available",
                 clickToEnlarge: "Click to enlarge",
                 closePhoto: "Close",
-                loadFailed: "Loading failed: "
+                loadFailed: "Loading failed: ",
+                privateInfo: "Private Information", // NIEUW
+                privateInfoOwnerOnly: "Visible to owner only" // NIEUW
             },
             de: {
                 pedigreeTitle: "Ahnentafel von {name}",
@@ -192,7 +198,9 @@ class StamboomManager extends BaseModule {
                 noPhotos: "Keine Fotos verfügbar",
                 clickToEnlarge: "Klicken zum Vergrößern",
                 closePhoto: "Schließen",
-                loadFailed: "Fehler beim Laden: "
+                loadFailed: "Fehler beim Laden: ",
+                privateInfo: "Private Informationen", // NIEUW
+                privateInfoOwnerOnly: "Nur für den Eigentümer sichtbar" // NIEUW
             }
         };
         
@@ -207,6 +215,11 @@ class StamboomManager extends BaseModule {
     async initialize() {
         try {
             console.log('StamboomManager: Initialiseren...');
+            
+            // Haal huidige gebruiker ID op voor priveinfo
+            this.currentUserId = await this.getCurrentUserId();
+            console.log('StamboomManager: Huidige gebruiker ID:', this.currentUserId);
+            
             this.showProgress(this.t('loadingAllDogs').replace('{loaded}', '0'));
             
             // Gebruik paginatie om ALLE honden te laden
@@ -235,6 +248,80 @@ class StamboomManager extends BaseModule {
             
             // Zorg dat het laadscherm ook bij fouten wordt verborgen
             this.forceHideProgress();
+        }
+    }
+    
+    // NIEUW: Methode om huidige gebruiker ID op te halen
+    async getCurrentUserId() {
+        try {
+            // Probeer verschillende methodes om huidige gebruiker ID te krijgen
+            if (window.currentUser && window.currentUser.id) {
+                return window.currentUser.id;
+            }
+            
+            if (window.auth && window.auth.getCurrentUser) {
+                const user = await window.auth.getCurrentUser();
+                if (user && user.id) return user.id;
+            }
+            
+            if (window.supabase && window.supabase.auth) {
+                const { data: { user } } = await window.supabase.auth.getUser();
+                if (user && user.id) return user.id;
+            }
+            
+            // Controleer localStorage of sessionStorage
+            const userData = localStorage.getItem('user') || sessionStorage.getItem('user');
+            if (userData) {
+                try {
+                    const user = JSON.parse(userData);
+                    if (user && user.id) return user.id;
+                } catch (e) {
+                    console.error('Fout bij parsen user data:', e);
+                }
+            }
+            
+            console.warn('StamboomManager: Geen gebruiker ID gevonden voor priveinfo');
+            return null;
+        } catch (error) {
+            console.error('Fout bij ophalen gebruiker ID:', error);
+            return null;
+        }
+    }
+    
+    // NIEUW: Methode om priveinfo voor een hond op te halen
+    async getPrivateInfoForDog(stamboomnr) {
+        if (!this.currentUserId || !stamboomnr) return null;
+        
+        try {
+            if (!window.priveInfoService) {
+                console.warn('PriveInfoService niet beschikbaar');
+                return null;
+            }
+            
+            const result = await window.priveInfoService.getPriveInfoMetPaginatie(1, 1000);
+            
+            if (!result || !result.priveInfo) {
+                console.log('Geen priveinfo gevonden in resultaat');
+                return null;
+            }
+            
+            // Zoek priveinfo voor deze hond EN deze gebruiker
+            const priveInfo = result.priveInfo.find(info => 
+                info.stamboomnr === stamboomnr && 
+                info.toegevoegd_door === this.currentUserId
+            );
+            
+            if (priveInfo) {
+                console.log(`Priveinfo gevonden voor hond ${stamboomnr} en gebruiker ${this.currentUserId}`);
+                return priveInfo.privatenotes || '';
+            } else {
+                console.log(`Geen priveinfo voor hond ${stamboomnr} en gebruiker ${this.currentUserId}`);
+                return null;
+            }
+            
+        } catch (error) {
+            console.error('Fout bij ophalen priveinfo voor hond:', stamboomnr, error);
+            return null;
         }
     }
     
@@ -1190,6 +1277,10 @@ class StamboomManager extends BaseModule {
     async getDogDetailPopupHTML(dog, relation = '') {
         if (!dog) return '';
         
+        // NIEUW: Haal priveinfo op voor deze hond en huidige gebruiker
+        const privateNotes = await this.getPrivateInfoForDog(dog.stamboomnr);
+        const hasPrivateInfo = privateNotes !== null;
+        
         const genderText = dog.geslacht === 'reuen' ? this.t('male') : 
                           dog.geslacht === 'teven' ? this.t('female') : this.t('unknown');
         
@@ -1236,6 +1327,28 @@ class StamboomManager extends BaseModule {
                     </div>
                     <div class="photo-hint">
                         <small class="text-muted"><i class="bi bi-info-circle me-1"></i> ${this.t('clickToEnlarge')}</small>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // NIEUW: Priveinfo HTML sectie
+        let privateInfoHTML = '';
+        if (hasPrivateInfo) {
+            privateInfoHTML = `
+                <div class="info-section mb-2">
+                    <h6><i class="bi bi-lock-fill me-1"></i> ${this.t('privateInfo')}</h6>
+                    <div class="remarks-box" style="background-color: #fff3cd; border-color: #ffeaa7;">
+                        ${privateNotes}
+                    </div>
+                </div>
+            `;
+        } else {
+            privateInfoHTML = `
+                <div class="info-section mb-2">
+                    <h6><i class="bi bi-lock me-1"></i> ${this.t('privateInfo')}</h6>
+                    <div class="text-muted">
+                        <i>${this.t('privateInfoOwnerOnly')}</i>
                     </div>
                 </div>
             `;
@@ -1435,6 +1548,9 @@ class StamboomManager extends BaseModule {
                         <div class="text-muted">${this.t('noRemarks')}</div>
                     </div>
                     `}
+                    
+                    <!-- NIEUW: Priveinfo sectie -->
+                    ${privateInfoHTML}
                 </div>
                 <div class="popup-footer">
                     <button type="button" class="btn btn-secondary popup-close-btn">
