@@ -4,15 +4,27 @@
 const boekTranslations = {
     nl: {
         title: "Boek",
-        content: "BOEK"
+        content: `
+            <div class="boek-content">
+                <p>BOEK</p>
+            </div>
+        `
     },
     en: {
-        title: "Book", 
-        content: "BOOK"
+        title: "Book",
+        content: `
+            <div class="boek-content">
+                <p>BOOK</p>
+            </div>
+        `
     },
     de: {
         title: "Buch",
-        content: "BUCH"
+        content: `
+            <div class="boek-content">
+                <p>BUCH</p>
+            </div>
+        `
     }
 };
 
@@ -20,7 +32,7 @@ const boekTranslations = {
 function initBookModule() {
     console.log('Boek module initialiseren...');
     
-    // Creëer de module HTML
+    // Creëer de module HTML - exact dezelfde structuur als historie.js
     const bookHTML = `
         <div class="card">
             <div class="card-header bg-primary text-white">
@@ -32,9 +44,7 @@ function initBookModule() {
                 </div>
             </div>
             <div class="card-body module-content">
-                <div id="bookContent" class="text py-5" style="font-size: 1rem; font-weight: bold; color: #333;">
-                    ${boekTranslations.nl.content}
-                </div>
+                <div id="bookContent">${boekTranslations.nl.content}</div>
             </div>
         </div>
     `;
@@ -52,7 +62,7 @@ function translateBookModule(lang) {
     }
     
     if (bookContent && boekTranslations[lang]) {
-        bookContent.textContent = boekTranslations[lang].content;
+        bookContent.innerHTML = boekTranslations[lang].content;
     }
 }
 
