@@ -16,58 +16,51 @@ const boekTranslations = {
     }
 };
 
-// Functie om boek module te initialiseren - gebruik originele naam
+// Functie om boek module te initialiseren
 function initBookModule() {
-    console.log('Book module initialiseren...');
+    console.log('Boek module initialiseren...');
     
     // Creëer de module HTML
-    const boekHTML = `
+    const bookHTML = `
         <div class="card">
             <div class="card-header bg-primary text-white">
                 <div class="d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
                         <i class="bi bi-book"></i> 
-                        <span id="boekTitle">Boek</span>
+                        <span id="bookTitle">Boek</span>
                     </h5>
                 </div>
             </div>
             <div class="card-body module-content">
-                <div id="boekContent" class="text-center py-5" style="font-size: 5rem; font-weight: bold; color: #333;">
+                <div id="bookContent" class="text-center py-5" style="font-size: 5rem; font-weight: bold; color: #333;">
                     ${boekTranslations.nl.content}
                 </div>
             </div>
         </div>
     `;
     
-    return boekHTML;
+    return bookHTML;
 }
 
-// Functie om boek module te vertalen - gebruik originele naam
+// Functie om boek module te vertalen
 function translateBookModule(lang) {
-    const boekTitle = document.getElementById('boekTitle');
-    const boekContent = document.getElementById('boekContent');
+    const bookTitle = document.getElementById('bookTitle');
+    const bookContent = document.getElementById('bookContent');
     
-    if (boekTitle && boekTranslations[lang]) {
-        boekTitle.textContent = boekTranslations[lang].title;
+    if (bookTitle && boekTranslations[lang]) {
+        bookTitle.textContent = boekTranslations[lang].title;
     }
     
-    if (boekContent && boekTranslations[lang]) {
-        boekContent.textContent = boekTranslations[lang].content;
+    if (bookContent && boekTranslations[lang]) {
+        bookContent.textContent = boekTranslations[lang].content;
     }
 }
 
 // Exporteer functies
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
-        initBookModule,      // Originele naam
-        translateBookModule, // Originele naam
+        initBookModule,
+        translateBookModule,
         boekTranslations
     };
-}
-
-// Maak functies globaal beschikbaar voor browser
-if (typeof window !== 'undefined') {
-    window.initBookModule = initBookModule;
-    window.translateBookModule = translateBookModule;
-    window.boekTranslations = boekTranslations;
 }
