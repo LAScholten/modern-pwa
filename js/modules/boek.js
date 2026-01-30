@@ -32,7 +32,7 @@ function initBookModule() {
                 </div>
             </div>
             <div class="card-body module-content">
-                <div id="bookContent" class="text-center py-5" style="font-size: 5rem; font-weight: bold; color: #333;">
+                <div id="bookContent" class="text py-5" style="font-size: 1rem; font-weight: bold; color: #333;">
                     ${boekTranslations.nl.content}
                 </div>
             </div>
