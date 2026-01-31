@@ -443,6 +443,10 @@ class DogDataManager extends BaseModule {
             `;
         }
         
+        // Bepaal readonly attributen voor niet-admin gebruikers
+        const isAdmin = currentUser.role === 'admin';
+        const readOnlyAttr = isAdmin ? '' : 'readonly';
+        
         return `
             <div class="modal fade" id="dogDataModal" tabindex="-1" aria-labelledby="dogDataModalLabel" aria-hidden="true">
                 <div class="modal-dialog modal-lg">
@@ -504,13 +508,13 @@ class DogDataManager extends BaseModule {
                                         <div class="col-md-6">
                                             <div class="mb-3">
                                                 <label for="dogName" class="form-label fw-semibold">${t('nameRequired')}</label>
-                                                <input type="text" class="form-control" id="dogName" required>
+                                                <input type="text" class="form-control" id="dogName" required ${readOnlyAttr}>
                                             </div>
                                         </div>
                                         <div class="col-md-6">
                                             <div class="mb-3">
                                                 <label for="kennelName" class="form-label fw-semibold">${t('kennelName')}</label>
-                                                <input type="text" class="form-control" id="kennelName">
+                                                <input type="text" class="form-control" id="kennelName" ${readOnlyAttr}>
                                             </div>
                                         </div>
                                     </div>
@@ -520,13 +524,13 @@ class DogDataManager extends BaseModule {
                                         <div class="col-md-6">
                                             <div class="mb-3">
                                                 <label for="pedigreeNumber" class="form-label fw-semibold">${t('pedigreeNumber')}</label>
-                                                <input type="text" class="form-control" id="pedigreeNumber" required>
+                                                <input type="text" class="form-control" id="pedigreeNumber" required ${readOnlyAttr}>
                                             </div>
                                         </div>
                                         <div class="col-md-6">
                                             <div class="mb-3">
                                                 <label for="gender" class="form-label fw-semibold">${t('gender')}</label>
-                                                <select class="form-select" id="gender">
+                                                <select class="form-select" id="gender" ${!isAdmin ? 'disabled' : ''}>
                                                     <option value="">${t('chooseGender')}</option>
                                                     <option value="reuen">${t('male')}</option>
                                                     <option value="teven">${t('female')}</option>
@@ -542,7 +546,7 @@ class DogDataManager extends BaseModule {
                                                 <!-- Ras invoerveld -->
                                                 <div class="ras-col">
                                                     <label for="breed" class="form-label fw-semibold">${t('breedRequired')}</label>
-                                                    <input type="text" class="form-control" id="breed" required>
+                                                    <input type="text" class="form-control" id="breed" required ${readOnlyAttr}>
                                                 </div>
                                                 
                                                 <!-- Recente rassen sectie -->
@@ -566,7 +570,8 @@ class DogDataManager extends BaseModule {
                                                        placeholder="Typ naam of 'naam kennelnaam'..."
                                                        data-parent-type="vader"
                                                        autocomplete="off"
-                                                       data-valid-parent="false">
+                                                       data-valid-parent="false"
+                                                       ${readOnlyAttr}>
                                                 <div id="fatherError" class="error-message" style="display: none;"></div>
                                                 <div id="fatherAutocomplete" class="parent-autocomplete-dropdown"></div>
                                                 <div class="form-text mt-1">${t('typeToSearch')}</div>
@@ -579,7 +584,8 @@ class DogDataManager extends BaseModule {
                                                        placeholder="Typ naam of 'naam kennelnaam'..."
                                                        data-parent-type="moeder"
                                                        autocomplete="off"
-                                                       data-valid-parent="false">
+                                                       data-valid-parent="false"
+                                                       ${readOnlyAttr}>
                                                 <div id="motherError" class="error-message" style="display: none;"></div>
                                                 <div id="motherAutocomplete" class="parent-autocomplete-dropdown"></div>
                                                 <div class="form-text mt-1">${t('typeToSearch')}</div>
@@ -594,7 +600,8 @@ class DogDataManager extends BaseModule {
                                                 <label for="birthDate" class="form-label fw-semibold">${t('birthDate')}</label>
                                                 <input type="date" class="form-control" id="birthDate" 
                                                        placeholder="DD-MM-JJJJ"
-                                                       data-original-value="">
+                                                       data-original-value=""
+                                                       ${readOnlyAttr}>
                                                 <div id="birthDateError" class="error-message" style="display: none;"></div>
                                                 <small class="form-text text-muted">Voer datum in als DD-MM-JJJJ (bijv. 15-01-2023)</small>
                                             </div>
@@ -2482,7 +2489,7 @@ class DogDataManager extends BaseModule {
     }
     
     /**
-     * Setup autocomplete voor ouders - MET CORRECTE NEDERLANDSE ID EN STAMBOOMNUMMER OPSLAG
+     * Setup autocomplete voor ouders - MET CORRECTE NEDERLANDSE ID EN STAMBOOMNUMMER OPSLAG EN CONSOLE LOGGING
      */
     setupParentAutocomplete() {
         // Event listeners voor vader en moeder velden
