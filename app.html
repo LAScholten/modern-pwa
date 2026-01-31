@@ -1031,16 +1031,28 @@
                 }
             });
             
-        // Pagina vernieuwen
-        const refreshStatsBtn = document.getElementById('refreshStatsBtn');
-        if (refreshStatsBtn) {
-            refreshStatsBtn.addEventListener('click', function() {
-                console.log('Refresh button clicked - refreshing page...');
-                // Simpele pagina refresh
-                window.location.reload();
-            });
-        } else {
-            console.error('Refresh stats button not found');
+            // Vernieuw statistieken
+            const refreshStatsBtn = document.getElementById('refreshStatsBtn');
+            if (refreshStatsBtn) {
+                refreshStatsBtn.addEventListener('click', async function() {
+                    console.log('Refresh stats button clicked');
+                    try {
+                        const stats = await window.hondenService.getStatistieken();
+                        document.getElementById('quickStatsHonden').textContent = stats.totaalHonden;
+                        document.getElementById('quickStatsFotos').textContent = stats.totaalFotos;
+                        if (ui && ui.showSuccess) {
+                            ui.showSuccess('Statistieken vernieuwd!');
+                        }
+                    } catch (error) {
+                        console.error('Fout bij laden statistieken:', error);
+                        if (ui && ui.showError) {
+                            ui.showError('Fout bij laden statistieken');
+                        }
+                    }
+                });
+            } else {
+                console.error('Refresh stats button not found');
+            }
         }
         
         // SNELKOPPELING functionaliteit
