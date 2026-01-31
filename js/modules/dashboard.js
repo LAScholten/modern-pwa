@@ -49,7 +49,7 @@ function initDashboardModule() {
                         <div class="card-body">
                             <ul class="mb-0">
                                 <li class="app-text" data-key="enthusiast1"><strong>Nieuw eigenaar?</strong> → Leer alles over je nieuwe viervoeter</li>
-                                <li class="app-text" data-key="enthusiast2"><strong>Ervaren fokker?</strong> → Toegang tot Rasstandaarden en Database</li>
+                                <li class="app-text" data-key="enthusiast2"><strong>Fokker?</strong> → Word Gebruiker+ om je eigen honden en nesten in te voeren in de Database</li>
                                 <li class="app-text" data-key="enthusiast3"><strong>Gewoon fan?</strong> → Geniet van mooie foto's en interessante feiten</li>
                                 <li class="app-text" data-key="enthusiast4"><strong>Overweeg je een Eurasier?</strong> → Ontdek of dit ras bij je levensstijl past</li>
                             </ul>
@@ -118,7 +118,7 @@ function translateDashboardModule(lang) {
             feature3: "• Offline toegang - Alle rasinformatie altijd beschikbaar, zelfs zonder internet",
             forEnthusiastsTitle: "❤️ Voor de ware Eurasier liefhebber:",
             enthusiast1: "• Nieuw eigenaar? → Leer alles over je nieuwe viervoeter",
-            enthusiast2: "• Ervaren fokker? → Toegang tot Rasstandaarden en Database",
+            enthusiast2: "• Fokker? → Word Gebruiker+ om je eigen honden en nesten in te voeren in de Database",
             enthusiast3: "• Gewoon fan? → Geniet van mooie foto's en interessante feiten",
             enthusiast4: "• Overweeg je een Eurasier? → Ontdek of dit ras bij je levensstijl past",
             pwaBenefitsTitle: "✨ Waarom als PWA:",
@@ -142,7 +142,7 @@ function translateDashboardModule(lang) {
             feature3: "• Offline Access - All breed information always available, even without internet",
             forEnthusiastsTitle: "❤️ For the true Eurasier enthusiast:",
             enthusiast1: "• New owner? → Learn everything about your new four-legged friend",
-            enthusiast2: "• Experienced breeder? → Access to Breed Standards and Database",
+            enthusiast2: "• Breeder? → Become User+ to put your own dogs and litters in the Database",
             enthusiast3: "• Just a fan? → Enjoy beautiful photos and interesting facts",
             enthusiast4: "• Considering a Eurasier? → Discover if this breed fits your lifestyle",
             pwaBenefitsTitle: "✨ Why as a PWA:",
@@ -166,7 +166,7 @@ function translateDashboardModule(lang) {
             feature3: "• Offline-Zugriff - Alle Rasseinformationen immer verfügbar, auch ohne Internet",
             forEnthusiastsTitle: "❤️ Für den echten Eurasier-Liebhaber:",
             enthusiast1: "• Neuer Besitzer? → Erfahren Sie alles über Ihren neuen Vierbeiner",
-            enthusiast2: "• Erfahrener Züchter? → Zugang zu Rassestandards und Datenbank",
+            enthusiast2: "• Züchter? → Werde Benutzer+, um deine eigenen Hunde und Würfe in die Datenbank einzutragen",
             enthusiast3: "• Einfach Fan? → Genießen Sie schöne Fotos und interessante Fakten",
             enthusiast4: "• Überlegen Sie einen Eurasier? → Entdecken Sie, ob diese Rasse zu Ihrem Lebensstil passt",
             pwaBenefitsTitle: "✨ Warum als PWA:",
