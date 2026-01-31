@@ -1031,28 +1031,23 @@
                 }
             });
             
-            // Vernieuw statistieken
-            const refreshStatsBtn = document.getElementById('refreshStatsBtn');
-            if (refreshStatsBtn) {
-                refreshStatsBtn.addEventListener('click', async function() {
-                    console.log('Refresh stats button clicked');
-                    try {
-                        const stats = await window.hondenService.getStatistieken();
-                        document.getElementById('quickStatsHonden').textContent = stats.totaalHonden;
-                        document.getElementById('quickStatsFotos').textContent = stats.totaalFotos;
-                        if (ui && ui.showSuccess) {
-                            ui.showSuccess('Statistieken vernieuwd!');
-                        }
-                    } catch (error) {
-                        console.error('Fout bij laden statistieken:', error);
-                        if (ui && ui.showError) {
-                            ui.showError('Fout bij laden statistieken');
-                        }
-                    }
-                });
-            } else {
-                console.error('Refresh stats button not found');
-            }
+        // In je bestaande code, VERVANG de event listener voor refreshStatsBtn met:
+        const refreshStatsBtn = document.getElementById('refreshStatsBtn');
+        if (refreshStatsBtn) {
+            refreshStatsBtn.addEventListener('click', function() {
+                console.log('Refresh: laad nieuwste statistieken');
+        
+                // Clear eventuele cache
+                if (window.hondenService && window.hondenService.clearCache) {
+                    window.hondenService.clearCache();
+                }
+        
+                // Laad statistieken opnieuw
+                loadInitialStats();
+        
+                // Toon simpele melding
+                alert('Statistieken vernieuwd met laatste data!');
+            });
         }
         
         // SNELKOPPELING functionaliteit
