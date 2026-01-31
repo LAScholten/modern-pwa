@@ -1031,37 +1031,28 @@
                 }
             });
             
-        // Vernieuw statistieken EN refresh pagina
-        const refreshStatsBtn = document.getElementById('refreshStatsBtn');
-        if (refreshStatsBtn) {
-            refreshStatsBtn.addEventListener('click', async function() {
-                console.log('Refresh stats button clicked');
-        
-                try {
-                    // 1. Haal eerst de laatste statistieken op
-                    const stats = await window.hondenService.getStatistieken();
-                    document.getElementById('quickStatsHonden').textContent = stats.totaalHonden;
-                    document.getElementById('quickStatsFotos').textContent = stats.totaalFotos;
-            
-                    if (ui && ui.showSuccess) {
-                        ui.showSuccess('Statistieken vernieuwd!');
+            // Vernieuw statistieken
+            const refreshStatsBtn = document.getElementById('refreshStatsBtn');
+            if (refreshStatsBtn) {
+                refreshStatsBtn.addEventListener('click', async function() {
+                    console.log('Refresh stats button clicked');
+                    try {
+                        const stats = await window.hondenService.getStatistieken();
+                        document.getElementById('quickStatsHonden').textContent = stats.totaalHonden;
+                        document.getElementById('quickStatsFotos').textContent = stats.totaalFotos;
+                        if (ui && ui.showSuccess) {
+                            ui.showSuccess('Statistieken vernieuwd!');
+                        }
+                    } catch (error) {
+                        console.error('Fout bij laden statistieken:', error);
+                        if (ui && ui.showError) {
+                            ui.showError('Fout bij laden statistieken');
+                        }
                     }
-            
-                    // 2. Wacht 1 seconde zodat de gebruiker de melding ziet
-                    setTimeout(() => {
-                        // 3. Refresh dan de hele pagina
-                        location.reload();
-                    }, 1000);
-            
-                } catch (error) {
-                    console.error('Fout bij laden statistieken:', error);
-                    if (ui && ui.showError) {
-                        ui.showError('Fout bij laden statistieken');
-                    }
-                }
-            });
-        } else {
-            console.error('Refresh stats button not found');
+                });
+            } else {
+                console.error('Refresh stats button not found');
+            }
         }
         
         // SNELKOPPELING functionaliteit
