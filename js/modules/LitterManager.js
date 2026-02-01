@@ -1251,7 +1251,8 @@ class LitterManager {
                                     <option value="Positief" ${data.schildklier === 'Positief' ? 'selected' : ''}>${t('thyroidPositive')}</option>
                                 </select>
                             </div>
-                            <div class="mb-3" id="thyroidExplanationContainer" style="${data.schildklier === 'Positief' ? '' : 'display: none;'}">
+                            <!-- AANGEPAST: Toelichting vak altijd zichtbaar -->
+                            <div class="mb-3" id="thyroidExplanationContainer">
                                 <label for="thyroidExplanation" class="form-label">${t('thyroidExplanation')}</label>
                                 <input type="text" class="form-control" id="thyroidExplanation" value="${data.schildklierverklaring || ''}">
                             </div>
@@ -1426,7 +1427,8 @@ class LitterManager {
             thyroidSelect.addEventListener('change', (e) => {
                 const explanationContainer = document.getElementById('thyroidExplanationContainer');
                 if (explanationContainer) {
-                    explanationContainer.style.display = e.target.value === 'Positief' ? 'block' : 'none';
+                    // AANGEPAST: Verwijder de conditionele logica zodat het vak altijd zichtbaar blijft
+                    explanationContainer.style.display = 'block'; // Altijd tonen
                 }
             });
         } else {
@@ -1794,7 +1796,7 @@ class LitterManager {
         
         if (eyesExplanationContainer) eyesExplanationContainer.style.display = 'none';
         if (eyesExplanation) eyesExplanation.value = '';
-        if (thyroidExplanationContainer) thyroidExplanationContainer.style.display = 'none';
+        if (thyroidExplanationContainer) thyroidExplanationContainer.style.display = 'block'; // AANGEPAST: Altijd zichtbaar
         if (thyroidExplanation) thyroidExplanation.value = '';
         
         // Reset overlijdensdatum
