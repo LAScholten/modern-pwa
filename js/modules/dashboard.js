@@ -63,7 +63,7 @@ function initDashboardModule() {
                         </div>
                         <div class="card-body">
                             <ul class="mb-0">
-                                <li class="app-text" data-key="benefit1"><strong>Altijd toegankelijk</strong> - Installeer als app op je telefoon, direct vanaf de browser</li>
+                                <li class="app-text" data-key="benefit1"><strong>Altijd toegankelijk</strong> - Installeer als app op je telefoon of computer, direct vanaf de browser</li>
                                 <li class="app-text" data-key="benefit2"><strong>Offline beschikbaar</strong> - Rasinformatie raadplegen tijdens wandelingen of shows</li>
                                 <li class="app-text" data-key="benefit3"><strong>Platform-onafhankelijk</strong> - Werkt op iOS, Android, Windows, macOS</li>
                                 <li class="app-text" data-key="benefit4"><strong>Geen app store nodig</strong> - Direct installeren, altijd up-to-date</li>
@@ -122,7 +122,7 @@ function translateDashboardModule(lang) {
             enthusiast3: "• Gewoon fan? → Geniet van mooie foto's en interessante feiten",
             enthusiast4: "• Overweeg je een Eurasier? → Ontdek of dit ras bij je levensstijl past",
             pwaBenefitsTitle: "✨ Waarom als PWA:",
-            benefit1: "• Altijd toegankelijk - Installeer als app op je telefoon, direct vanaf de browser",
+            benefit1: "• Altijd toegankelijk - Installeer als app op je telefoon of computer, direct vanaf de browser",
             benefit2: "• Offline beschikbaar - Rasinformatie raadplegen tijdens wandelingen of shows",
             benefit3: "• Platform-onafhankelijk - Werkt op iOS, Android, Windows, macOS",
             benefit4: "• Geen app store nodig - Direct installeren, altijd up-to-date",
@@ -146,7 +146,7 @@ function translateDashboardModule(lang) {
             enthusiast3: "• Just a fan? → Enjoy beautiful photos and interesting facts",
             enthusiast4: "• Considering a Eurasier? → Discover if this breed fits your lifestyle",
             pwaBenefitsTitle: "✨ Why as a PWA:",
-            benefit1: "• Always accessible - Install as an app on your phone, directly from the browser",
+            benefit1: "• Always accessible - Install as an app on your phone or computer, directly from the browser",
             benefit2: "• Offline available - Consult breed information during walks or shows",
             benefit3: "• Platform-independent - Works on iOS, Android, Windows, macOS",
             benefit4: "• No app store needed - Install directly, always up-to-date",
@@ -170,7 +170,7 @@ function translateDashboardModule(lang) {
             enthusiast3: "• Einfach Fan? → Genießen Sie schöne Fotos und interessante Fakten",
             enthusiast4: "• Überlegen Sie einen Eurasier? → Entdecken Sie, ob diese Rasse zu Ihrem Lebensstil passt",
             pwaBenefitsTitle: "✨ Warum als PWA:",
-            benefit1: "• Immer zugänglich - Als App auf Ihrem Telefon installieren, direkt über den Browser",
+            benefit1: "• Immer zugänglich - Als App auf Ihrem Telefon oder computer installieren, direkt über den Browser",
             benefit2: "• Offline verfügbar - Rasseinformationen während Spaziergängen oder Ausstellungen nachschlagen",
             benefit3: "• Plattformunabhängig - Funktioniert auf iOS, Android, Windows, macOS",
             benefit4: "• Kein App Store nötig - Direkt installieren, immer aktuell",
