@@ -320,7 +320,7 @@ class DogManager extends BaseModule {
                 deathBeforeBirthError: "Sterbedatum kan niet voor geboortedatum sein",
                 
                 insufficientPermissions: "Unzureichende Berechtigungen",
-                insufficientPermissionsText: "Sie haben keine Berechtigung, Hunde hinzuzufügen. Nur Administratoren können deze Funktion nutzen.",
+                insufficientPermissionsText: "Sie haben keine Berechtigung, Hunde hinzuzufügen. Nur Administratoren können diese Funktion nutzen.",
                 loggedInAs: "Sie sind eingeloggt als:",
                 user: "Benutzer",
                 availableFeatures: "Verfügbare Funktionen für Benutzer",
@@ -331,7 +331,7 @@ class DogManager extends BaseModule {
                 
                 adminOnly: "Nur Administratoren kunnen Hunde hinzufügen/bearbeiten",
                 fieldsRequired: "Name, Stammbaum-Nummer en Rasse sind Pflichtfelder",
-                savingDog: "Hund wird gespeichert...",
+                savingDog: "Hund wordt gespeichert...",
                 dogAdded: "Hund erfolgreich hinzugefügt!",
                 dogUpdated: "Hund erfolgreich aktualiseerd!",
                 dogDeleted: "Hund erfolgreich gelöscht!",
@@ -706,7 +706,8 @@ class DogManager extends BaseModule {
                                 <option value="Positief" ${data.schildklier === 'Positief' ? 'selected' : ''}>${t('thyroidPositive')}</option>
                             </select>
                         </div>
-                        <div class="mb-3" id="thyroidExplanationContainer" style="${data.schildklier === 'Positief' ? '' : 'display: none;'}">
+                        <!-- AANGEPAST: Toelichting vak altijd zichtbaar -->
+                        <div class="mb-3" id="thyroidExplanationContainer">
                             <label for="thyroidExplanation" class="form-label fw-semibold">${t('thyroidExplanation')}</label>
                             <input type="text" class="form-control" id="thyroidExplanation" value="${data.schildklierverklaring || ''}">
                         </div>
@@ -984,9 +985,10 @@ class DogManager extends BaseModule {
         const thyroidSelect = document.getElementById('thyroid');
         if (thyroidSelect) {
             thyroidSelect.addEventListener('change', (e) => {
+                // AANGEPAST: Verwijder de conditionele logica zodat het vak altijd zichtbaar blijft
                 const explanationContainer = document.getElementById('thyroidExplanationContainer');
                 if (explanationContainer) {
-                    explanationContainer.style.display = e.target.value === 'Positief' ? 'block' : 'none';
+                    explanationContainer.style.display = 'block'; // Altijd tonen
                 }
             });
         }
