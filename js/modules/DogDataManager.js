@@ -702,7 +702,8 @@ class DogDataManager extends BaseModule {
                                                     <option value="Positief">${t('thyroidPositive')}</option>
                                                 </select>
                                             </div>
-                                            <div class="mb-3" id="thyroidExplanationContainer" style="display: none;">
+                                            <!-- AANPASSING: Toon het toelichtingsveld altijd, ongeacht de selectie -->
+                                            <div class="mb-3" id="thyroidExplanationContainer" style="display: block;">
                                                 <label for="thyroidExplanation" class="form-label fw-semibold">${t('thyroidExplanation')}</label>
                                                 <input type="text" class="form-control" id="thyroidExplanation">
                                             </div>
@@ -1156,10 +1157,8 @@ class DogDataManager extends BaseModule {
         const thyroidSelect = document.getElementById('thyroid');
         if (thyroidSelect) {
             thyroidSelect.addEventListener('change', (e) => {
-                const explanationContainer = document.getElementById('thyroidExplanationContainer');
-                if (explanationContainer) {
-                    explanationContainer.style.display = e.target.value === 'Positief' ? 'block' : 'none';
-                }
+                // AANPASSING: Verwijder de logica die het toelichtingsveld toont/verbergt
+                // Het veld is nu altijd zichtbaar, dus we hebben deze handler niet meer nodig
             });
         }
         
@@ -1923,8 +1922,9 @@ class DogDataManager extends BaseModule {
         if (eyesExplanationContainer) {
             eyesExplanationContainer.style.display = (dog.ogen === 'Overig') ? 'block' : 'none';
         }
+        // AANPASSING: Het toelichtingsveld voor schildklier is nu altijd zichtbaar
         if (thyroidExplanationContainer) {
-            thyroidExplanationContainer.style.display = (dog.schildklier === 'Positief') ? 'block' : 'none';
+            thyroidExplanationContainer.style.display = 'block';
         }
         
         // Reset file status
