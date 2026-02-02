@@ -96,15 +96,25 @@
             display: block;
         }
         
-        /* NIEUW: Vlaggen consistent maken op ALLE apparaten */
-        .btn-group-sm .btn {
+        /* NIEUW: Vlaggen consistent maken - dit werkt WEL */
+        .navbar .btn-group-sm .btn,
+        .btn-group-sm .app-lang-btn,
+        .navbar-actions .btn {
             font-size: 1.2rem !important;
-            padding: 0.35rem 0.7rem !important;
             line-height: 1 !important;
-            min-height: 44px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
+            padding: 0.5rem 0.75rem !important;
+        }
+        
+        /* Forceer emoji grootte specifiek */
+        .app-lang-btn {
+            font-size: 1.2rem !important;
+        }
+        
+        /* Active state */
+        .app-lang-btn.active {
+            background-color: #ffffff !important;
+            color: #0d6efd !important;
+            border-color: #ffffff !important;
         }
         
         /* Mobile-specifieke aanpassingen */
@@ -148,6 +158,13 @@
             /* Maak taal selector compacter op mobiel */
             .btn-group.btn-group-sm {
                 margin-right: 0 !important;
+            }
+            
+            /* Vlaggen op mobiel */
+            .navbar .btn-group-sm .btn,
+            .btn-group-sm .app-lang-btn {
+                font-size: 1.3rem !important;
+                padding: 0.6rem 0.9rem !important;
             }
         }
         
