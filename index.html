@@ -96,6 +96,37 @@
             display: block;
         }
         
+        /* CRITIEKE FIX: Vlaggen ZEKER laten zien - Overschrijf ALLES van Bootstrap */
+        .navbar-actions .btn-group-sm .btn,
+        .navbar-dark .navbar-actions .btn-group .btn {
+            font-size: 1.5rem !important;
+            line-height: 1 !important;
+            padding: 0.5rem 0.75rem !important;
+            width: 48px !important;
+            height: 40px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif !important;
+        }
+        
+        /* Specifiek voor de taal knoppen */
+        .app-lang-btn {
+            font-size: 1.5rem !important;
+            font-weight: normal !important;
+        }
+        
+        /* Active state (gekozen taal) */
+        .app-lang-btn.active {
+            background-color: #ffffff !important;
+            color: #0d6efd !important;
+        }
+        
+        /* Hover state */
+        .app-lang-btn:hover:not(.active) {
+            background-color: rgba(255, 255, 255, 0.15) !important;
+        }
+        
         /* Mobile-specifieke aanpassingen */
         @media (max-width: 768px) {
             .mobile-actions {
@@ -132,11 +163,23 @@
                 width: 100%;
                 order: 3;
                 margin-top: 10px;
+                flex-wrap: nowrap;
             }
             
             /* Maak taal selector compacter op mobiel */
             .btn-group.btn-group-sm {
                 margin-right: 0 !important;
+                flex-shrink: 0;
+            }
+            
+            /* Vlaggen op mobiel - groter voor touch */
+            .navbar-actions .btn-group-sm .btn,
+            .navbar-dark .navbar-actions .btn-group .btn,
+            .app-lang-btn {
+                font-size: 1.6rem !important;
+                width: 50px !important;
+                height: 44px !important;
+                padding: 0.6rem !important;
             }
         }
         
@@ -148,6 +191,11 @@
             
             .action-buttons-row {
                 display: flex !important;
+            }
+            
+            /* Desktop vlaggen */
+            .navbar-actions .btn-group-sm .btn {
+                font-size: 1.4rem !important;
             }
         }
         
