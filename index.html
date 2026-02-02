@@ -96,37 +96,6 @@
             display: block;
         }
         
-        /* NIEUW: Vlaggen consistent maken - ZEKER WERKENDE OPLOSSING */
-        .btn-group.btn-group-sm .btn-outline-light,
-        .navbar-actions .btn-group .btn {
-            font-size: 1.3rem !important;
-            line-height: 1.2 !important;
-            padding: 0.5rem 0.75rem !important;
-            min-width: 48px;
-            min-height: 40px;
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-        }
-        
-        /* Specifiek voor de vlag knoppen */
-        .app-lang-btn {
-            font-size: 1.3rem !important;
-            font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif !important;
-        }
-        
-        /* Hover state */
-        .app-lang-btn:hover {
-            background-color: rgba(255, 255, 255, 0.2) !important;
-        }
-        
-        /* Active state (gekozen taal) */
-        .app-lang-btn.active {
-            background-color: #ffffff !important;
-            color: #0d6efd !important;
-            border-color: #ffffff !important;
-        }
-        
         /* Mobile-specifieke aanpassingen */
         @media (max-width: 768px) {
             .mobile-actions {
@@ -169,14 +138,6 @@
             .btn-group.btn-group-sm {
                 margin-right: 0 !important;
             }
-            
-            /* Vlaggen iets groter op mobiel */
-            .btn-group.btn-group-sm .btn-outline-light,
-            .app-lang-btn {
-                font-size: 1.4rem !important;
-                padding: 0.6rem 0.8rem !important;
-                min-height: 44px;
-            }
         }
         
         /* Desktop: verberg mobiele layout */
@@ -187,11 +148,6 @@
             
             .action-buttons-row {
                 display: flex !important;
-            }
-            
-            /* Desktop vlaggen */
-            .btn-group.btn-group-sm .btn-outline-light {
-                font-size: 1.3rem !important;
             }
         }
         
