@@ -10,11 +10,7 @@ function initDashboardModule() {
                 <div class="card-body">
                     <div class="alert alert-success">
                         <h5><i class="bi bi-check-circle"></i> <span class="app-text" data-key="welcomeTitle">Welkom bij de Eurasier Friends International PWA</span></h5>
-                    </div>
-                    
-                    <!-- Introductietekst -->
-                    <div class="alert alert-info mb-4">
-                        <p class="mb-0"><i class="bi bi-info-circle"></i> <span class="app-text" data-key="digitalHub">De digitale hub voor Eurasier eigenaren en liefhebbers</span></p>
+                        <p class="mb-0"><span class="app-text" data-key="digitalHub">De digitale hub voor Eurasier eigenaren en liefhebbers</span></p>
                     </div>
                     
                     <!-- Over deze applicatie -->
@@ -23,7 +19,7 @@ function initDashboardModule() {
                             <h5><i class="bi bi-dog"></i> <span class="app-text" data-key="aboutAppTitle">Over deze applicatie:</span></h5>
                         </div>
                         <div class="card-body">
-                            <p class="app-text" data-key="aboutAppDesc">Deze Progressive Web App is een toegewijd platform voor de Eurasier gemeenschap - een plek waar rasliefhebbers alles vinden over deze bijzondere honden, van rasinformatie tot dagelijkse verzorgingstips.</p>
+                            <p class="app-text" data-key="aboutAppDesc">Deze Progressive Web App is een platform voor de Eurasier gemeenschap - een plek waar rasliefhebbers alles vinden over de Eurasier.</p>
                         </div>
                     </div>
                     
@@ -34,9 +30,8 @@ function initDashboardModule() {
                         </div>
                         <div class="card-body">
                             <ul class="mb-0">
-                                <li class="app-text" data-key="feature1"><strong>Rasprofiel</strong> - Diepgaande informatie over de Eurasier: karakter, geschiedenis, rasstandaarden</li>
-                                <li class="app-text" data-key="feature2"><strong>Galerij</strong> - Inspirerende foto's van Eurasiers</li>
-                                <li class="app-text" data-key="feature3"><strong>Offline toegang</strong> - Alle rasinformatie altijd beschikbaar, zelfs zonder internet</li>
+                                <li class="app-text" data-key="feature1"><strong>Rasprofiel</strong> - Diepgaande informatie over de Eurasier: karakter, geschiedenis, FCI-rasstandaard</li>
+                                <li class="app-text" data-key="feature2"><strong>Database en Galerij</strong> – Stambomen en  foto's van Eurasiers</li>
                             </ul>
                         </div>
                     </div>
@@ -48,10 +43,9 @@ function initDashboardModule() {
                         </div>
                         <div class="card-body">
                             <ul class="mb-0">
-                                <li class="app-text" data-key="enthusiast1"><strong>Nieuw eigenaar?</strong> → Leer alles over je nieuwe viervoeter</li>
+                                <li class="app-text" data-key="enthusiast1"><strong>Nieuw eigenaar?</strong> → Leer alles over je nieuwe viervoeter, ook via de facebook pagina</li>
                                 <li class="app-text" data-key="enthusiast2"><strong>Fokker?</strong> → Word Gebruiker+ om je eigen honden en nesten in te voeren in de Database</li>
-                                <li class="app-text" data-key="enthusiast3"><strong>Gewoon fan?</strong> → Geniet van mooie foto's en interessante feiten</li>
-                                <li class="app-text" data-key="enthusiast4"><strong>Overweeg je een Eurasier?</strong> → Ontdek of dit ras bij je levensstijl past</li>
+                                <li class="app-text" data-key="enthusiast4"><strong>Overweeg je een Eurasier?</strong> → Ontdek of dit ras bij je levensstijl past, ook via de facebook pagina</li>
                             </ul>
                         </div>
                     </div>
@@ -64,7 +58,6 @@ function initDashboardModule() {
                         <div class="card-body">
                             <ul class="mb-0">
                                 <li class="app-text" data-key="benefit1"><strong>Altijd toegankelijk</strong> - Installeer als app op je telefoon of computer, direct vanaf de browser</li>
-                                <li class="app-text" data-key="benefit2"><strong>Offline beschikbaar</strong> - Rasinformatie raadplegen tijdens wandelingen of shows</li>
                                 <li class="app-text" data-key="benefit3"><strong>Platform-onafhankelijk</strong> - Werkt op iOS, Android, Windows, macOS</li>
                                 <li class="app-text" data-key="benefit4"><strong>Geen app store nodig</strong> - Direct installeren, altijd up-to-date</li>
                                 <li class="app-text" data-key="benefit5"><strong>Spaart opslagruimte</strong> - Lichtgewicht maar volledig functioneel</li>
@@ -81,7 +74,6 @@ function initDashboardModule() {
                             <p class="app-text" data-key="howToUseDesc">Bezoek de website → Blader door rasinformatie → Installeer met één klik → Heb altijd je Eurasier gids bij de hand, waar je ook bent!</p>
                         </div>
                     </div>
-                    
                 </div>
             </div>
         </div>
@@ -111,19 +103,16 @@ function translateDashboardModule(lang) {
             welcomeTitle: "Welkom bij de Eurasier Friends International PWA",
             digitalHub: "De digitale hub voor Eurasier eigenaren en liefhebbers",
             aboutAppTitle: "🐕 Over deze applicatie:",
-            aboutAppDesc: "Deze Progressive Web App is een toegewijd platform voor de Eurasier gemeenschap - een plek waar rasliefhebbers alles vinden over de Eurasier.",
+            aboutAppDesc: "Deze Progressive Web App is een platform voor de Eurasier gemeenschap - een plek waar rasliefhebbers alles vinden over de Eurasier.",
             coreFeaturesTitle: "📋 Kerninhoud & functionaliteiten:",
-            feature1: "• Rasprofiel - Diepgaande informatie over de Eurasier: karakter, geschiedenis, rasstandaarden",
-            feature2: "• Galerij - Inspirerende foto's van Eurasiers",
-            feature3: "• Offline toegang - Alle rasinformatie altijd beschikbaar, zelfs zonder internet",
+            feature1: "• Rasprofiel - Diepgaande informatie over de Eurasier: karakter, geschiedenis, FCI-rasstandaard",
+            feature2: "• Database en Galerij – Stambomen en  foto's van Eurasiers",
             forEnthusiastsTitle: "❤️ Voor de ware Eurasier liefhebber:",
-            enthusiast1: "• Nieuw eigenaar? → Leer alles over je nieuwe viervoeter",
+            enthusiast1: "• Nieuw eigenaar? → Leer alles over je nieuwe viervoeter, ook via de facebook pagina",
             enthusiast2: "• Fokker? → Word Gebruiker+ om je eigen honden en nesten in te voeren in de Database",
-            enthusiast3: "• Gewoon fan? → Geniet van mooie foto's en interessante feiten",
-            enthusiast4: "• Overweeg je een Eurasier? → Ontdek of dit ras bij je levensstijl past",
+            enthusiast4: "• Overweeg je een Eurasier? → Ontdek of dit ras bij je levensstijl past, ook via de facebook pagina",
             pwaBenefitsTitle: "✨ Waarom als PWA:",
             benefit1: "• Altijd toegankelijk - Installeer als app op je telefoon of computer, direct vanaf de browser",
-            benefit2: "• Offline beschikbaar - Rasinformatie raadplegen tijdens wandelingen of shows",
             benefit3: "• Platform-onafhankelijk - Werkt op iOS, Android, Windows, macOS",
             benefit4: "• Geen app store nodig - Direct installeren, altijd up-to-date",
             benefit5: "• Spaart opslagruimte - Lichtgewicht maar volledig functioneel",
@@ -135,19 +124,16 @@ function translateDashboardModule(lang) {
             welcomeTitle: "Welcome to the Eurasier Friends International PWA",
             digitalHub: "The digital hub for Eurasier owners and enthusiasts",
             aboutAppTitle: "🐕 About this application:",
-            aboutAppDesc: "This Progressive Web App is a dedicated platform for the Eurasier community - a place where breed enthusiasts can find everything about the Eurasier.",
+            aboutAppDesc: "This Progressive Web App is a platform for the Eurasier community - a place where breed enthusiasts can find everything about the Eurasier.",
             coreFeaturesTitle: "📋 Core content & functionalities:",
-            feature1: "• Breed Profile - In-depth information about the Eurasier: character, history, breed standards",
-            feature2: "• Gallery - Inspiring photos of Eurasiers",
-            feature3: "• Offline Access - All breed information always available, even without internet",
+            feature1: "• Breed Profile - In-depth information about the Eurasier: character, history, FCI breed standard",
+            feature2: "• Database and Gallery – Pedigrees and photos of Eurasiers",
             forEnthusiastsTitle: "❤️ For the true Eurasier enthusiast:",
-            enthusiast1: "• New owner? → Learn everything about your new four-legged friend",
-            enthusiast2: "• Breeder? → Become User+ to put your own dogs and litters in the Database",
-            enthusiast3: "• Just a fan? → Enjoy beautiful photos and interesting facts",
-            enthusiast4: "• Considering a Eurasier? → Discover if this breed fits your lifestyle",
+            enthusiast1: "• New owner? → Learn everything about your new four-legged friend, also via the facebook page",
+            enthusiast2: "• Breeder? → Become User+ to enter your own dogs and litters in the Database",
+            enthusiast4: "• Considering a Eurasier? → Discover if this breed fits your lifestyle, also via the facebook page",
             pwaBenefitsTitle: "✨ Why as a PWA:",
             benefit1: "• Always accessible - Install as an app on your phone or computer, directly from the browser",
-            benefit2: "• Offline available - Consult breed information during walks or shows",
             benefit3: "• Platform-independent - Works on iOS, Android, Windows, macOS",
             benefit4: "• No app store needed - Install directly, always up-to-date",
             benefit5: "• Saves storage space - Lightweight yet fully functional",
@@ -159,19 +145,16 @@ function translateDashboardModule(lang) {
             welcomeTitle: "Willkommen bei der Eurasier Friends International PWA",
             digitalHub: "Die digitale Drehscheibe für Eurasier-Besitzer und -Liebhaber",
             aboutAppTitle: "🐕 Über diese Anwendung:",
-            aboutAppDesc: "Diese Progressive Web App ist eine dedizierte Plattform für die Eurasier-Gemeinschaft - ein Ort, an dem Rassenliebhaber alles über der Eurasier.",
+            aboutAppDesc: "Diese Progressive Web App ist eine Plattform für die Eurasier-Gemeinschaft - ein Ort, an dem Rassenliebhaber alles über den Eurasier finden können.",
             coreFeaturesTitle: "📋 Kerninhalte & Funktionalitäten:",
-            feature1: "• Rasseprofil - Tiefgehende Informationen über den Eurasier: Charakter, Geschichte, Rassestandards",
-            feature2: "• Galerie - Inspirierende Fotos von Eurasiern",
-            feature3: "• Offline-Zugriff - Alle Rasseinformationen immer verfügbar, auch ohne Internet",
+            feature1: "• Rasseprofil - Tiefgehende Informationen über den Eurasier: Charakter, Geschichte, FCI-Rassestandard",
+            feature2: "• Datenbank und Galerie – Stammbäume und Fotos von Eurasiern",
             forEnthusiastsTitle: "❤️ Für den echten Eurasier-Liebhaber:",
-            enthusiast1: "• Neuer Besitzer? → Erfahren Sie alles über Ihren neuen Vierbeiner",
-            enthusiast2: "• Züchter? → Werde Benutzer+, um deine eigenen Hunde und Würfe in die Datenbank einzutragen",
-            enthusiast3: "• Einfach Fan? → Genießen Sie schöne Fotos und interessante Fakten",
-            enthusiast4: "• Überlegen Sie einen Eurasier? → Entdecken Sie, ob diese Rasse zu Ihrem Lebensstil passt",
+            enthusiast1: "• Neuer Besitzer? → Erfahren Sie alles über Ihren neuen Vierbeiner, auch über die Facebook-Seite",
+            enthusiast2: "• Züchter? → Werden Sie Benutzer+, um Ihre eigenen Hunde und Würfe in die Datenbank einzutragen",
+            enthusiast4: "• Überlegen Sie einen Eurasier? → Entdecken Sie, ob diese Rasse zu Ihrem Lebensstil passt, auch über die Facebook-Seite",
             pwaBenefitsTitle: "✨ Warum als PWA:",
-            benefit1: "• Immer zugänglich - Als App auf Ihrem Telefon oder computer installieren, direkt über den Browser",
-            benefit2: "• Offline verfügbar - Rasseinformationen während Spaziergängen oder Ausstellungen nachschlagen",
+            benefit1: "• Immer zugänglich - Als App auf Ihrem Telefon oder Computer installieren, direkt über den Browser",
             benefit3: "• Plattformunabhängig - Funktioniert auf iOS, Android, Windows, macOS",
             benefit4: "• Kein App Store nötig - Direkt installieren, immer aktuell",
             benefit5: "• Spart Speicherplatz - Leichtgewichtig aber voll funktionsfähig",
