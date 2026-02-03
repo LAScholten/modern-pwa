@@ -138,7 +138,7 @@ function translateDashboardModule(lang) {
             benefit4: "• No app store needed - Install directly, always up-to-date",
             benefit5: "• Saves storage space - Lightweight yet fully functional",
             howToUseTitle: "📱 How to use:",
-            howToUseDesc: "Visit the website → Browse breed information → Install with one click → Always have your Eurasier guide at hand, wherever you are!"
+            howToUseDesc: "Visit the website → Browse breed information → Install with one click → Always have your Eurasier guide at hand, wherever you are!."
         },
         de: {
             dashboard: "Dashboard",
