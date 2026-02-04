@@ -81,9 +81,8 @@ In der Fotogalerie können Sie alle Fotos laden, durch die Fotos scrollen und ei
                                 ${this.getText('infoText')}
                             </div>
                             
-                            <div class="text-center py-4">
-                                <i class="bi bi-gear display-1 text-info"></i>
-                                <h4 class="mt-3">${this.getText('sectionTitle')}</h4>
+                            <div class="py-3">
+                                <h4 class="mb-3">${this.getText('sectionTitle')}</h4>
                                 <p class="text-muted" style="white-space: pre-line">${this.getText('sectionText')}</p>
                             </div>
                         </div>
