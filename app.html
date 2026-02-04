@@ -76,6 +76,19 @@
             margin-bottom: 0.25rem !important;
         }
         
+        <!-- Nieuwe knoppen styling -->
+        .info-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .info-buttons .btn {
+            font-size: 0.85rem;
+            padding: 6px 12px;
+        }
+        
         <!-- Mobile-specifieke aanpassingen -->
         @media (max-width: 768px) {
             .mobile-actions {
@@ -119,10 +132,15 @@
                 margin-right: 0 !important;
             }
             
-            <!-- Disclaimer knop op mobiel -->
-            #disclaimerBtn {
+            <!-- Info knoppen op mobiel -->
+            .info-buttons {
+                flex-direction: column;
                 width: 100%;
-                margin-top: 10px;
+            }
+            
+            .info-buttons .btn {
+                width: 100%;
+                margin-top: 5px;
             }
         }
         
@@ -136,9 +154,9 @@
                 display: flex !important;
             }
             
-            <!-- Disclaimer knop op desktop -->
-            #disclaimerBtn {
-                display: inline-block;
+            <!-- Info knoppen op desktop -->
+            .info-buttons {
+                flex-direction: row;
             }
         }
     </style>
@@ -212,7 +230,7 @@
                 <div class="action-buttons-row">
                     <!-- Snelkoppeling Knop - ALTIJD ZICHTBAAR -->
                     <button class="btn btn-success btn-sm me-2" id="pwaInstallBtn">
-                        <i class="bi bi-link"></i> Maak Snelkoppeling
+                        <i class="bi bi-link"></i> <span class="app-text" data-key="installPWA">Maak Snelkoppeling</span>
                     </button>
                     
                     <button class="btn btn-outline-light btn-sm" id="logoutBtn">
@@ -224,7 +242,7 @@
                 <div class="action-buttons-column d-none">
                     <!-- Snelkoppeling Knop voor mobiel -->
                     <button class="btn btn-success btn-sm" id="pwaInstallBtnMobile">
-                        <i class="bi bi-link"></i> Maak Snelkoppeling
+                        <i class="bi bi-link"></i> <span class="app-text" data-key="installPWA">Maak Snelkoppeling</span>
                     </button>
                     
                     <!-- Uitlogknop voor mobiel -->
@@ -313,13 +331,25 @@
                     <div class="card-body">
                         <div class="alert alert-success">
                             <h5><i class="bi bi-check-circle"></i> <span class="app-text" data-key="welcomeTitle">Welkom bij de Eurasier Friends International PWA - Database</span></h5>
-                            <p class="app-text" data-key="welcomeText">Kies een optie uit het menu om te beginnen. De interactieve Database online.</p>
+                            <p class="app-text" data-key="welcomeText">Lees eerst de 3 onderstaande informatie items.</p>
                             
-                            <!-- DISCLAIMER KNOOP - Wordt nu afgehandeld door disclaimer.js -->
-                            <button class="btn btn-secondary" id="disclaimerBtn">
-                                <i class="bi bi-info-circle"></i> 
-                                <span class="app-text" data-key="disclaimerBtn">Disclaimer/Informatie over COI berekening</span>
-                            </button>
+                            <!-- INFO KNOOPPEN -->
+                            <div class="info-buttons">
+                                <button class="btn btn-secondary" id="disclaimerBtn">
+                                    <i class="bi bi-info-circle"></i> 
+                                    <span class="app-text" data-key="disclaimerBtn">Disclaimer/Informatie over COI berekening</span>
+                                </button>
+                                
+                                <button class="btn btn-secondary" id="kleurenBtn">
+                                    <i class="bi bi-info-circle"></i> 
+                                    <span class="app-text" data-key="colorsBtn">De standaard kleuren</span>
+                                </button>
+                                
+                                <button class="btn btn-secondary" id="werkwijzeBtn">
+                                    <i class="bi bi-info-circle"></i> 
+                                    <span class="app-text" data-key="workflowBtn">De werkwijze</span>
+                                </button>
+                            </div>
                         </div>
                         
                         <div class="row mt-3">
@@ -368,30 +398,30 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title"><i class="bi bi-link"></i> Snelkoppeling Maken</h5>
+                    <h5 class="modal-title"><i class="bi bi-link"></i> <span class="app-text" data-key="installPWA">Snelkoppeling Maken</span></h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div id="installSteps">
-                        <h5>Hoe maak je een snelkoppeling op je apparaat:</h5>
+                        <h5><span class="app-text" data-key="installStepsTitle">Hoe maak je een snelkoppeling op je apparaat:</span></h5>
                         
                         <div class="accordion" id="installAccordion">
                             <!-- iPhone/iPad -->
                             <div class="accordion-item">
                                 <h2 class="accordion-header">
                                     <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#iosSteps">
-                                        <i class="bi bi-phone me-2"></i> iPhone/iPad
+                                        <i class="bi bi-phone me-2"></i> <span class="app-text" data-key="iosDevice">iPhone/iPad</span>
                                     </button>
                                 </h2>
                                 <div id="iosSteps" class="accordion-collapse collapse show" data-bs-parent="#installAccordion">
                                     <div class="accordion-body">
                                         <ol>
-                                            <li>Open Safari en ga naar deze pagina</li>
-                                            <li>Tik op het <strong>deel icoon</strong> onderaan (vierkant met pijl omhoog)</li>
-                                            <li>Scroll naar beneden en selecteer <strong>"Zet op beginscherm"</strong></li>
-                                            <li>Geef de snelkoppeling een naam (bijv. "Hondendatabase")</li>
-                                            <li>Tik op <strong>"Toevoegen"</strong> in de rechterbovenhoek</li>
-                                            <li>De app verschijnt nu op je beginsscherm!</li>
+                                            <li><span class="app-text" data-key="iosStep1">Open Safari en ga naar deze pagina</span></li>
+                                            <li><span class="app-text" data-key="iosStep2">Tik op het <strong>deel icoon</strong> onderaan (vierkant met pijl omhoog)</span></li>
+                                            <li><span class="app-text" data-key="iosStep3">Scroll naar beneden en selecteer <strong>"Zet op beginscherm"</strong></span></li>
+                                            <li><span class="app-text" data-key="iosStep4">Geef de snelkoppeling een naam (bijv. "Hondendatabase")</span></li>
+                                            <li><span class="app-text" data-key="iosStep5">Tik op <strong>"Toevoegen"</strong> in de rechterbovenhoek</span></li>
+                                            <li><span class="app-text" data-key="iosStep6">De app verschijnt nu op je beginsscherm!</span></li>
                                         </ol>
                                     </div>
                                 </div>
@@ -401,18 +431,18 @@
                             <div class="accordion-item">
                                 <h2 class="accordion-header">
                                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#androidSteps">
-                                        <i class="bi bi-phone me-2"></i> Android
+                                        <i class="bi bi-phone me-2"></i> <span class="app-text" data-key="androidDevice">Android</span>
                                     </button>
                                 </h2>
                                 <div id="androidSteps" class="accordion-collapse collapse" data-bs-parent="#installAccordion">
                                     <div class="accordion-body">
                                         <ol>
-                                            <li>Open Chrome of Firefox en ga naar deze pagina</li>
-                                            <li>Tik op het <strong>menu icoon</strong> (drie puntjes) rechtsboven</li>
-                                            <li>Selecteer <strong>"Toevoegen aan beginscherm"</strong> of "Installeer app"</li>
-                                            <li>Geef de snelkoppeling een naam</li>
-                                            <li>Tik op <strong>"Toevoegen"</strong> of "Installeren"</li>
-                                            <li>De app verschijnt nu op je beginscherm!</li>
+                                            <li><span class="app-text" data-key="androidStep1">Open Chrome of Firefox en ga naar deze pagina</span></li>
+                                            <li><span class="app-text" data-key="androidStep2">Tik op het <strong>menu icoon</strong> (drie puntjes) rechtsboven</span></li>
+                                            <li><span class="app-text" data-key="androidStep3">Selecteer <strong>"Toevoegen aan beginscherm"</strong> of "Installeer app"</span></li>
+                                            <li><span class="app-text" data-key="androidStep4">Geef de snelkoppeling een naam</span></li>
+                                            <li><span class="app-text" data-key="androidStep5">Tik op <strong>"Toevoegen"</strong> of "Installeren"</span></li>
+                                            <li><span class="app-text" data-key="androidStep6">De app verschijnt nu op je beginscherm!</span></li>
                                         </ol>
                                     </div>
                                 </div>
@@ -422,18 +452,18 @@
                             <div class="accordion-item">
                                 <h2 class="accordion-header">
                                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#windowsSteps">
-                                        <i class="bi bi-laptop me-2"></i> Windows (Chrome/Edge)
+                                        <i class="bi bi-laptop me-2"></i> <span class="app-text" data-key="windowsDevice">Windows (Chrome/Edge)</span>
                                     </button>
                                 </h2>
                                 <div id="windowsSteps" class="accordion-collapse collapse" data-bs-parent="#installAccordion">
                                     <div class="accordion-body">
                                         <ol>
-                                            <li>Open Chrome of Microsoft Edge</li>
-                                            <li>Ga naar deze pagina</li>
-                                            <li>Klik op het <strong>installatie icoon</strong> rechts in de adresbalk (vierkant met pijl)</li>
-                                            <li>Klik op <strong>"Installeren"</strong></li>
-                                            <li>De app wordt geïnstalleerd en verschijnt in je startmenu</li>
-                                            <li>Je kunt ook een snelkoppeling op je bureaublad maken</li>
+                                            <li><span class="app-text" data-key="windowsStep1">Open Chrome of Microsoft Edge</span></li>
+                                            <li><span class="app-text" data-key="windowsStep2">Ga naar deze pagina</span></li>
+                                            <li><span class="app-text" data-key="windowsStep3">Klik op het <strong>installatie icoon</strong> rechts in de adresbalk (vierkant met pijl)</span></li>
+                                            <li><span class="app-text" data-key="windowsStep4">Klik op <strong>"Installeren"</strong></span></li>
+                                            <li><span class="app-text" data-key="windowsStep5">De app wordt geïnstalleerd en verschijnt in je startmenu</span></li>
+                                            <li><span class="app-text" data-key="windowsStep6">Je kunt ook een snelkoppeling op je bureaublad maken</span></li>
                                         </ol>
                                     </div>
                                 </div>
@@ -443,23 +473,23 @@
                             <div class="accordion-item">
                                 <h2 class="accordion-header">
                                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#macSteps">
-                                        <i class="bi bi-laptop me-2"></i> Mac (Safari/Chrome)
+                                        <i class="bi bi-laptop me-2"></i> <span class="app-text" data-key="macDevice">Mac (Safari/Chrome)</span>
                                     </button>
                                 </h2>
                                 <div id="macSteps" class="accordion-collapse collapse" data-bs-parent="#installAccordion">
                                     <div class="accordion-body">
-                                        <h6>Safari:</h6>
+                                        <h6><span class="app-text" data-key="safariBrowser">Safari:</span></h6>
                                         <ol>
-                                            <li>Ga naar deze pagina in Safari</li>
-                                            <li>Klik op "Bestand" in de menubalk</li>
-                                            <li>Selecteer <strong>"Toevoegen aan Dock"</strong></li>
+                                            <li><span class="app-text" data-key="safariStep1">Ga naar deze pagina in Safari</span></li>
+                                            <li><span class="app-text" data-key="safariStep2">Klik op "Bestand" in de menubalk</span></li>
+                                            <li><span class="app-text" data-key="safariStep3">Selecteer <strong>"Toevoegen aan Dock"</strong></span></li>
                                         </ol>
                                         
-                                        <h6>Chrome:</h6>
+                                        <h6><span class="app-text" data-key="chromeBrowser">Chrome:</span></h6>
                                         <ol>
-                                            <li>Ga naar deze pagina in Chrome</li>
-                                            <li>Klik op het installatie icoon rechts in de adresbalk</li>
-                                            <li>Klik op <strong>"Installeren"</strong></li>
+                                            <li><span class="app-text" data-key="chromeStep1">Ga naar deze pagina in Chrome</span></li>
+                                            <li><span class="app-text" data-key="chromeStep2">Klik op het installatie icoon rechts in de adresbalk</span></li>
+                                            <li><span class="app-text" data-key="chromeStep3">Klik op <strong>"Installeren"</strong></span></li>
                                         </ol>
                                     </div>
                                 </div>
@@ -469,11 +499,11 @@
                     
                     <div class="alert alert-info mt-3">
                         <i class="bi bi-info-circle"></i> 
-                        <strong>Voordeel van een snelkoppeling:</strong> De app werkt als een normale app!
+                        <strong><span class="app-text" data-key="advantageTitle">Voordeel van een snelkoppeling:</span></strong> <span class="app-text" data-key="advantageText">De app werkt als een normale app!</span>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Sluiten</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><span class="app-text" data-key="closeBtn">Sluiten</span></button>
                 </div>
             </div>
         </div>
@@ -512,6 +542,10 @@
     
     <!-- StamboomManager -->
     <script src="js/modules/StamboomManager.js"></script>
+    
+    <!-- NIEUWE MODULES -->
+    <script src="js/modules/kleuren.js"></script>
+    <script src="js/modules/informatie.js"></script>
     
     <!-- Main UI Handler -->
     <script src="js/ui-handler.js"></script>
@@ -663,7 +697,7 @@
         // Laad taal uit localStorage
         const appLanguage = localStorage.getItem('appLanguage') || 'nl';
         
-        // Vertalingen - NU COMPLEET MET ALLE BESCHRIJVINGEN
+        // Vertalingen - NU COMPLEET MET ALLE BESCHRIJVINGEN EN NIEUWE KNOOPPEN
         const appTranslations = {
             nl: {
                 appTitle: "Eurasier Friends International - Database",
@@ -683,7 +717,7 @@
                 refresh: "Vernieuwen",
                 dashboard: "Dashboard",
                 welcomeTitle: "Welkom bij de Eurasier Friends International PWA - Database",
-                welcomeText: "Kies een optie uit het menu om te beginnen..",
+                welcomeText: "Lees eerst de 3 onderstaande informatie items.",
                 aboutApp: "Over deze PWA",
                 appDescription: "Deze Progressive Web App heeft verschillende mogelijkheden:",
                 feature1: "💾 Opslag:",
@@ -705,7 +739,43 @@
                 userRole: "Gebruiker",
                 userRights: "Kan honden bekijken, maar niet de eigen fokplanning maken en eigen honden/nesten toevoegen of bewerken.",
                 disclaimerBtn: "Disclaimer/Informatie over COI berekening",
-                installPWA: "Maak Snelkoppeling"
+                colorsBtn: "De standaard kleuren",
+                workflowBtn: "De werkwijze",
+                installPWA: "Maak Snelkoppeling",
+                installStepsTitle: "Hoe maak je een snelkoppeling op je apparaat:",
+                iosDevice: "iPhone/iPad",
+                androidDevice: "Android",
+                windowsDevice: "Windows (Chrome/Edge)",
+                macDevice: "Mac (Safari/Chrome)",
+                safariBrowser: "Safari:",
+                chromeBrowser: "Chrome:",
+                iosStep1: "Open Safari en ga naar deze pagina",
+                iosStep2: "Tik op het deel icoon onderaan (vierkant met pijl omhoog)",
+                iosStep3: "Scroll naar beneden en selecteer \"Zet op beginscherm\"",
+                iosStep4: "Geef de snelkoppeling een naam (bijv. \"Hondendatabase\")",
+                iosStep5: "Tik op \"Toevoegen\" in de rechterbovenhoek",
+                iosStep6: "De app verschijnt nu op je beginsscherm!",
+                androidStep1: "Open Chrome of Firefox en ga naar deze pagina",
+                androidStep2: "Tik op het menu icoon (drie puntjes) rechtsboven",
+                androidStep3: "Selecteer \"Toevoegen aan beginscherm\" of \"Installeer app\"",
+                androidStep4: "Geef de snelkoppeling een naam",
+                androidStep5: "Tik op \"Toevoegen\" of \"Installeren\"",
+                androidStep6: "De app verschijnt nu op je beginscherm!",
+                windowsStep1: "Open Chrome of Microsoft Edge",
+                windowsStep2: "Ga naar deze pagina",
+                windowsStep3: "Klik op het installatie icoon rechts in de adresbalk (vierkant met pijl)",
+                windowsStep4: "Klik op \"Installeren\"",
+                windowsStep5: "De app wordt geïnstalleerd en verschijnt in je startmenu",
+                windowsStep6: "Je kunt ook een snelkoppeling op je bureaublad maken",
+                safariStep1: "Ga naar deze pagina in Safari",
+                safariStep2: "Klik op \"Bestand\" in de menubalk",
+                safariStep3: "Selecteer \"Toevoegen aan Dock\"",
+                chromeStep1: "Ga naar deze pagina in Chrome",
+                chromeStep2: "Klik op het installatie icoon rechts in de adresbalk",
+                chromeStep3: "Klik op \"Installeren\"",
+                advantageTitle: "Voordeel van een snelkoppeling:",
+                advantageText: "De app werkt als een normale app!",
+                closeBtn: "Sluiten"
             },
             en: {
                 appTitle: "Eurasier Friends International - Database",
@@ -725,7 +795,7 @@
                 refresh: "Refresh",
                 dashboard: "Dashboard",
                 welcomeTitle: "Welcome to the Eurasier Friends International PWA - Database",
-                welcomeText: "Choose an option from the menu to start.",
+                welcomeText: "First read the 3 information items below.",
                 aboutApp: "About this PWA",
                 appDescription: "This Progressive Web App has several features:",
                 feature1: "💾 Storage:",
@@ -747,7 +817,43 @@
                 userRole: "User",
                 userRights: "Can view dogs, but cannot create own breeding plans and add/edit own dogs/litters.",
                 disclaimerBtn: "Disclaimer/Information about COI calculation",
-                installPWA: "Create Shortcut"
+                colorsBtn: "Standard Colors",
+                workflowBtn: "The Workflow",
+                installPWA: "Create Shortcut",
+                installStepsTitle: "How to create a shortcut on your device:",
+                iosDevice: "iPhone/iPad",
+                androidDevice: "Android",
+                windowsDevice: "Windows (Chrome/Edge)",
+                macDevice: "Mac (Safari/Chrome)",
+                safariBrowser: "Safari:",
+                chromeBrowser: "Chrome:",
+                iosStep1: "Open Safari and go to this page",
+                iosStep2: "Tap the share icon at the bottom (square with arrow up)",
+                iosStep3: "Scroll down and select \"Add to Home Screen\"",
+                iosStep4: "Give the shortcut a name (e.g., \"Dog Database\")",
+                iosStep5: "Tap \"Add\" in the top right corner",
+                iosStep6: "The app now appears on your home screen!",
+                androidStep1: "Open Chrome or Firefox and go to this page",
+                androidStep2: "Tap the menu icon (three dots) in the top right",
+                androidStep3: "Select \"Add to Home Screen\" or \"Install app\"",
+                androidStep4: "Give the shortcut a name",
+                androidStep5: "Tap \"Add\" or \"Install\"",
+                androidStep6: "The app now appears on your home screen!",
+                windowsStep1: "Open Chrome or Microsoft Edge",
+                windowsStep2: "Go to this page",
+                windowsStep3: "Click the install icon in the address bar (square with arrow)",
+                windowsStep4: "Click \"Install\"",
+                windowsStep5: "The app is installed and appears in your start menu",
+                windowsStep6: "You can also create a shortcut on your desktop",
+                safariStep1: "Go to this page in Safari",
+                safariStep2: "Click \"File\" in the menu bar",
+                safariStep3: "Select \"Add to Dock\"",
+                chromeStep1: "Go to this page in Chrome",
+                chromeStep2: "Click the install icon in the address bar",
+                chromeStep3: "Click \"Install\"",
+                advantageTitle: "Advantage of a shortcut:",
+                advantageText: "The app works like a normal app!",
+                closeBtn: "Close"
             },
             de: {
                 appTitle: "Eurasier Friends International - Datenbank",
@@ -767,9 +873,9 @@
                 refresh: "Aktualisieren",
                 dashboard: "Dashboard",
                 welcomeTitle: "Willkommen bei der Eurasier Friends International PWA - Datenbank",
-                welcomeText: "Wählen Sie eine option aus dem menü, um zu beginnen.",
-                aboutApp: "Über deze PWA",
-                appDescription: "Diese Progressive Web App hat verschiedene mogelijkkeiten:",
+                welcomeText: "Lesen Sie zuerst die 3 untenstehenden Informationspunkte.",
+                aboutApp: "Über diese PWA",
+                appDescription: "Diese Progressive Web App hat verschiedene möglichkeiten:",
                 feature1: "💾 Speicher:",
                 feature1Desc: "Speichert Daten in der Online-Datenbank",
                 feature2: "🔄 Einfache Sicherung:",
@@ -787,9 +893,45 @@
                 userPlusRole: "Benutzer+",
                 userPlusRights: "Kann Hunde ansehen, Zuchtpläne erstellen en eigene Hunde/Würfe hinzufügen of bearbeiten, vorausgesetzt die Eltern sind bereits in der Datenbank.",
                 userRole: "Benutzer",
-                userRights: "Kann Hunde ansehen, aber keine eigenen Zuchtpläne erstellen und keine eigenen Hunde/Würfe hinzufügen oder bearbeiten.",
+                userRights: "Kann Hunde ansehen, aber keine eigenen Zuchtpläne erstellen en geen eigen Hunde/Würfe toevoegen of bewerken.",
                 disclaimerBtn: "Disclaimer/Information zur COI Berechnung",
-                installPWA: "Verknüpfung erstellen"
+                colorsBtn: "Die Standardfarben",
+                workflowBtn: "Die Arbeitsweise",
+                installPWA: "Verknüpfung erstellen",
+                installStepsTitle: "Wie Sie eine Verknüpfung auf Ihrem Gerät erstellen:",
+                iosDevice: "iPhone/iPad",
+                androidDevice: "Android",
+                windowsDevice: "Windows (Chrome/Edge)",
+                macDevice: "Mac (Safari/Chrome)",
+                safariBrowser: "Safari:",
+                chromeBrowser: "Chrome:",
+                iosStep1: "Öffnen Sie Safari und gehen Sie zu dieser Seite",
+                iosStep2: "Tippen Sie auf das Teilen-Symbol unten (Quadrat mit Pfeil nach oben)",
+                iosStep3: "Scrollen Sie nach unten und wählen Sie \"Zum Home-Bildschirm hinzufügen\"",
+                iosStep4: "Geben Sie der Verknüpfung einen Namen (z.B. \"Hundedatenbank\")",
+                iosStep5: "Tippen Sie auf \"Hinzufügen\" in der oberen rechten Ecke",
+                iosStep6: "Die App erscheint nun auf Ihrem Home-Bildschirm!",
+                androidStep1: "Öffnen Sie Chrome oder Firefox und gehen Sie zu dieser Seite",
+                androidStep2: "Tippen Sie auf das Menü-Symbol (drei Punkte) oben rechts",
+                androidStep3: "Wählen Sie \"Zum Startbildschirm hinzufügen\" oder \"App installieren\"",
+                androidStep4: "Geben Sie der Verknüpfung einen Namen",
+                androidStep5: "Tippen Sie auf \"Hinzufügen\" oder \"Installieren\"",
+                androidStep6: "Die App erscheint nun auf Ihrem Startbildschirm!",
+                windowsStep1: "Öffnen Sie Chrome oder Microsoft Edge",
+                windowsStep2: "Gehen Sie zu dieser Seite",
+                windowsStep3: "Klicken Sie auf das Installationssymbol in der Adressleiste (Quadrat mit Pfeil)",
+                windowsStep4: "Klicken Sie auf \"Installieren\"",
+                windowsStep5: "Die App wird installiert und erscheint in Ihrem Startmenü",
+                windowsStep6: "Sie können auch eine Verknüpfung auf Ihrem Desktop erstellen",
+                safariStep1: "Gehen Sie zu dieser Seite in Safari",
+                safariStep2: "Klicken Sie auf \"Datei\" in der Menüleiste",
+                safariStep3: "Wählen Sie \"Zum Dock hinzufügen\"",
+                chromeStep1: "Gehen Sie zu dieser Seite in Chrome",
+                chromeStep2: "Klicken Sie auf das Installationssymbol in der Adressleiste",
+                chromeStep3: "Klicken Sie auf \"Installieren\"",
+                advantageTitle: "Vorteil einer Verknüpfung:",
+                advantageText: "Die App funktioniert wie eine normale App!",
+                closeBtn: "Schließen"
             }
         };
 
@@ -833,7 +975,12 @@
                 const btn = document.getElementById(btnId);
                 if (btn) {
                     const text = appTranslations[lang]?.installPWA || appTranslations.nl.installPWA;
-                    btn.innerHTML = `<i class="bi bi-link"></i> ${text}`;
+                    const icon = btn.querySelector('i');
+                    if (icon) {
+                        btn.innerHTML = icon.outerHTML + ' ' + text;
+                    } else {
+                        btn.innerHTML = `<i class="bi bi-link"></i> ${text}`;
+                    }
                 }
             });
         }
@@ -939,7 +1086,10 @@
                 setupOtherEventListeners();
                 
                 // Setup snelkoppeling functionaliteit
-
+                setupSnelkoppeling();
+                
+                // Setup nieuwe info knoppen
+                setupInfoButtons();
                 
                 // Laad initiële statistieken
                 loadInitialStats();
@@ -1000,6 +1150,42 @@
                 } else {
                     console.error(`Button ${btnId} not found`);
                 }
+            }
+        }
+        
+        function setupInfoButtons() {
+            console.log('Setting up info buttons');
+            
+            // Kleuren knop
+            const kleurenBtn = document.getElementById('kleurenBtn');
+            if (kleurenBtn) {
+                kleurenBtn.addEventListener('click', function() {
+                    console.log('Kleuren button clicked');
+                    if (window.KleurenManager && window.KleurenManager.showModal) {
+                        window.KleurenManager.showModal();
+                    } else if (window.kleuren && window.kleuren.showModal) {
+                        window.kleuren.showModal();
+                    } else {
+                        console.error('Kleuren module niet beschikbaar');
+                        alert('De kleuren module is nog niet beschikbaar.');
+                    }
+                });
+            }
+            
+            // Werkwijze knop
+            const werkwijzeBtn = document.getElementById('werkwijzeBtn');
+            if (werkwijzeBtn) {
+                werkwijzeBtn.addEventListener('click', function() {
+                    console.log('Werkwijze button clicked');
+                    if (window.InformatieManager && window.InformatieManager.showModal) {
+                        window.InformatieManager.showModal();
+                    } else if (window.informatie && window.informatie.showModal) {
+                        window.informatie.showModal();
+                    } else {
+                        console.error('Informatie module niet beschikbaar');
+                        alert('De werkwijze module is nog niet beschikbaar.');
+                    }
+                });
             }
         }
         

@@ -38,7 +38,8 @@ class DataManager extends BaseModule {
     }
     
     t(key) {
-        return this.translations[this.currentLang][key] || key;
+        const nlTranslations = this.translations['nl'] || {};
+        return nlTranslations[key] || key;
     }
     
     getModalHTML() {
