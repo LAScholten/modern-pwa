@@ -21,7 +21,7 @@ class InformatieManager {
                 sectionText: `Werkwijze:
 
 Gebruiker: 
-Een gebruiker kan zoeken naar een hond door in het menu op Hond zoeken te klikken en de naam van de hond in te typen. Als de hond in het dropdown menu verschijnt dan klik je de hond aan in het dropdown menu en komt het scherm naar voren met de ouders en gezondheid gegevens. Ook staat daar de knop "Stamboom" als je hier op klik genereerd het programma de stamboom van deze hond. In de stamboom kan je op een card van een hond klikken waardoor je een popup krijgt met de gegevens van de betreffende hond. Als er foto's van de hond zijn staan deze in het klein ook hierin. Op het moment dat je op een kleine foto klik wordt deze vergroot. 
+Een gebruiker kan zoeken naar een hond door in het menu op "Hond zoeken" te klikken en de naam van de hond in te typen. Als de hond in het dropdown menu verschijnt dan klik je de hond aan in het dropdown menu en komt het scherm naar voren met de ouders en gezondheid gegevens. Ook staat daar de knop "Stamboom" als je hier op klik genereerd het programma de stamboom van deze hond. In de stamboom kan je op een card van een hond klikken waardoor je een popup krijgt met de gegevens van de betreffende hond. Als er foto's van de hond zijn staan deze in het klein ook hierin. Op het moment dat je op een kleine foto klik wordt deze vergroot. 
 
 In de fotogalerij kan je alle foto's laden en door de foto's scrollen en een foto vergroten om er op te klikken.`,
                 closeBtn: 'Sluiten'
@@ -45,7 +45,7 @@ In the photo gallery you can load all photos, scroll through the photos and enla
                 sectionText: `Arbeitsweise:
 
 Benutzer:
-Ein Benutzer kann nach einem Hund suchen, indem er im Menü auf "Hund suchen" klickt und den Namen des Hundes eingibt. Wenn der Hund im Dropdown-Menü erscheint, klicken Sie den Hund im Dropdown-Menü an und der Bildschirm erscheint mit den Eltern- und Gesundheitsdaten. Dort befindet sich auch die Schaltfläche "Stammbaum". Wenn Sie darauf klicken, generiert das Programm den Stammbaum dieses Hundes. Im Stammbaum können Sie auf eine Karte eines Hundes klicken, wodurch Sie ein Popup mit den Daten des betreffenden Hundes erhalten. Wenn es Fotos des Hundes gibt, sind diese hier ebenfalls in kleiner Form enthalten. Wenn Sie auf ein kleines Foto klicken, wird es vergrößert.
+Ein Benutzer kann nach einem Hund suchen, indem er im Menü auf "Hund suchen" klickt und den Namen des Hundes eingibt. Wenn der Hund im Dropdown-Menü erscheint, klicken Sie den Hund im Dropdown-Menü an und der Bildschirm erscheint mit den Eltern- und Gesundheitsdaten. Dort befindet sich auch die Schaltfläche "Ahnentafel". Wenn Sie darauf klicken, generiert das Programm den Ahnentafel dieses Hundes. Im den Ahnentafel können Sie auf eine Karte eines Hundes klicken, wodurch Sie ein Popup mit den Daten des betreffenden Hundes erhalten. Wenn es Fotos des Hundes gibt, sind diese hier ebenfalls in kleiner Form enthalten. Wenn Sie auf ein kleines Foto klicken, wird es vergrößert.
 
 In der Fotogalerie können Sie alle Fotos laden, durch die Fotos scrollen und ein Foto vergrößern, um darauf zu klicken.`,
                 closeBtn: 'Schließen'
