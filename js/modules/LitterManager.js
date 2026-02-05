@@ -982,7 +982,7 @@ class LitterManager {
                     <div class="recent-coat-colors-label">${t('recent')}</div>
                     <div class="recent-coat-colors-buttons">
             `;
-            this.lastCoatColors.slice(0, 9).forEach(color => {
+            this.lastCoatColors.slice(0, 12).forEach(color => {
                 recentCoatColorsHTML += `
                     <button type="button" class="btn btn-sm btn-outline-info recent-coat-color-btn" data-coat-color="${color}">
                         ${color}
