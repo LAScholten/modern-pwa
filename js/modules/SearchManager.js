@@ -9,6 +9,7 @@
  * SUPABASE VERSIE MET PAGINATIE - FIXED VERSION
  * MET JUISTE DATABASE KOLOM NAMEN
  * **FOTO PROBLEEM OPGELOST** - Gebruikt nu EXACT DEZELFDE LOGICA als PhotoManager
+ * **NAKOMELINGEN FIXED**: Nakomelingen modal blijft open, hond details in aparte modal
  */
 
 class SearchManager extends BaseModule {
@@ -23,6 +24,8 @@ class SearchManager extends BaseModule {
         this.dogPhotosCache = new Map(); // Cache voor hondenfoto's
         this.dogOffspringCache = new Map(); // Cache voor nakomelingen per hond
         this.isLoading = false; // Voorkom dubbele laadpogingen
+        this.currentOffspringModalDogId = null; // Bewaar huidige nakomelingen hond ID
+        this.currentOffspringModalDogName = null; // Bewaar huidige nakomelingen hond naam
         
         // Vertalingen uitgebreid met nakomelingen functionaliteit
         this.translations = {
@@ -151,7 +154,13 @@ class SearchManager extends BaseModule {
                 dogName: "Naam hond",
                 totalOffspring: "Totaal aantal nakomelingen",
                 birthYear: "Geboortejaar",
-                showAllOffspring: "Toon alle nakomelingen"
+                showAllOffspring: "Toon alle nakomelingen",
+                
+                // NIEUWE VERTALINGEN
+                viewDogDetails: "Bekijk hond details",
+                closeDogDetails: "Sluit hond details",
+                dogDetailsModalTitle: "Details van {name}",
+                backToOffspring: "Terug naar nakomelingen"
             },
             en: {
                 searchDog: "Search Dog",
@@ -278,7 +287,13 @@ class SearchManager extends BaseModule {
                 dogName: "Dog name",
                 totalOffspring: "Total offspring",
                 birthYear: "Birth year",
-                showAllOffspring: "Show all offspring"
+                showAllOffspring: "Show all offspring",
+                
+                // NEW TRANSLATIONS
+                viewDogDetails: "View dog details",
+                closeDogDetails: "Close dog details",
+                dogDetailsModalTitle: "Details of {name}",
+                backToOffspring: "Back to offspring"
             },
             de: {
                 searchDog: "Hund suchen",
@@ -362,7 +377,13 @@ class SearchManager extends BaseModule {
                 dogName: "Hundename",
                 totalOffspring: "Gesamtzahl der Nachkommen",
                 birthYear: "Geburtsjahr",
-                showAllOffspring: "Alle Nachkommen anzeigen"
+                showAllOffspring: "Alle Nachkommen anzeigen",
+                
+                // NEUE ÜBERSETZUNGEN
+                viewDogDetails: "Hunddetails ansehen",
+                closeDogDetails: "Hunddetails schließen",
+                dogDetailsModalTitle: "Details von {name}",
+                backToOffspring: "Zurück zu Nachkommen"
             }
         };
         
@@ -436,7 +457,7 @@ class SearchManager extends BaseModule {
             }
         });
         
-        // Event delegation voor nakomelingen knoppen
+        // Event delegation voor nakomelingen knoppen in de zoekinterface
         document.addEventListener('click', (e) => {
             const offspringBtn = e.target.closest('.offspring-button');
             if (offspringBtn) {
@@ -450,8 +471,69 @@ class SearchManager extends BaseModule {
             
             // Sluit nakomelingen modal
             const closeOffspringBtn = e.target.closest('.offspring-modal-close');
-            if (closeOffspringBtn || e.target.id === 'offspringModalOverlay') {
+            if (closeOffspringBtn) {
                 const overlay = document.getElementById('offspringModalOverlay');
+                if (overlay) {
+                    overlay.style.display = 'none';
+                    setTimeout(() => {
+                        if (overlay.parentNode) {
+                            overlay.parentNode.removeChild(overlay);
+                        }
+                        this.currentOffspringModalDogId = null;
+                        this.currentOffspringModalDogName = null;
+                    }, 300);
+                }
+            }
+            
+            // Klik buiten nakomelingen modal om te sluiten
+            if (e.target.id === 'offspringModalOverlay') {
+                const overlay = document.getElementById('offspringModalOverlay');
+                if (overlay) {
+                    overlay.style.display = 'none';
+                    setTimeout(() => {
+                        if (overlay.parentNode) {
+                            overlay.parentNode.removeChild(overlay);
+                        }
+                        this.currentOffspringModalDogId = null;
+                        this.currentOffspringModalDogName = null;
+                    }, 300);
+                }
+            }
+            
+            // Sluit hond details modal
+            const closeDogDetailsBtn = e.target.closest('.dog-details-modal-close');
+            if (closeDogDetailsBtn) {
+                const overlay = document.getElementById('dogDetailsModalOverlay');
+                if (overlay) {
+                    overlay.style.display = 'none';
+                    setTimeout(() => {
+                        if (overlay.parentNode) {
+                            overlay.parentNode.removeChild(overlay);
+                        }
+                    }, 300);
+                }
+            }
+            
+            // Klik buiten hond details modal om te sluiten
+            if (e.target.id === 'dogDetailsModalOverlay') {
+                const overlay = document.getElementById('dogDetailsModalOverlay');
+                if (overlay) {
+                    overlay.style.display = 'none';
+                    setTimeout(() => {
+                        if (overlay.parentNode) {
+                            overlay.parentNode.removeChild(overlay);
+                        }
+                    }, 300);
+                }
+            }
+            
+            // Terug naar nakomelingen knop in hond details modal
+            const backToOffspringBtn = e.target.closest('.back-to-offspring-btn');
+            if (backToOffspringBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const overlay = document.getElementById('dogDetailsModalOverlay');
                 if (overlay) {
                     overlay.style.display = 'none';
                     setTimeout(() => {
@@ -818,6 +900,10 @@ class SearchManager extends BaseModule {
             existingOverlay.remove();
         }
         
+        // Sla huidige hond info op
+        this.currentOffspringModalDogId = dogId;
+        this.currentOffspringModalDogName = dogName;
+        
         // Maak nieuwe overlay voor nakomelingen
         const overlayHTML = `
             <div class="offspring-modal-overlay" id="offspringModalOverlay" style="display: flex;">
@@ -860,6 +946,8 @@ class SearchManager extends BaseModule {
                         if (overlay.parentNode) {
                             overlay.parentNode.removeChild(overlay);
                         }
+                        this.currentOffspringModalDogId = null;
+                        this.currentOffspringModalDogName = null;
                     }, 300);
                     document.removeEventListener('keydown', closeOnEscape);
                 }
@@ -939,7 +1027,7 @@ class SearchManager extends BaseModule {
                     puppy.motherInfo.naam;
                 
                 html += `
-                    <tr class="offspring-row" data-dog-id="${puppy.id}">
+                    <tr class="offspring-row" data-dog-id="${puppy.id}" data-dog-name="${puppy.naam || ''}">
                         <td class="text-muted">${index + 1}</td>
                         <td>
                             <strong class="text-primary">${puppy.naam || this.t('unknown')}</strong>
@@ -959,36 +1047,25 @@ class SearchManager extends BaseModule {
                         </table>
                     </div>
                 </div>
+                
+                <div class="mt-4 text-center">
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle me-1"></i>
+                        ${this.t('viewDogDetails')}
+                    </small>
+                </div>
             `;
             
             contentDiv.innerHTML = html;
             
-            // Voeg click event toe aan elke rij om hond details te tonen
+            // Voeg click event toe aan elke rij om hond details te tonen in APARTE MODAL
             contentDiv.querySelectorAll('.offspring-row').forEach(row => {
                 row.addEventListener('click', (e) => {
                     const puppyId = parseInt(row.getAttribute('data-dog-id'));
-                    const puppy = this.allDogs.find(d => d.id === puppyId);
+                    const puppyName = row.getAttribute('data-dog-name');
                     
-                    if (puppy) {
-                        // Sluit de nakomelingen modal
-                        const overlay = document.getElementById('offspringModalOverlay');
-                        if (overlay) {
-                            overlay.style.display = 'none';
-                            setTimeout(() => {
-                                if (overlay.parentNode) {
-                                    overlay.parentNode.removeChild(overlay);
-                                }
-                            }, 300);
-                        }
-                        
-                        // Toon details van de geselecteerde nakomeling
-                        this.selectDogById(puppyId);
-                        
-                        // Verberg zoekkolom op mobiel indien nodig
-                        if (window.innerWidth <= 768) {
-                            this.collapseSearchResultsOnMobile();
-                        }
-                    }
+                    // Toon hond details in aparte modal
+                    this.showDogDetailsModal(puppyId, puppyName);
                 });
             });
             
@@ -1000,6 +1077,456 @@ class SearchManager extends BaseModule {
                     Fout bij laden nakomelingen: ${error.message}
                 </div>
             `;
+        }
+    }
+    
+    // **NIEUWE METHODE: Toon hond details in aparte modal**
+    async showDogDetailsModal(dogId, dogName = '') {
+        const dog = this.allDogs.find(d => d.id === dogId);
+        if (!dog) {
+            this.showError(`Hond niet gevonden (ID: ${dogId})`);
+            return;
+        }
+        
+        // Verwijder bestaande hond details overlay
+        const existingOverlay = document.getElementById('dogDetailsModalOverlay');
+        if (existingOverlay) {
+            existingOverlay.remove();
+        }
+        
+        // Maak overlay voor hond details
+        const overlayHTML = `
+            <div class="offspring-modal-overlay" id="dogDetailsModalOverlay" style="display: flex;">
+                <div class="offspring-modal-container" style="max-width: 800px;">
+                    <div class="offspring-modal-header">
+                        <h5 class="offspring-modal-title">
+                            <i class="bi bi-info-circle me-2"></i> ${this.t('dogDetailsModalTitle', '').replace('{name}', dogName)}
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white dog-details-modal-close" aria-label="${this.t('closeDogDetails')}"></button>
+                    </div>
+                    <div class="offspring-modal-body" id="dogDetailsModalContent">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">${this.t('loading')}</span>
+                            </div>
+                            <p class="mt-3">${this.t('loading')}</p>
+                        </div>
+                    </div>
+                    <div class="offspring-modal-footer">
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-outline-secondary back-to-offspring-btn">
+                                <i class="bi bi-arrow-left me-1"></i> ${this.t('backToOffspring')}
+                            </button>
+                            <button type="button" class="btn btn-secondary dog-details-modal-close">
+                                <i class="bi bi-x-lg me-1"></i> ${this.t('closeDogDetails')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', overlayHTML);
+        
+        // Laad en toon hond details
+        await this.loadAndDisplayDogDetails(dogId);
+        
+        // Sluit met Escape key
+        const closeOnEscape = (e) => {
+            if (e.key === 'Escape') {
+                const overlay = document.getElementById('dogDetailsModalOverlay');
+                if (overlay) {
+                    overlay.style.display = 'none';
+                    setTimeout(() => {
+                        if (overlay.parentNode) {
+                            overlay.parentNode.removeChild(overlay);
+                        }
+                    }, 300);
+                    document.removeEventListener('keydown', closeOnEscape);
+                }
+            }
+        };
+        document.addEventListener('keydown', closeOnEscape);
+        
+        // Clean up
+        const overlay = document.getElementById('dogDetailsModalOverlay');
+        overlay.addEventListener('animationend', function handler() {
+            if (overlay.style.display === 'none') {
+                document.removeEventListener('keydown', closeOnEscape);
+                overlay.removeEventListener('animationend', handler);
+            }
+        });
+    }
+    
+    // Laad en toon hond details in de modal
+    async loadAndDisplayDogDetails(dogId) {
+        const contentDiv = document.getElementById('dogDetailsModalContent');
+        if (!contentDiv) return;
+        
+        const dog = this.allDogs.find(d => d.id === dogId);
+        if (!dog) {
+            contentDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Hond niet gevonden
+                </div>
+            `;
+            return;
+        }
+        
+        // Haal dezelfde hond details op als in showDogDetails
+        const t = this.t.bind(this);
+        
+        // GEBRUIK JUISTE VELDNAMEN: vader_id en moeder_id zoals in database
+        let fatherInfo = { id: null, naam: t('parentsUnknown'), stamboomnr: '', ras: '', kennelnaam: '' };
+        let motherInfo = { id: null, naam: t('parentsUnknown'), stamboomnr: '', ras: '', kennelnaam: '' };
+        
+        // CORRECT: Gebruik vader_id zoals in database
+        if (dog.vader_id) {
+            const father = this.allDogs.find(d => d.id === dog.vader_id);
+            if (father) {
+                fatherInfo = { 
+                    id: father.id,
+                    naam: father.naam || t('unknown'),
+                    stamboomnr: father.stamboomnr || '',
+                    ras: father.ras || '',
+                    kennelnaam: father.kennelnaam || ''
+                };
+            }
+        }
+        
+        // CORRECT: Gebruik moeder_id zoals in database
+        if (dog.moeder_id) {
+            const mother = this.allDogs.find(d => d.id === dog.moeder_id);
+            if (mother) {
+                motherInfo = { 
+                    id: mother.id,
+                    naam: mother.naam || t('unknown'),
+                    stamboomnr: mother.stamboomnr || '',
+                    ras: mother.ras || '',
+                    kennelnaam: mother.kennelnaam || ''
+                };
+            }
+        }
+        
+        const formatDate = (dateString) => {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            return date.toLocaleDateString(this.currentLang === 'nl' ? 'nl-NL' : 
+                                          this.currentLang === 'de' ? 'de-DE' : 'en-US');
+        };
+        
+        const getHealthBadge = (value, type) => {
+            if (!value || value === '') {
+                return `<span class="badge bg-secondary">${t('unknown')}</span>`;
+            }
+            
+            let badgeClass = '';
+            let badgeText = value;
+            
+            switch(type) {
+                case 'hip':
+                    badgeClass = 'badge-hd';
+                    badgeText = t('hipGrades', value) || value;
+                    break;
+                case 'elbow':
+                    badgeClass = 'badge-ed';
+                    badgeText = t('elbowGrades', value) || value;
+                    break;
+                case 'patella':
+                    badgeClass = 'badge-pl';
+                    badgeText = t('patellaGrades', value) || value;
+                    break;
+                case 'eyes':
+                    badgeClass = 'badge-eyes';
+                    badgeText = t('eyeStatus', value) || value;
+                    break;
+                case 'dandy':
+                    badgeClass = 'badge-dandy';
+                    badgeText = t('dandyStatus', value) || value;
+                    break;
+                case 'thyroid':
+                    badgeClass = 'badge-thyroid';
+                    badgeText = t('thyroidStatus', value) || value;
+                    break;
+                default:
+                    badgeClass = 'badge bg-secondary';
+            }
+            
+            return `<span class="badge ${badgeClass}">${badgeText}</span>`;
+        };
+        
+        const displayValue = (value) => {
+            return value && value !== '' ? value : t('unknown');
+        };
+        
+        const genderText = dog.geslacht === 'reuen' ? t('male') : 
+                          dog.geslacht === 'teven' ? t('female') : t('unknown');
+        
+        // Check of deze hond foto's heeft
+        const hasPhotos = await this.checkDogHasPhotos(dog.id);
+        
+        // Haal aantal nakomelingen op
+        const offspringCount = await this.getOffspringCount(dog.id);
+        
+        // Genereer HTML voor hond details
+        let html = `
+            <div class="dog-details-content">
+                <div class="details-card mb-4">
+                    <div class="details-header">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="dog-name-header">${displayValue(dog.naam)}</div>
+                                ${dog.kennelnaam ? `<div class="text-muted mb-2">${displayValue(dog.kennelnaam)}</div>` : ''}
+                                
+                                <!-- VOLGORDE: Stamboomnummer + Ras + Geslacht + Vachtkleur + Nakomelingen - ACHTER ELKAAR -->
+                                <div class="dog-detail-header-line mt-2">
+                                    ${dog.stamboomnr ? `<span class="stamboom">${dog.stamboomnr}</span>` : ''}
+                                    ${dog.ras ? `<span class="ras">${dog.ras}</span>` : ''}
+                                    <span class="geslacht">${genderText}</span>
+                                    ${dog.vachtkleur && dog.vachtkleur.trim() !== '' ? 
+                                      `<span class="vachtkleur">${dog.vachtkleur}</span>` : 
+                                      `<span class="text-muted fst-italic">geen vachtkleur</span>`}
+                                    
+                                    <!-- NAKOMELINGEN KNOOP -->
+                                    ${offspringCount > 0 ? `
+                                    <a href="#" class="offspring-badge offspring-button" 
+                                       data-dog-id="${dog.id}" 
+                                       data-dog-name="${displayValue(dog.naam)}">
+                                        <i class="bi bi-people-fill"></i>
+                                        ${offspringCount} ${t('offspringCount')}
+                                    </a>
+                                    ` : `
+                                    <span class="offspring-badge" style="background: #6c757d; cursor: default;">
+                                        <i class="bi bi-people"></i>
+                                        0 ${t('offspringCount')}
+                                    </span>
+                                    `}
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <!-- Geboortedatum -->
+                                ${dog.geboortedatum ? `
+                                <div class="text-muted">
+                                    <i class="bi bi-calendar me-1"></i>
+                                    ${formatDate(dog.geboortedatum)}
+                                </div>
+                                ` : ''}
+                                
+                                <!-- Overlijdensdatum -->
+                                ${dog.overlijdensdatum ? `
+                                <div class="text-muted ${dog.geboortedatum ? 'mt-1' : ''}">
+                                    <i class="bi bi-calendar-x me-1"></i>
+                                    ${formatDate(dog.overlijdensdatum)}
+                                </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- FOTO'S SECTIE -->
+                ${hasPhotos ? `
+                <div class="photos-section mb-4">
+                    <div class="photos-title">
+                        <div class="photos-title-text">
+                            <i class="bi bi-camera"></i>
+                            <span>${t('photos')}</span>
+                        </div>
+                        <div class="click-hint-text">${t('clickToEnlarge')}</div>
+                    </div>
+                    <div class="photos-grid-container" id="dogDetailsPhotosGrid${dog.id}">
+                        <!-- Foto's worden hier ingeladen -->
+                    </div>
+                </div>
+                ` : ''}
+                
+                <!-- OUDERS SECTIE -->
+                <div class="info-group mb-4">
+                    <div class="info-group-title">
+                        <i class="bi bi-people me-1"></i> ${t('parents')}
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="father-card" ${fatherInfo.id ? `data-parent-id="${fatherInfo.id}" data-original-dog="${dog.id}"` : ''}>
+                                <div class="fw-bold mb-1 text-primary">
+                                    <i class="bi bi-gender-male me-1"></i> ${t('father')}
+                                </div>
+                                <div class="parent-name">${fatherInfo.naam} ${fatherInfo.kennelnaam}</div>
+                                ${fatherInfo.stamboomnr ? `<div class="parent-info">${fatherInfo.stamboomnr}</div>` : ''}
+                                ${fatherInfo.ras ? `<div class="parent-info">${fatherInfo.ras}</div>` : ''}
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="mother-card" ${motherInfo.id ? `data-parent-id="${motherInfo.id}" data-original-dog="${dog.id}"` : ''}>
+                                <div class="fw-bold mb-1 text-danger">
+                                    <i class="bi bi-gender-female me-1"></i> ${t('mother')}
+                                </div>
+                                <div class="parent-mother-name">${motherInfo.naam} ${motherInfo.kennelnaam}</div>
+                                ${motherInfo.stamboomnr ? `<div class="parent-info">${motherInfo.stamboomnr}</div>` : ''}
+                                ${motherInfo.ras ? `<div class="parent-info">${motherInfo.ras}</div>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- GEZONDHEIDSINFO -->
+                <div class="info-group mb-4">
+                    <div class="info-group-title">
+                        <i class="bi bi-heart-pulse me-1"></i> ${t('healthInfo')}
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="fw-bold mb-1">${t('hipDysplasia')}</div>
+                            <div>${getHealthBadge(dog.heupdysplasie, 'hip')}</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <div class="fw-bold mb-1">${t('elbowDysplasia')}</div>
+                            <div>${getHealthBadge(dog.elleboogdysplasie, 'elbow')}</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <div class="fw-bold mb-1">${t('patellaLuxation')}</div>
+                            <div>${getHealthBadge(dog.patella, 'patella')}</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <div class="fw-bold mb-1">${t('eyes')}</div>
+                            <div>${getHealthBadge(dog.ogen, 'eyes')}</div>
+                            ${dog.ogenverklaring ? `<div class="text-muted small mt-1">${dog.ogenverklaring}</div>` : ''}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <div class="fw-bold mb-1">${t('dandyWalker')}</div>
+                            <div>${getHealthBadge(dog.dandyWalker, 'dandy')}</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <div class="fw-bold mb-1">${t('thyroid')}</div>
+                            <div>${getHealthBadge(dog.schildklier, 'thyroid')}</div>
+                            ${dog.schildklierverklaring ? `<div class="text-muted small mt-1">${dog.schildklierverklaring}</div>` : ''}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- EXTRA INFO -->
+                <div class="info-group">
+                    <div class="info-group-title">
+                        <i class="bi bi-info-circle me-1"></i> ${t('additionalInfo')}
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="fw-bold mb-1">${t('country')}</div>
+                            <div>${displayValue(dog.land)}</div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="fw-bold mb-1">${t('zipCode')}</div>
+                            <div>${displayValue(dog.postcode)}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <div class="fw-bold mb-2">${t('remarks')}</div>
+                        <div class="remarks-box">
+                            ${dog.opmerkingen ? dog.opmerkingen : t('noAdditionalInfo')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        contentDiv.innerHTML = html;
+        
+        // Laad foto's asynchroon
+        if (hasPhotos) {
+            this.loadAndDisplayPhotosForModal(dog);
+        }
+        
+        // Event listeners voor nakomelingen knoop
+        contentDiv.querySelectorAll('.offspring-button').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const newDogId = parseInt(btn.getAttribute('data-dog-id'));
+                const newDogName = btn.getAttribute('data-dog-name') || '';
+                
+                // Sluit huidige hond details modal
+                const overlay = document.getElementById('dogDetailsModalOverlay');
+                if (overlay) {
+                    overlay.style.display = 'none';
+                    setTimeout(() => {
+                        if (overlay.parentNode) {
+                            overlay.parentNode.removeChild(overlay);
+                        }
+                    }, 300);
+                }
+                
+                // Toon nakomelingen voor deze nieuwe hond
+                this.showOffspringModal(newDogId, newDogName);
+            });
+        });
+    }
+    
+    // Laad en toon foto's voor de hond details modal
+    async loadAndDisplayPhotosForModal(dog) {
+        try {
+            const photos = await this.getDogPhotos(dog.id);
+            const container = document.getElementById('dogDetailsModalContent');
+            const photosGrid = container.querySelector(`#dogDetailsPhotosGrid${dog.id}`);
+            
+            if (!photosGrid || photos.length === 0) {
+                if (photosGrid) {
+                    photosGrid.innerHTML = `
+                        <div class="text-muted small">${this.t('noPhotos')}</div>
+                    `;
+                }
+                return;
+            }
+            
+            let photosHTML = '';
+            photos.forEach((photo, index) => {
+                let thumbnailUrl = photo.thumbnail || photo.data;
+                let fullSizeUrl = photo.data;
+                
+                if (thumbnailUrl && fullSizeUrl) {
+                    photosHTML += `
+                        <div class="photo-thumbnail" 
+                             data-photo-id="${photo.id || index}" 
+                             data-dog-id="${dog.id}" 
+                             data-photo-index="${index}"
+                             data-photo-src="${fullSizeUrl}"
+                             data-thumbnail-src="${thumbnailUrl}"
+                             data-dog-name="${dog.naam || ''}">
+                            <img src="${thumbnailUrl}"
+                                 alt="${dog.naam || ''} - ${photo.filename || ''}" 
+                                 class="thumbnail-img"
+                                 loading="lazy">
+                            <div class="photo-hover">
+                                <i class="bi bi-zoom-in"></i>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            
+            photosGrid.innerHTML = photosHTML;
+            
+        } catch (error) {
+            console.error('Fout bij laden foto\'s voor modal:', error);
+            const container = document.getElementById('dogDetailsModalContent');
+            const photosGrid = container.querySelector(`#dogDetailsPhotosGrid${dog.id}`);
+            if (photosGrid) {
+                photosGrid.innerHTML = `
+                    <div class="text-danger small">
+                        <i class="bi bi-exclamation-triangle"></i> Fout bij laden foto's
+                    </div>
+                `;
+            }
         }
     }
     
@@ -1797,6 +2324,19 @@ class SearchManager extends BaseModule {
                     vertical-align: middle;
                 }
                 
+                /* HOND DETAILS MODAL STYLES */
+                .dog-details-content {
+                    padding: 5px;
+                }
+                
+                .dog-details-content .details-card {
+                    margin-bottom: 20px;
+                }
+                
+                .dog-details-content .photos-section {
+                    margin-top: 15px;
+                }
+                
                 /* MOBILE BACK BUTTON STYLES */
                 .mobile-back-button {
                     position: sticky;
@@ -1812,26 +2352,47 @@ class SearchManager extends BaseModule {
                     width: 100%;
                 }
                 
+                /* Z-INDEX LAYERING */
+                #searchModal {
+                    z-index: 1055;
+                }
+                
+                #offspringModalOverlay {
+                    z-index: 1090;
+                }
+                
+                #dogDetailsModalOverlay {
+                    z-index: 1100;
+                }
+                
+                #photoLargeOverlay {
+                    z-index: 1110;
+                }
+                
                 /* Scrollbar styling */
                 #searchResultsContainer::-webkit-scrollbar,
-                #detailsContainer::-webkit-scrollbar {
+                #detailsContainer::-webkit-scrollbar,
+                .offspring-modal-body::-webkit-scrollbar {
                     width: 8px;
                 }
                 
                 #searchResultsContainer::-webkit-scrollbar-track,
-                #detailsContainer::-webkit-scrollbar-track {
+                #detailsContainer::-webkit-scrollbar-track,
+                .offspring-modal-body::-webkit-scrollbar-track {
                     background: #f1f1f1;
                     border-radius: 4px;
                 }
                 
                 #searchResultsContainer::-webkit-scrollbar-thumb,
-                #detailsContainer::-webkit-scrollbar-thumb {
+                #detailsContainer::-webkit-scrollbar-thumb,
+                .offspring-modal-body::-webkit-scrollbar-thumb {
                     background: #c1c1c1;
                     border-radius: 4px;
                 }
                 
                 #searchResultsContainer::-webkit-scrollbar-thumb:hover,
-                #detailsContainer::-webkit-scrollbar-thumb:hover {
+                #detailsContainer::-webkit-scrollbar-thumb:hover,
+                .offspring-modal-body::-webkit-scrollbar-thumb:hover {
                     background: #a8a8a8;
                 }
                 
@@ -1998,6 +2559,16 @@ class SearchManager extends BaseModule {
                         font-size: 0.8rem !important;
                     }
                     
+                    /* HOND DETAILS MODAL AANPASSINGEN VOOR MOBIEL */
+                    #dogDetailsModalOverlay .offspring-modal-container {
+                        max-height: 95vh !important;
+                        max-width: 98% !important;
+                    }
+                    
+                    #dogDetailsModalOverlay .offspring-modal-body {
+                        max-height: 75vh !important;
+                    }
+                    
                     /* Scrollbaar maken voor kleine schermen */
                     .table-responsive {
                         max-width: 100%;
@@ -2138,7 +2709,8 @@ class SearchManager extends BaseModule {
                     }
                     
                     .photo-large-overlay,
-                    .offspring-modal-overlay {
+                    .offspring-modal-overlay,
+                    #dogDetailsModalOverlay {
                         display: none !important;
                     }
                 }
@@ -2966,6 +3538,18 @@ class SearchManager extends BaseModule {
                 e.stopPropagation();
                 const dogId = parseInt(btn.getAttribute('data-dog-id'));
                 await this.openPedigree(dogId);
+            });
+        });
+        
+        // Event listener voor nakomelingen knop
+        container.querySelectorAll('.offspring-button').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const dogId = parseInt(btn.getAttribute('data-dog-id'));
+                const dogName = btn.getAttribute('data-dog-name') || '';
+                this.showOffspringModal(dogId, dogName);
             });
         });
         
