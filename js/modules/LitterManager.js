@@ -1864,7 +1864,7 @@ class LitterManager {
         this.lastCoatColors.unshift(coatColorStr);
         
         // Houd maximaal 9 recente vachtkleuren bij (was 4)
-        if (this.lastCoatColors.length > 9) {
+        if (this.lastCoatColors.length > 12) {
             this.lastCoatColors = this.lastCoatColors.slice(0, 9);
         }
         
