@@ -8,7 +8,6 @@ class LitterManager {
         console.log('LitterManager constructor aangeroepen');
         this.currentLang = localStorage.getItem('appLanguage') || 'nl';
         this.lastBreeds = JSON.parse(localStorage.getItem('lastBreeds') || '[]');
-        this.lastCoatColors = JSON.parse(localStorage.getItem('lastCoatColors') || '[]'); // NIEUW: recente vachtkleuren
         this.allDogs = []; // Voor autocomplete van ouders
         this.currentLitterDogs = []; // Houdt de ingevoerde honden van het huidige nest bij
         
@@ -37,8 +36,8 @@ class LitterManager {
                 recent: "Recent:",
                 father: "Vader *",
                 mother: "Moeder *",
-                coatColor: "Vachtkleur",
-                recentCoatColors: "Recent:", // AANGEPAST: "vachtkleuren" verwijderd
+                coatColor: "Vachtkleur (selecteer)",
+                standardCoatColors: " ",
                 birthDate: "Geboortedatum",
                 deathDate: "Overlijdensdatum",
                 gender: "Geslacht",
@@ -163,8 +162,8 @@ class LitterManager {
                 recent: "Recent:",
                 father: "Father *",
                 mother: "Mother *",
-                coatColor: "Coat Color",
-                recentCoatColors: "Recent:", // AANGEPAST: "coat colors" verwijderd
+                coatColor: "Coat Color (select)",
+                standardCoatColors: " ",
                 birthDate: "Birth date",
                 deathDate: "Death date",
                 gender: "Gender",
@@ -289,8 +288,8 @@ class LitterManager {
                 recent: "Kürzlich:",
                 father: "Vater *",
                 mother: "Mutter *",
-                coatColor: "Fellfarbe",
-                recentCoatColors: "Kürzlich:", // AANGEPAST: "Fellfarben" verwijderd
+                coatColor: "Fellfarbe (auswählen)",
+                standardCoatColors: " ",
                 birthDate: "Geburtsdatum",
                 deathDate: "Sterbedatum",
                 gender: "Geschlecht",
@@ -351,7 +350,7 @@ class LitterManager {
                 
                 // Validierung
                 dateFormatError: "Datum moet im Format TT-MM-JJJJ sein",
-                deathBeforeBirthError: "Sterbedatum kan niet vor dem Geburtsdatum liegen",
+                deathBeforeBirthError: "Sterbedatum kan nicht vor dem Geburtsdatum liegen",
                 
                 // Zugangskontrolle Popup Texte
                 insufficientPermissions: "Unzureichende Berechtigungen",
@@ -396,6 +395,13 @@ class LitterManager {
                 healthCoat: "Fellfarbe",
                 healthGender: "Geschlecht"
             }
+        };
+        
+        // Definieer de standaard vachtkleuren per taal
+        this.standardCoatColors = {
+            nl: ["Blond", "Blondgrijs", "Grijsblond", "Blondrood", "Roodblond", "Rood", "Roodgrijs", "Wolfsgrau", "Wildkleur", "Zwart", "Zwart met aftekeningen", "Wit", "Piebold"],
+            en: ["Blond", "Blondgray", "Grayblond", "Blondred", "Redblond", "Red", "Redgray", "Wolfgray", "Wildcolor", "Black", "Black with markings", "White", "Piebold"],
+            de: ["Falben", "Falbengrau", "Graufalben", "Falbenrot", "Rotfalben", "Rot", "Rotgrau", "Wolfsgrau", "Wildfarbe", "Schwarz", "Schwarz mit Abzeichen", "Weiß", "Piebold"]
         };
     }
     
@@ -501,12 +507,12 @@ class LitterManager {
                         min-width: 180px !important;
                     }
                     
-                    .recent-coat-colors-label {
+                    .standard-coat-colors-label {
                         font-size: 0.8em !important;
                     }
                     
-                    .recent-coat-color-btn {
-                        font-size: 0.75em !important;
+                    .standard-coat-color-btn {
+                        font-size: 0.5em !important; /* 80% van normaal */
                         padding: 3px 6px !important;
                     }
                     
@@ -757,28 +763,28 @@ class LitterManager {
                     width: 100%;
                 }
                 
-                .recent-coat-colors-container {
+                .standard-coat-colors-container {
                     display: flex;
                     align-items: center;
                     gap: 8px;
                 }
                 
-                .recent-coat-colors-label {
+                .standard-coat-colors-label {
                     font-size: 0.875em;
                     color: #6c757d;
                     white-space: nowrap;
                     margin-bottom: 0;
                 }
                 
-                .recent-coat-colors-buttons {
+                .standard-coat-colors-buttons {
                     display: flex;
                     flex-wrap: wrap;
                     gap: 4px;
                 }
                 
-                .recent-coat-color-btn {
+                .standard-coat-color-btn {
                     white-space: nowrap;
-                    font-size: 0.8em;
+                    font-size: 0.7em; /* 80% van normaal */
                     padding: 4px 8px;
                 }
                 
@@ -974,22 +980,24 @@ class LitterManager {
             `;
         }
         
-        // Genereer recente vachtkleur knoppen (onder het vachtkleur veld, op dezelfde manier als ras)
-        let recentCoatColorsHTML = '';
-        if (this.lastCoatColors && this.lastCoatColors.length > 0) {
-            recentCoatColorsHTML = `
-                <div class="recent-coat-colors-container">
-                    <div class="recent-coat-colors-label">${t('recent')}</div>
-                    <div class="recent-coat-colors-buttons">
+        // Genereer standaard vachtkleur knoppen voor huidige taal
+        let standardCoatColorsHTML = '';
+        const currentColors = this.standardCoatColors[this.currentLang] || this.standardCoatColors.nl;
+        
+        if (currentColors && currentColors.length > 0) {
+            standardCoatColorsHTML = `
+                <div class="standard-coat-colors-container">
+                    <div class="standard-coat-colors-label">${t('standardCoatColors')}</div>
+                    <div class="standard-coat-colors-buttons">
             `;
-            this.lastCoatColors.slice(0, 12).forEach(color => {
-                recentCoatColorsHTML += `
-                    <button type="button" class="btn btn-sm btn-outline-info recent-coat-color-btn" data-coat-color="${color}">
+            currentColors.forEach(color => {
+                standardCoatColorsHTML += `
+                    <button type="button" class="btn btn-sm btn-outline-info standard-coat-color-btn" data-coat-color="${color}">
                         ${color}
                     </button>
                 `;
             });
-            recentCoatColorsHTML += `
+            standardCoatColorsHTML += `
                     </div>
                 </div>
             `;
@@ -1115,16 +1123,16 @@ class LitterManager {
                         </div>
                     </div>
                     
-                    <!-- Vachtkleur veld met recente vachtkleuren -->
+                    <!-- Vachtkleur veld met standaard vachtkleuren -->
                     <div class="row">
                         <div class="col-12 col-md-6">
                             <div class="mb-3">
                                 <label for="coatColor" class="form-label">${t('coatColor')}</label>
                                 <div class="coat-color-container">
                                     <div class="coat-color-input-container">
-                                        <input type="text" class="form-control" id="coatColor" value="${data.vachtkleur || ''}">
+                                        <input type="text" class="form-control" id="coatColor" value="${data.vachtkleur || ''}" readonly>
                                     </div>
-                                    ${recentCoatColorsHTML}
+                                    ${standardCoatColorsHTML}
                                 </div>
                             </div>
                         </div>
@@ -1446,8 +1454,8 @@ class LitterManager {
                 }
             }
             
-            // Recente vachtkleur knoppen - Delegatie gebruiken
-            if (e.target.classList.contains('recent-coat-color-btn')) {
+            // Standaard vachtkleur knoppen - Delegatie gebruiken
+            if (e.target.classList.contains('standard-coat-color-btn')) {
                 const coatColor = e.target.dataset.coatColor;
                 const coatColorInput = document.getElementById('coatColor');
                 if (coatColorInput) {
@@ -1760,12 +1768,12 @@ class LitterManager {
         const nameInput = document.getElementById('name');
         const pedigreeInput = document.getElementById('pedigreeNumber');
         const genderSelect = document.getElementById('gender');
-        const coatColorInput = document.getElementById('coatColor'); // NIEUW: vachtkleur
+        const coatColorInput = document.getElementById('coatColor'); // Vachtkleur
         
         if (nameInput) nameInput.value = '';
         if (pedigreeInput) pedigreeInput.value = '';
         if (genderSelect) genderSelect.value = '';
-        if (coatColorInput) coatColorInput.value = ''; // NIEUW: reset vachtkleur
+        if (coatColorInput) coatColorInput.value = ''; // Reset vachtkleur
         
         // Reset land/postcode (nu bovenaan)
         const countryInput = document.getElementById('country');
@@ -1796,7 +1804,7 @@ class LitterManager {
         
         if (eyesExplanationContainer) eyesExplanationContainer.style.display = 'none';
         if (eyesExplanation) eyesExplanation.value = '';
-        if (thyroidExplanationContainer) thyroidExplanationContainer.style.display = 'block'; // AANGEPAST: Altijd zichtbaar
+        if (thyroidExplanationContainer) thyroidExplanationContainer.style.display = 'block'; // Altijd zichtbaar
         if (thyroidExplanation) thyroidExplanation.value = '';
         
         // Reset overlijdensdatum
@@ -1841,35 +1849,6 @@ class LitterManager {
         
         localStorage.setItem('lastBreeds', JSON.stringify(this.lastBreeds));
         console.log('LitterManager: Ras toegevoegd aan recente rassen:', breedStr);
-    }
-    
-    addToLastCoatColors(coatColor) {
-        if (!coatColor || coatColor.trim() === '') return;
-        
-        const coatColorStr = coatColor.trim();
-        
-        // Initialiseer this.lastCoatColors als het niet bestaat
-        if (!this.lastCoatColors) {
-            this.lastCoatColors = [];
-        }
-        
-        const index = this.lastCoatColors.indexOf(coatColorStr);
-        
-        // Verwijder als al bestaat
-        if (index > -1) {
-            this.lastCoatColors.splice(index, 1);
-        }
-        
-        // Voeg toe aan begin van de lijst
-        this.lastCoatColors.unshift(coatColorStr);
-        
-        // Houd maximaal 9 recente vachtkleuren bij (was 4)
-        if (this.lastCoatColors.length > 12) {
-            this.lastCoatColors = this.lastCoatColors.slice(0, 9);
-        }
-        
-        localStorage.setItem('lastCoatColors', JSON.stringify(this.lastCoatColors));
-        console.log('LitterManager: Vachtkleur toegevoegd aan recente vachtkleuren:', coatColorStr, 'Totaal:', this.lastCoatColors.length);
     }
     
     async loadAllDogs() {
@@ -2281,11 +2260,6 @@ class LitterManager {
         
         // Voeg ras toe aan recente rassen
         this.addToLastBreeds(dogData.ras);
-        
-        // Voeg vachtkleur toe aan recente vachtkleuren
-        if (dogData.vachtkleur) {
-            this.addToLastCoatColors(dogData.vachtkleur);
-        }
         
         this.showProgress(this.t('savingDog'));
         
