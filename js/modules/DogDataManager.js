@@ -46,6 +46,20 @@ class DogDataManager extends BaseModule {
                 breed: "Ras",
                 breedRequired: "Ras *",
                 coatColor: "Vachtkleur",
+                chooseColor: "Selecteer kleur...",
+                blond: "Blond",
+                blondgrijs: "Blondgrijs",
+                grijsblond: "Grijsblond",
+                blondrood: "Blondrood",
+                roodblond: "Roodblond",
+                rood: "Rood",
+                roodgrijs: "Roodgrijs",
+                wolfsgrau: "Wolfsgrau",
+                wildkleur: "Wildkleur",
+                zwart: "Zwart",
+                zwartMetAftekeningen: "Zwart met aftekeningen",
+                wit: "Wit",
+                piebold: "Piebold",
                 recent: "Recent:",
                 father: "Vader",
                 mother: "Moeder",
@@ -170,6 +184,20 @@ class DogDataManager extends BaseModule {
                 breed: "Breed",
                 breedRequired: "Breed *",
                 coatColor: "Coat Color",
+                chooseColor: "Select color...",
+                blond: "Blond",
+                blondgrijs: "Blondgray",
+                grijsblond: "Grayblond",
+                blondrood: "Blondred",
+                roodblond: "Redblond",
+                rood: "Red",
+                roodgrijs: "Redgray",
+                wolfsgrau: "Wolfgray",
+                wildkleur: "Wildcolor",
+                zwart: "Black",
+                zwartMetAftekeningen: "Black with markings",
+                wit: "White",
+                piebold: "Piebold",
                 recent: "Recent:",
                 father: "Father",
                 mother: "Mother",
@@ -294,6 +322,20 @@ class DogDataManager extends BaseModule {
                 breed: "Rasse",
                 breedRequired: "Rasse *",
                 coatColor: "Fellfarbe",
+                chooseColor: "Farbe wählen...",
+                blond: "Falben",
+                blondgrijs: "Falbengrau",
+                grijsblond: "Graufalben",
+                blondrood: "Falbenrot",
+                roodblond: "Rotfalben",
+                rood: "Rot",
+                roodgrijs: "Rotgrau",
+                wolfsgrau: "Wolfsgrau",
+                wildkleur: "Wildfarbe",
+                zwart: "Schwarz",
+                zwartMetAftekeningen: "Schwarz mit Abzeichen",
+                wit: "Weiß",
+                piebold: "Piebold",
                 recent: "Kürzlich:",
                 father: "Vater",
                 mother: "Mutter",
@@ -552,10 +594,25 @@ class DogDataManager extends BaseModule {
                                                 <!-- Recente rassen sectie -->
                                                 ${recentBreedsHTML}
                                                 
-                                                <!-- Vachtkleur invoerveld -->
+                                                <!-- Vachtkleur dropdown -->
                                                 <div class="vachtkleur-col">
                                                     <label for="coatColor" class="form-label fw-semibold">${t('coatColor')}</label>
-                                                    <input type="text" class="form-control" id="coatColor">
+                                                    <select class="form-select" id="coatColor">
+                                                        <option value="">${t('chooseColor')}</option>
+                                                        <option value="${t('blond')}">${t('blond')}</option>
+                                                        <option value="${t('blondgrijs')}">${t('blondgrijs')}</option>
+                                                        <option value="${t('grijsblond')}">${t('grijsblond')}</option>
+                                                        <option value="${t('blondrood')}">${t('blondrood')}</option>
+                                                        <option value="${t('roodblond')}">${t('roodblond')}</option>
+                                                        <option value="${t('rood')}">${t('rood')}</option>
+                                                        <option value="${t('roodgrijs')}">${t('roodgrijs')}</option>
+                                                        <option value="${t('wildkleur')}">${t('wildkleur')}</option>
+                                                        <option value="${t('wolfsgrau')}">${t('wolfsgrau')}</option>
+                                                        <option value="${t('zwart')}">${t('zwart')}</option>
+                                                        <option value="${t('zwartMetAftekeningen')}">${t('zwartMetAftekeningen')}</option>
+                                                        <option value="${t('wit')}">${t('wit')}</option>
+                                                        <option value="${t('piebold')}">${t('piebold')}</option>
+                                                    </select>
                                                 </div>
                                             </div>
                                         </div>
@@ -1815,8 +1872,23 @@ class DogDataManager extends BaseModule {
         // Sla user_id op voor autorisatie controle
         document.getElementById('toegevoegd_door').value = dog.user_id || '';
         
-        // Vachtkleur
-        document.getElementById('coatColor').value = dog.vachtkleur || '';
+        // Vachtkleur - nu een dropdown select
+        const coatColorSelect = document.getElementById('coatColor');
+        if (coatColorSelect) {
+            // Zoek de juiste optie op basis van de opgeslagen waarde
+            let found = false;
+            for (let i = 0; i < coatColorSelect.options.length; i++) {
+                if (coatColorSelect.options[i].value === dog.vachtkleur) {
+                    coatColorSelect.selectedIndex = i;
+                    found = true;
+                    break;
+                }
+            }
+            // Als niet gevonden, zet op lege optie
+            if (!found) {
+                coatColorSelect.selectedIndex = 0;
+            }
+        }
         
         // Ouders - CORRECT ID'S EN STAMBOOMNUMMERS OPSLAAN IN HET NEDERLANDSE HIDDEN INPUT VELD
         const vaderId = dog.vader_id || null;
@@ -2204,7 +2276,7 @@ class DogDataManager extends BaseModule {
             kennelnaam: document.getElementById('kennelName').value.trim(),
             stamboomnr: document.getElementById('pedigreeNumber').value.trim(),
             ras: document.getElementById('breed').value.trim(),
-            vachtkleur: document.getElementById('coatColor').value.trim(),
+            vachtkleur: document.getElementById('coatColor').value || null, // Nu een dropdown select
             geslacht: document.getElementById('gender').value,
             vader: vader,
             vader_id: vader_id,
