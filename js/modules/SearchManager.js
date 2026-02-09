@@ -473,7 +473,7 @@ class SearchManager extends BaseModule {
         try {
             // DIRECTE SUPABASE QUERY (zelfde als StamboomManager)
             const { data, error } = await window.supabase
-                .from('prive_info')
+                .from('priveinfo')
                 .select('privatenotes')
                 .eq('stamboomnr', stamboomnr)
                 .eq('toegevoegd_door', this.currentUserId)
