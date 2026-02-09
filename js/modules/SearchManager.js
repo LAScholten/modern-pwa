@@ -11,7 +11,7 @@
  * **FOTO PROBLEEM OPGELOST** - Gebruikt nu EXACT DEZELFDE LOGICA als PhotoManager
  * **NAKOMELINGEN FIXED**: Nakomelingen modal blijft open, hond details in aparte modal
  * **SPECIALE TEKENS FIXED**: Zoeken negeert nu speciale tekens (ä, ö, ü, ß, etc.)
- * **PRIVEINFO TOEGEVOEGD**: Toont prive informatie als huidige gebruiker eigenaar is
+ * **PRIVEINFO TOEGEVOEGD**: Toont priveinfo onder opmerkingen (net als StamboomManager)
  */
 
 class SearchManager extends BaseModule {
@@ -30,7 +30,7 @@ class SearchManager extends BaseModule {
         this.currentOffspringModalDogName = null; // Bewaar huidige nakomelingen hond naam
         this.currentUserId = null; // NIEUW: Huidige gebruiker ID voor priveinfo
         
-        // Vertalingen uitgebreid met nakomelingen functionaliteit
+        // Vertalingen uitgebreid met nakomelingen en priveinfo functionaliteit
         this.translations = {
             nl: {
                 searchDog: "Hond Zoeken",
@@ -165,9 +165,9 @@ class SearchManager extends BaseModule {
                 dogDetailsModalTitle: "Details van {name}",
                 backToOffspring: "Terug naar nakomelingen",
                 
-                // NIEUW: PRIVEINFO VERTALINGEN
+                // NIEUW: Priveinfo vertalingen
                 privateInfo: "Prive Informatie",
-                privateInfoOwnerOnly: "Geen informatie"
+                privateInfoOwnerOnly: "Alleen zichtbaar voor de eigenaar"
             },
             en: {
                 searchDog: "Search Dog",
@@ -302,9 +302,9 @@ class SearchManager extends BaseModule {
                 dogDetailsModalTitle: "Details of {name}",
                 backToOffspring: "Back to offspring",
                 
-                // NEW: PRIVATE INFO TRANSLATIONS
+                // NEW: Private info translations
                 privateInfo: "Private Information",
-                privateInfoOwnerOnly: "No information"
+                privateInfoOwnerOnly: "Only visible to the owner"
             },
             de: {
                 searchDog: "Hund suchen",
@@ -336,7 +336,7 @@ class SearchManager extends BaseModule {
                 clickToView: "Klicken für Details",
                 parents: "Eltern",
                 noHealthInfo: "Keine Gesundheitsinformationen verfügbar",
-                noAdditionalInfo: "Keine aanvullende informatie beschikbaar",
+                noAdditionalInfo: "Keine aanvullende informatie beschikbar",
                 selectDogToView: "Wählen Sie einen Hund, um Details zu sehen",
                 
                 // Hund Details
@@ -396,9 +396,9 @@ class SearchManager extends BaseModule {
                 dogDetailsModalTitle: "Details von {name}",
                 backToOffspring: "Zurück zu Nachkommen",
                 
-                // NEU: PRIVATE INFO ÜBERSETZUNGEN
+                // NEU: Private info Übersetzungen
                 privateInfo: "Private Informationen",
-                privateInfoOwnerOnly: "Kein information"
+                privateInfoOwnerOnly: "Nur für den Eigentümer sichtbar"
             }
         };
         
@@ -406,30 +406,9 @@ class SearchManager extends BaseModule {
         this.setupGlobalEventListeners();
     }
     
-    // Inject dependencies method voor UIHandler compatibiliteit
-    injectDependencies(db, auth) {
-        this.db = window.hondenService || db;
-        this.auth = window.auth || auth;
-        console.log('SearchManager: dependencies geïnjecteerd');
-    }
-    
-    // Initialize method voor UIHandler compatibiliteit
-    async initialize() {
-        console.log('SearchManager: initializing...');
-        
-        // Haal huidige gebruiker ID op voor priveinfo
-        this.currentUserId = await this.getCurrentUserId();
-        console.log('SearchManager: Huidige gebruiker ID:', this.currentUserId);
-        
-        return Promise.resolve();
-    }
-    
     // NIEUW: Methode om huidige gebruiker ID op te halen
     async getCurrentUserId() {
         try {
-            // Controleer of de gebruiker ID direct beschikbaar is in de console output
-            // Uit je logs: 🆔 User ID: cb9d6f82-e0e2-4822-9167-945ee9ef5916
-            
             // Methode 1: Check window.auth (vanuit je logs)
             if (window.auth && window.auth.currentUser && window.auth.currentUser.id) {
                 console.log('SearchManager: Gebruiker ID gevonden via window.auth:', window.auth.currentUser.id);
@@ -531,16 +510,6 @@ class SearchManager extends BaseModule {
                 return priveInfo.privatenotes || '';
             } else {
                 console.log(`Geen priveinfo voor hond ${stamboomnr} en gebruiker ${this.currentUserId}`);
-                // Debug: toon alle records voor deze hond
-                const allForDog = result.priveInfo.filter(info => info.stamboomnr === stamboomnr);
-                if (allForDog.length > 0) {
-                    console.log(`Wel ${allForDog.length} priveinfo records voor deze hond, maar niet voor deze gebruiker:`, 
-                        allForDog.map(info => ({ 
-                            toegevoegd_door: info.toegevoegd_door,
-                            gebruiker_match: info.toegevoegd_door === this.currentUserId
-                        }))
-                    );
-                }
                 return null;
             }
             
@@ -548,6 +517,24 @@ class SearchManager extends BaseModule {
             console.error('Fout bij ophalen priveinfo voor hond:', stamboomnr, error);
             return null;
         }
+    }
+    
+    // Inject dependencies method voor UIHandler compatibiliteit
+    injectDependencies(db, auth) {
+        this.db = window.hondenService || db;
+        this.auth = window.auth || auth;
+        console.log('SearchManager: dependencies geïnjecteerd');
+    }
+    
+    // Initialize method voor UIHandler compatibiliteit
+    async initialize() {
+        console.log('SearchManager: initializing...');
+        
+        // Haal huidige gebruiker ID op voor priveinfo
+        this.currentUserId = await this.getCurrentUserId();
+        console.log('SearchManager: Huidige gebruiker ID:', this.currentUserId);
+        
+        return Promise.resolve();
     }
     
     // HELPER METHOD: Normalize text by removing diacritics and special characters
@@ -1427,7 +1414,7 @@ class SearchManager extends BaseModule {
         // Haal aantal nakomelingen op
         const offspringCount = await this.getOffspringCount(dog.id);
         
-        // NIEUW: Haal priveinfo op voor deze hond en huidige gebruiker
+        // NIEUW: Haal priveinfo op voor deze hond
         const privateNotes = await this.getPrivateInfoForDog(dog.stamboomnr);
         const hasPrivateInfo = privateNotes !== null && privateNotes.trim() !== '';
         
@@ -1599,30 +1586,33 @@ class SearchManager extends BaseModule {
                         </div>
                     </div>
                     
-                    <!-- NIEUW: PRIVEINFO SECTIE -->
-                    <div class="info-group mb-4">
-                        <div class="info-group-title">
-                            <i class="bi bi-lock me-1"></i> ${t('privateInfo')}
-                        </div>
-                        
-                        ${hasPrivateInfo ? `
-                        <div class="remarks-box" style="background-color: #fff3cd; border-color: #ffeaa7;">
-                            ${privateNotes}
-                        </div>
-                        ` : `
-                        <div class="text-muted">
-                            <i>${t('privateInfoOwnerOnly')}</i>
-                        </div>
-                        `}
-                    </div>
-                    
-                    <!-- OPMERKINGEN (bestaande) -->
                     <div class="mt-3">
                         <div class="fw-bold mb-2">${t('remarks')}</div>
                         <div class="remarks-box">
                             ${dog.opmerkingen ? dog.opmerkingen : t('noAdditionalInfo')}
                         </div>
                     </div>
+                    
+                    <!-- NIEUW: PRIVEINFO SECTIE - ONDER OPMERKINGEN -->
+                    ${hasPrivateInfo ? `
+                    <div class="mt-3">
+                        <div class="fw-bold mb-2">
+                            <i class="bi bi-lock-fill me-1"></i> ${t('privateInfo')}
+                        </div>
+                        <div class="remarks-box" style="background-color: #fff3cd; border-color: #ffeaa7;">
+                            ${privateNotes}
+                        </div>
+                    </div>
+                    ` : `
+                    <div class="mt-3">
+                        <div class="fw-bold mb-2">
+                            <i class="bi bi-lock me-1"></i> ${t('privateInfo')}
+                        </div>
+                        <div class="text-muted">
+                            <i>${t('privateInfoOwnerOnly')}</i>
+                        </div>
+                    </div>
+                    `}
                 </div>
             </div>
         `;
@@ -3487,17 +3477,9 @@ class SearchManager extends BaseModule {
         // Haal aantal nakomelingen op
         const offspringCount = await this.getOffspringCount(dog.id);
         
-        // NIEUW: Haal priveinfo op voor deze hond en huidige gebruiker
+        // NIEUW: Haal priveinfo op voor deze hond
         const privateNotes = await this.getPrivateInfoForDog(dog.stamboomnr);
         const hasPrivateInfo = privateNotes !== null && privateNotes.trim() !== '';
-        
-        console.log('SearchManager: Priveinfo voor hond in showDogDetails:', {
-            naam: dog.naam,
-            stamboomnr: dog.stamboomnr,
-            hasPrivateInfo: hasPrivateInfo,
-            privateNotes: privateNotes ? privateNotes.substring(0, 100) + '...' : 'leeg',
-            currentUserId: this.currentUserId
-        });
         
         const html = `
             <div class="p-3">
@@ -3688,30 +3670,33 @@ class SearchManager extends BaseModule {
                                 </div>
                             </div>
                             
-                            <!-- NIEUW: PRIVEINFO SECTIE -->
-                            <div class="info-group mb-4">
-                                <div class="info-group-title">
-                                    <i class="bi bi-lock me-1"></i> ${t('privateInfo')}
-                                </div>
-                                
-                                ${hasPrivateInfo ? `
-                                <div class="remarks-box" style="background-color: #fff3cd; border-color: #ffeaa7;">
-                                    ${privateNotes}
-                                </div>
-                                ` : `
-                                <div class="text-muted">
-                                    <i>${t('privateInfoOwnerOnly')}</i>
-                                </div>
-                                `}
-                            </div>
-                            
-                            <!-- OPMERKINGEN (bestaande) -->
                             <div class="mt-3">
                                 <div class="fw-bold mb-2">${t('remarks')}</div>
                                 <div class="remarks-box">
                                     ${dog.opmerkingen ? dog.opmerkingen : t('noAdditionalInfo')}
                                 </div>
                             </div>
+                            
+                            <!-- NIEUW: PRIVEINFO SECTIE - ONDER OPMERKINGEN -->
+                            ${hasPrivateInfo ? `
+                            <div class="mt-3">
+                                <div class="fw-bold mb-2">
+                                    <i class="bi bi-lock-fill me-1"></i> ${t('privateInfo')}
+                                </div>
+                                <div class="remarks-box" style="background-color: #fff3cd; border-color: #ffeaa7;">
+                                    ${privateNotes}
+                                </div>
+                            </div>
+                            ` : `
+                            <div class="mt-3">
+                                <div class="fw-bold mb-2">
+                                    <i class="bi bi-lock me-1"></i> ${t('privateInfo')}
+                                </div>
+                                <div class="text-muted">
+                                    <i>${t('privateInfoOwnerOnly')}</i>
+                                </div>
+                            </div>
+                            `}
                         </div>
                         
                         ${dog.createdat || dog.updatedat ? `
