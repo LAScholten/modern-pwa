@@ -10,6 +10,8 @@
  * MET JUISTE DATABASE KOLOM NAMEN
  * **FOTO PROBLEEM OPGELOST** - Gebruikt nu EXACT DEZELFDE LOGICA als PhotoManager
  * **NAKOMELINGEN FIXED**: Nakomelingen modal blijft open, hond details in aparte modal
+ * **SPECIALE TEKENS FIXED**: Zoeken negeert nu speciale tekens (ä, ö, ü, ß, etc.)
+ * **PRIVEINFORMATIE TOEGEVOEGD**: Toont priveinfo als huidige gebruiker eigenaar is
  */
 
 class SearchManager extends BaseModule {
@@ -26,6 +28,8 @@ class SearchManager extends BaseModule {
         this.isLoading = false; // Voorkom dubbele laadpogingen
         this.currentOffspringModalDogId = null; // Bewaar huidige nakomelingen hond ID
         this.currentOffspringModalDogName = null; // Bewaar huidige nakomelingen hond naam
+        this.currentUserId = null; // NIEUW: Huidige gebruiker ID voor priveinfo
+        this.privateInfoCache = new Map(); // NIEUW: Cache voor priveinfo per hond
         
         // Vertalingen uitgebreid met nakomelingen functionaliteit
         this.translations = {
@@ -160,7 +164,11 @@ class SearchManager extends BaseModule {
                 viewDogDetails: "Bekijk hond details",
                 closeDogDetails: "Sluit hond details",
                 dogDetailsModalTitle: "Details van {name}",
-                backToOffspring: "Terug naar nakomelingen"
+                backToOffspring: "Terug naar nakomelingen",
+                
+                // PRIVEINFO VERTALINGEN
+                privateInfo: "Prive Informatie",
+                privateInfoOwnerOnly: "Geen informatie"
             },
             en: {
                 searchDog: "Search Dog",
@@ -293,7 +301,11 @@ class SearchManager extends BaseModule {
                 viewDogDetails: "View dog details",
                 closeDogDetails: "Close dog details",
                 dogDetailsModalTitle: "Details of {name}",
-                backToOffspring: "Back to offspring"
+                backToOffspring: "Back to offspring",
+                
+                // PRIVEINFO TRANSLATIONS
+                privateInfo: "Private Information",
+                privateInfoOwnerOnly: "No information"
             },
             de: {
                 searchDog: "Hund suchen",
@@ -309,7 +321,7 @@ class SearchManager extends BaseModule {
                 name: "Name",
                 pedigreeNumber: "Stammbaum-Nummer",
                 breed: "Rasse",
-                gender: "Geschlecht",
+                gender: "Geslacht",
                 close: "Schließen",
                 dogDetails: "Hund Details",
                 father: "Vater",
@@ -325,7 +337,7 @@ class SearchManager extends BaseModule {
                 clickToView: "Klicken für Details",
                 parents: "Eltern",
                 noHealthInfo: "Keine Gesundheitsinformationen verfügbar",
-                noAdditionalInfo: "Keine aanvullende informatie beschikbar",
+                noAdditionalInfo: "Keine aanvullende informatie beschikbaar",
                 selectDogToView: "Wählen Sie einen Hund, um Details zu sehen",
                 
                 // Hund Details
@@ -383,7 +395,11 @@ class SearchManager extends BaseModule {
                 viewDogDetails: "Hunddetails ansehen",
                 closeDogDetails: "Hunddetails schließen",
                 dogDetailsModalTitle: "Details von {name}",
-                backToOffspring: "Zurück zu Nachkommen"
+                backToOffspring: "Zurück zu Nachkommen",
+                
+                // PRIVEINFO ÜBERSETZUNGEN
+                privateInfo: "Private Informationen",
+                privateInfoOwnerOnly: "Kein information"
             }
         };
         
@@ -399,9 +415,122 @@ class SearchManager extends BaseModule {
     }
     
     // Initialize method voor UIHandler compatibiliteit
-    initialize() {
+    async initialize() {
         console.log('SearchManager: initializing...');
+        
+        // NIEUW: Haal huidige gebruiker ID op voor priveinfo
+        this.currentUserId = await this.getCurrentUserId();
+        console.log('SearchManager: Huidige gebruiker ID:', this.currentUserId);
+        
         return Promise.resolve();
+    }
+    
+    // NIEUW: Methode om huidige gebruiker ID op te halen
+    async getCurrentUserId() {
+        try {
+            // Methode 1: Check window.auth (vanuit je logs)
+            if (window.auth && window.auth.currentUser && window.auth.currentUser.id) {
+                console.log('SearchManager: Gebruiker ID gevonden via window.auth:', window.auth.currentUser.id);
+                return window.auth.currentUser.id;
+            }
+            
+            // Methode 2: Check Supabase auth
+            if (window.supabase && window.supabase.auth) {
+                const { data: { user } } = await window.supabase.auth.getUser();
+                if (user && user.id) {
+                    console.log('SearchManager: Gebruiker ID gevonden via Supabase auth:', user.id);
+                    return user.id;
+                }
+            }
+            
+            // Methode 3: Check localStorage voor auth data
+            const authData = localStorage.getItem('sb-auth-token') || localStorage.getItem('supabase.auth.token');
+            if (authData) {
+                try {
+                    const parsed = JSON.parse(authData);
+                    if (parsed && parsed.user && parsed.user.id) {
+                        console.log('SearchManager: Gebruiker ID gevonden via localStorage:', parsed.user.id);
+                        return parsed.user.id;
+                    }
+                } catch (e) {
+                    console.error('Fout bij parsen auth data:', e);
+                }
+            }
+            
+            // Methode 4: Check voor globale variabele
+            if (window.currentUserId) {
+                console.log('SearchManager: Gebruiker ID gevonden via window.currentUserId:', window.currentUserId);
+                return window.currentUserId;
+            }
+            
+            // Methode 5: Haal uit je app.html logs - er is een globale auth object
+            if (window.authService && window.authService.getCurrentUser) {
+                const user = await window.authService.getCurrentUser();
+                if (user && user.id) {
+                    console.log('SearchManager: Gebruiker ID gevonden via authService:', user.id);
+                    return user.id;
+                }
+            }
+            
+            console.warn('SearchManager: Geen gebruiker ID gevonden voor priveinfo - controleer authenticatie');
+            return null;
+            
+        } catch (error) {
+            console.error('Fout bij ophalen gebruiker ID:', error);
+            return null;
+        }
+    }
+    
+    // NIEUW: Methode om priveinfo voor een hond op te halen
+    async getPrivateInfoForDog(stamboomnr) {
+        if (!this.currentUserId || !stamboomnr) {
+            console.log('SearchManager: Geen gebruiker ID of stamboomnr voor priveinfo:', { 
+                userId: this.currentUserId, 
+                stamboomnr: stamboomnr 
+            });
+            return null;
+        }
+        
+        // Check cache
+        const cacheKey = `${stamboomnr}_${this.currentUserId}`;
+        if (this.privateInfoCache.has(cacheKey)) {
+            return this.privateInfoCache.get(cacheKey);
+        }
+        
+        try {
+            // DIRECTE SUPABASE QUERY (zelfde als StamboomManager)
+            const { data, error } = await window.supabase
+                .from('priveinfo')
+                .select('privatenotes')
+                .eq('stamboomnr', stamboomnr)
+                .eq('toegevoegd_door', this.currentUserId)
+                .single();
+            
+            if (error || !data) {
+                this.privateInfoCache.set(cacheKey, null);
+                return null;
+            }
+            
+            const notes = data.privatenotes || '';
+            this.privateInfoCache.set(cacheKey, notes);
+            return notes;
+            
+        } catch (error) {
+            console.error('SearchManager: Fout bij ophalen priveinfo voor hond:', stamboomnr, error);
+            return null;
+        }
+    }
+    
+    // HELPER METHOD: Normalize text by removing diacritics and special characters
+    normalizeText(text) {
+        if (!text) return '';
+        
+        return text
+            .toLowerCase()
+            .normalize('NFD') // Decompose characters with diacritics
+            .replace(/[\u0300-\u036f]/g, '') // Remove diacritical marks
+            .replace(/ß/g, 'ss') // Replace German sharp s with ss
+            .trim();
     }
     
     t(key, subKey = null) {
@@ -1269,6 +1398,43 @@ class SearchManager extends BaseModule {
         // Haal aantal nakomelingen op
         const offspringCount = await this.getOffspringCount(dog.id);
         
+        // NIEUW: Haal priveinfo op voor deze hond
+        const privateNotes = await this.getPrivateInfoForDog(dog.stamboomnr);
+        const hasPrivateInfo = privateNotes !== null && privateNotes.trim() !== '';
+        
+        console.log('SearchManager: Priveinfo voor hond:', {
+            naam: dog.naam,
+            stamboomnr: dog.stamboomnr,
+            hasPrivateInfo: hasPrivateInfo,
+            privateNotes: privateNotes ? privateNotes.substring(0, 100) + '...' : 'leeg',
+            currentUserId: this.currentUserId
+        });
+        
+        // NIEUW: PRIVEINFO SECTIE HTML
+        let privateInfoHTML = '';
+        if (this.currentUserId && dog.stamboomnr) {
+            const privateNotes = await this.getPrivateInfoForDog(dog.stamboomnr);
+            const hasPrivateInfo = privateNotes !== null && privateNotes.trim() !== '';
+            
+            privateInfoHTML = `
+                <div class="mt-4">
+                    <div class="fw-bold mb-2">
+                        <i class="bi ${hasPrivateInfo ? 'bi-lock-fill' : 'bi-lock'} me-1"></i>
+                        ${t('privateInfo')}
+                    </div>
+                    ${hasPrivateInfo ? `
+                    <div class="remarks-box" style="background-color: #fff3cd; border-color: #ffeaa7;">
+                        ${privateNotes}
+                    </div>
+                    ` : `
+                    <div class="text-muted">
+                        <i>${t('privateInfoOwnerOnly')}</i>
+                    </div>
+                    `}
+                </div>
+            `;
+        }
+        
         // Genereer HTML voor hond details
         let html = `
             <div class="dog-details-content">
@@ -1435,6 +1601,9 @@ class SearchManager extends BaseModule {
                             ${dog.opmerkingen ? dog.opmerkingen : t('noAdditionalInfo')}
                         </div>
                     </div>
+                    
+                    <!-- NIEUW: PRIVEINFO SECTIE -->
+                    ${privateInfoHTML}
                 </div>
             </div>
         `;
@@ -2969,24 +3138,44 @@ class SearchManager extends BaseModule {
     }
     
     filterDogsForNameField(searchTerm = '') {
+        // Normaliseer de zoekterm
+        const normalizedSearchTerm = this.normalizeText(searchTerm);
+        
         this.filteredDogs = this.allDogs.filter(dog => {
-            const naam = dog.naam ? dog.naam.toLowerCase() : '';
-            const kennelnaam = dog.kennelnaam ? dog.kennelnaam.toLowerCase() : '';
+            // Normaliseer de hond naam en kennelnaam
+            const normalizedNaam = this.normalizeText(dog.naam);
+            const normalizedKennelnaam = this.normalizeText(dog.kennelnaam);
             
-            // Creëer een gecombineerde string: "naam kennelnaam"
-            const combined = `${naam} ${kennelnaam}`;
+            // Controleer of de zoekterm voorkomt in de naam
+            if (normalizedNaam.includes(normalizedSearchTerm)) {
+                return true;
+            }
             
-            // Controleer of de gecombineerde string begint met de zoekterm
-            return combined.startsWith(searchTerm);
+            // Controleer of de zoekterm voorkomt in de kennelnaam
+            if (normalizedKennelnaam.includes(normalizedSearchTerm)) {
+                return true;
+            }
+            
+            // Controleer of de zoekterm voorkomt in "naam kennelnaam" combinatie
+            const combined = `${normalizedNaam} ${normalizedKennelnaam}`;
+            if (combined.includes(normalizedSearchTerm)) {
+                return true;
+            }
+            
+            return false;
         });
         
         this.displaySearchResults();
     }
     
     filterDogsByKennel(searchTerm = '') {
+        // Normaliseer de zoekterm
+        const normalizedSearchTerm = this.normalizeText(searchTerm);
+        
         this.filteredDogs = this.allDogs.filter(dog => {
-            const kennelnaam = dog.kennelnaam ? dog.kennelnaam.toLowerCase() : '';
-            return kennelnaam.startsWith(searchTerm);
+            // Normaliseer de kennelnaam
+            const normalizedKennelnaam = this.normalizeText(dog.kennelnaam);
+            return normalizedKennelnaam.includes(normalizedSearchTerm);
         });
         
         this.filteredDogs.sort((a, b) => {
@@ -3279,6 +3468,43 @@ class SearchManager extends BaseModule {
         // Haal aantal nakomelingen op
         const offspringCount = await this.getOffspringCount(dog.id);
         
+        // NIEUW: Haal priveinfo op voor deze hond
+        const privateNotes = await this.getPrivateInfoForDog(dog.stamboomnr);
+        const hasPrivateInfo = privateNotes !== null && privateNotes.trim() !== '';
+        
+        console.log('SearchManager: Priveinfo voor hond:', {
+            naam: dog.naam,
+            stamboomnr: dog.stamboomnr,
+            hasPrivateInfo: hasPrivateInfo,
+            privateNotes: privateNotes ? privateNotes.substring(0, 100) + '...' : 'leeg',
+            currentUserId: this.currentUserId
+        });
+        
+        // NIEUW: PRIVEINFO SECTIE HTML
+        let privateInfoHTML = '';
+        if (this.currentUserId && dog.stamboomnr) {
+            const privateNotes = await this.getPrivateInfoForDog(dog.stamboomnr);
+            const hasPrivateInfo = privateNotes !== null && privateNotes.trim() !== '';
+            
+            privateInfoHTML = `
+                <div class="mt-4">
+                    <div class="fw-bold mb-2">
+                        <i class="bi ${hasPrivateInfo ? 'bi-lock-fill' : 'bi-lock'} me-1"></i>
+                        ${t('privateInfo')}
+                    </div>
+                    ${hasPrivateInfo ? `
+                    <div class="remarks-box" style="background-color: #fff3cd; border-color: #ffeaa7;">
+                        ${privateNotes}
+                    </div>
+                    ` : `
+                    <div class="text-muted">
+                        <i>${t('privateInfoOwnerOnly')}</i>
+                    </div>
+                    `}
+                </div>
+            `;
+        }
+        
         const html = `
             <div class="p-3">
                 <div class="details-card" data-dog-name="${dog.naam || ''}">
@@ -3474,6 +3700,9 @@ class SearchManager extends BaseModule {
                                     ${dog.opmerkingen ? dog.opmerkingen : t('noAdditionalInfo')}
                                 </div>
                             </div>
+                            
+                            <!-- NIEUW: PRIVEINFO SECTIE -->
+                            ${privateInfoHTML}
                         </div>
                         
                         ${dog.createdat || dog.updatedat ? `
