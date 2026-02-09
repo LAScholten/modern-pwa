@@ -10,6 +10,7 @@
  * MET JUISTE DATABASE KOLOM NAMEN
  * **FOTO PROBLEEM OPGELOST** - Gebruikt nu EXACT DEZELFDE LOGICA als PhotoManager
  * **NAKOMELINGEN FIXED**: Nakomelingen modal blijft open, hond details in aparte modal
+ * **SPECIALE TEKENS FIXED**: Zoeken negeert nu speciale tekens (ä, ö, ü, ß, etc.)
  */
 
 class SearchManager extends BaseModule {
@@ -402,6 +403,18 @@ class SearchManager extends BaseModule {
     initialize() {
         console.log('SearchManager: initializing...');
         return Promise.resolve();
+    }
+    
+    // HELPER METHOD: Normalize text by removing diacritics and special characters
+    normalizeText(text) {
+        if (!text) return '';
+        
+        return text
+            .toLowerCase()
+            .normalize('NFD') // Decompose characters with diacritics
+            .replace(/[\u0300-\u036f]/g, '') // Remove diacritical marks
+            .replace(/ß/g, 'ss') // Replace German sharp s with ss
+            .trim();
     }
     
     t(key, subKey = null) {
@@ -2969,24 +2982,44 @@ class SearchManager extends BaseModule {
     }
     
     filterDogsForNameField(searchTerm = '') {
+        // Normaliseer de zoekterm
+        const normalizedSearchTerm = this.normalizeText(searchTerm);
+        
         this.filteredDogs = this.allDogs.filter(dog => {
-            const naam = dog.naam ? dog.naam.toLowerCase() : '';
-            const kennelnaam = dog.kennelnaam ? dog.kennelnaam.toLowerCase() : '';
+            // Normaliseer de hond naam en kennelnaam
+            const normalizedNaam = this.normalizeText(dog.naam);
+            const normalizedKennelnaam = this.normalizeText(dog.kennelnaam);
             
-            // Creëer een gecombineerde string: "naam kennelnaam"
-            const combined = `${naam} ${kennelnaam}`;
+            // Controleer of de zoekterm voorkomt in de naam
+            if (normalizedNaam.includes(normalizedSearchTerm)) {
+                return true;
+            }
             
-            // Controleer of de gecombineerde string begint met de zoekterm
-            return combined.startsWith(searchTerm);
+            // Controleer of de zoekterm voorkomt in de kennelnaam
+            if (normalizedKennelnaam.includes(normalizedSearchTerm)) {
+                return true;
+            }
+            
+            // Controleer of de zoekterm voorkomt in "naam kennelnaam" combinatie
+            const combined = `${normalizedNaam} ${normalizedKennelnaam}`;
+            if (combined.includes(normalizedSearchTerm)) {
+                return true;
+            }
+            
+            return false;
         });
         
         this.displaySearchResults();
     }
     
     filterDogsByKennel(searchTerm = '') {
+        // Normaliseer de zoekterm
+        const normalizedSearchTerm = this.normalizeText(searchTerm);
+        
         this.filteredDogs = this.allDogs.filter(dog => {
-            const kennelnaam = dog.kennelnaam ? dog.kennelnaam.toLowerCase() : '';
-            return kennelnaam.startsWith(searchTerm);
+            // Normaliseer de kennelnaam
+            const normalizedKennelnaam = this.normalizeText(dog.kennelnaam);
+            return normalizedKennelnaam.includes(normalizedSearchTerm);
         });
         
         this.filteredDogs.sort((a, b) => {
