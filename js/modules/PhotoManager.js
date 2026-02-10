@@ -16,12 +16,19 @@ class PhotoManager extends BaseModule {
         this.userRole = localStorage.getItem('userRole') || 'gebruiker';
         this.isAdmin = this.userRole === 'admin';
         this.isUser = this.userRole === 'gebruiker';
+        this.isUserPlus = this.userRole === 'gebruiker+';
+        this.currentView = 'gallery'; // 'gallery' of 'upload'
+        
+        // Paginatie variabelen
+        this.currentPhotoPage = 1;
+        this.photosPerPage = 12;
+        this.totalPhotos = 0;
+        this.totalPhotoPages = 0;
+        this.isLoadingPhotos = false;
         
         this.translations = {
             nl: {
                 photoGallery: "Foto Galerij",
-                photoInfo: "Foto Galerij - Bekijk en beheer foto's van honden. Upload nieuwe foto's of verwijder bestaande foto's.",
-                uploadRestricted: "Foto Galerij - Foto's bekijken. Uploaden is alleen mogelijk voor Gebruiker+ en Administrator.",
                 photoUpload: "Foto Uploaden",
                 selectDog: "Selecteer Hond",
                 searchDog: "Zoek hond op naam, kennel of stamboomnr...",
@@ -71,12 +78,25 @@ class PhotoManager extends BaseModule {
                 searchToFindDogs: "Typ om te zoeken...",
                 loadingProgress: "Honden laden: ",
                 thumbnailError: "Thumbnail maken mislukt",
-                loadPhotosMessage: "laad de foto's en klik op foto voor vergroting"
+                loadPhotosMessage: "laad de foto's en klik op foto voor vergroting",
+                viewGallery: "Foto's Bekijken",
+                uploadNewPhoto: "Foto Uploaden",
+                chooseAction: "Kies een actie:",
+                recentUploads: "Recent Geüploade Foto's",
+                noRecentUploads: "Nog geen foto's geüpload",
+                page: "Pagina",
+                of: "van",
+                nextPage: "Volgende",
+                previousPage: "Vorige",
+                showing: "Toont",
+                to: "tot",
+                ofTotal: "van de",
+                photos: "foto's",
+                firstPage: "Eerste",
+                lastPage: "Laatste"
             },
             en: {
                 photoGallery: "Photo Gallery",
-                photoInfo: "Photo Gallery - View and manage dog photos. Upload new photos or delete existing ones.",
-                uploadRestricted: "Photo Gallery - View photos. Uploading is only available for User+ and Administrator.",
                 photoUpload: "Photo Upload",
                 selectDog: "Select Dog",
                 searchDog: "Search dog by name, kennel or pedigree number...",
@@ -126,12 +146,25 @@ class PhotoManager extends BaseModule {
                 searchToFindDogs: "Type to search...",
                 loadingProgress: "Loading dogs: ",
                 thumbnailError: "Thumbnail creation failed",
-                loadPhotosMessage: "load the photos and click on photo for enlargement"
+                loadPhotosMessage: "load the photos and click on photo for enlargement",
+                viewGallery: "View Photos",
+                uploadNewPhoto: "Upload Photo",
+                chooseAction: "Choose an action:",
+                recentUploads: "Recently Uploaded Photos",
+                noRecentUploads: "No photos uploaded yet",
+                page: "Page",
+                of: "of",
+                nextPage: "Next",
+                previousPage: "Previous",
+                showing: "Showing",
+                to: "to",
+                ofTotal: "of",
+                photos: "photos",
+                firstPage: "First",
+                lastPage: "Last"
             },
             de: {
                 photoGallery: "Foto Galerie",
-                photoInfo: "Foto Galerie - Hunderfotos ansehen und verwalten. Laden Sie neue Fotos hoch of löschen Sie vorhandene.",
-                uploadRestricted: "Foto Galerie - Fotos ansehen. Hochladen ist nur für Benutzer+ und Administrator verfügbar.",
                 photoUpload: "Foto Upload",
                 selectDog: "Hund auswählen",
                 searchDog: "Hund nach Namen, Zwinge oder Stammbaumnummer suchen...",
@@ -164,7 +197,7 @@ class PhotoManager extends BaseModule {
                 prevPhoto: "Vorherige",
                 selectDogFirst: "Wählen Sie zuerst einen Hund",
                 selectPhotoFirst: "Wählen Sie zuerst ein Foto",
-                fileTooLarge: "Datei ist zu groot (maximal 5MB)",
+                fileTooLarge: "Datei ist zu groß (maximal 5MB)",
                 invalidType: "Ungültiger Dateityp. Nur JPG, PNG, GIF und WebP sind erlaubt",
                 uploading: "Foto wird hochgeladen...",
                 uploadSuccess: "Foto erfolgreich hochgeladen!",
@@ -176,12 +209,27 @@ class PhotoManager extends BaseModule {
                 deleting: "Foto wird gelöscht...",
                 deleteSuccess: "Foto erfolgreich gelöscht!",
                 deleteFailed: "Löschen fehlgeschlagen: ",
-                photoNotFound: "Foto niet gevonden",
+                photoNotFound: "Foto nicht gefunden",
                 loadDetailsFailed: "Fehler beim Laden der Fotodetails: ",
                 searchToFindDogs: "Tippen Sie zum Suchen...",
                 loadingProgress: "Hunde laden: ",
                 thumbnailError: "Thumbnail-Erstellung fehlgeschlagen",
-                loadPhotosMessage: "Laden Sie die Fotos und klicken Sie auf das Foto für eine Vergrößerung"
+                loadPhotosMessage: "Laden Sie die Fotos und klicken Sie auf das Foto für eine Vergrößerung",
+                viewGallery: "Fotos Ansehen",
+                uploadNewPhoto: "Foto Hochladen",
+                chooseAction: "Wählen Sie eine Aktion:",
+                recentUploads: "Kürzlich hochgeladene Fotos",
+                noRecentUploads: "Noch keine Fotos hochgeladen",
+                page: "Seite",
+                of: "von",
+                nextPage: "Nächste",
+                previousPage: "Vorherige",
+                showing: "Zeigt",
+                to: "bis",
+                ofTotal: "von",
+                photos: "Fotos",
+                firstPage: "Erste",
+                lastPage: "Letzte"
             }
         };
     }
@@ -199,7 +247,63 @@ class PhotoManager extends BaseModule {
     
     getModalHTML() {
         const t = this.t.bind(this);
-        const showUploadSection = !this.isUser; // Alleen tonen voor admin en gebruiker+
+        const canUpload = !this.isUser; // Kan uploaden als admin of gebruiker+
+        
+        // Als gebruiker: direct naar gallery
+        // Als admin/gebruiker+: keuze menu
+        if (this.isUser) {
+            return this.getGalleryModalHTML();
+        } else {
+            return this.getChoiceModalHTML();
+        }
+    }
+    
+    getChoiceModalHTML() {
+        const t = this.t.bind(this);
+        
+        return `
+            <div class="modal fade" id="photoGalleryModal" tabindex="-1" aria-labelledby="photoGalleryModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header bg-warning text-white">
+                            <h5 class="modal-title" id="photoGalleryModalLabel">
+                                <i class="bi bi-images"></i> ${t('photoGallery')}
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Sluiten"></button>
+                        </div>
+                        <div class="modal-body text-center py-5">
+                            <h4 class="mb-4">${t('chooseAction')}</h4>
+                            
+                            <div class="row g-4">
+                                <div class="col-md-6">
+                                    <div class="card h-100 border-warning hover-shadow" style="cursor: pointer;" id="viewGalleryBtn">
+                                        <div class="card-body d-flex flex-column align-items-center justify-content-center p-5">
+                                            <i class="bi bi-images display-1 text-warning mb-3"></i>
+                                            <h5 class="card-title">${t('viewGallery')}</h5>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card h-100 border-success hover-shadow" style="cursor: pointer;" id="uploadPhotoBtnChoice">
+                                        <div class="card-body d-flex flex-column align-items-center justify-content-center p-5">
+                                            <i class="bi bi-cloud-upload display-1 text-success mb-3"></i>
+                                            <h5 class="card-title">${t('uploadNewPhoto')}</h5>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">${t('close')}</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    getGalleryModalHTML() {
+        const t = this.t.bind(this);
         
         return `
             <div class="modal fade" id="photoGalleryModal" tabindex="-1" aria-labelledby="photoGalleryModalLabel" aria-hidden="true">
@@ -217,21 +321,46 @@ class PhotoManager extends BaseModule {
                             <div class="mt-4">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h6 class="mb-0">${t('photoOverview')}</h6>
-                                    <button class="btn btn-outline-warning" id="loadAllPhotosBtn">
-                                        <i class="bi bi-arrow-clockwise"></i> ${t('loadAllPhotos')}
-                                    </button>
+                                    <div id="photosPaginationInfo" class="text-muted small"></div>
                                 </div>
                                 <div id="photosContainer" class="row">
                                     <div class="col-12 text-center py-5">
                                         <i class="bi bi-images display-1 text-muted"></i>
-                                        <p class="mt-3 text-muted">${t('loadPhotosMessage')}</p>
+                                        <p class="mt-3 text-muted">${t('loadingPhotos')}</p>
                                     </div>
                                 </div>
+                                
+                                <!-- PAGINATIE CONTROLES -->
+                                <div id="photosPagination" class="d-flex justify-content-center align-items-center mt-4">
+                                    <!-- Wordt dynamisch ingevuld -->
+                                </div>
                             </div>
-                            
-                            <!-- FOTO UPLOAD ONDERAAN - ALLEEN VOOR ADMIN EN GEBRUIKER+ -->
-                            ${showUploadSection ? `
-                            <div class="row mb-4 mt-5">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">${t('close')}</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    getUploadModalHTML() {
+        const t = this.t.bind(this);
+        
+        return `
+            <div class="modal fade" id="photoGalleryModal" tabindex="-1" aria-labelledby="photoGalleryModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header bg-success text-white">
+                            <h5 class="modal-title" id="photoGalleryModalLabel">
+                                <i class="bi bi-cloud-upload"></i> ${t('photoUpload')}
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Sluiten"></button>
+                        </div>
+                        <div class="modal-body">
+                            <!-- FOTO UPLOAD FORMULIER -->
+                            <div class="row mb-4">
                                 <div class="col-md-12">
                                     <div class="card">
                                         <div class="card-header">
@@ -267,17 +396,30 @@ class PhotoManager extends BaseModule {
                                                 <label for="photoDescription" class="form-label">${t('description')}</label>
                                                 <textarea class="form-control" id="photoDescription" rows="2" placeholder="${t('describePhoto')}"></textarea>
                                             </div>
-                                            <button class="btn btn-warning w-100" id="uploadPhotoBtn">
+                                            <button class="btn btn-success w-100" id="uploadPhotoBtn">
                                                 <i class="bi bi-upload"></i> ${t('uploadPhoto')}
                                             </button>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            ` : ''}
+                            
+                            <!-- RECENT GEÜPLOADE FOTO'S -->
+                            <div class="mt-5">
+                                <h6 class="mb-3">${t('recentUploads')}</h6>
+                                <div id="recentUploadsContainer" class="row">
+                                    <div class="col-12 text-center py-3">
+                                        <i class="bi bi-images text-muted"></i>
+                                        <p class="mt-2 text-muted">${t('noRecentUploads')}</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">${t('close')}</button>
+                            <button type="button" class="btn btn-warning" id="backToChoiceBtn">
+                                <i class="bi bi-arrow-left"></i> Terug
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -286,29 +428,116 @@ class PhotoManager extends BaseModule {
     }
     
     setupEvents() {
-        // Alleen upload knop tonen voor admin en gebruiker+
-        if (!this.isUser) {
-            const uploadBtn = document.getElementById('uploadPhotoBtn');
-            if (uploadBtn) {
-                uploadBtn.addEventListener('click', () => {
-                    this.uploadPhoto();
-                });
-            }
+        // Controleer of dit de keuze modal is
+        if (this.isUser) {
+            // Gebruiker: alleen gallery functionaliteit
+            this.setupGalleryEvents();
+        } else {
+            // Admin/gebruiker+: keuze modal events
+            this.setupChoiceEvents();
         }
+    }
+    
+    setupChoiceEvents() {
+        const viewGalleryBtn = document.getElementById('viewGalleryBtn');
+        const uploadPhotoBtn = document.getElementById('uploadPhotoBtnChoice');
         
-        const loadBtn = document.getElementById('loadAllPhotosBtn');
-        if (loadBtn) {
-            loadBtn.addEventListener('click', () => {
-                this.loadAllPhotos();
+        if (viewGalleryBtn) {
+            viewGalleryBtn.addEventListener('click', () => {
+                this.showGalleryView();
             });
         }
         
-        // Alleen zoekfunctionaliteit tonen voor admin en gebruiker+
-        if (!this.isUser) {
-            this.setupDogSearch();
+        if (uploadPhotoBtn) {
+            uploadPhotoBtn.addEventListener('click', () => {
+                this.showUploadView();
+            });
         }
         
         this.fixPhotoModalClose();
+    }
+    
+    setupGalleryEvents() {
+        // Verwijderde de loadAllPhotosBtn event listener
+        this.fixPhotoModalClose();
+    }
+    
+    setupUploadEvents() {
+        const uploadBtn = document.getElementById('uploadPhotoBtn');
+        const backBtn = document.getElementById('backToChoiceBtn');
+        
+        if (uploadBtn) {
+            uploadBtn.addEventListener('click', () => {
+                this.uploadPhoto();
+            });
+        }
+        
+        if (backBtn) {
+            backBtn.addEventListener('click', () => {
+                this.showChoiceView();
+            });
+        }
+        
+        this.setupDogSearch();
+        this.fixPhotoModalClose();
+        
+        // Laad recente uploads
+        this.loadRecentUploads();
+    }
+    
+    async showGalleryView() {
+        // Vervang modal met gallery view
+        const modal = bootstrap.Modal.getInstance(document.getElementById('photoGalleryModal'));
+        if (modal) {
+            modal.dispose();
+        }
+        
+        const modalContainer = document.querySelector('#photoGalleryModal').parentElement;
+        modalContainer.innerHTML = this.getGalleryModalHTML();
+        
+        const newModal = new bootstrap.Modal(document.getElementById('photoGalleryModal'));
+        newModal.show();
+        
+        // Setup events voor gallery
+        this.setupGalleryEvents();
+        
+        // Laad foto's met paginatie
+        this.currentPhotoPage = 1;
+        await this.loadPhotosPage(this.currentPhotoPage);
+    }
+    
+    async showUploadView() {
+        // Vervang modal met upload view
+        const modal = bootstrap.Modal.getInstance(document.getElementById('photoGalleryModal'));
+        if (modal) {
+            modal.dispose();
+        }
+        
+        const modalContainer = document.querySelector('#photoGalleryModal').parentElement;
+        modalContainer.innerHTML = this.getUploadModalHTML();
+        
+        const newModal = new bootstrap.Modal(document.getElementById('photoGalleryModal'));
+        newModal.show();
+        
+        // Setup events voor upload
+        this.setupUploadEvents();
+    }
+    
+    showChoiceView() {
+        // Vervang modal met choice view
+        const modal = bootstrap.Modal.getInstance(document.getElementById('photoGalleryModal'));
+        if (modal) {
+            modal.dispose();
+        }
+        
+        const modalContainer = document.querySelector('#photoGalleryModal').parentElement;
+        modalContainer.innerHTML = this.getChoiceModalHTML();
+        
+        const newModal = new bootstrap.Modal(document.getElementById('photoGalleryModal'));
+        newModal.show();
+        
+        // Setup events voor choice
+        this.setupChoiceEvents();
     }
     
     fixPhotoModalClose() {
@@ -652,6 +881,161 @@ class PhotoManager extends BaseModule {
     
     async loadPhotosData() {
         // Wordt aangeroepen wanneer modal geopend wordt
+        if (this.isUser) {
+            this.currentPhotoPage = 1;
+            await this.loadPhotosPage(this.currentPhotoPage);
+        }
+    }
+    
+    async loadPhotosPage(page) {
+        const t = this.t.bind(this);
+        
+        if (this.isLoadingPhotos) return;
+        
+        this.isLoadingPhotos = true;
+        this.currentPhotoPage = page;
+        
+        this.showProgress(t('loadingPhotos'), 'photosContainer');
+        
+        try {
+            // Bereken offset voor paginatie
+            const from = (page - 1) * this.photosPerPage;
+            
+            // Eerst het totaal aantal foto's ophalen
+            const { count, error: countError } = await window.supabase
+                .from('fotos')
+                .select('*', { count: 'exact', head: true });
+            
+            if (countError) throw countError;
+            
+            this.totalPhotos = count || 0;
+            this.totalPhotoPages = Math.ceil(this.totalPhotos / this.photosPerPage);
+            
+            // Nu de foto's voor de huidige pagina ophalen
+            const { data: fotos, error } = await window.supabase
+                .from('fotos')
+                .select('*')
+                .order('uploaded_at', { ascending: false })
+                .range(from, from + this.photosPerPage - 1);
+            
+            if (error) throw error;
+            
+            this.hideProgress();
+            await this.displayPhotos(fotos || []);
+            
+            // Update paginatie info en controles
+            this.updatePaginationInfo();
+            this.updatePaginationControls();
+            
+        } catch (error) {
+            console.error('Error loading photos:', error);
+            this.hideProgress();
+            this.showError(`${t('loadFailed')}${error.message}`, 'photosContainer');
+        } finally {
+            this.isLoadingPhotos = false;
+        }
+    }
+    
+    updatePaginationInfo() {
+        const t = this.t.bind(this);
+        const infoElement = document.getElementById('photosPaginationInfo');
+        
+        if (!infoElement) return;
+        
+        if (this.totalPhotos === 0) {
+            infoElement.textContent = t('noPhotos');
+            return;
+        }
+        
+        const from = (this.currentPhotoPage - 1) * this.photosPerPage + 1;
+        const to = Math.min(this.currentPhotoPage * this.photosPerPage, this.totalPhotos);
+        
+        infoElement.textContent = `${t('showing')} ${from} ${t('to')} ${to} ${t('ofTotal')} ${this.totalPhotos} ${t('photos')}`;
+    }
+    
+    updatePaginationControls() {
+        const t = this.t.bind(this);
+        const paginationElement = document.getElementById('photosPagination');
+        
+        if (!paginationElement) return;
+        
+        if (this.totalPhotoPages <= 1) {
+            paginationElement.innerHTML = '';
+            return;
+        }
+        
+        let html = `
+            <nav aria-label="Foto paginatie">
+                <ul class="pagination pagination-sm mb-0">
+        `;
+        
+        // Vorige knop
+        html += `
+            <li class="page-item ${this.currentPhotoPage === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${this.currentPhotoPage - 1}" ${this.currentPhotoPage === 1 ? 'tabindex="-1" aria-disabled="true"' : ''}>
+                    <i class="bi bi-chevron-left"></i> ${t('previousPage')}
+                </a>
+            </li>
+        `;
+        
+        // Eerste pagina knop (toon alleen als we niet op pagina 1 zijn)
+        if (this.currentPhotoPage > 2) {
+            html += `
+                <li class="page-item">
+                    <a class="page-link" href="#" data-page="1">1</a>
+                </li>
+                ${this.currentPhotoPage > 3 ? '<li class="page-item disabled"><span class="page-link">...</span></li>' : ''}
+            `;
+        }
+        
+        // Pagina nummers rond huidige pagina
+        const startPage = Math.max(1, this.currentPhotoPage - 1);
+        const endPage = Math.min(this.totalPhotoPages, this.currentPhotoPage + 1);
+        
+        for (let i = startPage; i <= endPage; i++) {
+            html += `
+                <li class="page-item ${this.currentPhotoPage === i ? 'active' : ''}">
+                    <a class="page-link" href="#" data-page="${i}">${i}</a>
+                </li>
+            `;
+        }
+        
+        // Laatste pagina knop (toon alleen als we niet op laatste pagina zijn)
+        if (this.currentPhotoPage < this.totalPhotoPages - 1) {
+            html += `
+                ${this.currentPhotoPage < this.totalPhotoPages - 2 ? '<li class="page-item disabled"><span class="page-link">...</span></li>' : ''}
+                <li class="page-item">
+                    <a class="page-link" href="#" data-page="${this.totalPhotoPages}">${this.totalPhotoPages}</a>
+                </li>
+            `;
+        }
+        
+        // Volgende knop
+        html += `
+            <li class="page-item ${this.currentPhotoPage === this.totalPhotoPages ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${this.currentPhotoPage + 1}" ${this.currentPhotoPage === this.totalPhotoPages ? 'tabindex="-1" aria-disabled="true"' : ''}>
+                    ${t('nextPage')} <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+        `;
+        
+        html += `
+                </ul>
+            </nav>
+        `;
+        
+        paginationElement.innerHTML = html;
+        
+        // Event listeners voor paginatie knoppen
+        paginationElement.querySelectorAll('.page-link[data-page]').forEach(link => {
+            link.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const page = parseInt(link.dataset.page);
+                if (page && page !== this.currentPhotoPage) {
+                    await this.loadPhotosPage(page);
+                }
+            });
+        });
     }
     
     async uploadPhoto() {
@@ -663,29 +1047,29 @@ class PhotoManager extends BaseModule {
         const description = document.getElementById('photoDescription').value.trim();
         
         if (!dogId || !stamboomnr) {
-            this.showError(t('selectDogFirst'));
+            this.showError(t('selectDogFirst'), 'recentUploadsContainer');
             return;
         }
         
         if (!fileInput || !fileInput.files.length) {
-            this.showError(t('selectPhotoFirst'));
+            this.showError(t('selectPhotoFirst'), 'recentUploadsContainer');
             return;
         }
         
         const file = fileInput.files[0];
         
         if (file.size > 5 * 1024 * 1024) {
-            this.showError(t('fileTooLarge'));
+            this.showError(t('fileTooLarge'), 'recentUploadsContainer');
             return;
         }
         
         const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
         if (!validTypes.includes(file.type)) {
-            this.showError(t('invalidType'));
+            this.showError(t('invalidType'), 'recentUploadsContainer');
             return;
         }
         
-        this.showProgress(t('uploading'));
+        this.showProgress(t('uploading'), 'recentUploadsContainer');
         
         const reader = new FileReader();
         
@@ -774,8 +1158,9 @@ class PhotoManager extends BaseModule {
                 console.log('Database insert successful:', dbData);
                 
                 this.hideProgress();
-                this.showSuccess(t('uploadSuccess'));
+                this.showSuccess(t('uploadSuccess'), 'recentUploadsContainer');
                 
+                // Reset form
                 document.getElementById('photoHondSearch').value = '';
                 document.getElementById('selectedDogId').value = '';
                 document.getElementById('selectedDogStamboomnr').value = '';
@@ -783,44 +1168,133 @@ class PhotoManager extends BaseModule {
                 document.getElementById('photoDescription').value = '';
                 fileInput.value = '';
                 
-                await this.loadAllPhotos();
+                // Laad recente uploads opnieuw
+                await this.loadRecentUploads();
                 
             } catch (error) {
                 console.error('Upload error:', error);
                 this.hideProgress();
-                this.showError(`${t('uploadFailed')}${error.message}`);
+                this.showError(`${t('uploadFailed')}${error.message}`, 'recentUploadsContainer');
             }
         };
         
         reader.onerror = () => {
             this.hideProgress();
-            this.showError(t('fileReadError'));
+            this.showError(t('fileReadError'), 'recentUploadsContainer');
         };
         
         reader.readAsDataURL(file);
     }
     
-    async loadAllPhotos() {
+    async loadRecentUploads() {
         const t = this.t.bind(this);
-        this.showProgress(t('loading'));
         
         try {
+            const user = window.auth ? window.auth.getCurrentUser() : null;
+            if (!user || !user.id) return;
+            
             const { data: fotos, error } = await window.supabase
                 .from('fotos')
                 .select('*')
+                .eq('geupload_door', user.id)
                 .order('uploaded_at', { ascending: false })
-                .limit(12);
+                .limit(6);
             
             if (error) throw error;
             
-            this.hideProgress();
-            await this.displayPhotos(fotos || []);
+            await this.displayRecentUploads(fotos || []);
             
         } catch (error) {
-            console.error('Error loading photos:', error);
-            this.hideProgress();
-            this.showError(`${t('loadFailed')}${error.message}`);
+            console.error('Error loading recent uploads:', error);
         }
+    }
+    
+    async displayRecentUploads(fotos) {
+        const t = this.t.bind(this);
+        const container = document.getElementById('recentUploadsContainer');
+        if (!container) return;
+        
+        if (!fotos || fotos.length === 0) {
+            container.innerHTML = `
+                <div class="col-12 text-center py-3">
+                    <i class="bi bi-images text-muted"></i>
+                    <p class="mt-2 text-muted">${t('noRecentUploads')}</p>
+                </div>
+            `;
+            return;
+        }
+        
+        const fotosWithDogInfo = [];
+        
+        for (const foto of fotos) {
+            let dogInfo = {
+                name: t('unknownDog'),
+                kennel: ''
+            };
+            
+            if (foto.stamboomnr) {
+                try {
+                    const dog = await window.hondenService.getHondByStamboomnr(foto.stamboomnr);
+                    if (dog) {
+                        dogInfo.name = dog.naam || '';
+                        dogInfo.kennel = dog.kennelnaam || '';
+                    }
+                } catch (error) {
+                    console.error('Error loading dog info:', error);
+                }
+            }
+            
+            fotosWithDogInfo.push({
+                ...foto,
+                dogInfo
+            });
+        }
+        
+        let html = '';
+        
+        for (const foto of fotosWithDogInfo) {
+            const dogName = foto.dogInfo.name ? 
+                `${foto.dogInfo.name}${foto.dogInfo.kennel ? ` (${foto.dogInfo.kennel})` : ''}` : 
+                t('unknownDog');
+                
+            const uploadDatum = new Date(foto.uploaded_at).toLocaleDateString(this.currentLang);
+            const imageUrl = foto.thumbnail || foto.data;
+            
+            html += `
+                <div class="col-md-4 col-lg-3 mb-3">
+                    <div class="card h-100 photo-card">
+                        <div class="card-img-top photo-thumbnail" 
+                             style="height: 120px; cursor: pointer; background: #f8f9fa; display: flex; align-items: center; justify-content: center; overflow: hidden;" 
+                             data-foto-id="${foto.id}"
+                             data-dog-name="${dogName}">
+                            ${imageUrl ? 
+                                `<img src="${imageUrl}" alt="${dogName}" 
+                                      style="max-width: 100%; max-height: 100%; object-fit: cover; transform: scale(0.8);" 
+                                      data-foto-id="${foto.id}">` :
+                                `<i class="bi bi-image text-muted" style="font-size: 2rem;"></i>`
+                            }
+                        </div>
+                        <div class="card-body d-flex flex-column p-2">
+                            <h6 class="card-title mb-1 text-truncate small" title="${dogName}">${dogName}</h6>
+                            <div class="mt-auto">
+                                <small class="text-muted">${uploadDatum}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        container.innerHTML = html;
+        
+        document.querySelectorAll('.photo-thumbnail, .photo-thumbnail img').forEach(element => {
+            element.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const fotoId = e.currentTarget.dataset.fotoId;
+                const dogName = e.currentTarget.closest('.photo-thumbnail')?.dataset.dogName || t('unknownDog');
+                this.showPhotoDetails(fotoId, dogName);
+            });
+        });
     }
     
     async displayPhotos(fotos) {
@@ -832,7 +1306,7 @@ class PhotoManager extends BaseModule {
             container.innerHTML = `
                 <div class="col-12 text-center py-5">
                     <i class="bi bi-images display-1 text-muted"></i>
-                    <p class="mt-3 text-muted">${t('loadPhotosMessage')}</p>
+                    <p class="mt-3 text-muted">${t('noPhotos')}</p>
                 </div>
             `;
             
@@ -1054,7 +1528,7 @@ class PhotoManager extends BaseModule {
             return;
         }
         
-        this.showProgress(t('deleting'));
+        this.showProgress(t('deleting'), 'photosContainer');
         
         try {
             const { error: dbError } = await window.supabase
@@ -1065,20 +1539,21 @@ class PhotoManager extends BaseModule {
             if (dbError) throw dbError;
             
             this.hideProgress();
-            this.showSuccess(t('deleteSuccess'));
+            this.showSuccess(t('deleteSuccess'), 'photosContainer');
             
-            await this.loadAllPhotos();
+            // Herlaad huidige pagina
+            await this.loadPhotosPage(this.currentPhotoPage);
             
         } catch (error) {
             console.error('Error deleting photo:', error);
             this.hideProgress();
-            this.showError(`${t('deleteFailed')}${error.message}`);
+            this.showError(`${t('deleteFailed')}${error.message}`, 'photosContainer');
         }
     }
     
     // Helper method voor progress tonen
-    showProgress(message) {
-        const container = document.getElementById('photosContainer');
+    showProgress(message, containerId) {
+        const container = document.getElementById(containerId);
         if (container) {
             container.innerHTML = `
                 <div class="col-12 text-center py-5">
@@ -1093,41 +1568,81 @@ class PhotoManager extends BaseModule {
     
     // Helper method voor progress verbergen
     hideProgress() {
-        const progressEl = document.querySelector('#photosContainer .spinner-border');
-        if (progressEl) {
-            progressEl.remove();
-        }
+        // Verwijder alle spinners
+        document.querySelectorAll('.spinner-border').forEach(spinner => {
+            spinner.remove();
+        });
     }
     
     // Helper method voor foutmelding
-    showError(message) {
-        const container = document.getElementById('photosContainer');
-        if (container) {
-            const alertDiv = document.createElement('div');
-            alertDiv.className = 'alert alert-danger alert-dismissible fade show';
-            alertDiv.innerHTML = `
-                <i class="bi bi-exclamation-triangle"></i> ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
-            container.prepend(alertDiv);
+    showError(message, containerId = null) {
+        if (containerId) {
+            const container = document.getElementById(containerId);
+            if (container) {
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+                alertDiv.innerHTML = `
+                    <i class="bi bi-exclamation-triangle"></i> ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                container.prepend(alertDiv);
+            }
+        } else {
+            // Fallback naar eerste beschikbare container
+            const containers = ['photosContainer', 'recentUploadsContainer'];
+            for (const id of containers) {
+                const container = document.getElementById(id);
+                if (container) {
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+                    alertDiv.innerHTML = `
+                        <i class="bi bi-exclamation-triangle"></i> ${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    container.prepend(alertDiv);
+                    break;
+                }
+            }
         }
     }
     
     // Helper method voor succesmelding
-    showSuccess(message) {
-        const container = document.getElementById('photosContainer');
-        if (container) {
-            const alertDiv = document.createElement('div');
-            alertDiv.className = 'alert alert-success alert-dismissible fade show';
-            alertDiv.innerHTML = `
-                <i class="bi bi-check-circle"></i> ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
-            container.prepend(alertDiv);
-            
-            setTimeout(() => {
-                alertDiv.remove();
-            }, 5000);
+    showSuccess(message, containerId = null) {
+        if (containerId) {
+            const container = document.getElementById(containerId);
+            if (container) {
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                alertDiv.innerHTML = `
+                    <i class="bi bi-check-circle"></i> ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                container.prepend(alertDiv);
+                
+                setTimeout(() => {
+                    alertDiv.remove();
+                }, 5000);
+            }
+        } else {
+            // Fallback naar eerste beschikbare container
+            const containers = ['photosContainer', 'recentUploadsContainer'];
+            for (const id of containers) {
+                const container = document.getElementById(id);
+                if (container) {
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                    alertDiv.innerHTML = `
+                        <i class="bi bi-check-circle"></i> ${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    container.prepend(alertDiv);
+                    
+                    setTimeout(() => {
+                        alertDiv.remove();
+                    }, 5000);
+                    break;
+                }
+            }
         }
     }
 }
