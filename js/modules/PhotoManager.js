@@ -190,14 +190,14 @@ class PhotoManager extends BaseModule {
                 dog: "Hund",
                 filename: "Dateiname",
                 size: "Größe",
-                type: "Typ",
+                type: "Type",
                 uploadedOn: "Hochgeladen am",
                 by: "Von",
                 nextPhoto: "Nächste",
                 prevPhoto: "Vorherige",
                 selectDogFirst: "Wählen Sie zuerst einen Hund",
                 selectPhotoFirst: "Wählen Sie zuerst ein Foto",
-                fileTooLarge: "Datei ist zu groß (maximal 5MB)",
+                fileTooLarge: "Datei ist te groot (maximal 5MB)",
                 invalidType: "Ungültiger Dateityp. Nur JPG, PNG, GIF und WebP sind erlaubt",
                 uploading: "Foto wird hochgeladen...",
                 uploadSuccess: "Foto erfolgreich hochgeladen!",
@@ -533,8 +533,12 @@ class PhotoManager extends BaseModule {
         const modalContainer = document.querySelector('#photoGalleryModal').parentElement;
         modalContainer.innerHTML = this.getChoiceModalHTML();
         
-        const newModal = new bootstrap.Modal(document.getElementById('photoGalleryModal'));
-        newModal.show();
+        const newModal = bootstrap.Modal.getInstance(document.getElementById('photoGalleryModal'));
+        if (!newModal) {
+            new bootstrap.Modal(document.getElementById('photoGalleryModal')).show();
+        } else {
+            newModal.show();
+        }
         
         // Setup events voor choice
         this.setupChoiceEvents();
@@ -1432,58 +1436,27 @@ class PhotoManager extends BaseModule {
                 }
             }
             
+            // VEREENVOUDIGDE VERSIE: alleen foto en hondennaam
             const modalHTML = `
                 <div class="modal fade" id="photoDetailsModal" tabindex="-1">
                     <div class="modal-dialog modal-lg">
                         <div class="modal-content">
                             <div class="modal-header bg-dark text-white">
                                 <h5 class="modal-title">
-                                    <i class="bi bi-image"></i> ${t('photoDetails')}
+                                    <i class="bi bi-image"></i> ${dogName}
                                 </h5>
                                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                             </div>
-                            <div class="modal-body">
-                                <div class="row">
-                                    <div class="col-md-8">
-                                        <div class="text-center mb-3">
-                                            ${foto.data ? 
-                                                `<img src="${foto.data}" alt="${dogName}" 
-                                                      class="img-fluid rounded shadow" style="max-height: 60vh; max-width: 100%;">` :
-                                                `<div class="bg-light p-5 rounded text-center">
-                                                    <i class="bi bi-image text-muted" style="font-size: 5rem;"></i>
-                                                    <p class="mt-3 text-muted">${t('photoNotFound')}</p>
-                                                </div>`
-                                            }
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="card">
-                                            <div class="card-body">
-                                                <table class="table table-sm">
-                                                    <tr>
-                                                        <th style="width: 40%">${t('dog')}:</th>
-                                                        <td><strong>${dogName}</strong></td>
-                                                    </tr>
-                                                    <tr>
-                                                        <th>${t('filename')}:</th>
-                                                        <td><small>${foto.filename}</small></td>
-                                                    </tr>
-                                                    <tr>
-                                                        <th>${t('size')}:</th>
-                                                        <td>${foto.size ? Math.round(foto.size / 1024) + ' KB' : '-'}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <th>${t('type')}:</th>
-                                                        <td>${foto.type || '-'}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <th>${t('uploadedOn')}:</th>
-                                                        <td>${new Date(foto.uploaded_at).toLocaleString(this.currentLang)}</td>
-                                                    </tr>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    </div>
+                            <div class="modal-body text-center">
+                                <div class="mb-4">
+                                    ${foto.data ? 
+                                        `<img src="${foto.data}" alt="${dogName}" 
+                                              class="img-fluid rounded shadow" style="max-height: 70vh; max-width: 100%;">` :
+                                        `<div class="bg-light p-5 rounded text-center">
+                                            <i class="bi bi-image text-muted" style="font-size: 5rem;"></i>
+                                            <p class="mt-3 text-muted">${t('photoNotFound')}</p>
+                                        </div>`
+                                    }
                                 </div>
                             </div>
                             <div class="modal-footer">
