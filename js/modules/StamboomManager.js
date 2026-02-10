@@ -4,6 +4,7 @@
  * Werkt samen met Supabase services via window object
  * **FOTO PROBLEEM OPGELOST** - Gebruikt nu EXACT DEZELFDE LOGICA als SearchManager
  * **PRIVEINFO TOEGEVOEGD** - Toont priveinfo als huidige gebruiker eigenaar is
+ * **FOTO-ICOONTJE VOOR OVEROVEROUDERS OPGELOST** - Toont nu camera-icoon ook bij gen4
  */
 
 class StamboomManager extends BaseModule {
@@ -77,8 +78,8 @@ class StamboomManager extends BaseModule {
                 clickToEnlarge: "Klik om te vergroten",
                 closePhoto: "Sluiten",
                 loadFailed: "Fout bij laden: ",
-                privateInfo: "Prive Informatie", // NIEUW
-                privateInfoOwnerOnly: "Geen informatie" // NIEUW
+                privateInfo: "Prive Informatie",
+                privateInfoOwnerOnly: "Geen informatie"
             },
             en: {
                 pedigreeTitle: "Pedigree of {name}",
@@ -138,13 +139,13 @@ class StamboomManager extends BaseModule {
                 clickToEnlarge: "Click to enlarge",
                 closePhoto: "Close",
                 loadFailed: "Loading failed: ",
-                privateInfo: "Private Information", // NIEUW
-                privateInfoOwnerOnly: "No information" // NIEUW
+                privateInfo: "Private Information",
+                privateInfoOwnerOnly: "No information"
             },
             de: {
                 pedigreeTitle: "Ahnentafel von {name}",
                 pedigree4Gen: "5-Generationen Ahnentafel",
-                generatingPedigree: "Ahnentafel wird generiert...",
+                generatingPedigree: "Ahnentafel wordt generiert...",
                 loadingAllDogs: "Lade alle Hunde... ({loaded} geladen)",
                 close: "Schließen",
                 print: "Drucken",
@@ -199,8 +200,8 @@ class StamboomManager extends BaseModule {
                 clickToEnlarge: "Klicken zum Vergrößern",
                 closePhoto: "Schließen",
                 loadFailed: "Fehler beim Laden: ",
-                privateInfo: "Private Informationen", // NIEUW
-                privateInfoOwnerOnly: "Kein information" // NIEUW
+                privateInfo: "Private Informationen",
+                privateInfoOwnerOnly: "Kein information"
             }
         };
         
@@ -1248,6 +1249,7 @@ class StamboomManager extends BaseModule {
             const showKennel = dog.kennelnaam && dog.kennelnaam.trim() !== '';
             const fullDisplayText = combinedName + (showKennel ? ` ${dog.kennelnaam}` : '');
             
+            // *** GECORRIGEERD: Voeg camera-icoon toe aan gen4 kaarten ***
             return `
                 <div class="pedigree-card-compact horizontal ${dog.geslacht === 'reuen' ? 'male' : 'female'} ${mainDogClass} gen${generation}" 
                      data-dog-id="${dog.id}" 
@@ -1268,6 +1270,7 @@ class StamboomManager extends BaseModule {
                         <div class="card-row card-row-1-only">
                             <div class="dog-name-kennel-only" title="${fullDisplayText}">
                                 ${fullDisplayText}
+                                ${cameraIcon}
                             </div>
                         </div>
                     </div>
@@ -1976,6 +1979,10 @@ class StamboomManager extends BaseModule {
                     width: 100%;
                     font-size: 0.5rem;
                     text-align: center;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 2px;
                 }
                 
                 .card-row-1 {
@@ -2864,9 +2871,9 @@ class StamboomManager extends BaseModule {
                 }
                 
                 .photo-large-close-btn:hover {
-                    background: #5a6268;     /* <-- TOEVOEGEN */
-                    border-color: #545b62;   /* <-- TOEVOEGEN */
-                    color: white;            /* <-- TOEVOEGEN */
+                    background: #5a6268;
+                    border-color: #545b62;
+                    color: white;
                 }
                 
                 .photo-large-content {
