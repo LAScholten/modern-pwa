@@ -176,7 +176,7 @@ class PhotoManager extends BaseModule {
                 deleting: "Foto wird gelöscht...",
                 deleteSuccess: "Foto erfolgreich gelöscht!",
                 deleteFailed: "Löschen fehlgeschlagen: ",
-                photoNotFound: "Foto nicht gevonden",
+                photoNotFound: "Foto niet gevonden",
                 loadDetailsFailed: "Fehler beim Laden der Fotodetails: ",
                 searchToFindDogs: "Tippen Sie zum Suchen...",
                 loadingProgress: "Hunde laden: ",
@@ -370,7 +370,13 @@ class PhotoManager extends BaseModule {
             dropdownMenu.classList.add('show');
         });
         
+        // FIX: Sta klikken toe op de dropdown zonder het te sluiten
+        dropdownMenu.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+        
         document.addEventListener('click', (e) => {
+            // FIX: Dropdown alleen sluiten als er buiten zowel input als dropdown geklikt wordt
             if (!searchInput.contains(e.target) && !dropdownMenu.contains(e.target)) {
                 dropdownMenu.classList.remove('show');
             }
@@ -380,6 +386,38 @@ class PhotoManager extends BaseModule {
             if (this.allDogs.length > 0) {
                 this.filterDogs(searchInput.value);
                 dropdownMenu.classList.add('show');
+            }
+        });
+        
+        // FIX: Voeg keydown event toe voor betere controle
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                dropdownMenu.classList.remove('show');
+            } else if (e.key === 'ArrowDown' && dropdownMenu.classList.contains('show')) {
+                const firstItem = dropdownMenu.querySelector('.dropdown-item[data-dog-id]');
+                if (firstItem) {
+                    firstItem.focus();
+                    e.preventDefault();
+                }
+            }
+        });
+        
+        // FIX: Sta keyboard navigatie toe in dropdown
+        dropdownMenu.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                const next = e.target.nextElementSibling;
+                if (next && next.classList.contains('dropdown-item')) {
+                    next.focus();
+                }
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                const prev = e.target.previousElementSibling;
+                if (prev && prev.classList.contains('dropdown-item')) {
+                    prev.focus();
+                } else {
+                    searchInput.focus();
+                }
             }
         });
     }
@@ -504,16 +542,23 @@ class PhotoManager extends BaseModule {
         if (searchLower === '') {
             this.filteredDogs = this.allDogs.slice(0, 100);
         } else {
+            // FIX: Zoek op alle velden, inclusief combinaties
             this.filteredDogs = this.allDogs.filter(dog => {
                 const naam = (dog.naam || '').toLowerCase();
                 const kennelnaam = (dog.kennelnaam || '').toLowerCase();
                 const stamboomnr = (dog.stamboomnr || '').toLowerCase();
                 const ras = (dog.ras || '').toLowerCase();
                 
+                // Combineer naam en kennelnaam voor betere zoekresultaten
+                const volledigeNaam = naam + (kennelnaam ? ' ' + kennelnaam : '');
+                const kennelEnNaam = kennelnaam + (naam ? ' ' + naam : '');
+                
                 return naam.includes(searchLower) ||
                        kennelnaam.includes(searchLower) ||
                        stamboomnr.includes(searchLower) ||
-                       ras.includes(searchLower);
+                       ras.includes(searchLower) ||
+                       volledigeNaam.includes(searchLower) ||
+                       kennelEnNaam.includes(searchLower);
             });
         }
         
@@ -544,7 +589,7 @@ class PhotoManager extends BaseModule {
             const displayInfo = `${dog.ras || ''}${dog.stamboomnr ? ` • ${dog.stamboomnr}` : ''}`;
             
             html += `
-                <a class="dropdown-item" href="#" data-dog-id="${dog.id}" data-stamboomnr="${dog.stamboomnr || ''}" data-dog-name="${displayName}">
+                <a class="dropdown-item" href="#" data-dog-id="${dog.id}" data-stamboomnr="${dog.stamboomnr || ''}" data-dog-name="${displayName}" tabindex="0">
                     <div>
                         <strong>${displayName}</strong>
                         <div class="small text-muted">
@@ -574,6 +619,19 @@ class PhotoManager extends BaseModule {
                     item.dataset.dogName
                 );
                 dropdownMenu.classList.remove('show');
+            });
+            
+            item.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    this.selectDog(
+                        item.dataset.dogId,
+                        item.dataset.stamboomnr,
+                        item.dataset.dogName
+                    );
+                    dropdownMenu.classList.remove('show');
+                    document.getElementById('photoHondSearch').focus();
+                }
             });
         });
         
