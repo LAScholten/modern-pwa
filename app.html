@@ -284,11 +284,11 @@
                         <button class="list-group-item list-group-item-action" id="photoGalleryBtn">
                             <i class="bi bi-images"></i> <span class="app-text" data-key="photoGallery">Foto Galerij</span>
                         </button>
-                        <!-- NIEUW: Nest Aankondigingen knop - Tussen Foto Galerij en Fok Planning -->
+                        <!-- NIEUW: Nest Aankondigingen knop - ZICHTBAAR voor gebruiker en gebruiker+ -->
                         <button class="list-group-item list-group-item-action d-none" id="nestAankondigingenBtn">
                             <i class="bi bi-megaphone"></i> <span class="app-text" data-key="nestAnnouncements">Nest aankondigingen</span>
                         </button>
-                        <!-- NIEUW: Dek Reuen knop - Tussen Fok Planning en Privé Informatie -->
+                        <!-- NIEUW: Dek Reuen knop - ZICHTBAAR voor gebruiker en gebruiker+ -->
                         <button class="list-group-item list-group-item-action d-none" id="dekReuenBtn">
                             <i class="bi bi-gender-male text-dark"></i> <span class="app-text" data-key="dekReuen">Dek Reuen</span>
                         </button>
@@ -396,7 +396,7 @@
                                         </div>
                                         <div class="alert alert-info">
                                             <strong class="app-text" data-key="userRole">Gebruiker</strong><br>
-                                            <span class="app-text" data-key="userRights">Kan honden bekijken, maar niet de eigen fokplanning maken en eigen honden/nesten toevoegen of bewerken.</span>
+                                            <span class="app-text" data-key="userRights">Kan honden bekijken, nest aankondigingen en dek reuen bekijken, maar niet de eigen fokplanning maken en eigen honden/nesten toevoegen of bewerken.</span>
                                         </div>
                                     </div>
                                 </div>
@@ -763,7 +763,7 @@
                 userPlusRole: "Gebruiker+",
                 userPlusRights: "Kan honden bekijken, fokplanning maken en eigen honden/nesten toevoegen of bewerken, mits de ouders al in de database staan.",
                 userRole: "Gebruiker",
-                userRights: "Kan honden bekijken, maar niet de eigen fokplanning maken en eigen honden/nesten toevoegen of bewerken.",
+                userRights: "Kan honden bekijken, nest aankondigingen en dek reuen bekijken, maar niet de eigen fokplanning maken en eigen honden/nesten toevoegen of bewerken.",
                 disclaimerBtn: "Disclaimer/Informatie over COI berekening",
                 colorsBtn: "De standaard kleuren",
                 workflowBtn: "De werkwijze",
@@ -843,7 +843,7 @@
                 userPlusRole: "User+",
                 userPlusRights: "Can view dogs, create breeding plans, and add/edit own dogs/litters, if provided parents are already in the database.",
                 userRole: "User",
-                userRights: "Can view dogs, but cannot create own breeding plans and add/edit own dogs/litters.",
+                userRights: "Can view dogs, view litter announcements and stud dogs, but cannot create own breeding plans and add/edit own dogs/litters.",
                 disclaimerBtn: "Disclaimer/Information about COI calculation",
                 colorsBtn: "Standard Colors",
                 workflowBtn: "The Workflow",
@@ -923,7 +923,7 @@
                 userPlusRole: "Benutzer+",
                 userPlusRights: "Kann Hunde ansehen, Zuchtpläne erstellen en eigene Hunde/Würfe hinzufügen of bearbeiten, vorausgesetzt die Eltern sind bereits in der Datenbank.",
                 userRole: "Benutzer",
-                userRights: "Kann Hunde ansehen, aber keine eigenen Zuchtpläne erstellen en geen eigen Hunde/Würfe toevoegen of bewerken.",
+                userRights: "Kann Hunde ansehen, Wurfankündigungen und Deckrüden ansehen, aber keine eigenen Zuchtpläne erstellen en geen eigen Hunde/Würfe toevoegen of bewerken.",
                 disclaimerBtn: "Disclaimer/Information zur COI Berechnung",
                 colorsBtn: "Die Standardfarben",
                 workflowBtn: "Die Arbeitsweise",
@@ -1056,9 +1056,13 @@
             if (menuButtons.searchBtn) menuButtons.searchBtn.classList.remove('d-none');
             if (menuButtons.photoGalleryBtn) menuButtons.photoGalleryBtn.classList.remove('d-none');
             
-            // VOOR GEBRUIKER: alleen de bovenstaande 2 knoppen tonen
+            // VOOR GEBRUIKER: toon ook Nest Aankondigingen en Dek Reuen
             if (userRole === 'gebruiker') {
-                console.log('Alleen Hond Zoeken en Foto Galerij getoond voor gebruiker');
+                console.log('Menu voor gebruiker: Hond Zoeken, Foto Galerij, Nest Aankondigingen en Dek Reuen');
+                
+                // Toon Nest Aankondigingen en Dek Reuen ook voor gebruiker
+                if (menuButtons.nestAankondigingenBtn) menuButtons.nestAankondigingenBtn.classList.remove('d-none');
+                if (menuButtons.dekReuenBtn) menuButtons.dekReuenBtn.classList.remove('d-none');
                 
             // VOOR GEBRUIKER+: toon extra knoppen
             } else if (userRole === 'gebruiker+') {
