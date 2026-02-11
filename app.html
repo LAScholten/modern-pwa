@@ -15,7 +15,7 @@
     <link rel="stylesheet" href="css/style.css">
     
     <style>
-        /* PWA Installatie knop styling -->
+        /* PWA Installatie knop styling */
         #pwaInstallBtn {
             transition: all 0.3s ease;
         }
@@ -39,7 +39,7 @@
             gap: 10px;
         }
         
-        /* Mobiele layout: knoppen onder elkaar -->
+        /* Mobiele layout: knoppen onder elkaar */
         .action-buttons-column {
             display: flex;
             flex-direction: column;
@@ -47,7 +47,7 @@
             width: 100%;
         }
         
-        <!-- BEVEILIGINGSSECTIE - LETTERGROOTTE 70% -->
+        /* BEVEILIGINGSECTIE - LETTERGROOTTE 70% */
         .security-section {
             font-size: 70% !important;
         }
@@ -76,7 +76,7 @@
             margin-bottom: 0.25rem !important;
         }
         
-        <!-- Nieuwe knoppen styling -->
+        /* Nieuwe knoppen styling */
         .info-buttons {
             display: flex;
             gap: 10px;
@@ -89,7 +89,7 @@
             padding: 6px 12px;
         }
         
-        <!-- Mobile-specifieke aanpassingen -->
+        /* Mobile-specifieke aanpassingen */
         @media (max-width: 768px) {
             .mobile-actions {
                 display: flex;
@@ -106,17 +106,17 @@
                 font-size: 0.9rem;
             }
             
-            <!-- Verberg de normale layout op mobiel -->
+            /* Verberg de normale layout op mobiel */
             .action-buttons-row {
                 display: none !important;
             }
             
-            <!-- Toon mobiele layout -->
+            /* Toon mobiele layout */
             .action-buttons-column {
                 display: flex !important;
             }
             
-            <!-- Pas navigatie aan voor mobiel -->
+            /* Pas navigatie aan voor mobiel */
             .navbar .container-fluid {
                 flex-wrap: wrap;
             }
@@ -127,12 +127,12 @@
                 margin-top: 10px;
             }
             
-            <!-- Maak taal selector compacter op mobiel -->
+            /* Maak taal selector compacter op mobiel */
             .btn-group.btn-group-sm {
                 margin-right: 0 !important;
             }
             
-            <!-- Info knoppen op mobiel -->
+            /* Info knoppen op mobiel */
             .info-buttons {
                 flex-direction: column;
                 width: 100%;
@@ -144,7 +144,7 @@
             }
         }
         
-        <!-- Desktop: verberg mobiele layout -->
+        /* Desktop: verberg mobiele layout */
         @media (min-width: 769px) {
             .action-buttons-column {
                 display: none !important;
@@ -154,10 +154,20 @@
                 display: flex !important;
             }
             
-            <!-- Info knoppen op desktop -->
+            /* Info knoppen op desktop */
             .info-buttons {
                 flex-direction: row;
             }
+        }
+        
+        /* DekReuen module specifieke styling */
+        .dekReuen-card {
+            margin-top: 20px;
+        }
+        
+        .dekReuen-header {
+            background-color: #6c757d;
+            color: white;
         }
     </style>
     
@@ -274,9 +284,17 @@
                         <button class="list-group-item list-group-item-action" id="photoGalleryBtn">
                             <i class="bi bi-images"></i> <span class="app-text" data-key="photoGallery">Foto Galerij</span>
                         </button>
+                        <!-- NIEUW: Nest Aankondigingen knop - Tussen Foto Galerij en Fok Planning -->
+                        <button class="list-group-item list-group-item-action d-none" id="nestAankondigingenBtn">
+                            <i class="bi bi-megaphone"></i> <span class="app-text" data-key="nestAnnouncements">Nest aankondigingen</span>
+                        </button>
                         <!-- Fok Planning knop - VERBORGEN voor gebruiker -->
                         <button class="list-group-item list-group-item-action d-none" id="breedingPlanBtn">
                             <i class="bi bi-calendar-heart"></i> <span class="app-text" data-key="breedingPlan">Fok Planning</span>
+                        </button>
+                        <!-- NIEUW: Dek Reuen knop - Tussen Fok Planning en Privé Informatie -->
+                        <button class="list-group-item list-group-item-action d-none" id="dekReuenBtn">
+                            <i class="bi bi-gender-male text-dark"></i> <span class="app-text" data-key="dekReuen">Dek Reuen</span>
                         </button>
                         <!-- Privé Informatie knop - VERBORGEN voor gebruiker -->
                         <button class="list-group-item list-group-item-action d-none" id="privateInfoBtn">
@@ -288,7 +306,7 @@
                         </button>
                         <!-- Nieuw Nest knop - VERBORGEN voor gebruiker -->
                         <button class="list-group-item list-group-item-action d-none" id="addLitterBtn">
-                            <i class="bi bi-motherboard"></i> <span class="app-text" data-key="newLitter">Nieuw Nest</span>
+                            <i class="bi bi-motherboard"></i> <span class="app-text" data-key="newLitter">Nieuwe Hond/Nest</span>
                         </button>
                         <!-- Data Hond Bewerken knop - VERBORGEN voor gebruiker -->
                         <button class="list-group-item list-group-item-action d-none" id="editDogDataBtn">
@@ -299,22 +317,22 @@
                 
                 <!-- Quick Stats -->
                 <div class="card mt-3">
-                    <div class="card-header bg-info text-white">
-                        <h6 class="mb-0"><i class="bi bi-speedometer2"></i> <span class="app-text" data-key="quickOverview">Snel Overzicht</span></h6>
+                    <div class="card-header bg-info text-white py-1">
+                        <h6 class="mb-0 fs-6"><i class="bi bi-speedometer2"></i> <span class="app-text" data-key="quickOverview">Snel Overzicht</span></h6>
                     </div>
-                    <div class="card-body">
-                        <div class="row text-center">
-                            <div class="col-6 mb-2">
-                                <div class="display-6 text-primary" id="quickStatsHonden">0</div>
+                    <div class="card-body py-2">
+                        <div class="row text-center g-0">
+                            <div class="col-6">
+                                <div class="fw-bold text-primary fs-6" id="quickStatsHonden">0</div>
                                 <div class="text-muted small app-text" data-key="dogs">Honden</div>
                             </div>
-                            <div class="col-6 mb-2">
-                                <div class="display-6 text-success" id="quickStatsFotos">0</div>
+                            <div class="col-6">
+                                <div class="fw-bold text-success fs-6" id="quickStatsFotos">0</div>
                                 <div class="text-muted small app-text" data-key="photos">Foto's</div>
                             </div>
                         </div>
                         <div class="text-center">
-                            <button class="btn btn-sm btn-outline-info" id="refreshStatsBtn">
+                            <button class="btn btn-sm btn-outline-info py-0 px-2" id="refreshStatsBtn">
                                 <i class="bi bi-arrow-clockwise"></i> <span class="app-text" data-key="refresh">Vernieuwen</span>
                             </button>
                         </div>
@@ -538,6 +556,12 @@
     <script src="js/modules/ReuTeefStamboom.js"></script>
     <script src="js/modules/ZoekReu.js"></script>
     
+    <!-- NIEUWE MODULE: Dek Reuen -->
+    <script src="js/modules/dekreuen.js"></script>
+    
+    <!-- NIEUWE MODULE: Nest Aankondigingen -->
+    <script src="js/modules/nestaankondigingen.js"></script>
+    
     <script src="js/modules/PrivateInfoManager.js"></script>
     
     <!-- StamboomManager -->
@@ -599,7 +623,7 @@
                     if (insertError) {
                         if (insertError.code === '23505') {
                             console.log('✅ Profile bestaat al (duplicate key)');
-                            return 'gebruiker'; // Return default role
+                            return 'gebruiker';
                         }
                         console.error('❌ Fout bij profile insert:', insertError);
                         return 'gebruiker';
@@ -709,7 +733,9 @@
                 editDogData: "Data Hond Bewerken",
                 searchDog: "Hond Zoeken",
                 photoGallery: "Foto Galerij",
+                nestAnnouncements: "Nest aankondigingen",
                 breedingPlan: "Fok Planning",
+                dekReuen: "Dek Reuen",
                 privateInfo: "Privé Informatie",
                 quickOverview: "Snel Overzicht",
                 dogs: "Honden",
@@ -787,7 +813,9 @@
                 editDogData: "Edit Dog Data",
                 searchDog: "Search Dog",
                 photoGallery: "Photo Gallery",
+                nestAnnouncements: "Litter announcements",
                 breedingPlan: "Breeding Plan",
+                dekReuen: "Stud Dogs",
                 privateInfo: "Private Information",
                 quickOverview: "Quick Overview",
                 dogs: "Dogs",
@@ -865,7 +893,9 @@
                 editDogData: "Hundedaten bearbeiten",
                 searchDog: "Hund suchen",
                 photoGallery: "Foto Galerie",
+                nestAnnouncements: "Wurfankündigungen",
                 breedingPlan: "Zuchtplanung",
+                dekReuen: "Deckrüden",
                 privateInfo: "Private Informationen",
                 quickOverview: "Schnellübersicht",
                 dogs: "Hunde",
@@ -1007,6 +1037,8 @@
             const menuButtons = {
                 dataManagementBtn: document.getElementById('dataManagementBtn'),
                 breedingPlanBtn: document.getElementById('breedingPlanBtn'),
+                dekReuenBtn: document.getElementById('dekReuenBtn'),
+                nestAankondigingenBtn: document.getElementById('nestAankondigingenBtn'),
                 privateInfoBtn: document.getElementById('privateInfoBtn'),
                 addDogBtn: document.getElementById('addDogBtn'),
                 addLitterBtn: document.getElementById('addLitterBtn'),
@@ -1034,7 +1066,9 @@
                 
                 // Toon extra knoppen voor gebruiker+
                 const extraButtonsForUserPlus = [
+                    'nestAankondigingenBtn',
                     'breedingPlanBtn',
+                    'dekReuenBtn',
                     'privateInfoBtn',
                     'addLitterBtn',
                     'editDogDataBtn'
@@ -1129,7 +1163,9 @@
                 'editDogDataBtn': 'editDogData',
                 'searchBtn': 'search',
                 'photoGalleryBtn': 'photos',
+                'nestAankondigingenBtn': 'nestAnnouncements',
                 'breedingPlanBtn': 'breeding',
+                'dekReuenBtn': 'dekReuen',
                 'privateInfoBtn': 'private'
             };
             
@@ -1349,6 +1385,34 @@
                             console.error('Error setting up LitterManager events:', error);
                         }
                     }, 500);
+                    
+                    return;
+                }
+                
+                if (modalType === 'dekReuen') {
+                    console.log('Creating dekReuen modal');
+                    
+                    // Gebruik de DekReuenManager
+                    if (window.DekReuenManager && window.DekReuenManager.showModal) {
+                        window.DekReuenManager.showModal();
+                    } else {
+                        console.error('DekReuenManager niet beschikbaar');
+                        alert('De Dek Reuen module is nog niet beschikbaar.');
+                    }
+                    
+                    return;
+                }
+                
+                if (modalType === 'nestAnnouncements') {
+                    console.log('Creating nestAnnouncements modal');
+                    
+                    // Gebruik de NestAankondigingenManager
+                    if (window.NestAankondigingenManager && window.NestAankondigingenManager.showModal) {
+                        window.NestAankondigingenManager.showModal();
+                    } else {
+                        console.error('NestAankondigingenManager niet beschikbaar');
+                        alert('De Nest aankondigingen module is nog niet beschikbaar.');
+                    }
                     
                     return;
                 }
