@@ -5,6 +5,7 @@
  * **FOTO PROBLEEM OPGELOST** - Gebruikt nu EXACT DEZELFDE LOGICA als SearchManager
  * **PRIVEINFO TOEGEVOEGD** - Toont priveinfo als huidige gebruiker eigenaar is
  * **FOTO-ICOONTJE VOOR OVEROVEROUDERS OPGELOST** - Toont nu camera-icoon ook bij gen4
+ * **FOTO VERGROTING VERBETERD** - Gebruikt nu exact dezelfde weergave als PhotoManager
  */
 
 class StamboomManager extends BaseModule {
@@ -650,58 +651,116 @@ class StamboomManager extends BaseModule {
         return photos.length > 0;
     }
     
-    // **EXACT DEZELFDE METHODE ALS SEARCHMANAGER: Toon grote foto**
+    // **VERBETERDE METHODE: Gebruikt exact dezelfde weergave als PhotoManager**
     showLargePhoto(photoData, dogName = '') {
-        console.log('StamboomManager: Toon grote foto:', photoData ? 'data gevonden' : 'geen data');
+        console.log('StamboomManager: Toon grote foto via PhotoManager-stijl weergave');
         
-        // Verwijder bestaande overlay
-        const existingOverlay = document.getElementById('photoLargeOverlay');
-        if (existingOverlay) {
-            existingOverlay.remove();
+        // Controleer of PhotoManager beschikbaar is en gebruik die weergave
+        if (window.photoManager && typeof window.photoManager.showPhotoDetails === 'function') {
+            console.log('StamboomManager: Gebruik PhotoManager voor foto weergave');
+            
+            // Probeer foto ID te vinden als we die hebben
+            const thumbnail = document.querySelector(`[data-photo-src="${photoData}"]`);
+            if (thumbnail && thumbnail.dataset.photoId) {
+                window.photoManager.showPhotoDetails(thumbnail.dataset.photoId, dogName);
+                return;
+            }
+            
+            // Anders, maak een tijdelijke foto entry
+            const tempFotoId = 'temp_' + Date.now();
+            const tempFoto = {
+                id: tempFotoId,
+                data: photoData,
+                thumbnail: photoData,
+                filename: dogName || 'Foto',
+                uploaded_at: new Date().toISOString()
+            };
+            
+            // Sla tijdelijk op in window voor PhotoManager
+            if (!window._tempPhotos) window._tempPhotos = {};
+            window._tempPhotos[tempFotoId] = tempFoto;
+            
+            // Gebruik PhotoManager's showPhotoDetails met de tijdelijke foto
+            if (window.photoManager.showPhotoDetails) {
+                window.photoManager.showPhotoDetails(tempFotoId, dogName);
+            } else {
+                // Fallback naar eigen weergave
+                this.showPhotoManagerStylePhoto(photoData, dogName);
+            }
+            return;
         }
         
-        // Maak nieuwe overlay - ZELFDE HTML ALS SEARCHMANAGER
-        const overlayHTML = `
-            <div class="photo-large-overlay" id="photoLargeOverlay" style="display: flex;">
-                <div class="photo-large-container" id="photoLargeContainer">
-                    <div class="photo-large-header">
-                        <h5 class="modal-title mb-0 text-white">
-                            <i class="bi bi-image me-2"></i> ${dogName || 'Foto'}
-                        </h5>
-                        <button type="button" class="btn-close btn-close-white photo-large-close" aria-label="${this.t('closePhoto')}"></button>
-                    </div>
-                    <div class="photo-large-content" id="photoLargeContent">
-                        <img src="${photoData}" 
-                             alt="${dogName || 'Foto'}" 
-                             class="photo-large-img"
-                             id="photoLargeImg"
-                             onload="window.currentPhotoManager && window.currentPhotoManager.adjustPhotoSize(this)">
-                    </div>
-                    <div class="photo-large-footer">
-                        <button type="button" class="btn btn-secondary photo-large-close-btn">
-                            <i class="bi bi-x-lg me-1"></i> ${this.t('closePhoto')}
-                        </button>
+        // Fallback: eigen weergave in PhotoManager-stijl
+        this.showPhotoManagerStylePhoto(photoData, dogName);
+    }
+    
+    // **NIEUWE METHODE: Exact dezelfde weergave als PhotoManager**
+    showPhotoManagerStylePhoto(photoData, dogName = '') {
+        console.log('StamboomManager: Toon foto in PhotoManager-stijl');
+        
+        // Verwijder bestaande foto modal
+        const existingModal = document.getElementById('photoDetailsModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Maak modal HTML exact zoals PhotoManager
+        const modalHTML = `
+            <div class="modal fade" id="photoDetailsModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header bg-dark text-white">
+                            <h5 class="modal-title">
+                                <i class="bi bi-image"></i> ${dogName || 'Foto'}
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body text-center">
+                            <div class="mb-4">
+                                ${photoData ? 
+                                    `<img src="${photoData}" alt="${dogName || 'Foto'}" 
+                                          class="img-fluid rounded shadow" style="max-height: 70vh; max-width: 100%;">` :
+                                    `<div class="bg-light p-5 rounded text-center">
+                                        <i class="bi bi-image text-muted" style="font-size: 5rem;"></i>
+                                        <p class="mt-3 text-muted">Foto niet gevonden</p>
+                                    </div>`
+                                }
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class="bi bi-x-circle me-1"></i> ${this.t('closePhoto')}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
         `;
         
-        document.body.insertAdjacentHTML('beforeend', overlayHTML);
-        
-        // Zet een referentie naar deze manager zodat de onload functie hem kan vinden
-        window.currentPhotoManager = this;
-        
-        // Als de foto al geladen is (cached), pas dan direct de grootte aan
-        const img = document.getElementById('photoLargeImg');
-        if (img.complete) {
-            this.adjustPhotoSize(img);
+        // Zoek of maak modals container
+        let modalsContainer = document.getElementById('modalsContainer');
+        if (!modalsContainer) {
+            modalsContainer = document.createElement('div');
+            modalsContainer.id = 'modalsContainer';
+            document.body.appendChild(modalsContainer);
         }
         
-        // Event listeners voor sluiten - ZELFDE LOGICA ALS SEARCHMANAGER
-        this.setupPhotoOverlayEvents();
+        // Voeg modal toe
+        modalsContainer.insertAdjacentHTML('beforeend', modalHTML);
+        
+        // Initialiseer en toon modal
+        const modalElement = document.getElementById('photoDetailsModal');
+        const modal = new bootstrap.Modal(modalElement);
+        
+        // Cleanup na sluiten
+        modalElement.addEventListener('hidden.bs.modal', () => {
+            modalElement.remove();
+        });
+        
+        modal.show();
     }
     
-    // **EXACT DEZELFDE METHODE ALS SEARCHMANAGER: Pas foto grootte aan**
+    // **EXACT DEZELFDE METHODE ALS SEARCHMANAGER: Pas foto grootte aan** (niet meer gebruikt maar behouden voor compatibiliteit)
     adjustPhotoSize(imgElement) {
         if (!imgElement) return;
         
@@ -779,12 +838,11 @@ class StamboomManager extends BaseModule {
         
         // Voor portret foto's: iets anders centreren
         if (optimalHeight > optimalWidth) {
-            // Portret foto's iets hoger plaatsen voor betere balans
             container.style.transform = 'translate(-50%, -48%)';
         }
     }
     
-    // **EXACT DEZELFDE METHODE ALS SEARCHMANAGER: Setup event listeners voor foto overlay**
+    // **EXACT DEZELFDE METHODE ALS SEARCHMANAGER: Setup event listeners voor foto overlay** (niet meer gebruikt maar behouden voor compatibiliteit)
     setupPhotoOverlayEvents() {
         const overlay = document.getElementById('photoLargeOverlay');
         if (!overlay) return;
@@ -844,7 +902,7 @@ class StamboomManager extends BaseModule {
         overlay._resizeHandler = resizeHandler;
     }
     
-    // **EXACT DEZELFDE METHODE ALS SEARCHMANAGER: Sluit foto overlay netjes**
+    // **EXACT DEZELFDE METHODE ALS SEARCHMANAGER: Sluit foto overlay netjes** (niet meer gebruikt maar behouden voor compatibiliteit)
     closePhotoOverlay() {
         const overlay = document.getElementById('photoLargeOverlay');
         if (overlay) {
