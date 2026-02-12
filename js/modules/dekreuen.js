@@ -535,8 +535,6 @@ class DekReuenManager extends BaseModule {
                                  style="max-width: 100%; max-height: 100%; object-fit: cover;">
                         </div>
                         <div class="card-body p-2">
-                            <small class="text-muted d-block text-truncate" title="${foto.filename || ''}">${foto.filename || ''}</small>
-                            <small class="text-muted">${uploadDatum}</small>
                         </div>
                     </div>
                 </div>
@@ -590,8 +588,6 @@ class DekReuenManager extends BaseModule {
                                     }
                                 </div>
                                 <div class="text-muted small">
-                                    ${foto.filename ? `<div>${foto.filename}</div>` : ''}
-                                    ${foto.uploaded_at ? `<div>${t('photoUploaded')}: ${new Date(foto.uploaded_at).toLocaleDateString(this.currentLang)}</div>` : ''}
                                 </div>
                             </div>
                             <div class="modal-footer">
@@ -1367,9 +1363,12 @@ class DekReuenManager extends BaseModule {
             });
         });
         
-        // Event listeners voor pedigree knop
+        // Event listeners voor pedigree knop - GECORRIGEERD
         container.querySelectorAll('.view-pedigree').forEach(btn => {
-            btn.addEventListener('click', () => this.viewPedigree(btn.dataset.hondId));
+            btn.addEventListener('click', async () => {
+                const hondId = btn.dataset.hondId;
+                await this.viewPedigree(hondId);
+            });
         });
         
         this.attachPaginationEvents(false);
@@ -1676,11 +1675,118 @@ class DekReuenManager extends BaseModule {
         }
     }
     
-    viewPedigree(hondId) {
-        if (window.pedigreeManager) {
-            window.pedigreeManager.showPedigree(hondId);
-        } else {
-            alert('Stamboom module niet beschikbaar');
+    /**
+     * Toon stamboom voor een hond
+     * GECORRIGEERD: Gebruikt direct de StamboomManager die beschikbaar is via window object
+     */
+    async viewPedigree(hondId) {
+        console.log('📊 Stamboom openen voor hond ID:', hondId);
+        
+        if (!hondId) {
+            console.error('❌ Geen hond ID opgegeven');
+            alert('Kan stamboom niet openen: geen hond geselecteerd');
+            return;
+        }
+        
+        // Probeer de StamboomManager te vinden via verschillende mogelijke namen
+        let stamboomManager = null;
+        
+        // 1. Check window.stamboomManager (meest waarschijnlijk)
+        if (window.stamboomManager) {
+            stamboomManager = window.stamboomManager;
+            console.log('✅ StamboomManager gevonden via window.stamboomManager');
+        }
+        // 2. Check window.pedigreeManager
+        else if (window.pedigreeManager) {
+            stamboomManager = window.pedigreeManager;
+            console.log('✅ StamboomManager gevonden via window.pedigreeManager');
+        }
+        // 3. Check window.StamboomManager instance
+        else if (window.StamboomManager && window.StamboomManager.instance) {
+            stamboomManager = window.StamboomManager.instance;
+            console.log('✅ StamboomManager gevonden via window.StamboomManager.instance');
+        }
+        // 4. Check window.StamboomManager als klasse
+        else if (window.StamboomManager) {
+            // Probeer een nieuwe instantie te maken
+            try {
+                stamboomManager = new window.StamboomManager(window.hondenService);
+                window.stamboomManager = stamboomManager;
+                console.log('✅ Nieuwe StamboomManager instantie aangemaakt');
+            } catch (e) {
+                console.error('❌ Kon geen StamboomManager instantie maken:', e);
+            }
+        }
+        
+        if (!stamboomManager) {
+            console.error('❌ Geen StamboomManager gevonden. Beschikbare window objecten:', Object.keys(window).filter(key => 
+                key.toLowerCase().includes('pedigree') || 
+                key.toLowerCase().includes('stamboom') || 
+                key.toLowerCase().includes('stamboommanager')
+            ));
+            alert('Stamboom module is niet beschikbaar. Probeer de pagina te verversen.');
+            return;
+        }
+        
+        // Zorg dat de StamboomManager geïnitialiseerd is
+        try {
+            if (stamboomManager.initialize && typeof stamboomManager.initialize === 'function') {
+                console.log('🔄 StamboomManager initialiseren...');
+                await stamboomManager.initialize();
+                console.log('✅ StamboomManager geïnitialiseerd');
+            }
+        } catch (initError) {
+            console.error('❌ Fout bij initialiseren StamboomManager:', initError);
+            // Ga door, ook al mislukt initialisatie
+        }
+        
+        // Zoek de hond in de allDogs array
+        let hond = null;
+        
+        if (stamboomManager.getDogById && typeof stamboomManager.getDogById === 'function') {
+            hond = stamboomManager.getDogById(parseInt(hondId));
+        }
+        
+        if (hond) {
+            console.log('✅ Hond gevonden in StamboomManager:', hond.naam);
+            
+            if (stamboomManager.showPedigree && typeof stamboomManager.showPedigree === 'function') {
+                await stamboomManager.showPedigree(hond);
+                return;
+            } else if (stamboomManager.showStamboom && typeof stamboomManager.showStamboom === 'function') {
+                await stamboomManager.showStamboom(hond);
+                return;
+            }
+        }
+        
+        // Fallback: probeer hond op te halen uit database
+        console.log('🔄 Hond niet gevonden in cache, probeer database...');
+        try {
+            const supabase = this.getSupabase();
+            const { data: hondData, error } = await supabase
+                .from('honden')
+                .select('*')
+                .eq('id', hondId)
+                .single();
+            
+            if (error) throw error;
+            
+            if (hondData) {
+                console.log('✅ Hond opgehaald uit database:', hondData.naam);
+                
+                if (stamboomManager.showPedigree) {
+                    await stamboomManager.showPedigree(hondData);
+                } else {
+                    console.error('❌ StamboomManager heeft geen showPedigree methode');
+                    alert('Stamboom kan niet worden getoond: methode niet beschikbaar');
+                }
+            } else {
+                console.error('❌ Hond niet gevonden in database');
+                alert('Hond niet gevonden in database');
+            }
+        } catch (dbError) {
+            console.error('❌ Kon hond niet ophalen uit database:', dbError);
+            alert('Kon hondgegevens niet laden voor stamboom');
         }
     }
     
@@ -1773,4 +1879,4 @@ const DekReuenManagerInstance = new DekReuenManager();
 window.DekReuenManager = DekReuenManagerInstance;
 window.dekReuenManager = DekReuenManagerInstance;
 
-console.log('📦 DekReuenManager geladen met Tom Select, paginatie en uitgebreide foto functionaliteit');
+console.log('📦 DekReuenManager geladen met Tom Select, paginatie, uitgebreide foto functionaliteit en WERKENDE stamboomknop');

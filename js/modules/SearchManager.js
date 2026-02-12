@@ -12,6 +12,7 @@
  * **NAKOMELINGEN FIXED**: Nakomelingen modal blijft open, hond details in aparte modal
  * **SPECIALE TEKENS FIXED**: Zoeken negeert nu speciale tekens (ä, ö, ü, ß, etc.)
  * **PRIVEINFO TOEGEVOEGD**: Toont priveinfo als huidige gebruiker eigenaar is
+ * **FOTO VERGROTING**: Gebruikt exact dezelfde styling als DekReuen module
  */
 
 class SearchManager extends BaseModule {
@@ -553,7 +554,7 @@ class SearchManager extends BaseModule {
     
     // Setup globale event listeners eenmalig
     setupGlobalEventListeners() {
-        // Event delegation voor foto thumbnail clicks
+        // Event delegation voor foto thumbnail clicks - AANGEPAST voor DekReuen styling
         document.addEventListener('click', (e) => {
             const thumbnail = e.target.closest('.photo-thumbnail');
             if (thumbnail) {
@@ -566,6 +567,7 @@ class SearchManager extends BaseModule {
                 console.log('Foto geklikt, src:', photoSrc ? photoSrc.substring(0, 100) + '...' : 'geen src');
                 
                 if (photoSrc && photoSrc.trim() !== '') {
+                    // GEBRUIK DEZELFDE METHODE ALS DEKREUEN
                     this.showLargePhoto(photoSrc, dogName);
                 } else {
                     console.error('Geen geldige foto src gevonden in attribuut');
@@ -816,9 +818,9 @@ class SearchManager extends BaseModule {
         return photos.length > 0;
     }
     
-    // **GECORRIGEERDE METHODE: Toon grote foto - ADAPTIVE VERSION**
+    // **AANGEPASTE METHODE: Toon grote foto - EXACT DEZELFDE STYLING ALS DekReuen.js**
     showLargePhoto(photoData, dogName = '') {
-        console.log('Toon grote foto (SearchManager - Adaptive):', photoData ? 'data gevonden' : 'geen data');
+        console.log('Toon grote foto (SearchManager - DekReuen styling):', photoData ? 'data gevonden' : 'geen data');
         
         // Verwijder bestaande overlay
         const existingOverlay = document.getElementById('photoLargeOverlay');
@@ -826,209 +828,161 @@ class SearchManager extends BaseModule {
             existingOverlay.remove();
         }
         
-        // Maak nieuwe overlay
+        const t = this.t.bind(this);
+        
+        // Maak nieuwe overlay met EXACT DEZELFDE HTML-STRUCTUUR ALS DEKREUEN MODULE
         const overlayHTML = `
-            <div class="photo-large-overlay" id="photoLargeOverlay" style="display: flex;">
-                <div class="photo-large-container" id="photoLargeContainer">
-                    <div class="photo-large-header">
-                        <h5 class="modal-title mb-0 text-white">
-                            <i class="bi bi-image me-2"></i> ${dogName || 'Foto'}
-                        </h5>
-                        <button type="button" class="btn-close btn-close-white photo-large-close" aria-label="${this.t('closePhoto')}"></button>
-                    </div>
-                    <div class="photo-large-content" id="photoLargeContent">
-                        <img src="${photoData}" 
-                             alt="${dogName || 'Foto'}" 
-                             class="photo-large-img"
-                             id="photoLargeImg"
-                             onload="window.currentPhotoManager && window.currentPhotoManager.adjustPhotoSize(this)">
-                    </div>
-                    <div class="photo-large-footer">
-                        <button type="button" class="btn btn-secondary photo-large-close-btn">
-                            <i class="bi bi-x-lg me-1"></i> ${this.t('closePhoto')}
-                        </button>
+            <div class="modal fade" id="photoLargeOverlay" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header bg-dark text-white">
+                            <h5 class="modal-title">
+                                <i class="bi bi-image"></i> ${dogName || t('photos')}
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white photo-large-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body text-center">
+                            <div class="mb-4">
+                                ${photoData ? 
+                                    `<img src="${photoData}" alt="${dogName}" 
+                                          class="img-fluid rounded shadow" style="max-height: 70vh; max-width: 100%;">` :
+                                    `<div class="bg-light p-5 rounded text-center">
+                                        <i class="bi bi-image text-muted" style="font-size: 5rem;"></i>
+                                        <p class="mt-3 text-muted">${t('noPhotos')}</p>
+                                    </div>`
+                                }
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary photo-large-close-btn" data-bs-dismiss="modal">${t('closePhoto')}</button>
+                        </div>
                     </div>
                 </div>
             </div>
         `;
         
-        document.body.insertAdjacentHTML('beforeend', overlayHTML);
-        
-        // Zet een referentie naar deze manager zodat de onload functie hem kan vinden
-        window.currentPhotoManager = this;
-        
-        // Als de foto al geladen is (cached), pas dan direct de grootte aan
-        const img = document.getElementById('photoLargeImg');
-        if (img.complete) {
-            this.adjustPhotoSize(img);
+        // Zorg dat er een modals container is
+        let modalsContainer = document.getElementById('modalsContainer');
+        if (!modalsContainer) {
+            modalsContainer = document.createElement('div');
+            modalsContainer.id = 'modalsContainer';
+            document.body.appendChild(modalsContainer);
         }
         
-        // Event listeners voor sluiten
-        this.setupPhotoOverlayEvents();
-    }
-    
-    // **NIEUWE METHODE: Pas foto grootte aan voor optimale weergave**
-    adjustPhotoSize(imgElement) {
-        if (!imgElement) return;
+        // Voeg modal HTML toe
+        modalsContainer.insertAdjacentHTML('beforeend', overlayHTML);
         
-        const container = document.getElementById('photoLargeContainer');
-        const content = document.getElementById('photoLargeContent');
-        if (!container || !content) return;
+        // Initialiseer en toon de Bootstrap modal
+        const modalElement = document.getElementById('photoLargeOverlay');
+        const modal = new bootstrap.Modal(modalElement);
         
-        // Haal originele afmetingen op
-        const naturalWidth = imgElement.naturalWidth;
-        const naturalHeight = imgElement.naturalHeight;
-        
-        if (!naturalWidth || !naturalHeight) {
-            console.warn('Kan foto afmetingen niet bepalen');
-            return;
-        }
-        
-        console.log(`Foto afmetingen: ${naturalWidth}x${naturalHeight}`);
-        
-        // Bereken beschikbare ruimte (met veilige marge)
-        const maxContainerWidth = window.innerWidth * 0.95;
-        const maxContainerHeight = window.innerHeight * 0.95;
-        const safeMargin = 60; // Ruimte voor header/footer
-        
-        const availableWidth = maxContainerWidth;
-        const availableHeight = maxContainerHeight - safeMargin;
-        
-        // Bereken optimale grootte
-        let optimalWidth = naturalWidth;
-        let optimalHeight = naturalHeight;
-        
-        // Als foto breder is dan beschikbaar
-        if (optimalWidth > availableWidth) {
-            const ratio = availableWidth / optimalWidth;
-            optimalWidth = availableWidth;
-            optimalHeight = optimalHeight * ratio;
-        }
-        
-        // Als foto nu te hoog is
-        if (optimalHeight > availableHeight) {
-            const ratio = availableHeight / optimalHeight;
-            optimalHeight = availableHeight;
-            optimalWidth = optimalWidth * ratio;
-        }
-        
-        // Als de foto erg klein is (thumbnail), vergroot hem dan een beetje
-        const minSize = 300; // Minimale grootte voor leesbaarheid
-        if (optimalWidth < minSize && optimalHeight < minSize) {
-            // Vergroot proportioneel tot minSize
-            const scale = minSize / Math.max(optimalWidth, optimalHeight);
-            optimalWidth *= scale;
-            optimalHeight *= scale;
-            
-            // Zorg dat we niet buiten het scherm gaan
-            if (optimalWidth > availableWidth) {
-                optimalWidth = availableWidth;
-                optimalHeight = (optimalHeight / optimalWidth) * availableWidth;
-            }
-            if (optimalHeight > availableHeight) {
-                optimalHeight = availableHeight;
-                optimalWidth = (optimalWidth / optimalHeight) * availableHeight;
-            }
-        }
-        
-        // Pas container grootte aan
-        container.style.width = optimalWidth + 'px';
-        container.style.height = (optimalHeight + safeMargin) + 'px';
-        
-        console.log(`Optimale grootte: ${optimalWidth}x${optimalHeight}`);
-        
-        // Centreren
-        container.style.position = 'absolute';
-        container.style.top = '50%';
-        container.style.left = '50%';
-        container.style.transform = 'translate(-50%, -50%)';
-        
-        // Voor portret foto's: iets anders centreren
-        if (optimalHeight > optimalWidth) {
-            // Portret foto's iets hoger plaatsen voor betere balans
-            container.style.transform = 'translate(-50%, -48%)';
-        }
-    }
-    
-    // **NIEUWE METHODE: Setup event listeners voor foto overlay**
-    setupPhotoOverlayEvents() {
-        const overlay = document.getElementById('photoLargeOverlay');
-        if (!overlay) return;
-        
-        // Sluit met Escape key
-        const closeOnEscape = (e) => {
-            if (e.key === 'Escape') {
-                this.closePhotoOverlay();
-                document.removeEventListener('keydown', closeOnEscape);
-            }
-        };
-        document.addEventListener('keydown', closeOnEscape);
-        
-        // Sluit knop
-        const closeBtn = overlay.querySelector('.photo-large-close');
-        if (closeBtn) {
-            closeBtn.addEventListener('click', () => {
-                this.closePhotoOverlay();
-            });
-        }
-        
-        // Sluit knop footer
-        const closeBtnFooter = overlay.querySelector('.photo-large-close-btn');
-        if (closeBtnFooter) {
-            closeBtnFooter.addEventListener('click', () => {
-                this.closePhotoOverlay();
-            });
-        }
-        
-        // Klik buiten container om te sluiten
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) {
-                this.closePhotoOverlay();
-            }
+        // Event listener voor cleanup na sluiten
+        modalElement.addEventListener('hidden.bs.modal', () => {
+            modalElement.remove();
+            document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
         });
         
-        // Cleanup on animation end
-        overlay.addEventListener('animationend', function handler() {
-            if (overlay.style.display === 'none') {
-                document.removeEventListener('keydown', closeOnEscape);
-                overlay.removeEventListener('animationend', handler);
-            }
-        });
-        
-        // Window resize event - pas grootte aan bij resizen
-        const resizeHandler = () => {
-            const img = document.getElementById('photoLargeImg');
-            if (img && img.complete) {
-                this.adjustPhotoSize(img);
-            }
-        };
-        
-        window.addEventListener('resize', resizeHandler);
-        
-        // Sla resize handler op voor later cleanup
-        overlay.dataset.resizeHandler = 'active';
-        overlay._resizeHandler = resizeHandler;
+        modal.show();
     }
     
-    // **NIEUWE METHODE: Sluit foto overlay netjes**
+    // **AANGEPASTE METHODE: Sluit foto overlay**
     closePhotoOverlay() {
-        const overlay = document.getElementById('photoLargeOverlay');
-        if (overlay) {
-            // Verwijder resize listener
-            if (overlay._resizeHandler) {
-                window.removeEventListener('resize', overlay._resizeHandler);
+        const modalElement = document.getElementById('photoLargeOverlay');
+        if (modalElement) {
+            const modal = bootstrap.Modal.getInstance(modalElement);
+            if (modal) {
+                modal.hide();
+            } else {
+                modalElement.remove();
+                document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+                document.body.classList.remove('modal-open');
+                document.body.style.overflow = '';
+                document.body.style.paddingRight = '';
             }
+        }
+    }
+    
+    // Nakomelingen ophalen voor een hond - GECORRIGEERD: gebruik vader_id en moeder_id ipv vaderId/moederId
+    async getDogOffspring(dogId) {
+        if (!dogId || dogId === 0) return [];
+        
+        // Check cache
+        if (this.dogOffspringCache.has(dogId)) {
+            return this.dogOffspringCache.get(dogId);
+        }
+        
+        try {
+            const dog = this.allDogs.find(d => d.id === dogId);
+            if (!dog) return [];
             
-            overlay.style.opacity = '0';
-            overlay.style.transition = 'opacity 0.2s ease';
+            // DEBUG: Log voor nakomelingen zoeken
+            console.log(`Zoeken naar nakomelingen van hond ID: ${dogId} (${dog.naam})`);
             
-            setTimeout(() => {
-                if (overlay.parentNode) {
-                    overlay.parentNode.removeChild(overlay);
+            // Zoek nakomelingen waar deze hond vader of moeder is
+            // GEBRUIK JUISTE ID NAMEN: vader_id en moeder_id zoals in database
+            const allDogs = this.allDogs;
+            const offspring = allDogs.filter(d => {
+                // Debug logging voor elke hond
+                if (d.vader_id === dogId || d.moeder_id === dogId) {
+                    console.log(`Nakomeling gevonden: ${d.naam} (ID: ${d.id}), vader_id: ${d.vader_id}, moeder_id: ${d.moeder_id}`);
+                    return true;
                 }
-                // Cleanup globale referentie
-                window.currentPhotoManager = null;
-            }, 200);
+                return false;
+            });
+            
+            console.log(`Totaal ${offspring.length} nakomelingen gevonden voor hond ID ${dogId}`);
+            
+            // Voeg ouder informatie toe aan elk nakomeling
+            const offspringWithParents = offspring.map(puppy => {
+                let fatherInfo = { naam: this.t('parentsUnknown'), stamboomnr: '', kennelnaam: '' };
+                let motherInfo = { naam: this.t('parentsUnknown'), stamboomnr: '', kennelnaam: '' };
+                
+                // Haal vader info op - gebruik vader_id zoals in database
+                if (puppy.vader_id) {
+                    const father = allDogs.find(d => d.id === puppy.vader_id);
+                    if (father) {
+                        fatherInfo = {
+                            naam: father.naam || this.t('unknown'),
+                            stamboomnr: father.stamboomnr || '',
+                            kennelnaam: father.kennelnaam || ''
+                        };
+                    }
+                }
+                
+                // Haal moeder info op - gebruik moeder_id zoals in database
+                if (puppy.moeder_id) {
+                    const mother = allDogs.find(d => d.id === puppy.moeder_id);
+                    if (mother) {
+                        motherInfo = {
+                            naam: mother.naam || this.t('unknown'),
+                            stamboomnr: mother.stamboomnr || '',
+                            kennelnaam: mother.kennelnaam || ''
+                        };
+                    }
+                }
+                
+                return {
+                    ...puppy,
+                    fatherInfo,
+                    motherInfo
+                };
+            });
+            
+            // Sorteer op geboortedatum (nieuwste eerst)
+            offspringWithParents.sort((a, b) => {
+                const dateA = a.geboortedatum ? new Date(a.geboortedatum) : new Date(0);
+                const dateB = b.geboortedatum ? new Date(b.geboortedatum) : new Date(0);
+                return dateB - dateA; // Nieuwste eerst
+            });
+            
+            this.dogOffspringCache.set(dogId, offspringWithParents);
+            return offspringWithParents;
+        } catch (error) {
+            console.error('Fout bij ophalen nakomelingen voor hond:', dogId, error);
+            return [];
         }
     }
     
@@ -2289,250 +2243,53 @@ class SearchManager extends BaseModule {
                 }
                 
                 /* ============================================= */
-                /* GROTE FOTO OVERLAY STYLES - ADAPTIVE CONTAINER */
+                /* GROTE FOTO MODAL STYLES - EXACT ZELFDE ALS DEKREUEN */
                 /* ============================================= */
-                .photo-large-overlay {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    background: rgba(0, 0, 0, 0.97);
-                    z-index: 99999;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    animation: fadeIn 0.2s;
+                #photoLargeOverlay.modal .modal-dialog {
+                    max-width: 90vw;
+                    margin: 1.75rem auto;
                 }
                 
-                .photo-large-container {
+                #photoLargeOverlay.modal .modal-content {
+                    background: #1a1a1a;
+                    border: 1px solid #444;
+                    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+                }
+                
+                #photoLargeOverlay.modal .modal-header {
+                    background: #212529;
+                    color: white;
+                    border-bottom: 1px solid #444;
+                }
+                
+                #photoLargeOverlay.modal .modal-body {
                     background: #000;
-                    overflow: hidden;
-                    display: flex;
-                    flex-direction: column;
-                    margin: 0;
-                    border: none;
-                    border-radius: 4px;
-                    box-shadow: 0 15px 50px rgba(0,0,0,0.9);
-                    position: relative;
-                    max-width: 95vw;
-                    max-height: 95vh;
-                }
-                
-                .photo-large-header {
-                    padding: 10px 15px;
-                    background: rgba(0, 0, 0, 0.7);
-                    color: white;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    flex-shrink: 0;
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    z-index: 10;
-                    backdrop-filter: blur(5px);
-                }
-                
-                .photo-large-header .modal-title {
-                    margin: 0;
-                    font-size: 1rem;
-                    font-weight: 500;
-                    max-width: 70%;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    white-space: nowrap;
-                    color: white;
-                }
-                
-                .photo-large-close {
-                    background: rgba(255, 255, 255, 0.15);
-                    border: none;
-                    color: white;
-                    opacity: 0.9;
-                    font-size: 1.2rem;
-                    cursor: pointer;
-                    width: 30px;
-                    height: 30px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    border-radius: 50%;
-                    transition: all 0.2s;
-                    flex-shrink: 0;
-                }
-                
-                .photo-large-close:hover {
-                    opacity: 1;
-                    background: rgba(255, 255, 255, 0.25);
-                }
-                
-                .photo-large-content {
-                    padding: 0;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    overflow: hidden;
-                    flex: 1;
-                    width: 100%;
-                    height: 100%;
-                    background: #000;
-                }
-                
-                .photo-large-img {
-                    display: block;
-                    object-fit: contain;
-                    width: 100%;
-                    height: 100%;
-                }
-                
-                .photo-large-footer {
-                    padding: 10px 15px;
-                    background: rgba(0, 0, 0, 0.7);
-                    color: white;
-                    text-align: center;
-                    flex-shrink: 0;
-                    position: absolute;
-                    bottom: 0;
-                    left: 0;
-                    right: 0;
-                    z-index: 10;
-                    backdrop-filter: blur(5px);
-                }
-                
-                .photo-large-close-btn {
-                    background: rgba(255, 255, 255, 0.15);
-                    border: 1px solid rgba(255, 255, 255, 0.3);
-                    color: white;
-                    min-width: 90px;
-                    font-size: 0.9rem;
-                    padding: 6px 15px;
-                    transition: all 0.2s;
-                    border-radius: 4px;
-                }
-                
-                .photo-large-close-btn:hover {
-                    background: #5a6268;     /* <-- TOEVOEGEN */
-                    border-color: #545b62;   /* <-- TOEVOEGEN */
-                    color: white;            /* <-- TOEVOEGEN */
-                }
-                
-                /* Hide controls when not hovering for cleaner view */
-                .photo-large-header,
-                .photo-large-footer {
-                    opacity: 0;
-                    transition: opacity 0.3s ease;
-                }
-                
-                .photo-large-container:hover .photo-large-header,
-                .photo-large-container:hover .photo-large-footer {
-                    opacity: 1;
-                }
-                
-                /* ============================================= */
-                /* NAKOMELINGEN MODAL STYLES - AANGEPAST VOOR MOBIEL */
-                /* ============================================= */
-                .offspring-modal-overlay {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    background: rgba(0, 0, 0, 0.85);
-                    z-index: 1080;
-                    display: none;
-                    align-items: center;
-                    justify-content: center;
-                    animation: fadeIn 0.3s;
-                }
-                
-                .offspring-modal-container {
-                    background: white;
-                    border-radius: 12px;
-                    overflow: hidden;
-                    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-                    display: flex;
-                    flex-direction: column;
-                    max-height: 90vh;
-                    width: 90%;
-                    max-width: 900px;
-                    animation: slideUp 0.3s;
-                }
-                
-                .offspring-modal-header {
-                    padding: 16px 20px;
-                    background: linear-gradient(135deg, #6f42c1, #0d6efd);
-                    color: white;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                }
-                
-                .offspring-modal-title {
-                    margin: 0;
-                    font-size: 1.3rem;
-                    font-weight: 600;
-                }
-                
-                .offspring-modal-body {
                     padding: 20px;
-                    overflow-y: auto;
-                    flex: 1;
-                    max-height: 60vh;
                 }
                 
-                .offspring-modal-footer {
-                    padding: 15px 20px;
-                    background: #f8f9fa;
-                    border-top: 1px solid #dee2e6;
-                    text-align: right;
+                #photoLargeOverlay.modal .modal-footer {
+                    background: #212529;
+                    border-top: 1px solid #444;
                 }
                 
-                .offspring-stats .alert {
-                    margin-bottom: 0;
-                    border-radius: 8px;
+                #photoLargeOverlay.modal .btn-close-white {
+                    filter: brightness(0) invert(1);
+                    opacity: 0.8;
                 }
                 
-                .offspring-row {
-                    cursor: pointer;
-                    transition: all 0.2s;
+                #photoLargeOverlay.modal .btn-close-white:hover {
+                    opacity: 1;
                 }
                 
-                .offspring-row:hover {
-                    background-color: #e8f4fd;
+                #photoLargeOverlay.modal .btn-secondary {
+                    background: #4a4a4a;
+                    border-color: #5a5a5a;
+                    color: white;
                 }
                 
-                .offspring-row td {
-                    vertical-align: middle;
-                }
-                
-                /* HOND DETAILS MODAL STYLES */
-                .dog-details-content {
-                    padding: 5px;
-                }
-                
-                .dog-details-content .details-card {
-                    margin-bottom: 20px;
-                }
-                
-                .dog-details-content .photos-section {
-                    margin-top: 15px;
-                }
-                
-                /* MOBILE BACK BUTTON STYLES */
-                .mobile-back-button {
-                    position: sticky;
-                    top: 0;
-                    z-index: 100;
-                    background: white;
-                    padding: 10px 15px;
-                    margin: -15px -15px 15px -15px;
-                    border-bottom: 1px solid #dee2e6;
-                }
-                
-                .mobile-back-button button {
-                    width: 100%;
+                #photoLargeOverlay.modal .btn-secondary:hover {
+                    background: #5a6268;
+                    border-color: #545b62;
                 }
                 
                 /* Z-INDEX LAYERING */
@@ -2548,7 +2305,7 @@ class SearchManager extends BaseModule {
                     z-index: 1100;
                 }
                 
-                #photoLargeOverlay {
+                #photoLargeOverlay.modal {
                     z-index: 1110;
                 }
                 
@@ -2596,7 +2353,6 @@ class SearchManager extends BaseModule {
                     }
                 }
                 
-                /* Animation */
                 @keyframes zoomIn {
                     from {
                         opacity: 0;
@@ -2606,10 +2362,6 @@ class SearchManager extends BaseModule {
                         opacity: 1;
                         transform: scale(1);
                     }
-                }
-                
-                .photo-large-container {
-                    animation: zoomIn 0.3s ease-out;
                 }
                 
                 @media (max-width: 768px) {
@@ -2654,34 +2406,31 @@ class SearchManager extends BaseModule {
                         height: 40px;
                     }
                     
-                    /* ADAPTIVE CONTAINER MOBILE RESPONSIVE */
-                    .photo-large-container {
-                        max-width: 98vw;
-                        max-height: 98vh;
+                    /* MODAL RESPONSIVE */
+                    #photoLargeOverlay.modal .modal-dialog {
+                        max-width: 95vw;
+                        margin: 1rem auto;
                     }
                     
-                    .photo-large-header {
+                    #photoLargeOverlay.modal .modal-header {
                         padding: 8px 12px;
                     }
                     
-                    .photo-large-header .modal-title {
-                        font-size: 0.9rem;
+                    #photoLargeOverlay.modal .modal-header .modal-title {
+                        font-size: 0.95rem;
                     }
                     
-                    .photo-large-close {
-                        width: 28px;
-                        height: 28px;
-                        font-size: 1.1rem;
+                    #photoLargeOverlay.modal .modal-body {
+                        padding: 10px;
                     }
                     
-                    .photo-large-footer {
+                    #photoLargeOverlay.modal .modal-footer {
                         padding: 8px 12px;
                     }
                     
-                    .photo-large-close-btn {
-                        min-width: 80px;
-                        font-size: 0.85rem;
+                    #photoLargeOverlay.modal .btn-secondary {
                         padding: 5px 12px;
+                        font-size: 0.85rem;
                     }
                     
                     /* Show controls by default on mobile (easier to close) */
@@ -2762,35 +2511,35 @@ class SearchManager extends BaseModule {
                     /* Verklein specifieke kolommen op zeer kleine schermen */
                     @media (max-width: 480px) {
                         /* Extra small screens for photo container */
-                        .photo-large-container {
-                            max-width: 100vw;
-                            max-height: 100vh;
-                            border-radius: 0;
+                        #photoLargeOverlay.modal .modal-dialog {
+                            max-width: 98vw;
+                            margin: 0.5rem auto;
                         }
                         
-                        .photo-large-header {
+                        #photoLargeOverlay.modal .modal-header {
                             padding: 6px 10px;
                         }
                         
-                        .photo-large-header .modal-title {
+                        #photoLargeOverlay.modal .modal-header .modal-title {
                             font-size: 0.85rem;
-                            max-width: 65%;
                         }
                         
-                        .photo-large-close {
-                            width: 26px;
-                            height: 26px;
-                            font-size: 1rem;
+                        #photoLargeOverlay.modal .btn-close {
+                            width: 0.8rem;
+                            height: 0.8rem;
                         }
                         
-                        .photo-large-footer {
+                        #photoLargeOverlay.modal .modal-body {
+                            padding: 5px;
+                        }
+                        
+                        #photoLargeOverlay.modal .modal-footer {
                             padding: 6px 10px;
                         }
                         
-                        .photo-large-close-btn {
-                            min-width: 70px;
-                            font-size: 0.8rem;
+                        #photoLargeOverlay.modal .btn-secondary {
                             padding: 4px 10px;
+                            font-size: 0.8rem;
                         }
                         
                         .offspring-modal-container {
