@@ -51,6 +51,7 @@ class DekReuenManager extends BaseModule {
                 edit: "Bewerken",
                 delete: "Verwijderen",
                 confirmDelete: "Weet je zeker dat je deze dek reu wilt verwijderen?",
+                confirmDeletePhoto: "Weet je zeker dat je deze foto wilt verwijderen?",
                 save: "Opslaan",
                 cancel: "Annuleren",
                 selectHond: "Zoek een reu door naam of kennelnaam te typen...",
@@ -91,7 +92,10 @@ class DekReuenManager extends BaseModule {
                 uploadFailed: "Upload mislukt: ",
                 fileReadError: "Fout bij lezen bestand",
                 photoSection: "Foto's van deze reu",
-                editDekReu: "Dek Reu Bewerken"
+                editDekReu: "Dek Reu Bewerken",
+                deletePhoto: "Verwijder foto",
+                photoDeleteSuccess: "Foto succesvol verwijderd!",
+                photoDeleteFailed: "Verwijderen foto mislukt: "
             },
             en: {
                 dekReuen: "Stud Dogs",
@@ -108,6 +112,7 @@ class DekReuenManager extends BaseModule {
                 edit: "Edit",
                 delete: "Delete",
                 confirmDelete: "Are you sure you want to delete this stud dog?",
+                confirmDeletePhoto: "Are you sure you want to delete this photo?",
                 save: "Save",
                 cancel: "Cancel",
                 selectHond: "Search for a male dog by name or kennel name...",
@@ -148,7 +153,10 @@ class DekReuenManager extends BaseModule {
                 uploadFailed: "Upload failed: ",
                 fileReadError: "Error reading file",
                 photoSection: "Photos of this dog",
-                editDekReu: "Edit Stud Dog"
+                editDekReu: "Edit Stud Dog",
+                deletePhoto: "Delete photo",
+                photoDeleteSuccess: "Photo deleted successfully!",
+                photoDeleteFailed: "Delete photo failed: "
             },
             de: {
                 dekReuen: "Zuchtrüden",
@@ -165,6 +173,7 @@ class DekReuenManager extends BaseModule {
                 edit: "Bearbeiten",
                 delete: "Löschen",
                 confirmDelete: "Sind Sie sicher, dass Sie diesen Zuchtrüden löschen möchten?",
+                confirmDeletePhoto: "Sind Sie sicher, dass Sie dieses Foto löschen möchten?",
                 save: "Speichern",
                 cancel: "Abbrechen",
                 selectHond: "Suchen Sie einen Rüden nach Namen oder Zwingername...",
@@ -205,7 +214,10 @@ class DekReuenManager extends BaseModule {
                 uploadFailed: "Upload fehlgeschlagen: ",
                 fileReadError: "Fehler beim Lesen der Datei",
                 photoSection: "Fotos dieses Rüden",
-                editDekReu: "Zuchtrüde Bearbeiten"
+                editDekReu: "Zuchtrüde Bearbeiten",
+                deletePhoto: "Foto löschen",
+                photoDeleteSuccess: "Foto erfolgreich gelöscht!",
+                photoDeleteFailed: "Löschen fehlgeschlagen: "
             }
         };
     }
@@ -489,7 +501,44 @@ class DekReuenManager extends BaseModule {
     }
     
     /**
-     * Laad en toon foto's voor geselecteerde hond
+     * Verwijder een foto
+     */
+    async deletePhoto(fotoId, fotoElement) {
+        const t = this.t.bind(this);
+        
+        if (!confirm(t('confirmDeletePhoto'))) return;
+        
+        try {
+            const supabase = this.getSupabase();
+            if (!supabase) throw new Error('Geen database verbinding');
+            
+            const { error } = await supabase
+                .from('fotos')
+                .delete()
+                .eq('id', fotoId);
+            
+            if (error) throw error;
+            
+            // Verwijder het fotoelement uit de DOM
+            if (fotoElement) {
+                fotoElement.remove();
+            }
+            
+            this.showSuccess(t('photoDeleteSuccess'), 'hondFotosContainer');
+            
+            // Herlaad foto's om de lijst bij te werken
+            if (this.selectedHondId) {
+                await this.loadHondFotos(this.selectedHondId);
+            }
+            
+        } catch (error) {
+            console.error('❌ Fout bij verwijderen foto:', error);
+            this.showError(`${t('photoDeleteFailed')}${error.message}`, 'hondFotosContainer');
+        }
+    }
+    
+    /**
+     * Laad en toon foto's voor geselecteerde hond (alleen in bewerk/voeg toe modus)
      */
     async loadHondFotos(hondId) {
         if (!hondId) return;
@@ -501,7 +550,7 @@ class DekReuenManager extends BaseModule {
     }
     
     /**
-     * Toon foto's in de container
+     * Toon foto's in de container met verwijderknop (alleen in bewerk/voeg toe modus)
      */
     async displayHondFotos() {
         const container = document.getElementById('hondFotosContainer');
@@ -522,11 +571,15 @@ class DekReuenManager extends BaseModule {
         let html = '<div class="row">';
         
         for (const foto of this.hondFotos) {
-            const uploadDatum = new Date(foto.uploaded_at).toLocaleDateString(this.currentLang);
-            
             html += `
-                <div class="col-md-4 col-lg-3 mb-3">
-                    <div class="card h-100">
+                <div class="col-md-4 col-lg-3 mb-3" id="foto-${foto.id}">
+                    <div class="card h-100 position-relative">
+                        <button class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 delete-photo-btn" 
+                                data-foto-id="${foto.id}"
+                                style="z-index: 10; border-radius: 50%; width: 32px; height: 32px; padding: 0;"
+                                title="${t('deletePhoto')}">
+                            <i class="bi bi-trash"></i>
+                        </button>
                         <div class="card-img-top dek-reu-foto-thumbnail" 
                              style="height: 120px; cursor: pointer; background: #f8f9fa; display: flex; align-items: center; justify-content: center; overflow: hidden;"
                              data-foto='${JSON.stringify(foto).replace(/'/g, '&apos;')}'
@@ -535,6 +588,9 @@ class DekReuenManager extends BaseModule {
                                  style="max-width: 100%; max-height: 100%; object-fit: cover;">
                         </div>
                         <div class="card-body p-2">
+                            <small class="text-muted d-block text-truncate">
+                                ${foto.filename || 'Foto'}
+                            </small>
                         </div>
                     </div>
                 </div>
@@ -544,7 +600,7 @@ class DekReuenManager extends BaseModule {
         html += '</div>';
         container.innerHTML = html;
         
-        // Event listeners voor foto's
+        // Event listeners voor foto's bekijken
         container.querySelectorAll('.dek-reu-foto-thumbnail').forEach(thumb => {
             thumb.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -555,6 +611,16 @@ class DekReuenManager extends BaseModule {
                 } catch (error) {
                     console.error('Fout bij parseren foto data:', error);
                 }
+            });
+        });
+        
+        // Event listeners voor foto's verwijderen (ALLEEN in bewerk/voeg toe modus)
+        container.querySelectorAll('.delete-photo-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const fotoId = btn.dataset.fotoId;
+                const fotoElement = document.getElementById(`foto-${fotoId}`);
+                await this.deletePhoto(fotoId, fotoElement);
             });
         });
     }
@@ -586,8 +652,6 @@ class DekReuenManager extends BaseModule {
                                             <p class="mt-3 text-muted">${t('noPhotos')}</p>
                                         </div>`
                                     }
-                                </div>
-                                <div class="text-muted small">
                                 </div>
                             </div>
                             <div class="modal-footer">
@@ -1193,7 +1257,7 @@ class DekReuenManager extends BaseModule {
                                     </form>
                                 </div>
                                 
-                                <!-- Rechter kolom: Foto upload en weergave -->
+                                <!-- Rechter kolom: Foto upload en weergave (ALLEEN in bewerk/voeg toe modus) -->
                                 <div class="col-md-6">
                                     <div class="card border-info" id="photoUploadSection" style="display: none;">
                                         <div class="card-header bg-info text-white">
@@ -1290,7 +1354,7 @@ class DekReuenManager extends BaseModule {
             const fotos = await this.getHondFotos(h.id);
             const eersteFotos = fotos.slice(0, 3); // Maximaal 3 foto's tonen
             
-            // Genereer foto HTML
+            // Genereer foto HTML - ZONDER verwijderknop
             let fotosHTML = '';
             if (fotos.length > 0) {
                 fotosHTML = `
@@ -1349,7 +1413,7 @@ class DekReuenManager extends BaseModule {
             ${paginationHTML}
         `;
         
-        // Event listeners voor foto thumbnails
+        // Event listeners voor foto thumbnails (alleen bekijken, niet verwijderen)
         container.querySelectorAll('.dek-reu-foto-thumbnail').forEach(thumb => {
             thumb.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -1363,7 +1427,7 @@ class DekReuenManager extends BaseModule {
             });
         });
         
-        // Event listeners voor pedigree knop - GECORRIGEERD
+        // Event listeners voor pedigree knop
         container.querySelectorAll('.view-pedigree').forEach(btn => {
             btn.addEventListener('click', async () => {
                 const hondId = btn.dataset.hondId;
@@ -1387,7 +1451,7 @@ class DekReuenManager extends BaseModule {
             const fotos = await this.getHondFotos(h.id);
             const eersteFotos = fotos.slice(0, 3); // Maximaal 3 foto's tonen
             
-            // Genereer foto HTML
+            // Genereer foto HTML - ZONDER verwijderknop in beheer lijst
             let fotosHTML = '';
             if (fotos.length > 0) {
                 fotosHTML = `
@@ -1459,7 +1523,7 @@ class DekReuenManager extends BaseModule {
             ${paginationHTML}
         `;
         
-        // Event listeners voor foto thumbnails in beheer view
+        // Event listeners voor foto thumbnails in beheer view (alleen bekijken, niet verwijderen)
         container.querySelectorAll('.dek-reu-foto-thumbnail').forEach(thumb => {
             thumb.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -1677,7 +1741,6 @@ class DekReuenManager extends BaseModule {
     
     /**
      * Toon stamboom voor een hond
-     * GECORRIGEERD: Gebruikt direct de StamboomManager die beschikbaar is via window object
      */
     async viewPedigree(hondId) {
         console.log('📊 Stamboom openen voor hond ID:', hondId);
@@ -1879,4 +1942,4 @@ const DekReuenManagerInstance = new DekReuenManager();
 window.DekReuenManager = DekReuenManagerInstance;
 window.dekReuenManager = DekReuenManagerInstance;
 
-console.log('📦 DekReuenManager geladen met Tom Select, paginatie, uitgebreide foto functionaliteit en WERKENDE stamboomknop');
+console.log('📦 DekReuenManager geladen met Tom Select, paginatie, FOTO VERWIJDEREN IN BEWERKSCHERM en WERKENDE stamboomknop');
