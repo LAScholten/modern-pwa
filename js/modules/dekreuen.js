@@ -1367,14 +1367,9 @@ class DekReuenManager extends BaseModule {
             });
         });
         
-        // Event listeners voor pedigree knop - GECORRIGEERD
+        // Event listeners voor pedigree knop
         container.querySelectorAll('.view-pedigree').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const hondId = btn.dataset.hondId;
-                this.viewPedigree(hondId);
-            });
+            btn.addEventListener('click', () => this.viewPedigree(btn.dataset.hondId));
         });
         
         this.attachPaginationEvents(false);
@@ -1681,72 +1676,11 @@ class DekReuenManager extends BaseModule {
         }
     }
     
-    /**
-     * GECORRIGEERD: Bekijk stamboom van een hond
-     */
     viewPedigree(hondId) {
-        try {
-            console.log('🔍 viewPedigree aangeroepen met hondId:', hondId);
-            
-            // Controleer of het een geldig ID is
-            if (!hondId || hondId === '0' || hondId === 0) {
-                console.error('Ongeldig hond ID:', hondId);
-                alert('Kan stamboom niet tonen: ongeldige hond');
-                return;
-            }
-            
-            // Zet om naar integer
-            const numericId = parseInt(hondId);
-            if (isNaN(numericId)) {
-                console.error('Hond ID is geen nummer:', hondId);
-                alert('Kan stamboom niet tonen: ongeldig hond ID');
-                return;
-            }
-            
-            // Probeer via window.pedigreeManager (nieuwe StamboomManager)
-            if (window.pedigreeManager) {
-                console.log('✅ Gebruik window.pedigreeManager.showPedigree met ID:', numericId);
-                window.pedigreeManager.showPedigree({ id: numericId });
-                return;
-            }
-            
-            // Probeer via window.stamboomManager (alternatieve naam)
-            if (window.stamboomManager) {
-                console.log('✅ Gebruik window.stamboomManager.showPedigree met ID:', numericId);
-                window.stamboomManager.showPedigree({ id: numericId });
-                return;
-            }
-            
-            // Probeer via window.StamboomManager (klasse, niet instance)
-            if (window.StamboomManager) {
-                console.log('⚠️ StamboomManager klasse gevonden, maar geen instance. Probeer instance te maken...');
-                if (!window._stamboomManagerInstance) {
-                    if (window.hondenService) {
-                        window._stamboomManagerInstance = new window.StamboomManager(window.hondenService, this.currentLang);
-                        window._stamboomManagerInstance.initialize().then(() => {
-                            window._stamboomManagerInstance.showPedigree({ id: numericId });
-                        });
-                    }
-                } else {
-                    window._stamboomManagerInstance.showPedigree({ id: numericId });
-                }
-                return;
-            }
-            
-            // Fallback: probeer via SearchManager als die er is
-            if (window.searchManager && typeof window.searchManager.showPedigree === 'function') {
-                console.log('⚠️ Gebruik searchManager.showPedigree als fallback');
-                window.searchManager.showPedigree(numericId);
-                return;
-            }
-            
-            // Als niets werkt, toon foutmelding
-            console.error('❌ Geen stamboom manager beschikbaar!');
-            alert('Stamboom module niet beschikbaar. Controleer of de StamboomManager correct is geladen.');
-            
-        } catch (error) {
-            console.error('❌ Fout bij tonen stamboom:', error);
-            alert('Fout bij tonen stamboom: ' + error.message);
+        if (window.pedigreeManager) {
+            window.pedigreeManager.showPedigree(hondId);
+        } else {
+            alert('Stamboom module niet beschikbaar');
         }
     }
     
@@ -1839,4 +1773,4 @@ const DekReuenManagerInstance = new DekReuenManager();
 window.DekReuenManager = DekReuenManagerInstance;
 window.dekReuenManager = DekReuenManagerInstance;
 
-console.log('📦 DekReuenManager geladen met Tom Select, paginatie, uitgebreide foto functionaliteit en GECORRIGEERDE stamboomknop');
+console.log('📦 DekReuenManager geladen met Tom Select, paginatie en uitgebreide foto functionaliteit');
