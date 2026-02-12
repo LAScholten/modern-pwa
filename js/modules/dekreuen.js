@@ -3,7 +3,6 @@
 /**
  * DekReuen Management Module voor Supabase
  * Beheert dek reuen overzicht en beheer met echte database koppeling
- * **GECORRIGEERD** - Gebruikt nu EXACT DEZELFDE foto overlay als StamboomManager/SearchManager
  */
 
 class DekReuenManager extends BaseModule {
@@ -92,8 +91,7 @@ class DekReuenManager extends BaseModule {
                 uploadFailed: "Upload mislukt: ",
                 fileReadError: "Fout bij lezen bestand",
                 photoSection: "Foto's van deze reu",
-                editDekReu: "Dek Reu Bewerken",
-                clickToEnlarge: "Klik om te vergroten"
+                editDekReu: "Dek Reu Bewerken"
             },
             en: {
                 dekReuen: "Stud Dogs",
@@ -150,8 +148,7 @@ class DekReuenManager extends BaseModule {
                 uploadFailed: "Upload failed: ",
                 fileReadError: "Error reading file",
                 photoSection: "Photos of this dog",
-                editDekReu: "Edit Stud Dog",
-                clickToEnlarge: "Click to enlarge"
+                editDekReu: "Edit Stud Dog"
             },
             de: {
                 dekReuen: "Zuchtrüden",
@@ -208,8 +205,7 @@ class DekReuenManager extends BaseModule {
                 uploadFailed: "Upload fehlgeschlagen: ",
                 fileReadError: "Fehler beim Lesen der Datei",
                 photoSection: "Fotos dieses Rüden",
-                editDekReu: "Zuchtrüde Bearbeiten",
-                clickToEnlarge: "Klicken zum Vergrößern"
+                editDekReu: "Zuchtrüde Bearbeiten"
             }
         };
     }
@@ -533,15 +529,10 @@ class DekReuenManager extends BaseModule {
                     <div class="card h-100">
                         <div class="card-img-top dek-reu-foto-thumbnail" 
                              style="height: 120px; cursor: pointer; background: #f8f9fa; display: flex; align-items: center; justify-content: center; overflow: hidden;"
-                             data-foto-src="${foto.data}"
-                             data-dog-name="${this.selectedHondNaam || ''}"
-                             data-photo-id="${foto.id || ''}">
+                             data-foto='${JSON.stringify(foto).replace(/'/g, '&apos;')}'
+                             data-hond-naam="${this.selectedHondNaam || ''}">
                             <img src="${foto.thumbnail || foto.data}" alt="Foto" 
                                  style="max-width: 100%; max-height: 100%; object-fit: cover;">
-                            <div class="photo-hover-overlay">
-                                <i class="bi bi-zoom-in"></i>
-                                <small>${t('clickToEnlarge')}</small>
-                            </div>
                         </div>
                         <div class="card-body p-2">
                             <small class="text-muted d-block text-truncate" title="${foto.filename || ''}">${foto.filename || ''}</small>
@@ -555,121 +546,85 @@ class DekReuenManager extends BaseModule {
         html += '</div>';
         container.innerHTML = html;
         
-        // Voeg CSS toe voor hover effect
-        this.addPhotoHoverStyles();
-        
-        // Event listeners voor foto's - GEBRUIK EXACT DEZELFDE METHODE ALS STAMBOOMMANAGER
+        // Event listeners voor foto's
         container.querySelectorAll('.dek-reu-foto-thumbnail').forEach(thumb => {
             thumb.addEventListener('click', (e) => {
-                e.preventDefault();
                 e.stopPropagation();
-                
-                const photoSrc = thumb.getAttribute('data-foto-src');
-                const dogName = thumb.getAttribute('data-dog-name') || this.selectedHondNaam || '';
-                
-                console.log('DekReuenManager: Foto geklikt, gebruik StamboomManager overlay');
-                this.showLargePhoto(photoSrc, dogName);
+                try {
+                    const foto = JSON.parse(thumb.dataset.foto.replace(/&apos;/g, "'"));
+                    const hondNaam = thumb.dataset.hondNaam || this.selectedHondNaam || '';
+                    this.showPhotoModal(foto, hondNaam);
+                } catch (error) {
+                    console.error('Fout bij parseren foto data:', error);
+                }
             });
         });
     }
     
     /**
-     * Voeg CSS toe voor foto hover effect
+     * Toon foto modal voor grotere weergave
      */
-    addPhotoHoverStyles() {
-        // Al toevoegen als nog niet bestaat
-        if (document.getElementById('dekReuPhotoStyles')) return;
-        
-        const style = document.createElement('style');
-        style.id = 'dekReuPhotoStyles';
-        style.textContent = `
-            .dek-reu-foto-thumbnail {
-                position: relative;
-                overflow: hidden;
-            }
-            .photo-hover-overlay {
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(0, 0, 0, 0.5);
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                opacity: 0;
-                transition: opacity 0.2s ease;
-                color: white;
-            }
-            .photo-hover-overlay i {
-                font-size: 1.5rem;
-                margin-bottom: 4px;
-            }
-            .photo-hover-overlay small {
-                font-size: 0.7rem;
-            }
-            .dek-reu-foto-thumbnail:hover .photo-hover-overlay {
-                opacity: 1;
-            }
-        `;
-        document.head.appendChild(style);
-    }
-    
-    /**
-     * GECORRIGEERD: Gebruik EXACT dezelfde foto overlay als StamboomManager/SearchManager
-     */
-    showLargePhoto(photoSrc, dogName = '') {
+    async showPhotoModal(foto, dogName) {
         try {
-            console.log('📸 DekReuenManager: Toon grote foto via StamboomManager overlay');
+            const t = this.t.bind(this);
             
-            // ✅ Stap 1: Gebruik pedigreeManager (StamboomManager instance)
-            if (window.pedigreeManager && typeof window.pedigreeManager.showLargePhoto === 'function') {
-                window.pedigreeManager.showLargePhoto(photoSrc, dogName);
-                return;
+            const modalHTML = `
+                <div class="modal fade" id="dekReuPhotoModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header bg-dark text-white">
+                                <h5 class="modal-title">
+                                    <i class="bi bi-image"></i> ${dogName || t('dekReuen')}
+                                </h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body text-center">
+                                <div class="mb-4">
+                                    ${foto.data ? 
+                                        `<img src="${foto.data}" alt="${dogName}" 
+                                              class="img-fluid rounded shadow" style="max-height: 70vh; max-width: 100%;">` :
+                                        `<div class="bg-light p-5 rounded text-center">
+                                            <i class="bi bi-image text-muted" style="font-size: 5rem;"></i>
+                                            <p class="mt-3 text-muted">${t('noPhotos')}</p>
+                                        </div>`
+                                    }
+                                </div>
+                                <div class="text-muted small">
+                                    ${foto.filename ? `<div>${foto.filename}</div>` : ''}
+                                    ${foto.uploaded_at ? `<div>${t('photoUploaded')}: ${new Date(foto.uploaded_at).toLocaleDateString(this.currentLang)}</div>` : ''}
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">${t('close')}</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            const existingModal = document.getElementById('dekReuPhotoModal');
+            if (existingModal) {
+                existingModal.remove();
             }
             
-            // ✅ Stap 2: Gebruik stamboomManager (alternatieve naam)
-            if (window.stamboomManager && typeof window.stamboomManager.showLargePhoto === 'function') {
-                window.stamboomManager.showLargePhoto(photoSrc, dogName);
-                return;
+            const container = document.getElementById('modalsContainer');
+            if (container) {
+                container.insertAdjacentHTML('beforeend', modalHTML);
+            } else {
+                document.body.insertAdjacentHTML('beforeend', modalHTML);
             }
             
-            // ✅ Stap 3: Gebruik searchManager als fallback
-            if (window.searchManager && typeof window.searchManager.showLargePhoto === 'function') {
-                window.searchManager.showLargePhoto(photoSrc, dogName);
-                return;
-            }
+            const modalElement = document.getElementById('dekReuPhotoModal');
+            const modal = new bootstrap.Modal(modalElement);
             
-            // ✅ Stap 4: Maak tijdelijke StamboomManager instance
-            if (window.StamboomManager) {
-                console.log('⚠️ StamboomManager klasse gevonden, maak tijdelijke instance...');
-                
-                if (!window._tempStamboomManager) {
-                    if (window.hondenService) {
-                        window._tempStamboomManager = new window.StamboomManager(window.hondenService, this.currentLang);
-                        window._tempStamboomManager.initialize().then(() => {
-                            window._tempStamboomManager.showLargePhoto(photoSrc, dogName);
-                        });
-                    } else {
-                        window._tempStamboomManager = new window.StamboomManager(null, this.currentLang);
-                        window._tempStamboomManager.initialize().then(() => {
-                            window._tempStamboomManager.showLargePhoto(photoSrc, dogName);
-                        });
-                    }
-                } else {
-                    window._tempStamboomManager.showLargePhoto(photoSrc, dogName);
-                }
-                return;
-            }
+            modalElement.addEventListener('hidden.bs.modal', () => {
+                modalElement.remove();
+            });
             
-            // ❌ Fallback: Als echt niets werkt, toon foutmelding
-            console.error('❌ Geen enkele photo manager beschikbaar!');
-            alert('Foto module niet beschikbaar. Controleer of de StamboomManager correct is geladen.');
+            modal.show();
             
         } catch (error) {
-            console.error('❌ Fout bij tonen foto via StamboomManager:', error);
-            alert('Kan foto niet tonen: ' + error.message);
+            console.error('❌ Fout bij tonen foto:', error);
         }
     }
     
@@ -1348,15 +1303,11 @@ class DekReuenManager extends BaseModule {
                         <div class="d-flex flex-wrap gap-2">
                             ${eersteFotos.map(foto => `
                                 <div class="dek-reu-foto-thumbnail" 
-                                     style="width: 60px; height: 60px; cursor: pointer; border-radius: 4px; overflow: hidden; border: 1px solid #dee2e6; position: relative;"
-                                     data-foto-src="${foto.data}"
-                                     data-hond-naam="${h.naam || ''}${h.kennelnaam ? ' (' + h.kennelnaam + ')' : ''}"
-                                     data-photo-id="${foto.id || ''}">
+                                     style="width: 60px; height: 60px; cursor: pointer; border-radius: 4px; overflow: hidden; border: 1px solid #dee2e6;"
+                                     data-foto='${JSON.stringify(foto).replace(/'/g, '&apos;')}'
+                                     data-hond-naam="${h.naam || ''}${h.kennelnaam ? ' (' + h.kennelnaam + ')' : ''}">
                                     <img src="${foto.thumbnail || foto.data}" alt="Foto" 
                                          style="width: 100%; height: 100%; object-fit: cover;">
-                                    <div class="photo-hover-overlay-small">
-                                        <i class="bi bi-zoom-in"></i>
-                                    </div>
                                 </div>
                             `).join('')}
                             ${fotos.length > 3 ? `
@@ -1402,23 +1353,21 @@ class DekReuenManager extends BaseModule {
             ${paginationHTML}
         `;
         
-        // Voeg CSS toe voor hover effect
-        this.addPhotoHoverStyles();
-        
-        // Event listeners voor foto thumbnails - GEBRUIK STAMBOOMMANAGER OVERLAY
+        // Event listeners voor foto thumbnails
         container.querySelectorAll('.dek-reu-foto-thumbnail').forEach(thumb => {
             thumb.addEventListener('click', (e) => {
-                e.preventDefault();
                 e.stopPropagation();
-                
-                const photoSrc = thumb.getAttribute('data-foto-src');
-                const hondNaam = thumb.getAttribute('data-hond-naam') || h.naam || '';
-                
-                this.showLargePhoto(photoSrc, hondNaam);
+                try {
+                    const foto = JSON.parse(thumb.dataset.foto.replace(/&apos;/g, "'"));
+                    const hondNaam = thumb.dataset.hondNaam;
+                    this.showPhotoModal(foto, hondNaam);
+                } catch (error) {
+                    console.error('Fout bij parseren foto data:', error);
+                }
             });
         });
         
-        // Event listeners voor pedigree knop
+        // Event listeners voor pedigree knop - GECORRIGEERD
         container.querySelectorAll('.view-pedigree').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -1452,15 +1401,11 @@ class DekReuenManager extends BaseModule {
                         <div class="d-flex flex-wrap gap-1">
                             ${eersteFotos.map(foto => `
                                 <div class="dek-reu-foto-thumbnail" 
-                                     style="width: 40px; height: 40px; cursor: pointer; border-radius: 3px; overflow: hidden; border: 1px solid #dee2e6; position: relative;"
-                                     data-foto-src="${foto.data}"
-                                     data-hond-naam="${h.naam || ''}${h.kennelnaam ? ' (' + h.kennelnaam + ')' : ''}"
-                                     data-photo-id="${foto.id || ''}">
+                                     style="width: 40px; height: 40px; cursor: pointer; border-radius: 3px; overflow: hidden; border: 1px solid #dee2e6;"
+                                     data-foto='${JSON.stringify(foto).replace(/'/g, '&apos;')}'
+                                     data-hond-naam="${h.naam || ''}${h.kennelnaam ? ' (' + h.kennelnaam + ')' : ''}">
                                     <img src="${foto.thumbnail || foto.data}" alt="Foto" 
                                          style="width: 100%; height: 100%; object-fit: cover;">
-                                    <div class="photo-hover-overlay-small">
-                                        <i class="bi bi-zoom-in"></i>
-                                    </div>
                                 </div>
                             `).join('')}
                             ${fotos.length > 3 ? `
@@ -1520,19 +1465,17 @@ class DekReuenManager extends BaseModule {
             ${paginationHTML}
         `;
         
-        // Voeg CSS toe voor hover effect
-        this.addPhotoHoverStyles();
-        
-        // Event listeners voor foto thumbnails - GEBRUIK STAMBOOMMANAGER OVERLAY
+        // Event listeners voor foto thumbnails in beheer view
         container.querySelectorAll('.dek-reu-foto-thumbnail').forEach(thumb => {
             thumb.addEventListener('click', (e) => {
-                e.preventDefault();
                 e.stopPropagation();
-                
-                const photoSrc = thumb.getAttribute('data-foto-src');
-                const hondNaam = thumb.getAttribute('data-hond-naam') || h.naam || '';
-                
-                this.showLargePhoto(photoSrc, hondNaam);
+                try {
+                    const foto = JSON.parse(thumb.dataset.foto.replace(/&apos;/g, "'"));
+                    const hondNaam = thumb.dataset.hondNaam;
+                    this.showPhotoModal(foto, hondNaam);
+                } catch (error) {
+                    console.error('Fout bij parseren foto data:', error);
+                }
             });
         });
         
@@ -1552,37 +1495,6 @@ class DekReuenManager extends BaseModule {
         });
         
         this.attachPaginationEvents(true);
-    }
-    
-    /**
-     * Voeg CSS toe voor kleine hover effecten
-     */
-    addPhotoHoverStyles() {
-        if (document.getElementById('dekReuPhotoStylesSmall')) return;
-        
-        const style = document.createElement('style');
-        style.id = 'dekReuPhotoStylesSmall';
-        style.textContent = `
-            .photo-hover-overlay-small {
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(0, 0, 0, 0.5);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                opacity: 0;
-                transition: opacity 0.2s ease;
-                color: white;
-                font-size: 1.2rem;
-            }
-            .dek-reu-foto-thumbnail:hover .photo-hover-overlay-small {
-                opacity: 1;
-            }
-        `;
-        document.head.appendChild(style);
     }
     
     getPaginationHTML(total, currentPage, totalPages, isBeheer) {
@@ -1872,6 +1784,7 @@ class DekReuenManager extends BaseModule {
     
     // Helper method voor progress verbergen
     hideProgress() {
+        // Verwijder alle spinners en alerts
         document.querySelectorAll('.alert-info .spinner-border').forEach(spinner => {
             const alert = spinner.closest('.alert');
             if (alert) alert.remove();
@@ -1926,4 +1839,4 @@ const DekReuenManagerInstance = new DekReuenManager();
 window.DekReuenManager = DekReuenManagerInstance;
 window.dekReuenManager = DekReuenManagerInstance;
 
-console.log('📦 DekReuenManager geladen met Tom Select, paginatie, uitgebreide foto functionaliteit en GECORRIGEERDE foto-overlay (gebruikt nu exact dezelfde overlay als StamboomManager)');
+console.log('📦 DekReuenManager geladen met Tom Select, paginatie, uitgebreide foto functionaliteit en GECORRIGEERDE stamboomknop');
