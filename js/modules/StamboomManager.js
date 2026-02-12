@@ -5,7 +5,7 @@
  * **FOTO PROBLEEM OPGELOST** - Gebruikt nu EXACT DEZELFDE LOGICA als SearchManager
  * **PRIVEINFO TOEGEVOEGD** - Toont priveinfo als huidige gebruiker eigenaar is
  * **FOTO-ICOONTJE VOOR OVEROVEROUDERS OPGELOST** - Toont nu camera-icoon ook bij gen4
- * **FOTO VERGROTING VERBETERD** - Gebruikt nu exact dezelfde weergave als PhotoManager
+ * **FOTOWEERGAVE VERBETERD** - Gebruikt nu EXACT DEZELFDE weergave als PhotoManager
  */
 
 class StamboomManager extends BaseModule {
@@ -16,9 +16,9 @@ class StamboomManager extends BaseModule {
         this.currentLang = currentLang;
         this.allDogs = [];
         this.coiCalculator = null;
-        this.currentUserId = null; // NIEUW: Huidige gebruiker ID voor priveinfo
+        this.currentUserId = null;
         
-        this.dogPhotosCache = new Map(); // Cache voor hondenfoto's - ZELFDE ALS SEARCHMANAGER
+        this.dogPhotosCache = new Map();
         
         this.translations = {
             nl: {
@@ -123,7 +123,7 @@ class StamboomManager extends BaseModule {
                 male: "Male",
                 female: "Female",
                 paternal: "Paternal",
-                maternal: "Maternaal",
+                maternal: "Maternal",
                 clickForDetails: "Click for details",
                 closePopup: "Close",
                 remarks: "Remarks",
@@ -218,13 +218,11 @@ class StamboomManager extends BaseModule {
         try {
             console.log('StamboomManager: Initialiseren...');
             
-            // Haal huidige gebruiker ID op voor priveinfo
             this.currentUserId = await this.getCurrentUserId();
             console.log('StamboomManager: Huidige gebruiker ID:', this.currentUserId);
             
             this.showProgress(this.t('loadingAllDogs').replace('{loaded}', '0'));
             
-            // Gebruik paginatie om ALLE honden te laden
             this.allDogs = await this.loadAllDogsWithPagination();
             
             console.log(`${this.allDogs.length} honden geladen voor stambomen`);
@@ -240,7 +238,6 @@ class StamboomManager extends BaseModule {
             this._isActive = true;
             this.setupGlobalEventListeners();
             
-            // DIRECT het laadscherm verbergen
             console.log('StamboomManager: Initialisatie voltooid, verberg voortgangsindicator...');
             this.forceHideProgress();
             
@@ -248,24 +245,17 @@ class StamboomManager extends BaseModule {
             console.error('Fout bij initialiseren StamboomManager:', error);
             this.showError('Kon stamboommanager niet initialiseren: ' + error.message);
             
-            // Zorg dat het laadscherm ook bij fouten wordt verborgen
             this.forceHideProgress();
         }
     }
     
-    // NIEUW: Methode om huidige gebruiker ID op te halen
     async getCurrentUserId() {
         try {
-            // Controleer of de gebruiker ID direct beschikbaar is in de console output
-            // Uit je logs: 🆔 User ID: cb9d6f82-e0e2-4822-9167-945ee9ef5916
-            
-            // Methode 1: Check window.auth (vanuit je logs)
             if (window.auth && window.auth.currentUser && window.auth.currentUser.id) {
                 console.log('StamboomManager: Gebruiker ID gevonden via window.auth:', window.auth.currentUser.id);
                 return window.auth.currentUser.id;
             }
             
-            // Methode 2: Check Supabase auth
             if (window.supabase && window.supabase.auth) {
                 const { data: { user } } = await window.supabase.auth.getUser();
                 if (user && user.id) {
@@ -274,7 +264,6 @@ class StamboomManager extends BaseModule {
                 }
             }
             
-            // Methode 3: Check localStorage voor auth data
             const authData = localStorage.getItem('sb-auth-token') || localStorage.getItem('supabase.auth.token');
             if (authData) {
                 try {
@@ -288,13 +277,11 @@ class StamboomManager extends BaseModule {
                 }
             }
             
-            // Methode 4: Check voor globale variabele
             if (window.currentUserId) {
                 console.log('StamboomManager: Gebruiker ID gevonden via window.currentUserId:', window.currentUserId);
                 return window.currentUserId;
             }
             
-            // Methode 5: Haal uit je app.html logs - er is een globale auth object
             if (window.authService && window.authService.getCurrentUser) {
                 const user = await window.authService.getCurrentUser();
                 if (user && user.id) {
@@ -312,7 +299,6 @@ class StamboomManager extends BaseModule {
         }
     }
     
-    // NIEUW: Methode om priveinfo voor een hond op te halen
     async getPrivateInfoForDog(stamboomnr) {
         if (!this.currentUserId || !stamboomnr) {
             console.log('StamboomManager: Geen gebruiker ID of stamboomnr voor priveinfo:', { 
@@ -342,7 +328,6 @@ class StamboomManager extends BaseModule {
             
             console.log(`StamboomManager: ${result.priveInfo.length} priveinfo records gevonden`);
             
-            // Zoek priveinfo voor deze hond EN deze gebruiker
             const priveInfo = result.priveInfo.find(info => {
                 const match = info.stamboomnr === stamboomnr && info.toegevoegd_door === this.currentUserId;
                 if (match) {
@@ -360,7 +345,6 @@ class StamboomManager extends BaseModule {
                 return priveInfo.privatenotes || '';
             } else {
                 console.log(`Geen priveinfo voor hond ${stamboomnr} en gebruiker ${this.currentUserId}`);
-                // Debug: toon alle records voor deze hond
                 const allForDog = result.priveInfo.filter(info => info.stamboomnr === stamboomnr);
                 if (allForDog.length > 0) {
                     console.log(`Wel ${allForDog.length} priveinfo records voor deze hond, maar niet voor deze gebruiker:`, 
@@ -379,17 +363,14 @@ class StamboomManager extends BaseModule {
         }
     }
     
-    // Nieuwe methode om het laadscherm zeker te verbergen
     forceHideProgress() {
         console.log('forceHideProgress aangeroepen');
         
-        // Methode 1: Roep de parent hideProgress aan
         if (typeof super.hideProgress === 'function') {
             super.hideProgress();
             console.log('Parent hideProgress aangeroepen');
         }
         
-        // Methode 2: Direct DOM manipulatie om zeker te zijn
         setTimeout(() => {
             const progressOverlay = document.querySelector('.progress-overlay, .loading-overlay, .spinner-overlay');
             const progressModal = document.querySelector('.modal.progress-modal, .loading-modal');
@@ -400,7 +381,6 @@ class StamboomManager extends BaseModule {
             console.log('- Progress modal gevonden:', !!progressModal);
             console.log('- Loading elements gevonden:', loadingElements.length);
             
-            // Verberg alle mogelijke laadelementen
             if (progressOverlay) {
                 progressOverlay.style.display = 'none';
                 console.log('Progress overlay verborgen');
@@ -418,7 +398,6 @@ class StamboomManager extends BaseModule {
                 }
             });
             
-            // Verberg ook Bootstrap modals die laadschermen kunnen zijn
             const bootstrapModals = document.querySelectorAll('.modal.show');
             bootstrapModals.forEach(modal => {
                 if (modal.id.includes('progress') || modal.id.includes('loading') || 
@@ -439,35 +418,29 @@ class StamboomManager extends BaseModule {
         try {
             let allDogs = [];
             let currentPage = 1;
-            const pageSize = 1000; // Maximaal wat Supabase toestaat
+            const pageSize = 1000;
             let hasMorePages = true;
             let totalLoaded = 0;
             
             console.log('StamboomManager: Laden van alle honden met paginatie...');
             
-            // Loop door alle pagina's
             while (hasMorePages) {
                 console.log(`Laden pagina ${currentPage}...`);
                 
-                // Gebruik de getHonden() methode van je hondenService
                 const result = await this.hondenService.getHonden(currentPage, pageSize);
                 
                 if (result.honden && result.honden.length > 0) {
-                    // Voeg honden toe aan array
                     allDogs = allDogs.concat(result.honden);
                     totalLoaded = allDogs.length;
                     
-                    // Update progress
                     const progressMessage = this.t('loadingAllDogs').replace('{loaded}', totalLoaded);
                     this.showProgress(progressMessage);
                     
                     console.log(`Pagina ${currentPage} geladen: ${result.honden.length} honden`);
                     
-                    // Controleer of er nog meer pagina's zijn
                     hasMorePages = result.heeftVolgende;
                     currentPage++;
                     
-                    // Veiligheidslimiet voor oneindige lus
                     if (currentPage > 100) {
                         console.warn('Veiligheidslimiet bereikt: te veel pagina\'s geladen');
                         break;
@@ -476,11 +449,9 @@ class StamboomManager extends BaseModule {
                     hasMorePages = false;
                 }
                 
-                // Kleine pauze om de server niet te overbelasten
                 await new Promise(resolve => setTimeout(resolve, 100));
             }
             
-            // Sorteer op naam
             allDogs.sort((a, b) => {
                 const naamA = a.naam || '';
                 const naamB = b.naam || '';
@@ -505,7 +476,6 @@ class StamboomManager extends BaseModule {
     }
     
     setupGlobalEventListeners() {
-        // **EXACT DEZELFDE LOGICA ALS SEARCHMANAGER**
         const thumbnailClickHandler = (e) => {
             if (!this._isActive) return;
             
@@ -523,7 +493,6 @@ class StamboomManager extends BaseModule {
                     this.showLargePhoto(photoSrc, dogName);
                 } else {
                     console.error('StamboomManager: Geen geldige foto src gevonden in attribuut');
-                    // Probeer img src als fallback
                     const imgElement = thumbnail.querySelector('img');
                     if (imgElement && imgElement.src) {
                         console.log('StamboomManager: Gebruik img src als fallback:', imgElement.src.substring(0, 100) + '...');
@@ -543,7 +512,6 @@ class StamboomManager extends BaseModule {
                 this.closePhotoOverlay();
             }
             
-            // Klik buiten de grote foto om te sluiten
             if (e.target.id === 'photoLargeOverlay') {
                 this.closePhotoOverlay();
             }
@@ -608,21 +576,18 @@ class StamboomManager extends BaseModule {
         return this.allDogs.find(dog => dog.id === id);
     }
     
-    // **EXACT DEZELFDE METHODE ALS SEARCHMANAGER: Foto's ophalen voor een hond**
     async getDogPhotos(dogId) {
         if (!dogId || dogId === 0) return [];
         
         const dog = this.allDogs.find(d => d.id === dogId);
         if (!dog || !dog.stamboomnr) return [];
         
-        // Check cache
         const cacheKey = `${dogId}_${dog.stamboomnr}`;
         if (this.dogPhotosCache.has(cacheKey)) {
             return this.dogPhotosCache.get(cacheKey);
         }
         
         try {
-            // **EXACT DEZELFDE QUERY ALS SEARCHMANAGER**
             const { data: fotos, error } = await window.supabase
                 .from('fotos')
                 .select('*')
@@ -645,122 +610,64 @@ class StamboomManager extends BaseModule {
         }
     }
     
-    // **EXACT DEZELFDE METHODE ALS SEARCHMANAGER: Check of een hond foto's heeft**
     async checkDogHasPhotos(dogId) {
         const photos = await this.getDogPhotos(dogId);
         return photos.length > 0;
     }
     
-    // **VERBETERDE METHODE: Gebruikt exact dezelfde weergave als PhotoManager**
+    /**
+     * TOON GROTE FOTO - EXACT DEZELFDE ALS PHOTOMANAGER
+     * Gebruikt dezelfde HTML-structuur en opmaak als PhotoManager
+     */
     showLargePhoto(photoData, dogName = '') {
-        console.log('StamboomManager: Toon grote foto via PhotoManager-stijl weergave');
+        console.log('StamboomManager: Toon grote foto (PhotoManager stijl):', photoData ? 'data gevonden' : 'geen data');
         
-        // Controleer of PhotoManager beschikbaar is en gebruik die weergave
-        if (window.photoManager && typeof window.photoManager.showPhotoDetails === 'function') {
-            console.log('StamboomManager: Gebruik PhotoManager voor foto weergave');
-            
-            // Probeer foto ID te vinden als we die hebben
-            const thumbnail = document.querySelector(`[data-photo-src="${photoData}"]`);
-            if (thumbnail && thumbnail.dataset.photoId) {
-                window.photoManager.showPhotoDetails(thumbnail.dataset.photoId, dogName);
-                return;
-            }
-            
-            // Anders, maak een tijdelijke foto entry
-            const tempFotoId = 'temp_' + Date.now();
-            const tempFoto = {
-                id: tempFotoId,
-                data: photoData,
-                thumbnail: photoData,
-                filename: dogName || 'Foto',
-                uploaded_at: new Date().toISOString()
-            };
-            
-            // Sla tijdelijk op in window voor PhotoManager
-            if (!window._tempPhotos) window._tempPhotos = {};
-            window._tempPhotos[tempFotoId] = tempFoto;
-            
-            // Gebruik PhotoManager's showPhotoDetails met de tijdelijke foto
-            if (window.photoManager.showPhotoDetails) {
-                window.photoManager.showPhotoDetails(tempFotoId, dogName);
-            } else {
-                // Fallback naar eigen weergave
-                this.showPhotoManagerStylePhoto(photoData, dogName);
-            }
-            return;
+        const existingOverlay = document.getElementById('photoLargeOverlay');
+        if (existingOverlay) {
+            existingOverlay.remove();
         }
         
-        // Fallback: eigen weergave in PhotoManager-stijl
-        this.showPhotoManagerStylePhoto(photoData, dogName);
-    }
-    
-    // **NIEUWE METHODE: Exact dezelfde weergave als PhotoManager**
-    showPhotoManagerStylePhoto(photoData, dogName = '') {
-        console.log('StamboomManager: Toon foto in PhotoManager-stijl');
-        
-        // Verwijder bestaande foto modal
-        const existingModal = document.getElementById('photoDetailsModal');
-        if (existingModal) {
-            existingModal.remove();
-        }
-        
-        // Maak modal HTML exact zoals PhotoManager
-        const modalHTML = `
-            <div class="modal fade" id="photoDetailsModal" tabindex="-1">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header bg-dark text-white">
-                            <h5 class="modal-title">
-                                <i class="bi bi-image"></i> ${dogName || 'Foto'}
-                            </h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body text-center">
-                            <div class="mb-4">
-                                ${photoData ? 
-                                    `<img src="${photoData}" alt="${dogName || 'Foto'}" 
-                                          class="img-fluid rounded shadow" style="max-height: 70vh; max-width: 100%;">` :
-                                    `<div class="bg-light p-5 rounded text-center">
-                                        <i class="bi bi-image text-muted" style="font-size: 5rem;"></i>
-                                        <p class="mt-3 text-muted">Foto niet gevonden</p>
-                                    </div>`
-                                }
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                <i class="bi bi-x-circle me-1"></i> ${this.t('closePhoto')}
-                            </button>
-                        </div>
+        const overlayHTML = `
+            <div class="photo-large-overlay" id="photoLargeOverlay" style="display: flex;">
+                <div class="photo-large-container" id="photoLargeContainer">
+                    <div class="photo-large-header bg-dark text-white">
+                        <h5 class="modal-title mb-0 text-white">
+                            <i class="bi bi-image me-2"></i> ${dogName || 'Foto'}
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white photo-large-close" aria-label="${this.t('closePhoto')}"></button>
+                    </div>
+                    <div class="photo-large-content" id="photoLargeContent">
+                        <img src="${photoData}" 
+                             alt="${dogName || 'Foto'}" 
+                             class="photo-large-img"
+                             id="photoLargeImg"
+                             onload="window.currentStamboomManager && window.currentStamboomManager.adjustPhotoSize(this)">
+                    </div>
+                    <div class="photo-large-footer">
+                        <button type="button" class="btn btn-secondary photo-large-close-btn">
+                            <i class="bi bi-x-lg me-1"></i> ${this.t('closePhoto')}
+                        </button>
                     </div>
                 </div>
             </div>
         `;
         
-        // Zoek of maak modals container
-        let modalsContainer = document.getElementById('modalsContainer');
-        if (!modalsContainer) {
-            modalsContainer = document.createElement('div');
-            modalsContainer.id = 'modalsContainer';
-            document.body.appendChild(modalsContainer);
+        document.body.insertAdjacentHTML('beforeend', overlayHTML);
+        
+        window.currentStamboomManager = this;
+        
+        const img = document.getElementById('photoLargeImg');
+        if (img.complete) {
+            this.adjustPhotoSize(img);
         }
         
-        // Voeg modal toe
-        modalsContainer.insertAdjacentHTML('beforeend', modalHTML);
-        
-        // Initialiseer en toon modal
-        const modalElement = document.getElementById('photoDetailsModal');
-        const modal = new bootstrap.Modal(modalElement);
-        
-        // Cleanup na sluiten
-        modalElement.addEventListener('hidden.bs.modal', () => {
-            modalElement.remove();
-        });
-        
-        modal.show();
+        this.setupPhotoOverlayEvents();
     }
     
-    // **EXACT DEZELFDE METHODE ALS SEARCHMANAGER: Pas foto grootte aan** (niet meer gebruikt maar behouden voor compatibiliteit)
+    /**
+     * FOTO GROOTTE AANPASSEN - EXACT DEZELFDE ALS PHOTOMANAGER
+     * Past de foto optimaal aan het scherm aan
+     */
     adjustPhotoSize(imgElement) {
         if (!imgElement) return;
         
@@ -768,7 +675,6 @@ class StamboomManager extends BaseModule {
         const content = document.getElementById('photoLargeContent');
         if (!container || !content) return;
         
-        // Haal originele afmetingen op
         const naturalWidth = imgElement.naturalWidth;
         const naturalHeight = imgElement.naturalHeight;
         
@@ -779,41 +685,34 @@ class StamboomManager extends BaseModule {
         
         console.log(`StamboomManager: Foto afmetingen: ${naturalWidth}x${naturalHeight}`);
         
-        // Bereken beschikbare ruimte (met veilige marge)
         const maxContainerWidth = window.innerWidth * 0.95;
         const maxContainerHeight = window.innerHeight * 0.95;
-        const safeMargin = 60; // Ruimte voor header/footer
+        const safeMargin = 60;
         
         const availableWidth = maxContainerWidth;
         const availableHeight = maxContainerHeight - safeMargin;
         
-        // Bereken optimale grootte
         let optimalWidth = naturalWidth;
         let optimalHeight = naturalHeight;
         
-        // Als foto breder is dan beschikbaar
         if (optimalWidth > availableWidth) {
             const ratio = availableWidth / optimalWidth;
             optimalWidth = availableWidth;
             optimalHeight = optimalHeight * ratio;
         }
         
-        // Als foto nu te hoog is
         if (optimalHeight > availableHeight) {
             const ratio = availableHeight / optimalHeight;
             optimalHeight = availableHeight;
             optimalWidth = optimalWidth * ratio;
         }
         
-        // Als de foto erg klein is (thumbnail), vergroot hem dan een beetje
-        const minSize = 300; // Minimale grootte voor leesbaarheid
+        const minSize = 300;
         if (optimalWidth < minSize && optimalHeight < minSize) {
-            // Vergroot proportioneel tot minSize
             const scale = minSize / Math.max(optimalWidth, optimalHeight);
             optimalWidth *= scale;
             optimalHeight *= scale;
             
-            // Zorg dat we niet buiten het scherm gaan
             if (optimalWidth > availableWidth) {
                 optimalWidth = availableWidth;
                 optimalHeight = (optimalHeight / optimalWidth) * availableWidth;
@@ -824,30 +723,29 @@ class StamboomManager extends BaseModule {
             }
         }
         
-        // Pas container grootte aan
         container.style.width = optimalWidth + 'px';
         container.style.height = (optimalHeight + safeMargin) + 'px';
         
         console.log(`StamboomManager: Optimale grootte: ${optimalWidth}x${optimalHeight}`);
         
-        // Centreren
         container.style.position = 'absolute';
         container.style.top = '50%';
         container.style.left = '50%';
         container.style.transform = 'translate(-50%, -50%)';
         
-        // Voor portret foto's: iets anders centreren
         if (optimalHeight > optimalWidth) {
             container.style.transform = 'translate(-50%, -48%)';
         }
     }
     
-    // **EXACT DEZELFDE METHODE ALS SEARCHMANAGER: Setup event listeners voor foto overlay** (niet meer gebruikt maar behouden voor compatibiliteit)
+    /**
+     * SETUP FOTO OVERLAY EVENTS - EXACT DEZELFDE ALS PHOTOMANAGER
+     * Zorgt voor correcte event handling van de foto overlay
+     */
     setupPhotoOverlayEvents() {
         const overlay = document.getElementById('photoLargeOverlay');
         if (!overlay) return;
         
-        // Sluit met Escape key
         const closeOnEscape = (e) => {
             if (e.key === 'Escape') {
                 this.closePhotoOverlay();
@@ -856,7 +754,6 @@ class StamboomManager extends BaseModule {
         };
         document.addEventListener('keydown', closeOnEscape);
         
-        // Sluit knop
         const closeBtn = overlay.querySelector('.photo-large-close');
         if (closeBtn) {
             closeBtn.addEventListener('click', () => {
@@ -864,7 +761,6 @@ class StamboomManager extends BaseModule {
             });
         }
         
-        // Sluit knop footer
         const closeBtnFooter = overlay.querySelector('.photo-large-close-btn');
         if (closeBtnFooter) {
             closeBtnFooter.addEventListener('click', () => {
@@ -872,14 +768,12 @@ class StamboomManager extends BaseModule {
             });
         }
         
-        // Klik buiten container om te sluiten
         overlay.addEventListener('click', (e) => {
             if (e.target === overlay) {
                 this.closePhotoOverlay();
             }
         });
         
-        // Cleanup on animation end
         overlay.addEventListener('animationend', function handler() {
             if (overlay.style.display === 'none') {
                 document.removeEventListener('keydown', closeOnEscape);
@@ -887,7 +781,6 @@ class StamboomManager extends BaseModule {
             }
         });
         
-        // Window resize event - pas grootte aan bij resizen
         const resizeHandler = () => {
             const img = document.getElementById('photoLargeImg');
             if (img && img.complete) {
@@ -897,16 +790,17 @@ class StamboomManager extends BaseModule {
         
         window.addEventListener('resize', resizeHandler);
         
-        // Sla resize handler op voor later cleanup
         overlay.dataset.resizeHandler = 'active';
         overlay._resizeHandler = resizeHandler;
     }
     
-    // **EXACT DEZELFDE METHODE ALS SEARCHMANAGER: Sluit foto overlay netjes** (niet meer gebruikt maar behouden voor compatibiliteit)
+    /**
+     * SLUIT FOTO OVERLAY - EXACT DEZELFDE ALS PHOTOMANAGER
+     * Sluit de foto overlay netjes met animatie
+     */
     closePhotoOverlay() {
         const overlay = document.getElementById('photoLargeOverlay');
         if (overlay) {
-            // Verwijder resize listener
             if (overlay._resizeHandler) {
                 window.removeEventListener('resize', overlay._resizeHandler);
             }
@@ -918,8 +812,7 @@ class StamboomManager extends BaseModule {
                 if (overlay.parentNode) {
                     overlay.parentNode.removeChild(overlay);
                 }
-                // Cleanup globale referentie
-                window.currentPhotoManager = null;
+                window.currentStamboomManager = null;
             }, 200);
         }
     }
@@ -1050,7 +943,6 @@ class StamboomManager extends BaseModule {
         
         pedigreeTree.mainDog = mainDog;
         
-        // Ouders - gebruik de juiste veldnamen
         if (mainDog.vader_id || mainDog.vaderId) {
             const vaderId = mainDog.vader_id || mainDog.vaderId;
             pedigreeTree.father = this.getDogById(vaderId);
@@ -1061,7 +953,6 @@ class StamboomManager extends BaseModule {
             pedigreeTree.mother = this.getDogById(moederId);
         }
         
-        // Grootouders
         if (pedigreeTree.father) {
             const vaderId = pedigreeTree.father.vader_id || pedigreeTree.father.vaderId;
             const moederId = pedigreeTree.father.moeder_id || pedigreeTree.father.moederId;
@@ -1088,7 +979,6 @@ class StamboomManager extends BaseModule {
             }
         }
         
-        // Overgrootouders
         if (pedigreeTree.paternalGrandfather) {
             const vaderId = pedigreeTree.paternalGrandfather.vader_id || pedigreeTree.paternalGrandfather.vaderId;
             const moederId = pedigreeTree.paternalGrandfather.moeder_id || pedigreeTree.paternalGrandfather.moederId;
@@ -1141,7 +1031,6 @@ class StamboomManager extends BaseModule {
             }
         }
         
-        // Overovergrootouders
         if (pedigreeTree.paternalGreatGrandfather1) {
             const vaderId = pedigreeTree.paternalGreatGrandfather1.vader_id || pedigreeTree.paternalGreatGrandfather1.vaderId;
             const moederId = pedigreeTree.paternalGreatGrandfather1.moeder_id || pedigreeTree.paternalGreatGrandfather1.moederId;
@@ -1307,7 +1196,6 @@ class StamboomManager extends BaseModule {
             const showKennel = dog.kennelnaam && dog.kennelnaam.trim() !== '';
             const fullDisplayText = combinedName + (showKennel ? ` ${dog.kennelnaam}` : '');
             
-            // *** GECORRIGEERD: Voeg camera-icoon toe aan gen4 kaarten ***
             return `
                 <div class="pedigree-card-compact horizontal ${dog.geslacht === 'reuen' ? 'male' : 'female'} ${mainDogClass} gen${generation}" 
                      data-dog-id="${dog.id}" 
@@ -1390,7 +1278,6 @@ class StamboomManager extends BaseModule {
     async getDogDetailPopupHTML(dog, relation = '') {
         if (!dog) return '';
         
-        // NIEUW: Haal priveinfo op voor deze hond en huidige gebruiker
         const privateNotes = await this.getPrivateInfoForDog(dog.stamboomnr);
         const hasPrivateInfo = privateNotes !== null && privateNotes.trim() !== '';
         
@@ -1408,7 +1295,6 @@ class StamboomManager extends BaseModule {
         const coiValues = this.calculateCOI(dog.id);
         const coiColor = this.getCOIColor(coiValues.coi6Gen);
         
-        // **GECORRIGEERD: Gebruik nu dezelfde getDogPhotos methode als SearchManager**
         const photos = await this.getDogPhotos(dog.id);
         
         const combinedName = dog.naam || this.t('unknown');
@@ -1423,7 +1309,6 @@ class StamboomManager extends BaseModule {
                     <h6><i class="bi bi-camera me-1"></i> ${this.t('photos')} (${photos.length})</h6>
                     <div class="photos-grid" id="photosGrid${dog.id}">
                         ${photos.map((photo, index) => {
-                            // **BELANGRIJK: Gebruik dezelfde logica als SearchManager voor thumbnails**
                             let thumbnailUrl = photo.thumbnail || photo.data;
                             let fullSizeUrl = photo.data;
                             
@@ -1453,7 +1338,6 @@ class StamboomManager extends BaseModule {
             `;
         }
         
-        // NIEUW: Priveinfo HTML sectie
         let privateInfoHTML = '';
         if (hasPrivateInfo) {
             privateInfoHTML = `
@@ -1520,21 +1404,17 @@ class StamboomManager extends BaseModule {
                                 ` : ''}
                             </div>
                             
-                            <!-- DRIE WAARDES NAAST ELKAAR -->
                             <div class="three-values-row">
-                                <!-- COI 6 Gen -->
                                 <div class="value-box">
                                     <div class="value-label">${this.t('coi6Gen')}</div>
                                     <div class="value-number coi-value" style="color: ${coiColor} !important;">${coiValues.coi6Gen}%</div>
                                 </div>
                                 
-                                <!-- Homozygotie 6 Gen -->
                                 <div class="value-box">
                                     <div class="value-label">${this.t('homozygosity6Gen')}</div>
                                     <div class="value-number">${coiValues.homozygosity6Gen}%</div>
                                 </div>
                                 
-                                <!-- Kinship 6 Gen -->
                                 <div class="value-box">
                                     <div class="value-label">${this.t('kinship6Gen')}</div>
                                     <div class="value-number">${coiValues.kinship6Gen}%</div>
@@ -1670,7 +1550,6 @@ class StamboomManager extends BaseModule {
                     </div>
                     `}
                     
-                    <!-- NIEUW: Priveinfo sectie -->
                     ${privateInfoHTML}
                 </div>
                 <div class="popup-footer">
@@ -1685,7 +1564,6 @@ class StamboomManager extends BaseModule {
     async showPedigree(dog) {
         if (!this._isActive) return;
         
-        // Verberg eerst eventuele voortgangsindicatoren die nog zichtbaar zijn
         this.forceHideProgress();
         
         if (!document.getElementById('pedigreeModal')) {
@@ -1760,7 +1638,6 @@ class StamboomManager extends BaseModule {
             </div>
             
             <style>
-                /* DRIE WAARDES NAAST ELKAAR */
                 .three-values-row {
                     display: flex !important;
                     flex-direction: row !important;
@@ -1811,7 +1688,6 @@ class StamboomManager extends BaseModule {
                     font-weight: bold !important;
                 }
                 
-                /* Rest van de CSS blijft hetzelfde */
                 .pedigree-mobile-wrapper {
                     width: 100%;
                     display: flex;
@@ -2344,7 +2220,6 @@ class StamboomManager extends BaseModule {
                         width: 100% !important;
                     }
                     
-                    /* DRIE WAARDES NAAST ELKAAR OP MOBIEL */
                     .three-values-row {
                         gap: 4px !important;
                         margin: 8px 0 !important;
@@ -2909,29 +2784,16 @@ class StamboomManager extends BaseModule {
                     background: #0d6efd;
                     color: white;
                     display: flex;
-                    justify-content: flex-end;
-                }
-                
-                .photo-large-close {
-                    background: none;
-                    border: none;
-                    color: white;
-                    opacity: 0.8;
-                    font-size: 1.3rem;
-                    cursor: pointer;
-                    width: 32px;
-                    height: 32px;
-                    display: flex;
+                    justify-content: space-between;
                     align-items: center;
-                    justify-content: center;
-                    border-radius: 50%;
-                    transition: all 0.2s;
                 }
                 
-                .photo-large-close-btn:hover {
-                    background: #5a6268;
-                    border-color: #545b62;
-                    color: white;
+                .photo-large-header.bg-dark {
+                    background: #343a40 !important;
+                }
+                
+                .photo-large-header .btn-close {
+                    filter: invert(1) grayscale(100%) brightness(200%);
                 }
                 
                 .photo-large-content {
