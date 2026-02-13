@@ -578,7 +578,7 @@ class DekReuenManager extends BaseModule {
                                 </h5>
                                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                             </div>
-                            <div class="modal-body text-center">
+                            <div class="modal-body p-2 text-center">
                                 <div class="mb-4">
                                     ${foto.data ? 
                                         `<img src="${foto.data}" alt="${dogName}" 
@@ -590,8 +590,6 @@ class DekReuenManager extends BaseModule {
                                     }
                                 </div>
                                 <div class="text-muted small">
-                                    ${foto.filename ? `<div>${foto.filename}</div>` : ''}
-                                    ${foto.uploaded_at ? `<div>${t('photoUploaded')}: ${new Date(foto.uploaded_at).toLocaleDateString(this.currentLang)}</div>` : ''}
                                 </div>
                             </div>
                             <div class="modal-footer">
