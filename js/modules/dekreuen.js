@@ -3,7 +3,6 @@
 /**
  * DekReuen Management Module voor Supabase
  * Beheert dek reuen overzicht en beheer met echte database koppeling
- * MET COMPLETE GEZONDHEIDSINFO IN OVERZICHT en DUIDELIJKE BENAMINGEN
  */
 
 class DekReuenManager extends BaseModule {
@@ -31,12 +30,10 @@ class DekReuenManager extends BaseModule {
         this.selectedHondId = null;
         this.selectedHondStamboomnr = null;
         this.selectedHondNaam = null;
-        this.selectedHondData = null;
         this.hondFotos = [];
         
         // Bewerken variabelen
         this.editingDekReuId = null;
-        this.editingDekReuData = null;
         
         this.translations = {
             nl: {
@@ -54,7 +51,6 @@ class DekReuenManager extends BaseModule {
                 edit: "Bewerken",
                 delete: "Verwijderen",
                 confirmDelete: "Weet je zeker dat je deze dek reu wilt verwijderen?",
-                confirmDeletePhoto: "Weet je zeker dat je deze foto wilt verwijderen?",
                 save: "Opslaan",
                 cancel: "Annuleren",
                 selectHond: "Zoek een reu door naam of kennelnaam te typen...",
@@ -62,7 +58,7 @@ class DekReuenManager extends BaseModule {
                 active: "Actief",
                 inactive: "Inactief",
                 status: "Status",
-                description: "Beschrijving / Opmerkingen",
+                description: "Beschrijving",
                 addedBy: "Toegevoegd door",
                 addedOn: "Toegevoegd op",
                 viewPedigree: "Bekijk Stamboom",
@@ -95,71 +91,7 @@ class DekReuenManager extends BaseModule {
                 uploadFailed: "Upload mislukt: ",
                 fileReadError: "Fout bij lezen bestand",
                 photoSection: "Foto's van deze reu",
-                editDekReu: "Dek Reu Bewerken",
-                deletePhoto: "Verwijder foto",
-                photoDeleteSuccess: "Foto succesvol verwijderd!",
-                photoDeleteFailed: "Verwijderen foto mislukt: ",
-                
-                // GEZONDHEIDSITEMS - Invulvelden
-                healthInfo: "Gezondheidsinformatie",
-                healthInfoSub: "Deze gegevens worden opgeslagen bij de hond",
-                hipDysplasia: "HD *",
-                hipGrades: "Selecteer HD graad...",
-                hipA: "A",
-                hipB: "B",
-                hipC: "C",
-                hipD: "D",
-                hipE: "E",
-                elbowDysplasia: "ED *",
-                elbowGrades: "Selecteer ED graad...",
-                elbow0: "0",
-                elbow1: "1",
-                elbow2: "2",
-                elbow3: "3",
-                elbowNB: "NB (Niet bekend)",
-                patellaLuxation: "Patella",
-                patellaGrades: "Selecteer Patella graad...",
-                patella0: "0",
-                patella1: "1",
-                patella2: "2",
-                patella3: "3",
-                eyes: "Ogen",
-                eyesFree: "Vrij",
-                eyesDistichiasis: "Distichiasis",
-                eyesOther: "Overig",
-                eyesExplanation: "Toelichting ogen",
-                dandyWalker: "Dandy Walker *",
-                dandyOptions: "Selecteer Dandy Walker status...",
-                dandyFreeDNA: "Vrij op DNA",
-                dandyFreeParents: "Vrij op ouders",
-                dandyCarrier: "Drager",
-                dandyAffected: "Lijder",
-                thyroid: "Schildklier",
-                thyroidNegative: "Tgaa Negatief",
-                thyroidPositive: "Tgaa Positief",
-                thyroidExplanation: "Toelichting schildklier",
-                
-                // GEZONDHEIDSITEMS - Weergave in overzicht (zelfde benamingen)
-                healthData: "Gezondheidsgegevens",
-                hd: "HD",
-                ed: "ED",
-                patella: "Patella",
-                eyes: "Ogen",
-                eyesExplanation: "Toelichting ogen",
-                dandyWalker: "Dandy Walker",
-                thyroid: "Schildklier",
-                thyroidExplanation: "Toelichting schildklier",
-                notSpecified: "Niet opgegeven",
-                
-                // Validatie meldingen
-                requiredField: "Dit veld is verplicht",
-                hipRequired: "HD is verplicht voor dek reuen",
-                edRequired: "ED is verplicht voor dek reuen",
-                dandyRequired: "Dandy Walker status is verplicht voor dek reuen",
-                
-                // Waarschuwing
-                healthDataFromDatabase: "Gezondheidsgegevens zijn geladen uit het hondenbestand",
-                noHealthData: "Nog geen gezondheidsgegevens bekend voor deze hond"
+                editDekReu: "Dek Reu Bewerken"
             },
             en: {
                 dekReuen: "Stud Dogs",
@@ -176,7 +108,6 @@ class DekReuenManager extends BaseModule {
                 edit: "Edit",
                 delete: "Delete",
                 confirmDelete: "Are you sure you want to delete this stud dog?",
-                confirmDeletePhoto: "Are you sure you want to delete this photo?",
                 save: "Save",
                 cancel: "Cancel",
                 selectHond: "Search for a male dog by name or kennel name...",
@@ -184,7 +115,7 @@ class DekReuenManager extends BaseModule {
                 active: "Active",
                 inactive: "Inactive",
                 status: "Status",
-                description: "Description / Remarks",
+                description: "Description",
                 addedBy: "Added by",
                 addedOn: "Added on",
                 viewPedigree: "View Pedigree",
@@ -217,71 +148,7 @@ class DekReuenManager extends BaseModule {
                 uploadFailed: "Upload failed: ",
                 fileReadError: "Error reading file",
                 photoSection: "Photos of this dog",
-                editDekReu: "Edit Stud Dog",
-                deletePhoto: "Delete photo",
-                photoDeleteSuccess: "Photo deleted successfully!",
-                photoDeleteFailed: "Delete photo failed: ",
-                
-                // HEALTH ITEMS - Input fields
-                healthInfo: "Health Information",
-                healthInfoSub: "This data will be saved with the dog",
-                hipDysplasia: "HD *",
-                hipGrades: "Select HD grade...",
-                hipA: "A",
-                hipB: "B",
-                hipC: "C",
-                hipD: "D",
-                hipE: "E",
-                elbowDysplasia: "ED *",
-                elbowGrades: "Select ED grade...",
-                elbow0: "0",
-                elbow1: "1",
-                elbow2: "2",
-                elbow3: "3",
-                elbowNB: "NB (Not known)",
-                patellaLuxation: "Patella",
-                patellaGrades: "Select Patella grade...",
-                patella0: "0",
-                patella1: "1",
-                patella2: "2",
-                patella3: "3",
-                eyes: "Eyes",
-                eyesFree: "Free",
-                eyesDistichiasis: "Distichiasis",
-                eyesOther: "Other",
-                eyesExplanation: "Eyes explanation",
-                dandyWalker: "Dandy Walker *",
-                dandyOptions: "Select Dandy Walker status...",
-                dandyFreeDNA: "Free on DNA",
-                dandyFreeParents: "Free on parents",
-                dandyCarrier: "Carrier",
-                dandyAffected: "Affected",
-                thyroid: "Thyroid",
-                thyroidNegative: "Tgaa Negative",
-                thyroidPositive: "Tgaa Positive",
-                thyroidExplanation: "Thyroid explanation",
-                
-                // HEALTH ITEMS - Display in overview (same names)
-                healthData: "Health Data",
-                hd: "HD",
-                ed: "ED",
-                patella: "Patella",
-                eyes: "Eyes",
-                eyesExplanation: "Eyes explanation",
-                dandyWalker: "Dandy Walker",
-                thyroid: "Thyroid",
-                thyroidExplanation: "Thyroid explanation",
-                notSpecified: "Not specified",
-                
-                // Validation messages
-                requiredField: "This field is required",
-                hipRequired: "HD is required for stud dogs",
-                edRequired: "ED is required for stud dogs",
-                dandyRequired: "Dandy Walker status is required for stud dogs",
-                
-                // Warnings
-                healthDataFromDatabase: "Health data loaded from dog database",
-                noHealthData: "No health data available for this dog yet"
+                editDekReu: "Edit Stud Dog"
             },
             de: {
                 dekReuen: "Zuchtrüden",
@@ -298,7 +165,6 @@ class DekReuenManager extends BaseModule {
                 edit: "Bearbeiten",
                 delete: "Löschen",
                 confirmDelete: "Sind Sie sicher, dass Sie diesen Zuchtrüden löschen möchten?",
-                confirmDeletePhoto: "Sind Sie sicher, dass Sie dieses Foto löschen möchten?",
                 save: "Speichern",
                 cancel: "Abbrechen",
                 selectHond: "Suchen Sie einen Rüden nach Namen oder Zwingername...",
@@ -306,7 +172,7 @@ class DekReuenManager extends BaseModule {
                 active: "Aktiv",
                 inactive: "Inaktiv",
                 status: "Status",
-                description: "Beschreibung / Bemerkungen",
+                description: "Beschreibung",
                 addedBy: "Hinzugefügt von",
                 addedOn: "Hinzugefügt am",
                 viewPedigree: "Stammbaum anzeigen",
@@ -339,71 +205,7 @@ class DekReuenManager extends BaseModule {
                 uploadFailed: "Upload fehlgeschlagen: ",
                 fileReadError: "Fehler beim Lesen der Datei",
                 photoSection: "Fotos dieses Rüden",
-                editDekReu: "Zuchtrüde Bearbeiten",
-                deletePhoto: "Foto löschen",
-                photoDeleteSuccess: "Foto erfolgreich gelöscht!",
-                photoDeleteFailed: "Löschen fehlgeschlagen: ",
-                
-                // GESUNDHEITSDATEN - Eingabefelder
-                healthInfo: "Gesundheitsinformationen",
-                healthInfoSub: "Diese Daten werden beim Hund gespeichert",
-                hipDysplasia: "HD *",
-                hipGrades: "HD Grad wählen...",
-                hipA: "A",
-                hipB: "B",
-                hipC: "C",
-                hipD: "D",
-                hipE: "E",
-                elbowDysplasia: "ED *",
-                elbowGrades: "ED Grad wählen...",
-                elbow0: "0",
-                elbow1: "1",
-                elbow2: "2",
-                elbow3: "3",
-                elbowNB: "NB (Nicht bekannt)",
-                patellaLuxation: "Patella",
-                patellaGrades: "Patella Grad wählen...",
-                patella0: "0",
-                patella1: "1",
-                patella2: "2",
-                patella3: "3",
-                eyes: "Augen",
-                eyesFree: "Frei",
-                eyesDistichiasis: "Distichiasis",
-                eyesOther: "Andere",
-                eyesExplanation: "Augenerklärung",
-                dandyWalker: "Dandy Walker *",
-                dandyOptions: "Dandy Walker Status wählen...",
-                dandyFreeDNA: "Frei op DNA",
-                dandyFreeParents: "Frei op ouders",
-                dandyCarrier: "Träger",
-                dandyAffected: "Betroffen",
-                thyroid: "Schilddrüse",
-                thyroidNegative: "Tgaa Negativ",
-                thyroidPositive: "Tgaa Positief",
-                thyroidExplanation: "Schilddrüsenerklärung",
-                
-                // GESUNDHEITSDATEN - Anzeige in Übersicht (gleiche Namen)
-                healthData: "Gesundheitsdaten",
-                hd: "HD",
-                ed: "ED",
-                patella: "Patella",
-                eyes: "Augen",
-                eyesExplanation: "Augenerklärung",
-                dandyWalker: "Dandy Walker",
-                thyroid: "Schilddrüse",
-                thyroidExplanation: "Schilddrüsenerklärung",
-                notSpecified: "Nicht angegeben",
-                
-                // Validierungsmeldungen
-                requiredField: "Dieses Feld ist erforderlich",
-                hipRequired: "HD ist für Zuchtrüden erforderlich",
-                edRequired: "ED ist für Zuchtrüden erforderlich",
-                dandyRequired: "Dandy Walker Status ist für Zuchtrüden erforderlich",
-                
-                // Warnungen
-                healthDataFromDatabase: "Gesundheitsdaten aus der Hunde-Datenbank geladen",
-                noHealthData: "Noch keine Gesundheitsdaten für diesen Hund vorhanden"
+                editDekReu: "Zuchtrüde Bearbeiten"
             }
         };
     }
@@ -443,16 +245,19 @@ class DekReuenManager extends BaseModule {
             
             let query = supabase
                 .from('honden')
-                .select('*', { count: 'exact' })
+                .select('id, naam, kennelnaam, stamboomnr, geboortedatum, ras', { count: 'exact' })
                 .eq('geslacht', 'reuen');
             
+            // Voeg zoekfilter toe als er minimaal 2 karakters zijn
             if (searchTerm && searchTerm.length >= 2) {
-                query = query.or(`naam.ilike.%${searchTerm}%,kennelnaam.ilike.%${searchTerm}%,stamboomnr.ilike.%${searchTerm}%`);
+                query = query.or(`naam.ilike.%${searchTerm}%,kennelnaam.ilike.%${searchTerm}%`);
             }
             
+            // Bereken offset voor paginatie
             const from = (page - 1) * pageSize;
             const to = from + pageSize - 1;
             
+            // Voeg sortering en paginatie toe
             const { data, error, count } = await query
                 .order('naam')
                 .range(from, to);
@@ -507,6 +312,7 @@ class DekReuenManager extends BaseModule {
             const supabase = this.getSupabase();
             if (!supabase) return [];
             
+            // Eerst de stamboomnr van de hond ophalen
             const { data: hondData, error: hondError } = await supabase
                 .from('honden')
                 .select('stamboomnr, naam, kennelnaam')
@@ -521,6 +327,7 @@ class DekReuenManager extends BaseModule {
             this.selectedHondStamboomnr = hondData.stamboomnr;
             this.selectedHondNaam = hondData.naam;
             
+            // Haal foto's op via stamboomnr
             const { data: fotos, error } = await supabase
                 .from('fotos')
                 .select('*')
@@ -560,6 +367,7 @@ class DekReuenManager extends BaseModule {
         
         const file = fileInput.files[0];
         
+        // Validatie
         if (file.size > 5 * 1024 * 1024) {
             this.showError(t('fileTooLarge'), 'hondFotosContainer');
             return;
@@ -584,6 +392,7 @@ class DekReuenManager extends BaseModule {
                 
                 const base64Data = e.target.result;
                 
+                // Maak thumbnail
                 let thumbnail = null;
                 try {
                     const img = new Image();
@@ -635,6 +444,13 @@ class DekReuenManager extends BaseModule {
                     hond_id: this.selectedHondId
                 };
                 
+                console.log('Foto data voor database:', {
+                    stamboomnr: fotoData.stamboomnr,
+                    filename: fotoData.filename,
+                    size: fotoData.size,
+                    hond_id: fotoData.hond_id
+                });
+                
                 const { data: dbData, error: dbError } = await this.getSupabase()
                     .from('fotos')
                     .insert(fotoData)
@@ -646,11 +462,15 @@ class DekReuenManager extends BaseModule {
                     throw dbError;
                 }
                 
+                console.log('Database insert successful:', dbData);
+                
                 this.hideProgress();
                 this.showSuccess(t('uploadSuccess'), 'hondFotosContainer');
                 
+                // Reset file input
                 fileInput.value = '';
                 
+                // Herlaad foto's
                 await this.loadHondFotos(this.selectedHondId);
                 
             } catch (error) {
@@ -669,41 +489,6 @@ class DekReuenManager extends BaseModule {
     }
     
     /**
-     * Verwijder een foto
-     */
-    async deletePhoto(fotoId, fotoElement) {
-        const t = this.t.bind(this);
-        
-        if (!confirm(t('confirmDeletePhoto'))) return;
-        
-        try {
-            const supabase = this.getSupabase();
-            if (!supabase) throw new Error('Geen database verbinding');
-            
-            const { error } = await supabase
-                .from('fotos')
-                .delete()
-                .eq('id', fotoId);
-            
-            if (error) throw error;
-            
-            if (fotoElement) {
-                fotoElement.remove();
-            }
-            
-            this.showSuccess(t('photoDeleteSuccess'), 'hondFotosContainer');
-            
-            if (this.selectedHondId) {
-                await this.loadHondFotos(this.selectedHondId);
-            }
-            
-        } catch (error) {
-            console.error('❌ Fout bij verwijderen foto:', error);
-            this.showError(`${t('photoDeleteFailed')}${error.message}`, 'hondFotosContainer');
-        }
-    }
-    
-    /**
      * Laad en toon foto's voor geselecteerde hond
      */
     async loadHondFotos(hondId) {
@@ -716,7 +501,7 @@ class DekReuenManager extends BaseModule {
     }
     
     /**
-     * Toon foto's in de container met verwijderknop
+     * Toon foto's in de container
      */
     async displayHondFotos() {
         const container = document.getElementById('hondFotosContainer');
@@ -737,15 +522,11 @@ class DekReuenManager extends BaseModule {
         let html = '<div class="row">';
         
         for (const foto of this.hondFotos) {
+            const uploadDatum = new Date(foto.uploaded_at).toLocaleDateString(this.currentLang);
+            
             html += `
-                <div class="col-md-4 col-lg-3 mb-3" id="foto-${foto.id}">
-                    <div class="card h-100 position-relative">
-                        <button class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 delete-photo-btn" 
-                                data-foto-id="${foto.id}"
-                                style="z-index: 10; border-radius: 50%; width: 32px; height: 32px; padding: 0;"
-                                title="${t('deletePhoto')}">
-                            <i class="bi bi-trash"></i>
-                        </button>
+                <div class="col-md-4 col-lg-3 mb-3">
+                    <div class="card h-100">
                         <div class="card-img-top dek-reu-foto-thumbnail" 
                              style="height: 120px; cursor: pointer; background: #f8f9fa; display: flex; align-items: center; justify-content: center; overflow: hidden;"
                              data-foto='${JSON.stringify(foto).replace(/'/g, '&apos;')}'
@@ -754,9 +535,8 @@ class DekReuenManager extends BaseModule {
                                  style="max-width: 100%; max-height: 100%; object-fit: cover;">
                         </div>
                         <div class="card-body p-2">
-                            <small class="text-muted d-block text-truncate">
-                                ${foto.filename || 'Foto'}
-                            </small>
+                            <small class="text-muted d-block text-truncate" title="${foto.filename || ''}">${foto.filename || ''}</small>
+                            <small class="text-muted">${uploadDatum}</small>
                         </div>
                     </div>
                 </div>
@@ -766,6 +546,7 @@ class DekReuenManager extends BaseModule {
         html += '</div>';
         container.innerHTML = html;
         
+        // Event listeners voor foto's
         container.querySelectorAll('.dek-reu-foto-thumbnail').forEach(thumb => {
             thumb.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -776,15 +557,6 @@ class DekReuenManager extends BaseModule {
                 } catch (error) {
                     console.error('Fout bij parseren foto data:', error);
                 }
-            });
-        });
-        
-        container.querySelectorAll('.delete-photo-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                const fotoId = btn.dataset.fotoId;
-                const fotoElement = document.getElementById(`foto-${fotoId}`);
-                await this.deletePhoto(fotoId, fotoElement);
             });
         });
     }
@@ -816,6 +588,10 @@ class DekReuenManager extends BaseModule {
                                             <p class="mt-3 text-muted">${t('noPhotos')}</p>
                                         </div>`
                                     }
+                                </div>
+                                <div class="text-muted small">
+                                    ${foto.filename ? `<div>${foto.filename}</div>` : ''}
+                                    ${foto.uploaded_at ? `<div>${t('photoUploaded')}: ${new Date(foto.uploaded_at).toLocaleDateString(this.currentLang)}</div>` : ''}
                                 </div>
                             </div>
                             <div class="modal-footer">
@@ -856,11 +632,13 @@ class DekReuenManager extends BaseModule {
      * Maak een searchable dropdown met Tom Select
      */
     async initTomSelect(initialValue = null) {
+        // Wacht tot Tom Select geladen is
         if (typeof window.TomSelect === 'undefined') {
             console.log('⏳ Tom Select wordt geladen...');
             await this.loadTomSelect();
         }
         
+        // Verwijder bestaande Tom Select instance
         const selectElement = document.getElementById('hondSelect');
         if (!selectElement) return null;
         
@@ -868,6 +646,7 @@ class DekReuenManager extends BaseModule {
             selectElement.tomselect.destroy();
         }
         
+        // Initialiseer Tom Select
         const tomSelect = new TomSelect(selectElement, {
             valueField: 'id',
             labelField: 'displayName',
@@ -884,10 +663,12 @@ class DekReuenManager extends BaseModule {
                     return;
                 }
                 
+                // Clear bestaande timeout
                 if (this.searchTimeout) {
                     clearTimeout(this.searchTimeout);
                 }
                 
+                // Debounce de zoekopdracht
                 this.searchTimeout = setTimeout(async () => {
                     console.log('🔍 Zoeken naar:', query);
                     const result = await this.getAllMaleDogs(query, 1, 100);
@@ -918,28 +699,30 @@ class DekReuenManager extends BaseModule {
                 }
             },
             onChange: async (value) => {
+                // Sla geselecteerde hond ID op en laad foto's
                 this.selectedHondId = value ? parseInt(value) : null;
                 
                 if (this.selectedHondId) {
+                    // Toon upload sectie
                     const uploadSection = document.getElementById('photoUploadSection');
                     if (uploadSection) {
                         uploadSection.style.display = 'block';
                     }
                     
+                    // Laad foto's
                     await this.loadHondFotos(this.selectedHondId);
-                    await this.loadDogHealthData(this.selectedHondId);
                 } else {
+                    // Verberg upload sectie
                     const uploadSection = document.getElementById('photoUploadSection');
                     if (uploadSection) {
                         uploadSection.style.display = 'none';
                     }
                     
+                    // Leeg foto container
                     const container = document.getElementById('hondFotosContainer');
                     if (container) {
                         container.innerHTML = '';
                     }
-                    
-                    this.resetHealthForm();
                 }
             },
             onInitialize: function() {
@@ -947,20 +730,9 @@ class DekReuenManager extends BaseModule {
             }
         });
         
+        // Set initial value if provided
         if (initialValue) {
-            // Bij bewerken: voeg de geselecteerde hond toe aan de opties
-            const hond = await this.getHondById(initialValue);
-            if (hond) {
-                const optionData = {
-                    id: hond.id,
-                    naam: hond.naam || 'Onbekend',
-                    kennelnaam: hond.kennelnaam || '',
-                    stamboomnr: hond.stamboomnr || '-',
-                    displayName: `${hond.naam || 'Onbekend'}${hond.kennelnaam ? ' (' + hond.kennelnaam + ')' : ''}`
-                };
-                tomSelect.addOption(optionData);
-                tomSelect.setValue(initialValue);
-            }
+            tomSelect.setValue(initialValue);
         }
         
         return tomSelect;
@@ -971,198 +743,25 @@ class DekReuenManager extends BaseModule {
      */
     loadTomSelect() {
         return new Promise((resolve, reject) => {
+            // Controleer of al geladen
             if (typeof window.TomSelect !== 'undefined') {
                 resolve();
                 return;
             }
             
+            // Laad CSS
             const link = document.createElement('link');
             link.rel = 'stylesheet';
             link.href = 'https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css';
             document.head.appendChild(link);
             
+            // Laad JS
             const script = document.createElement('script');
             script.src = 'https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js';
             script.onload = resolve;
             script.onerror = reject;
             document.head.appendChild(script);
         });
-    }
-    
-    /**
-     * Laad gezondheidsgegevens van een hond en vul het formulier
-     */
-    async loadDogHealthData(hondId) {
-        try {
-            const supabase = this.getSupabase();
-            if (!supabase) return;
-            
-            const { data: hond, error } = await supabase
-                .from('honden')
-                .select('*')
-                .eq('id', hondId)
-                .single();
-            
-            if (error) throw error;
-            
-            if (hond) {
-                this.selectedHondData = hond;
-                console.log('✅ Gezondheidsgegevens geladen voor hond:', hond.naam);
-                
-                this.populateHealthForm(hond);
-                
-                const healthNote = document.getElementById('healthDataNote');
-                if (healthNote) {
-                    healthNote.innerHTML = `<i class="bi bi-info-circle"></i> ${this.t('healthDataFromDatabase')}`;
-                    healthNote.className = 'alert alert-info mt-3';
-                }
-            }
-        } catch (error) {
-            console.error('❌ Fout bij laden gezondheidsgegevens:', error);
-        }
-    }
-    
-    /**
-     * Vul gezondheidsformulier met data uit de hond
-     */
-    populateHealthForm(hond) {
-        // HD
-        const hipSelect = document.getElementById('hipDysplasia');
-        if (hipSelect && hond.heupdysplasie) {
-            hipSelect.value = hond.heupdysplasie;
-        }
-        
-        // ED
-        const elbowSelect = document.getElementById('elbowDysplasia');
-        if (elbowSelect && hond.elleboogdysplasie) {
-            elbowSelect.value = hond.elleboogdysplasie;
-        }
-        
-        // Patella
-        const patellaSelect = document.getElementById('patellaLuxation');
-        if (patellaSelect && hond.patella) {
-            patellaSelect.value = hond.patella;
-        }
-        
-        // Ogen
-        const eyesSelect = document.getElementById('eyes');
-        if (eyesSelect && hond.ogen) {
-            eyesSelect.value = hond.ogen;
-        }
-        
-        // Toelichting ogen
-        const eyesExplanation = document.getElementById('eyesExplanation');
-        if (eyesExplanation && hond.ogenverklaring) {
-            eyesExplanation.value = hond.ogenverklaring || '';
-        }
-        
-        // Dandy Walker
-        const dandySelect = document.getElementById('dandyWalker');
-        if (dandySelect && hond.dandyWalker) {
-            dandySelect.value = hond.dandyWalker;
-        }
-        
-        // Schildklier
-        const thyroidSelect = document.getElementById('thyroid');
-        if (thyroidSelect && hond.schildklier) {
-            thyroidSelect.value = hond.schildklier;
-        }
-        
-        // Toelichting schildklier
-        const thyroidExplanation = document.getElementById('thyroidExplanation');
-        if (thyroidExplanation && hond.schildklierverklaring) {
-            thyroidExplanation.value = hond.schildklierverklaring || '';
-        }
-    }
-    
-    /**
-     * Reset gezondheidsformulier
-     */
-    resetHealthForm() {
-        const hipSelect = document.getElementById('hipDysplasia');
-        if (hipSelect) hipSelect.value = '';
-        
-        const elbowSelect = document.getElementById('elbowDysplasia');
-        if (elbowSelect) elbowSelect.value = '';
-        
-        const patellaSelect = document.getElementById('patellaLuxation');
-        if (patellaSelect) patellaSelect.value = '';
-        
-        const eyesSelect = document.getElementById('eyes');
-        if (eyesSelect) eyesSelect.value = '';
-        
-        const dandySelect = document.getElementById('dandyWalker');
-        if (dandySelect) dandySelect.value = '';
-        
-        const thyroidSelect = document.getElementById('thyroid');
-        if (thyroidSelect) thyroidSelect.value = '';
-        
-        const eyesExplanation = document.getElementById('eyesExplanation');
-        if (eyesExplanation) eyesExplanation.value = '';
-        
-        const thyroidExplanation = document.getElementById('thyroidExplanation');
-        if (thyroidExplanation) thyroidExplanation.value = '';
-        
-        const healthNote = document.getElementById('healthDataNote');
-        if (healthNote) {
-            healthNote.innerHTML = '';
-            healthNote.className = '';
-        }
-    }
-    
-    /**
-     * Valideer verplichte gezondheidsvelden
-     */
-    validateHealthFields() {
-        const t = this.t.bind(this);
-        let isValid = true;
-        
-        // HD validatie
-        const hipSelect = document.getElementById('hipDysplasia');
-        const hipError = document.getElementById('hipError');
-        if (!hipSelect || !hipSelect.value) {
-            if (hipError) {
-                hipError.textContent = t('hipRequired');
-                hipError.style.display = 'block';
-            }
-            hipSelect?.classList.add('is-invalid');
-            isValid = false;
-        } else {
-            if (hipError) hipError.style.display = 'none';
-            hipSelect?.classList.remove('is-invalid');
-        }
-        
-        // ED validatie
-        const elbowSelect = document.getElementById('elbowDysplasia');
-        const elbowError = document.getElementById('elbowError');
-        if (!elbowSelect || !elbowSelect.value) {
-            if (elbowError) {
-                elbowError.textContent = t('edRequired');
-                elbowError.style.display = 'block';
-            }
-            elbowSelect?.classList.add('is-invalid');
-            isValid = false;
-        } else {
-            if (elbowError) elbowError.style.display = 'none';
-            elbowSelect?.classList.remove('is-invalid');
-        }
-        
-        // Dandy Walker validatie
-        const dandySelect = document.getElementById('dandyWalker');
-        const dandyError = document.getElementById('dandyError');
-        if (!dandySelect || !dandySelect.value) {
-            if (dandyError) {
-                dandyError.textContent = t('dandyRequired');
-                dandyError.style.display = 'block';
-            }
-            dandySelect?.classList.add('is-invalid');
-            isValid = false;
-        } else {
-            if (dandyError) dandyError.style.display = 'none';
-            dandySelect?.classList.remove('is-invalid');
-        }
-        
-        return isValid;
     }
     
     /**
@@ -1180,20 +779,21 @@ class DekReuenManager extends BaseModule {
         this.db = supabase;
         this.auth = supabase.auth;
         
+        // Haal gebruiker op
         const { data: { user } } = await supabase.auth.getUser();
         this.currentUser = user;
         console.log('Gebruiker:', user?.email);
         
+        // Reset variabelen
         this.currentPage = 1;
         this.currentSearchTerm = '';
         this.selectedHondId = null;
         this.selectedHondStamboomnr = null;
         this.selectedHondNaam = null;
-        this.selectedHondData = null;
         this.hondFotos = [];
         this.editingDekReuId = null;
-        this.editingDekReuData = null;
         
+        // Toon keuze menu voor admin
         const modalHTML = this.getChoiceModalHTML();
         
         let modalsContainer = document.getElementById('modalsContainer');
@@ -1211,6 +811,7 @@ class DekReuenManager extends BaseModule {
         const modalElement = document.getElementById('dekReuenModal');
         const modal = new bootstrap.Modal(modalElement);
         
+        // Event listeners
         document.getElementById('viewOverviewBtn')?.addEventListener('click', () => this.showOverviewView());
         document.getElementById('manageDekReuenBtn')?.addEventListener('click', () => this.showBeheerView());
         
@@ -1279,14 +880,15 @@ class DekReuenManager extends BaseModule {
             const modalElement = document.getElementById('addEditDekReuModal');
             const modal = new bootstrap.Modal(modalElement);
             
+            // Reset editing ID
             this.editingDekReuId = null;
-            this.editingDekReuData = null;
             
-            this.resetHealthForm();
-            
+            // Initialiseer Tom Select voor searchable dropdown
             await this.initTomSelect();
             
+            // Upload button event listener
             document.getElementById('uploadDekReuPhotoBtn')?.addEventListener('click', () => this.uploadPhoto());
+            
             document.getElementById('saveDekReuBtn')?.addEventListener('click', () => this.saveDekReu());
             
             modal.show();
@@ -1296,10 +898,8 @@ class DekReuenManager extends BaseModule {
                 this.selectedHondId = null;
                 this.selectedHondStamboomnr = null;
                 this.selectedHondNaam = null;
-                this.selectedHondData = null;
                 this.hondFotos = [];
                 this.editingDekReuId = null;
-                this.editingDekReuData = null;
             });
             
         } catch (error) {
@@ -1315,10 +915,13 @@ class DekReuenManager extends BaseModule {
         try {
             console.log('Show edit dek reu modal', dekreu);
             
+            // Sla de ID op van de te bewerken dek reu
             this.editingDekReuId = dekreu.id;
-            this.editingDekReuData = dekreu;
+            
+            // Sla de hond ID op
             this.selectedHondId = dekreu.hond_id;
             
+            // Haal de volledige dek reu data op als die nog niet compleet is
             let dekReuData = dekreu;
             if (!dekReuData.hond) {
                 dekReuData = await this.getDekReu(dekreu.id);
@@ -1335,11 +938,8 @@ class DekReuenManager extends BaseModule {
             const modalElement = document.getElementById('addEditDekReuModal');
             const modal = new bootstrap.Modal(modalElement);
             
+            // Vul de formuliervelden met bestaande data
             await this.populateEditForm(dekReuData);
-            
-            // Zelfde event listener als bij toevoegen
-            document.getElementById('uploadDekReuPhotoBtn')?.addEventListener('click', () => this.uploadPhoto());
-            document.getElementById('saveDekReuBtn')?.addEventListener('click', () => this.saveDekReu());
             
             modal.show();
             
@@ -1348,10 +948,8 @@ class DekReuenManager extends BaseModule {
                 this.selectedHondId = null;
                 this.selectedHondStamboomnr = null;
                 this.selectedHondNaam = null;
-                this.selectedHondData = null;
                 this.hondFotos = [];
                 this.editingDekReuId = null;
-                this.editingDekReuData = null;
             });
             
         } catch (error) {
@@ -1365,50 +963,55 @@ class DekReuenManager extends BaseModule {
      */
     async populateEditForm(dekreu) {
         try {
-            // Tom Select initialiseren met de bestaande hond
+            // Vul de Tom Select met de bestaande hond
             if (dekreu.hond_id) {
-                await this.initTomSelect(dekreu.hond_id);
+                // Initialiseer Tom Select met de bestaande waarde
+                const tomSelect = await this.initTomSelect(dekreu.hond_id);
+                
+                // Forceer het laden van de optie
+                const hond = dekreu.hond || await this.getHondById(dekreu.hond_id);
+                if (hond && tomSelect) {
+                    const optionData = {
+                        id: hond.id,
+                        naam: hond.naam || 'Onbekend',
+                        kennelnaam: hond.kennelnaam || '',
+                        stamboomnr: hond.stamboomnr || '-',
+                        displayName: `${hond.naam || 'Onbekend'}${hond.kennelnaam ? ' (' + hond.kennelnaam + ')' : ''}`
+                    };
+                    
+                    // Voeg optie toe en selecteer deze
+                    tomSelect.addOption(optionData);
+                    tomSelect.setValue(hond.id);
+                }
             }
             
-            // Vul de basis velden
+            // Vul status checkbox
             const actiefCheck = document.getElementById('actiefCheck');
             if (actiefCheck) {
                 actiefCheck.checked = dekreu.actief === true;
             }
             
+            // Vul beschrijving veld
             const beschrijvingField = document.getElementById('beschrijvingField');
             if (beschrijvingField) {
                 beschrijvingField.value = dekreu.beschrijving || '';
             }
             
-            // Laad foto's en gezondheidsgegevens
+            // Laad foto's voor deze hond
             if (dekreu.hond_id) {
                 await this.loadHondFotos(dekreu.hond_id);
             }
             
-            if (dekreu.hond) {
-                this.selectedHondData = dekreu.hond;
-                this.populateHealthForm(dekreu.hond);
-            } else if (dekreu.hond_id) {
-                await this.loadDogHealthData(dekreu.hond_id);
-            }
-            
-            // Zet de knop tekst
+            // Verander de knop tekst naar "Bijwerken"
             const saveBtn = document.getElementById('saveDekReuBtn');
             if (saveBtn) {
-                saveBtn.innerHTML = `<i class="bi bi-check-circle"></i> ${this.t('save')}`;
+                saveBtn.innerHTML = `<i class="bi bi-pencil-square"></i> ${this.t('edit')}`;
             }
             
-            // Zet de titel
+            // Verander modal titel
             const modalTitle = document.querySelector('#addEditDekReuModal .modal-title');
             if (modalTitle) {
                 modalTitle.innerHTML = `<i class="bi bi-pencil-square"></i> ${this.t('editDekReu')}`;
-            }
-            
-            // Toon de upload sectie
-            const uploadSection = document.getElementById('photoUploadSection');
-            if (uploadSection) {
-                uploadSection.style.display = 'block';
             }
             
         } catch (error) {
@@ -1426,7 +1029,7 @@ class DekReuenManager extends BaseModule {
             
             const { data, error } = await supabase
                 .from('honden')
-                .select('*')
+                .select('id, naam, kennelnaam, stamboomnr')
                 .eq('id', hondId)
                 .single();
             
@@ -1547,18 +1150,14 @@ class DekReuenManager extends BaseModule {
         `;
     }
     
-    /**
-     * Modal met gezondheidsitems ALTIJD zichtbaar
-     */
     getAddEditModalHTML(mode = 'add') {
         const title = mode === 'add' ? this.t('addDekReu') : this.t('editDekReu');
         const icon = mode === 'add' ? 'bi-plus-circle' : 'bi-pencil-square';
-        const saveButtonText = this.t('save');
-        const saveButtonIcon = 'bi-check-circle';
-        const hondSelectDisabled = mode === 'edit' ? 'disabled' : '';
+        const saveButtonText = mode === 'add' ? this.t('save') : this.t('edit');
+        const saveButtonIcon = mode === 'add' ? 'bi-check-circle' : 'bi-pencil-square';
         
         return `
-            <div class="modal fade" id="addEditDekReuModal" tabindex="-1" data-bs-backdrop="static">
+            <div class="modal fade" id="addEditDekReuModal" tabindex="-1">
                 <div class="modal-dialog modal-xl">
                     <div class="modal-content">
                         <div class="modal-header bg-success text-white">
@@ -1569,20 +1168,22 @@ class DekReuenManager extends BaseModule {
                         </div>
                         <div class="modal-body">
                             <div class="row">
-                                <!-- Linker kolom -->
+                                <!-- Linker kolom: Hond selectie en basisgegevens -->
                                 <div class="col-md-6">
                                     <form id="dekReuForm">
                                         <div class="mb-3">
-                                            <label class="form-label fw-semibold">${this.t('selectHond')} *</label>
-                                            <select class="form-control" id="hondSelect" placeholder="${this.t('typeToSearch')}" ${hondSelectDisabled}>
+                                            <label class="form-label">${this.t('selectHond')} *</label>
+                                            <select class="form-control" id="hondSelect" placeholder="${this.t('typeToSearch')}" ${mode === 'edit' ? 'disabled' : ''} ${mode === 'edit' ? 'readonly' : ''}>
                                                 <option value="">${this.t('typeToSearch')}</option>
                                             </select>
                                             ${mode === 'edit' ? '<small class="text-muted d-block mt-2">De hond kan niet worden gewijzigd bij bewerken</small>' : ''}
-                                            <small class="text-muted d-block mt-2">${this.t('searchHond')}</small>
+                                            <small class="text-muted d-block mt-2">
+                                                ${this.t('searchHond')}
+                                            </small>
                                         </div>
                                         
                                         <div class="mb-3">
-                                            <label class="form-label fw-semibold">${this.t('status')}</label>
+                                            <label class="form-label">${this.t('status')}</label>
                                             <div class="form-check form-switch">
                                                 <input class="form-check-input" type="checkbox" id="actiefCheck" checked>
                                                 <label class="form-check-label" for="actiefCheck">${this.t('active')}</label>
@@ -1590,13 +1191,13 @@ class DekReuenManager extends BaseModule {
                                         </div>
                                         
                                         <div class="mb-3">
-                                            <label class="form-label fw-semibold">${this.t('description')}</label>
-                                            <textarea class="form-control" id="beschrijvingField" rows="2"></textarea>
+                                            <label class="form-label">${this.t('description')}</label>
+                                            <textarea class="form-control" id="beschrijvingField" rows="3"></textarea>
                                         </div>
                                     </form>
                                 </div>
                                 
-                                <!-- Rechter kolom: Foto's -->
+                                <!-- Rechter kolom: Foto upload en weergave -->
                                 <div class="col-md-6">
                                     <div class="card border-info" id="photoUploadSection" style="display: none;">
                                         <div class="card-header bg-info text-white">
@@ -1619,117 +1220,6 @@ class DekReuenManager extends BaseModule {
                                                     <i class="bi bi-image text-muted" style="font-size: 2rem;"></i>
                                                     <p class="mt-2 text-muted">${this.t('noPhotos')}</p>
                                                 </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- GEZONDHEIDSINFORMATIE - ALTIJD ZICHTBAAR -->
-                            <div class="row mt-4">
-                                <div class="col-12">
-                                    <div class="card border-warning">
-                                        <div class="card-header bg-warning text-dark">
-                                            <i class="bi bi-heart-pulse"></i> ${this.t('healthInfo')}
-                                            <small class="ms-2">${this.t('healthInfoSub')}</small>
-                                        </div>
-                                        <div class="card-body">
-                                            <div id="healthDataNote" class="mb-3"></div>
-                                            
-                                            <!-- Rij 1: HD en ED -->
-                                            <div class="row mb-3">
-                                                <div class="col-md-6">
-                                                    <label for="hipDysplasia" class="form-label fw-semibold">${this.t('hipDysplasia')}</label>
-                                                    <select class="form-select" id="hipDysplasia" required>
-                                                        <option value="">${this.t('hipGrades')}</option>
-                                                        <option value="A">${this.t('hipA')}</option>
-                                                        <option value="B">${this.t('hipB')}</option>
-                                                        <option value="C">${this.t('hipC')}</option>
-                                                        <option value="D">${this.t('hipD')}</option>
-                                                        <option value="E">${this.t('hipE')}</option>
-                                                    </select>
-                                                    <div id="hipError" class="invalid-feedback" style="display: none;"></div>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <label for="elbowDysplasia" class="form-label fw-semibold">${this.t('elbowDysplasia')}</label>
-                                                    <select class="form-select" id="elbowDysplasia" required>
-                                                        <option value="">${this.t('elbowGrades')}</option>
-                                                        <option value="0">${this.t('elbow0')}</option>
-                                                        <option value="1">${this.t('elbow1')}</option>
-                                                        <option value="2">${this.t('elbow2')}</option>
-                                                        <option value="3">${this.t('elbow3')}</option>
-                                                        <option value="NB">${this.t('elbowNB')}</option>
-                                                    </select>
-                                                    <div id="elbowError" class="invalid-feedback" style="display: none;"></div>
-                                                </div>
-                                            </div>
-                                            
-                                            <!-- Rij 2: Patella en Ogen -->
-                                            <div class="row mb-3">
-                                                <div class="col-md-6">
-                                                    <label for="patellaLuxation" class="form-label fw-semibold">${this.t('patellaLuxation')}</label>
-                                                    <select class="form-select" id="patellaLuxation">
-                                                        <option value="">${this.t('patellaGrades')}</option>
-                                                        <option value="0">${this.t('patella0')}</option>
-                                                        <option value="1">${this.t('patella1')}</option>
-                                                        <option value="2">${this.t('patella2')}</option>
-                                                        <option value="3">${this.t('patella3')}</option>
-                                                    </select>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <label for="eyes" class="form-label fw-semibold">${this.t('eyes')}</label>
-                                                    <select class="form-select" id="eyes">
-                                                        <option value="">${this.t('choose')}</option>
-                                                        <option value="Vrij">${this.t('eyesFree')}</option>
-                                                        <option value="Distichiasis">${this.t('eyesDistichiasis')}</option>
-                                                        <option value="Overig">${this.t('eyesOther')}</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                            
-                                            <!-- Toelichting ogen - ALTIJD zichtbaar -->
-                                            <div class="row mb-3">
-                                                <div class="col-12">
-                                                    <label for="eyesExplanation" class="form-label fw-semibold">${this.t('eyesExplanation')}</label>
-                                                    <input type="text" class="form-control" id="eyesExplanation" placeholder="Vul hier een toelichting in indien nodig">
-                                                </div>
-                                            </div>
-                                            
-                                            <!-- Rij 3: Dandy Walker en Schildklier -->
-                                            <div class="row mb-3">
-                                                <div class="col-md-6">
-                                                    <label for="dandyWalker" class="form-label fw-semibold">${this.t('dandyWalker')}</label>
-                                                    <select class="form-select" id="dandyWalker" required>
-                                                        <option value="">${this.t('dandyOptions')}</option>
-                                                        <option value="Vrij op DNA">${this.t('dandyFreeDNA')}</option>
-                                                        <option value="Vrij op ouders">${this.t('dandyFreeParents')}</option>
-                                                        <option value="Drager">${this.t('dandyCarrier')}</option>
-                                                        <option value="Lijder">${this.t('dandyAffected')}</option>
-                                                    </select>
-                                                    <div id="dandyError" class="invalid-feedback" style="display: none;"></div>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <label for="thyroid" class="form-label fw-semibold">${this.t('thyroid')}</label>
-                                                    <select class="form-select" id="thyroid">
-                                                        <option value="">${this.t('choose')}</option>
-                                                        <option value="Negatief">${this.t('thyroidNegative')}</option>
-                                                        <option value="Positief">${this.t('thyroidPositive')}</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                            
-                                            <!-- Toelichting schildklier - ALTIJD zichtbaar -->
-                                            <div class="row mb-3">
-                                                <div class="col-12">
-                                                    <label for="thyroidExplanation" class="form-label fw-semibold">${this.t('thyroidExplanation')}</label>
-                                                    <input type="text" class="form-control" id="thyroidExplanation" placeholder="Vul hier een toelichting in indien nodig">
-                                                </div>
-                                            </div>
-                                            
-                                            <div class="alert alert-warning mb-0">
-                                                <i class="bi bi-exclamation-triangle"></i>
-                                                <strong>Velden met * zijn verplicht voor dek reuen.</strong> 
-                                                Gezondheidsgegevens worden opgeslagen bij deze hond in het hondenbestand.
                                             </div>
                                         </div>
                                     </div>
@@ -1759,6 +1249,7 @@ class DekReuenManager extends BaseModule {
         try {
             const supabase = this.getSupabase();
             
+            // Haal dek reuen op met paginatie
             const from = (page - 1) * this.pageSize;
             const to = from + this.pageSize - 1;
             
@@ -1793,24 +1284,22 @@ class DekReuenManager extends BaseModule {
         }
     }
     
-    /**
-     * Render overzichtslijst met COMPLETE gezondheidsgegevens
-     */
     async renderOverviewList(dekreuen, container, total = 0, currentPage = 1) {
         const html = [];
-        const t = this.t.bind(this);
         
         for (const dek of dekreuen) {
             const h = dek.hond || {};
             
+            // Haal foto's op voor deze hond
             const fotos = await this.getHondFotos(h.id);
-            const eersteFotos = fotos.slice(0, 3);
+            const eersteFotos = fotos.slice(0, 3); // Maximaal 3 foto's tonen
             
+            // Genereer foto HTML
             let fotosHTML = '';
             if (fotos.length > 0) {
                 fotosHTML = `
                     <div class="mt-3">
-                        <small class="text-muted d-block mb-2">${t('photos')}:</small>
+                        <small class="text-muted d-block mb-2">${this.t('photos')}:</small>
                         <div class="d-flex flex-wrap gap-2">
                             ${eersteFotos.map(foto => `
                                 <div class="dek-reu-foto-thumbnail" 
@@ -1832,51 +1321,6 @@ class DekReuenManager extends BaseModule {
                 `;
             }
             
-            // Gezondheidsgegevens - COMPLEET met alle velden
-            const healthInfo = `
-                <div class="mt-3 pt-2 border-top">
-                    <strong class="d-block mb-2">${t('healthData')}:</strong>
-                    <div class="row g-2 small">
-                        <div class="col-6">
-                            <span class="text-muted">${t('hd')}:</span> 
-                            <span class="fw-semibold">${h.heupdysplasie || '-'}</span>
-                        </div>
-                        <div class="col-6">
-                            <span class="text-muted">${t('ed')}:</span> 
-                            <span class="fw-semibold">${h.elleboogdysplasie || '-'}</span>
-                        </div>
-                        <div class="col-6">
-                            <span class="text-muted">${t('patella')}:</span> 
-                            <span class="fw-semibold">${h.patella || '-'}</span>
-                        </div>
-                        <div class="col-6">
-                            <span class="text-muted">${t('eyes')}:</span> 
-                            <span class="fw-semibold">${h.ogen || '-'}</span>
-                        </div>
-                        ${h.ogenverklaring ? `
-                        <div class="col-12">
-                            <span class="text-muted">${t('eyesExplanation')}:</span> 
-                            <span class="fw-semibold">${h.ogenverklaring}</span>
-                        </div>
-                        ` : ''}
-                        <div class="col-6">
-                            <span class="text-muted">${t('dandyWalker')}:</span> 
-                            <span class="fw-semibold">${h.dandyWalker || '-'}</span>
-                        </div>
-                        <div class="col-6">
-                            <span class="text-muted">${t('thyroid')}:</span> 
-                            <span class="fw-semibold">${h.schildklier || '-'}</span>
-                        </div>
-                        ${h.schildklierverklaring ? `
-                        <div class="col-12">
-                            <span class="text-muted">${t('thyroidExplanation')}:</span> 
-                            <span class="fw-semibold">${h.schildklierverklaring}</span>
-                        </div>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
-            
             html.push(`
                 <div class="col-md-6 col-lg-4 mb-4">
                     <div class="card h-100 shadow-sm">
@@ -1886,16 +1330,12 @@ class DekReuenManager extends BaseModule {
                                 <small class="text-muted d-block">${h.kennelnaam ? h.kennelnaam : ''}</small>
                                 <small class="text-muted d-block">Stamboeknr: ${h.stamboomnr || '-'}</small>
                                 <small class="text-muted d-block">Ras: ${h.ras || '-'}</small>
-                                ${dek.beschrijving ? `<br><span class="fst-italic">"${dek.beschrijving}"</span>` : ''}
+                                ${dek.beschrijving ? `<br>${dek.beschrijving}` : ''}
                             </p>
-                            
-                            ${healthInfo}
-                            
                             ${fotosHTML}
-                            
                             <div class="mt-3">
                                 <button class="btn btn-sm btn-outline-primary view-pedigree" data-hond-id="${dek.hond_id}">
-                                    <i class="bi bi-diagram-3"></i> ${t('viewPedigree')}
+                                    <i class="bi bi-diagram-3"></i> ${this.t('viewPedigree')}
                                 </button>
                             </div>
                         </div>
@@ -1904,6 +1344,7 @@ class DekReuenManager extends BaseModule {
             `);
         }
         
+        // Voeg paginatie toe
         const totalPages = Math.ceil(total / this.pageSize);
         const paginationHTML = this.getPaginationHTML(total, currentPage, totalPages, false);
         
@@ -1912,6 +1353,7 @@ class DekReuenManager extends BaseModule {
             ${paginationHTML}
         `;
         
+        // Event listeners voor foto thumbnails
         container.querySelectorAll('.dek-reu-foto-thumbnail').forEach(thumb => {
             thumb.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -1925,11 +1367,9 @@ class DekReuenManager extends BaseModule {
             });
         });
         
+        // Event listeners voor pedigree knop
         container.querySelectorAll('.view-pedigree').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const hondId = btn.dataset.hondId;
-                await this.viewPedigree(hondId);
-            });
+            btn.addEventListener('click', () => this.viewPedigree(btn.dataset.hondId));
         });
         
         this.attachPaginationEvents(false);
@@ -1937,7 +1377,6 @@ class DekReuenManager extends BaseModule {
     
     async renderBeheerList(dekreuen, container, total = 0, currentPage = 1) {
         const { data: { user } } = await this.getSupabase().auth.getUser();
-        const t = this.t.bind(this);
         
         const html = [];
         
@@ -1945,9 +1384,11 @@ class DekReuenManager extends BaseModule {
             const h = dek.hond || {};
             const canEdit = this.isAdmin || dek.toegevoegd_door === user?.id;
             
+            // Haal foto's op voor deze hond
             const fotos = await this.getHondFotos(h.id);
-            const eersteFotos = fotos.slice(0, 3);
+            const eersteFotos = fotos.slice(0, 3); // Maximaal 3 foto's tonen
             
+            // Genereer foto HTML
             let fotosHTML = '';
             if (fotos.length > 0) {
                 fotosHTML = `
@@ -1978,66 +1419,39 @@ class DekReuenManager extends BaseModule {
                     <div class="card">
                         <div class="card-body">
                             <div class="row align-items-center">
-                                <div class="col-md-2">
+                                <div class="col-md-4">
                                     <h6 class="mb-0">${h.naam || 'Onbekend'}</h6>
                                     <small class="text-muted d-block">${h.kennelnaam ? h.kennelnaam : ''}</small>
-                                    <small class="text-muted">${h.stamboomnr || '-'}</small>
+                                    <small class="text-muted">Stamboeknr: ${h.stamboomnr || '-'}</small>
                                     ${fotosHTML}
                                 </div>
-                                <div class="col-md-1">
+                                <div class="col-md-3">
                                     <span class="badge ${dek.actief ? 'bg-success' : 'bg-secondary'}">
-                                        ${dek.actief ? t('active') : t('inactive')}
+                                        ${dek.actief ? this.t('active') : this.t('inactive')}
                                     </span>
                                 </div>
-                                <div class="col-md-3 small">
-                                    <span class="d-block"><span class="text-muted">${t('hd')}:</span> ${h.heupdysplasie || '-'}</span>
-                                    <span class="d-block"><span class="text-muted">${t('ed')}:</span> ${h.elleboogdysplasie || '-'}</span>
-                                    <span class="d-block"><span class="text-muted">${t('patella')}:</span> ${h.patella || '-'}</span>
+                                <div class="col-md-3">
+                                    <small class="text-muted">${dek.beschrijving?.substring(0, 30) || '-'}</small>
                                 </div>
-                                <div class="col-md-3 small">
-                                    <span class="d-block"><span class="text-muted">${t('eyes')}:</span> ${h.ogen || '-'}</span>
-                                    <span class="d-block"><span class="text-muted">${t('dandyWalker')}:</span> ${h.dandyWalker || '-'}</span>
-                                    <span class="d-block"><span class="text-muted">${t('thyroid')}:</span> ${h.schildklier || '-'}</span>
-                                </div>
-                                <div class="col-md-3 text-end">
+                                <div class="col-md-2 text-end">
                                     ${canEdit ? `
-                                        <button class="btn btn-sm btn-outline-primary edit-dekreu mb-1 w-100" 
+                                        <button class="btn btn-sm btn-outline-primary edit-dekreu mb-1" 
                                             data-dekreu='${JSON.stringify(dek).replace(/'/g, '&apos;')}'>
-                                            <i class="bi bi-pencil"></i> ${t('edit')}
+                                            <i class="bi bi-pencil"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-outline-danger delete-dekreu w-100" data-id="${dek.id}">
-                                            <i class="bi bi-trash"></i> ${t('delete')}
+                                        <button class="btn btn-sm btn-outline-danger delete-dekreu" data-id="${dek.id}">
+                                            <i class="bi bi-trash"></i>
                                         </button>
                                     ` : ''}
                                 </div>
                             </div>
-                            ${h.ogenverklaring ? `
-                            <div class="row mt-2">
-                                <div class="col-12 small">
-                                    <span class="text-muted">${t('eyesExplanation')}:</span> ${h.ogenverklaring}
-                                </div>
-                            </div>
-                            ` : ''}
-                            ${h.schildklierverklaring ? `
-                            <div class="row mt-1">
-                                <div class="col-12 small">
-                                    <span class="text-muted">${t('thyroidExplanation')}:</span> ${h.schildklierverklaring}
-                                </div>
-                            </div>
-                            ` : ''}
-                            ${dek.beschrijving ? `
-                            <div class="row mt-2">
-                                <div class="col-12 small">
-                                    <span class="text-muted">${t('description')}:</span> ${dek.beschrijving}
-                                </div>
-                            </div>
-                            ` : ''}
                         </div>
                     </div>
                 </div>
             `);
         }
         
+        // Voeg paginatie toe
         const totalPages = Math.ceil(total / this.pageSize);
         const paginationHTML = this.getPaginationHTML(total, currentPage, totalPages, true);
         
@@ -2046,6 +1460,7 @@ class DekReuenManager extends BaseModule {
             ${paginationHTML}
         `;
         
+        // Event listeners voor foto thumbnails in beheer view
         container.querySelectorAll('.dek-reu-foto-thumbnail').forEach(thumb => {
             thumb.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -2161,122 +1576,71 @@ class DekReuenManager extends BaseModule {
         });
     }
     
-    /**
-     * Opslaan met gezondheidsgegevens en terugschrijven naar honden tabel
-     * ZELFDE METHODE VOOR ZOWEL TOEVOEGEN ALS BEWERKEN
-     */
     async saveDekReu() {
         try {
-            // Haal hondId op (bij bewerken is dit al bekend, bij toevoegen uit de select)
-            let hondId = this.selectedHondId;
+            // Haal de geselecteerde waarde op van Tom Select
+            const selectElement = document.getElementById('hondSelect');
+            let hondId = null;
             
-            // Als er geen selectedHondId is, probeer het uit de select te halen
-            if (!hondId) {
-                const selectElement = document.getElementById('hondSelect');
-                if (selectElement && selectElement.tomselect) {
-                    hondId = selectElement.tomselect.getValue();
-                } else if (selectElement) {
-                    hondId = selectElement.value;
-                }
+            if (selectElement.tomselect) {
+                hondId = selectElement.tomselect.getValue();
+            } else {
+                hondId = selectElement.value;
             }
             
-            // Valideer of we een hond hebben
+            // Voor bewerken mag hondId null zijn (we gebruiken dan de bestaande)
             if (!hondId && !this.editingDekReuId) {
                 alert('Selecteer een hond');
                 return;
             }
             
-            // Valideer verplichte gezondheidsvelden
-            if (!this.validateHealthFields()) {
-                alert('Vul alle verplichte gezondheidsvelden in (HD, ED en Dandy Walker)');
-                return;
-            }
-            
-            // Haal gebruiker op
             const { data: { user } } = await this.getSupabase().auth.getUser();
-            if (!user) {
-                alert('Je moet ingelogd zijn om deze actie uit te voeren');
-                return;
-            }
-            
-            // Verzamel gezondheidsdata uit het formulier
-            const healthData = {
-                heupdysplasie: document.getElementById('hipDysplasia').value || null,
-                elleboogdysplasie: document.getElementById('elbowDysplasia').value || null,
-                patella: document.getElementById('patellaLuxation').value || null,
-                ogen: document.getElementById('eyes').value || null,
-                ogenverklaring: document.getElementById('eyesExplanation')?.value || null,
-                dandyWalker: document.getElementById('dandyWalker').value || null,
-                schildklier: document.getElementById('thyroid').value || null,
-                schildklierverklaring: document.getElementById('thyroidExplanation')?.value || null
-            };
-            
-            // Verzamel dek reu data
-            const dekReuData = {
-                actief: document.getElementById('actiefCheck').checked,
-                beschrijving: document.getElementById('beschrijvingField').value || null
-            };
-            
-            // Update gezondheidsgegevens van de hond (dit doen we altijd)
-            const hondIdToUpdate = hondId || this.selectedHondId;
-            if (hondIdToUpdate) {
-                const { error: healthError } = await this.getSupabase()
-                    .from('honden')
-                    .update(healthData)
-                    .eq('id', hondIdToUpdate);
-                
-                if (healthError) {
-                    console.warn('Kon gezondheidsgegevens niet bijwerken:', healthError);
-                } else {
-                    console.log('✅ Gezondheidsgegevens bijgewerkt in honden tabel');
-                }
-            }
             
             if (this.editingDekReuId) {
-                // UPDATE: Bestaande dek reu bijwerken
-                const { error: dekReuError } = await this.getSupabase()
+                // UPDATE bestaande dek reu
+                const updateData = {
+                    actief: document.getElementById('actiefCheck').checked,
+                    beschrijving: document.getElementById('beschrijvingField').value || null
+                };
+                
+                const { error } = await this.getSupabase()
                     .from('dekreuen')
-                    .update(dekReuData)
+                    .update(updateData)
                     .eq('id', this.editingDekReuId);
                 
-                if (dekReuError) throw dekReuError;
+                if (error) throw error;
                 
-                alert('Dek reu succesvol bijgewerkt!');
+                alert('Dek reu bijgewerkt!');
                 
             } else {
-                // INSERT: Nieuwe dek reu toevoegen
-                if (!hondId) {
-                    alert('Selecteer een hond');
-                    return;
-                }
-                
-                const { error: insertError } = await this.getSupabase()
+                // INSERT nieuwe dek reu
+                const { error } = await this.getSupabase()
                     .from('dekreuen')
                     .insert({
                         hond_id: parseInt(hondId),
                         toegevoegd_door: user.id,
-                        actief: dekReuData.actief,
-                        beschrijving: dekReuData.beschrijving
+                        actief: document.getElementById('actiefCheck').checked,
+                        beschrijving: document.getElementById('beschrijvingField').value || null
                     });
                 
-                if (insertError) {
-                    if (insertError.code === '23505') {
+                if (error) {
+                    if (error.code === '23505') {
                         alert('Deze hond is al een dek reu');
                     } else {
-                        throw insertError;
+                        throw error;
                     }
                     return;
                 }
                 
-                alert('Dek reu succesvol toegevoegd!');
+                alert('Dek reu toegevoegd!');
             }
             
-            // Sluit modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('addEditDekReuModal'));
             if (modal) modal.hide();
             
-            // Ververs de lijst
+            // Reset naar pagina 1 na toevoegen/bewerken
             this.currentPage = 1;
+            
             if (this.currentView === 'beheer') {
                 await this.loadDekReuen(true, 1);
             } else {
@@ -2284,8 +1648,8 @@ class DekReuenManager extends BaseModule {
             }
             
         } catch (error) {
-            console.error('❌ Fout bij opslaan:', error);
-            alert('Fout bij opslaan: ' + error.message);
+            console.error(error);
+            alert('Fout: ' + error.message);
         }
     }
     
@@ -2312,83 +1676,11 @@ class DekReuenManager extends BaseModule {
         }
     }
     
-    /**
-     * Toon stamboom voor een hond
-     */
-    async viewPedigree(hondId) {
-        console.log('📊 Stamboom openen voor hond ID:', hondId);
-        
-        if (!hondId) {
-            console.error('❌ Geen hond ID opgegeven');
-            alert('Kan stamboom niet openen: geen hond geselecteerd');
-            return;
-        }
-        
-        let stamboomManager = null;
-        
-        if (window.stamboomManager) {
-            stamboomManager = window.stamboomManager;
-        } else if (window.pedigreeManager) {
-            stamboomManager = window.pedigreeManager;
-        } else if (window.StamboomManager && window.StamboomManager.instance) {
-            stamboomManager = window.StamboomManager.instance;
-        } else if (window.StamboomManager) {
-            try {
-                stamboomManager = new window.StamboomManager(window.hondenService);
-                window.stamboomManager = stamboomManager;
-            } catch (e) {
-                console.error('❌ Kon geen StamboomManager instantie maken:', e);
-            }
-        }
-        
-        if (!stamboomManager) {
-            console.error('❌ Geen StamboomManager gevonden');
-            alert('Stamboom module is niet beschikbaar. Probeer de pagina te verversen.');
-            return;
-        }
-        
-        try {
-            if (stamboomManager.initialize && typeof stamboomManager.initialize === 'function') {
-                await stamboomManager.initialize();
-            }
-        } catch (initError) {
-            console.error('❌ Fout bij initialiseren StamboomManager:', initError);
-        }
-        
-        let hond = null;
-        
-        if (stamboomManager.getDogById && typeof stamboomManager.getDogById === 'function') {
-            hond = stamboomManager.getDogById(parseInt(hondId));
-        }
-        
-        if (hond) {
-            if (stamboomManager.showPedigree && typeof stamboomManager.showPedigree === 'function') {
-                await stamboomManager.showPedigree(hond);
-                return;
-            } else if (stamboomManager.showStamboom && typeof stamboomManager.showStamboom === 'function') {
-                await stamboomManager.showStamboom(hond);
-                return;
-            }
-        }
-        
-        try {
-            const supabase = this.getSupabase();
-            const { data: hondData, error } = await supabase
-                .from('honden')
-                .select('*')
-                .eq('id', hondId)
-                .single();
-            
-            if (error) throw error;
-            
-            if (hondData && stamboomManager.showPedigree) {
-                await stamboomManager.showPedigree(hondData);
-            } else {
-                alert('Stamboom kan niet worden getoond');
-            }
-        } catch (dbError) {
-            console.error('❌ Kon hond niet ophalen uit database:', dbError);
-            alert('Kon hondgegevens niet laden voor stamboom');
+    viewPedigree(hondId) {
+        if (window.pedigreeManager) {
+            window.pedigreeManager.showPedigree(hondId);
+        } else {
+            alert('Stamboom module niet beschikbaar');
         }
     }
     
@@ -2404,6 +1696,7 @@ class DekReuenManager extends BaseModule {
         });
     }
     
+    // Helper method voor progress tonen
     showProgress(message, containerId) {
         const container = document.getElementById(containerId);
         if (container) {
@@ -2423,13 +1716,16 @@ class DekReuenManager extends BaseModule {
         }
     }
     
+    // Helper method voor progress verbergen
     hideProgress() {
+        // Verwijder alle spinners en alerts
         document.querySelectorAll('.alert-info .spinner-border').forEach(spinner => {
             const alert = spinner.closest('.alert');
             if (alert) alert.remove();
         });
     }
     
+    // Helper method voor foutmelding
     showError(message, containerId = null) {
         if (containerId) {
             const container = document.getElementById(containerId);
@@ -2449,6 +1745,7 @@ class DekReuenManager extends BaseModule {
         }
     }
     
+    // Helper method voor succesmelding
     showSuccess(message, containerId = null) {
         if (containerId) {
             const container = document.getElementById(containerId);
@@ -2476,4 +1773,4 @@ const DekReuenManagerInstance = new DekReuenManager();
 window.DekReuenManager = DekReuenManagerInstance;
 window.dekReuenManager = DekReuenManagerInstance;
 
-console.log('📦 DekReuenManager geladen met COMPLETE GEZONDHEIDSINFO in overzicht en DUIDELIJKE BENAMINGEN');
+console.log('📦 DekReuenManager geladen met Tom Select, paginatie en uitgebreide foto functionaliteit');
