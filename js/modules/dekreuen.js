@@ -1715,7 +1715,7 @@ class DekReuenManager extends BaseModule {
                                                     <div id="dandyError" class="invalid-feedback" style="display: none;"></div>
                                                 </div>
                                                 <div class="col-md-6">
-                                                    <label for="thyroid" class="form-label fw-semibold">${this.t('thyroid')}</label>
+                                                    <label for="thyroid" class="form-label fw-semibold">${this.t('thyroid')} *</label>
                                                     <select class="form-select" id="thyroid" required>
                                                         <option value="">${this.t('choose')}</option>
                                                         <option value="Negatief">${this.t('thyroidNegative')}</option>
@@ -1728,7 +1728,7 @@ class DekReuenManager extends BaseModule {
                                             <!-- Toelichting schildklier - ALTIJD zichtbaar -->
                                             <div class="row mb-3">
                                                 <div class="col-12">
-                                                    <label for="thyroidExplanation" class="form-label fw-semibold">${this.t('thyroidExplanation')} *</label>
+                                                    <label for="thyroidExplanation" class="form-label fw-semibold">${this.t('thyroidExplanation')}</label>
                                                     <input type="text" class="form-control" id="thyroidExplanation" placeholder="Vul hier een toelichting in indien nodig">
                                                 </div>
                                             </div>
