@@ -1704,7 +1704,7 @@ class DekReuenManager extends BaseModule {
                                             <!-- Rij 3: Dandy Walker en Schildklier -->
                                             <div class="row mb-3">
                                                 <div class="col-md-6">
-                                                    <label for="dandyWalker" class="form-label fw-semibold">${this.t('dandyWalker')}</label>
+                                                    <label for="dandyWalker" class="form-label fw-semibold">${this.t('dandyWalker')} *</label>
                                                     <select class="form-select" id="dandyWalker" required>
                                                         <option value="">${this.t('dandyOptions')}</option>
                                                         <option value="Vrij op DNA">${this.t('dandyFreeDNA')}</option>
@@ -1728,7 +1728,7 @@ class DekReuenManager extends BaseModule {
                                             <!-- Toelichting schildklier - ALTIJD zichtbaar -->
                                             <div class="row mb-3">
                                                 <div class="col-12">
-                                                    <label for="thyroidExplanation" class="form-label fw-semibold">${this.t('thyroidExplanation')}</label>
+                                                    <label for="thyroidExplanation" class="form-label fw-semibold">${this.t('thyroidExplanation')} *</label>
                                                     <input type="text" class="form-control" id="thyroidExplanation" placeholder="Vul hier een toelichting in indien nodig">
                                                 </div>
                                             </div>
