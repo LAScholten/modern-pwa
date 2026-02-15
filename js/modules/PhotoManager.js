@@ -26,6 +26,9 @@ class PhotoManager extends BaseModule {
         this.totalPhotoPages = 0;
         this.isLoadingPhotos = false;
         
+        // PhotoViewer referentie
+        this.photoViewer = null;
+        
         this.translations = {
             nl: {
                 photoGallery: "Foto Galerij",
@@ -178,8 +181,52 @@ class PhotoManager extends BaseModule {
         return this.translations[this.currentLang][key] || key;
     }
     
+    /**
+     * Zorg dat PhotoViewer geladen is, laad hem anders dynamisch via script tag
+     */
+    async ensurePhotoViewer() {
+        // Als PhotoViewer al bestaat, niets doen
+        if (window.photoViewer && typeof window.photoViewer.showPhoto === 'function') {
+            this.photoViewer = window.photoViewer;
+            return;
+        }
+        
+        console.log('📸 PhotoViewer wordt dynamisch geladen door PhotoManager...');
+        
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'js/modules/PhotoViewer.js';
+            script.onload = () => {
+                // Wacht kort tot de PhotoViewer beschikbaar is
+                let checkCount = 0;
+                const checkInterval = setInterval(() => {
+                    if (window.photoViewer) {
+                        clearInterval(checkInterval);
+                        this.photoViewer = window.photoViewer;
+                        this.photoViewer.updateLanguage(this.currentLang);
+                        console.log('✅ PhotoViewer geladen en klaar voor gebruik door PhotoManager');
+                        resolve();
+                    } else if (checkCount > 20) { // 2 seconden timeout
+                        clearInterval(checkInterval);
+                        console.error('❌ PhotoViewer niet gevonden na laden');
+                        reject(new Error('PhotoViewer niet beschikbaar'));
+                    }
+                    checkCount++;
+                }, 100);
+            };
+            script.onerror = () => {
+                console.error('❌ PhotoViewer script laden mislukt');
+                reject(new Error('PhotoViewer laden mislukt'));
+            };
+            document.head.appendChild(script);
+        });
+    }
+    
     updateLanguage(lang) {
         this.currentLang = lang;
+        if (this.photoViewer) {
+            this.photoViewer.updateLanguage(lang);
+        }
         if (window.photoViewer) {
             window.photoViewer.updateLanguage(lang);
         }
@@ -1125,18 +1172,29 @@ class PhotoManager extends BaseModule {
         
         container.innerHTML = html;
         
-        // Gebruik PhotoViewer voor vergroting
-        document.querySelectorAll('.photo-thumbnail').forEach(element => {
-            element.addEventListener('click', (e) => {
+        // Gebruik PhotoViewer voor vergroting met dynamisch laden
+        for (const element of document.querySelectorAll('.photo-thumbnail')) {
+            element.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 const imageUrl = element.dataset.imageUrl;
                 const dogName = element.dataset.dogName || t('unknownDog');
                 
-                if (window.photoViewer && imageUrl) {
-                    window.photoViewer.showPhoto(imageUrl, dogName);
+                try {
+                    // Laad PhotoViewer dynamisch als die nog niet geladen is
+                    await this.ensurePhotoViewer();
+                    
+                    if (window.photoViewer && imageUrl) {
+                        window.photoViewer.showPhoto(imageUrl, dogName);
+                    } else if (this.photoViewer && imageUrl) {
+                        this.photoViewer.showPhoto(imageUrl, dogName);
+                    }
+                } catch (error) {
+                    console.error('Fout bij tonen foto:', error);
+                    // Fallback: open direct in nieuw tabblad
+                    window.open(imageUrl, '_blank');
                 }
             });
-        });
+        }
     }
     
     async displayPhotos(fotos) {
@@ -1228,18 +1286,29 @@ class PhotoManager extends BaseModule {
         
         container.innerHTML = html;
         
-        // Gebruik PhotoViewer voor vergroting
-        document.querySelectorAll('.photo-thumbnail').forEach(element => {
-            element.addEventListener('click', (e) => {
+        // Gebruik PhotoViewer voor vergroting met dynamisch laden
+        for (const element of document.querySelectorAll('.photo-thumbnail')) {
+            element.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 const imageUrl = element.dataset.imageUrl;
                 const dogName = element.dataset.dogName || t('unknownDog');
                 
-                if (window.photoViewer && imageUrl) {
-                    window.photoViewer.showPhoto(imageUrl, dogName);
+                try {
+                    // Laad PhotoViewer dynamisch als die nog niet geladen is
+                    await this.ensurePhotoViewer();
+                    
+                    if (window.photoViewer && imageUrl) {
+                        window.photoViewer.showPhoto(imageUrl, dogName);
+                    } else if (this.photoViewer && imageUrl) {
+                        this.photoViewer.showPhoto(imageUrl, dogName);
+                    }
+                } catch (error) {
+                    console.error('Fout bij tonen foto:', error);
+                    // Fallback: open direct in nieuw tabblad
+                    window.open(imageUrl, '_blank');
                 }
             });
-        });
+        }
         
         if (this.isAdmin) {
             document.querySelectorAll('.delete-photo-btn').forEach(btn => {
