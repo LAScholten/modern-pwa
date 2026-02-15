@@ -1,7 +1,7 @@
 /**
  * Reu en Teef Stamboom Module - AFZONDERLIJK BESTAND
  * Bevat alle stamboom functionaliteit voor toekomstige pup
- * **FOTOFUNCTIE GECORRIGEERD** - Gebruikt nu EXACT DEZELFDE LOGICA ALS STAMBOOMMANAGER
+ * **FOTOFUNCTIE GECORRIGEERD** - Gebruikt nu PhotoViewer module
  * **COICALCULATOR VOLLEDIG GECORRIGEERD** - Gebruikt nu exact dezelfde COI-berekeningen voor ALLE honden
  * **PRIVEINFO TOEGEVOEGD** - Toont nu ook priveinfo zoals StamboomManager
  */
@@ -706,26 +706,6 @@ class ReuTeefStamboom {
             <!-- GEÏSOLEERDE Popup overlay voor toekomstige pup details -->
             <div class="rtc-pedigree-popup-overlay" id="rtcPedigreePopupOverlay" style="display: none;">
                 <div class="rtc-pedigree-popup-container" id="rtcPedigreePopupContainer"></div>
-            </div>
-            
-            <!-- GROTE FOTO OVERLAY VOOR REU/TEEF STAMBOOM - IDENTIEK AAN STAMBOOMMANAGER -->
-            <div class="photo-large-overlay" id="rtcPhotoLargeOverlay" style="display: none;">
-                <div class="photo-large-container" id="rtcPhotoLargeContainer">
-                    <div class="photo-large-header">
-                        <h5 class="modal-title mb-0 text-white">
-                            <i class="bi bi-image me-2"></i> <span id="rtcPhotoDogName"></span>
-                        </h5>
-                        <button type="button" class="btn-close btn-close-white photo-large-close" aria-label="${this.t('closePhoto')}"></button>
-                    </div>
-                    <div class="photo-large-content" id="rtcPhotoLargeContent">
-                        <img id="rtcLargePhotoImg" class="photo-large-img" src="" alt="${this.t('fullSizePhoto')}">
-                    </div>
-                    <div class="photo-large-footer">
-                        <button type="button" class="btn btn-secondary photo-large-close-btn">
-                            <i class="bi bi-x-lg me-1"></i> ${this.t('closePhoto')}
-                        </button>
-                    </div>
-                </div>
             </div>
             
             <style>
@@ -1867,146 +1847,6 @@ class ReuTeefStamboom {
                     font-size: 1rem;
                 }
                 
-                /* ============================================= */
-                /* GROTE FOTO OVERLAY STYLES - IDENTIEK AAN STAMBOOMMANAGER */
-                /* ============================================= */
-                .photo-large-overlay {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    background: rgba(0, 0, 0, 0.85);
-                    z-index: 1070;
-                    display: none;
-                    align-items: center;
-                    justify-content: center;
-                    animation: rtc-fadeIn 0.3s;
-                }
-                
-                .photo-large-container {
-                    background: white;
-                    border-radius: 12px;
-                    overflow: hidden;
-                    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-                    display: flex;
-                    flex-direction: column;
-                    max-height: 95vh;
-                    animation: rtc-slideUp 0.3s;
-                }
-                
-                .photo-large-header {
-                    padding: 12px 16px;
-                    background: #0d6efd;
-                    color: white;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                }
-                
-                .photo-large-header .modal-title {
-                    margin: 0;
-                    font-size: 1.1rem;
-                }
-                
-                .photo-large-close {
-                    background: none;
-                    border: none;
-                    color: white;
-                    opacity: 0.8;
-                    font-size: 1.3rem;
-                    cursor: pointer;
-                    width: 32px;
-                    height: 32px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    border-radius: 50%;
-                    transition: all 0.2s;
-                }
-                
-                .photo-large-close:hover {
-                    opacity: 1;
-                    background: rgba(255, 255, 255, 0.2);
-                }
-                
-                .photo-large-content {
-                    padding: 20px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    overflow: hidden;
-                    flex: 1;
-                    min-height: 300px;
-                }
-                
-                .photo-large-img {
-                    max-width: 100%;
-                    max-height: 100%;
-                    object-fit: contain;
-                    border-radius: 4px;
-                }
-                
-                .photo-large-footer {
-                    padding: 16px;
-                    border-top: 1px solid #dee2e6;
-                    display: flex;
-                    justify-content: center;
-                    background: #f8f9fa;
-                }
-                
-                .photo-large-close-btn {
-                    min-width: 120px;
-                    padding: 8px 20px;
-                }
-                
-                /* Print styles */
-                @media print {
-                    .modal-dialog {
-                        max-width: none;
-                        margin: 0;
-                    }
-                    
-                    .modal-header {
-                        display: none !important;
-                    }
-                    
-                    .rtc-pedigree-container-compact {
-                        padding: 0;
-                        background: white;
-                        height: auto !important;
-                        overflow-x: visible !important;
-                        height: 100vh !important;
-                    }
-                    
-                    .rtc-pedigree-grid-compact {
-                        flex-direction: row !important;
-                        height: auto;
-                        padding: 20px !important;
-                        gap: 15px;
-                    }
-                    
-                    .rtc-pedigree-generation-col {
-                        flex-direction: column;
-                        gap: 10px;
-                    }
-                    
-                    .rtc-pedigree-card-compact.horizontal {
-                        break-inside: avoid;
-                        box-shadow: none;
-                        border: 1px solid #ccc !important;
-                        margin-bottom: 10px;
-                    }
-                    
-                    .main-dog-compact {
-                        border: 2px solid #000 !important;
-                    }
-                    
-                    .rtc-pedigree-popup-overlay {
-                        display: none !important;
-                    }
-                }
-                
                 /* HEALTH BADGES - IDENTIEK AAN STAMBOOMMANAGER */
                 .badge-hd {
                     background-color: #dc3545 !important;
@@ -2091,7 +1931,7 @@ class ReuTeefStamboom {
         // Render de stamboom
         await this.renderFuturePuppyPedigree(futurePuppy, selectedTeef, selectedReu, coiResult, healthAnalysis);
         
-        // **EXACT DEZELFDE GLOBAL EVENT LISTENERS ALS STAMBOOMMANAGER**
+        // **EXACT DEZELFDE EVENT LISTENERS ALS STAMBOOMMANAGER - GEBRUIKT PHOTOVIEWER**
         this.setupPhotoEventListeners();
     }
     
@@ -2107,7 +1947,7 @@ class ReuTeefStamboom {
         }
     }
     
-    // **EXACT DEZELFDE METHODE ALS STAMBOOMMANAGER: Setup photo event listeners**
+    // **AANGEPASTE METHODE: Gebruikt nu PhotoViewer in plaats van eigen showLargePhoto**
     setupPhotoEventListeners() {
         const thumbnailClickHandler = (e) => {
             const thumbnail = e.target.closest('.photo-thumbnail');
@@ -2118,48 +1958,39 @@ class ReuTeefStamboom {
                 const photoSrc = thumbnail.getAttribute('data-photo-src');
                 const dogName = thumbnail.getAttribute('data-dog-name') || '';
                 
-                console.log('ReuTeefStamboom: Foto geklikt, src:', photoSrc ? photoSrc.substring(0, 100) + '...' : 'geen src');
+                console.log('ReuTeefStamboom: Foto geklikt, gebruik PhotoViewer, src:', photoSrc ? photoSrc.substring(0, 100) + '...' : 'geen src');
                 
                 if (photoSrc && photoSrc.trim() !== '') {
-                    this.showLargePhoto(photoSrc, dogName);
+                    // Gebruik de globale PhotoViewer instance
+                    if (window.photoViewer) {
+                        window.photoViewer.showPhoto(photoSrc, dogName);
+                    } else {
+                        console.error('ReuTeefStamboom: PhotoViewer niet beschikbaar');
+                        // Fallback voor als PhotoViewer niet geladen is
+                        this.fallbackShowLargePhoto(photoSrc, dogName);
+                    }
                 } else {
                     console.error('ReuTeefStamboom: Geen geldige foto src gevonden in attribuut');
                     // Probeer img src als fallback
                     const imgElement = thumbnail.querySelector('img');
                     if (imgElement && imgElement.src) {
                         console.log('ReuTeefStamboom: Gebruik img src als fallback:', imgElement.src.substring(0, 100) + '...');
-                        this.showLargePhoto(imgElement.src, dogName);
+                        if (window.photoViewer) {
+                            window.photoViewer.showPhoto(imgElement.src, dogName);
+                        } else {
+                            this.fallbackShowLargePhoto(imgElement.src, dogName);
+                        }
                     }
                 }
             }
         };
         
-        const photoCloseHandler = (e) => {
-            if (e.target.classList.contains('photo-large-close') || 
-                e.target.classList.contains('photo-large-close-btn') ||
-                e.target.closest('.photo-large-close') ||
-                e.target.closest('.photo-large-close-btn')) {
-                this.closePhotoOverlay();
-            }
-            
-            // Klik buiten de grote foto om te sluiten
-            if (e.target.id === 'rtcPhotoLargeOverlay') {
-                this.closePhotoOverlay();
-            }
-        };
-        
         // Alleen listeners toevoegen voor onze eigen elementen
         document.addEventListener('click', thumbnailClickHandler);
-        document.addEventListener('click', photoCloseHandler);
         
-        // Escape key handler voor onze eigen overlay
+        // Escape key handler voor onze eigen overlay (alleen voor popup)
         const escapeKeyHandler = (e) => {
             if (e.key === 'Escape') {
-                const photoOverlay = document.getElementById('rtcPhotoLargeOverlay');
-                if (photoOverlay && photoOverlay.style.display !== 'none') {
-                    this.closePhotoOverlay();
-                }
-                
                 const popupOverlay = document.getElementById('rtcPedigreePopupOverlay');
                 if (popupOverlay && popupOverlay.style.display !== 'none') {
                     popupOverlay.style.display = 'none';
@@ -2170,219 +2001,52 @@ class ReuTeefStamboom {
         document.addEventListener('keydown', escapeKeyHandler);
     }
     
-    // **EXACT DEZELFDE METHODE ALS STAMBOOMMANAGER: Toon grote foto**
-    showLargePhoto(photoData, dogName = '') {
-        console.log('ReuTeefStamboom: Toon grote foto:', photoData ? 'data gevonden' : 'geen data');
+    // **FALLBACK METHODE VOOR ALS PHOTOVIEWER NIET BESCHIKBAAR IS**
+    fallbackShowLargePhoto(photoData, dogName = '') {
+        console.warn('ReuTeefStamboom: Gebruik fallback photo viewer - PhotoViewer niet beschikbaar');
         
-        // Verwijder bestaande overlay
+        // Verwijder bestaande fallback overlay
         const existingOverlay = document.getElementById('rtcPhotoLargeOverlay');
         if (existingOverlay) {
             existingOverlay.remove();
         }
         
-        // Maak nieuwe overlay - ZELFDE HTML ALS STAMBOOMMANAGER
+        // Maak een simpele fallback overlay
         const overlayHTML = `
-            <div class="photo-large-overlay" id="rtcPhotoLargeOverlay" style="display: flex;">
-                <div class="photo-large-container" id="rtcPhotoLargeContainer">
-                    <div class="photo-large-header">
-                        <h5 class="modal-title mb-0 text-white">
-                            <i class="bi bi-image me-2"></i> ${dogName || 'Foto'}
-                        </h5>
-                        <button type="button" class="btn-close btn-close-white photo-large-close" aria-label="${this.t('closePhoto')}"></button>
+            <div class="photo-large-overlay" id="rtcPhotoLargeOverlay" style="display: flex; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.9); z-index: 1070; align-items: center; justify-content: center;">
+                <div style="background: white; border-radius: 8px; max-width: 90%; max-height: 90%; overflow: hidden;">
+                    <div style="padding: 10px 15px; background: #0d6efd; color: white; display: flex; justify-content: space-between; align-items: center;">
+                        <h5 style="margin: 0;"><i class="bi bi-image me-2"></i> ${dogName || 'Foto'}</h5>
+                        <button onclick="document.getElementById('rtcPhotoLargeOverlay').remove()" style="background: none; border: none; color: white; font-size: 20px; cursor: pointer;">&times;</button>
                     </div>
-                    <div class="photo-large-content" id="rtcPhotoLargeContent">
-                        <img src="${photoData}" 
-                             alt="${dogName || 'Foto'}" 
-                             class="photo-large-img"
-                             id="rtcLargePhotoImg"
-                             onload="window.currentRTCPhotoManager && window.currentRTCPhotoManager.adjustPhotoSize(this)">
+                    <div style="padding: 20px; text-align: center;">
+                        <img src="${photoData}" style="max-width: 100%; max-height: 70vh; object-fit: contain;">
                     </div>
-                    <div class="photo-large-footer">
-                        <button type="button" class="btn btn-secondary photo-large-close-btn">
-                            <i class="bi bi-x-lg me-1"></i> ${this.t('closePhoto')}
-                        </button>
+                    <div style="padding: 10px; text-align: center; border-top: 1px solid #dee2e6;">
+                        <button class="btn btn-secondary" onclick="document.getElementById('rtcPhotoLargeOverlay').remove()">Sluiten</button>
                     </div>
                 </div>
             </div>
         `;
         
         document.body.insertAdjacentHTML('beforeend', overlayHTML);
-        
-        // Zet een referentie naar deze manager zodat de onload functie hem kan vinden
-        window.currentRTCPhotoManager = this;
-        
-        // Als de foto al geladen is (cached), pas dan direct de grootte aan
-        const img = document.getElementById('rtcLargePhotoImg');
-        if (img && img.complete) {
-            this.adjustPhotoSize(img);
-        }
-        
-        // Event listeners voor sluiten - ZELFDE LOGICA ALS STAMBOOMMANAGER
-        this.setupPhotoOverlayEvents();
     }
     
-    // **EXACT DEZELFDE METHODE ALS STAMBOOMMANAGER: Pas foto grootte aan**
+    // Deze methodes zijn niet meer nodig omdat PhotoViewer wordt gebruikt,
+    // maar we houden ze als fallback voor als PhotoViewer niet beschikbaar is
     adjustPhotoSize(imgElement) {
         if (!imgElement) return;
-        
-        const container = document.getElementById('rtcPhotoLargeContainer');
-        const content = document.getElementById('rtcPhotoLargeContent');
-        if (!container || !content) return;
-        
-        // Haal originele afmetingen op
-        const naturalWidth = imgElement.naturalWidth;
-        const naturalHeight = imgElement.naturalHeight;
-        
-        if (!naturalWidth || !naturalHeight) {
-            console.warn('ReuTeefStamboom: Kan foto afmetingen niet bepalen');
-            return;
-        }
-        
-        console.log(`ReuTeefStamboom: Foto afmetingen: ${naturalWidth}x${naturalHeight}`);
-        
-        // Bereken beschikbare ruimte (met veilige marge)
-        const maxContainerWidth = window.innerWidth * 0.95;
-        const maxContainerHeight = window.innerHeight * 0.95;
-        const safeMargin = 60; // Ruimte voor header/footer
-        
-        const availableWidth = maxContainerWidth;
-        const availableHeight = maxContainerHeight - safeMargin;
-        
-        // Bereken optimale grootte
-        let optimalWidth = naturalWidth;
-        let optimalHeight = naturalHeight;
-        
-        // Als foto breder is dan beschikbaar
-        if (optimalWidth > availableWidth) {
-            const ratio = availableWidth / optimalWidth;
-            optimalWidth = availableWidth;
-            optimalHeight = optimalHeight * ratio;
-        }
-        
-        // Als foto nu te hoog is
-        if (optimalHeight > availableHeight) {
-            const ratio = availableHeight / optimalHeight;
-            optimalHeight = availableHeight;
-            optimalWidth = optimalWidth * ratio;
-        }
-        
-        // Als de foto erg klein is (thumbnail), vergroot hem dan een beetje
-        const minSize = 300; // Minimale grootte voor leesbaarheid
-        if (optimalWidth < minSize && optimalHeight < minSize) {
-            // Vergroot proportioneel tot minSize
-            const scale = minSize / Math.max(optimalWidth, optimalHeight);
-            optimalWidth *= scale;
-            optimalHeight *= scale;
-            
-            // Zorg dat we niet buiten het scherm gaan
-            if (optimalWidth > availableWidth) {
-                optimalWidth = availableWidth;
-                optimalHeight = (optimalHeight / optimalWidth) * availableWidth;
-            }
-            if (optimalHeight > availableHeight) {
-                optimalHeight = availableHeight;
-                optimalWidth = (optimalWidth / optimalHeight) * availableHeight;
-            }
-        }
-        
-        // Pas container grootte aan
-        container.style.width = optimalWidth + 'px';
-        container.style.height = (optimalHeight + safeMargin) + 'px';
-        
-        console.log(`ReuTeefStamboom: Optimale grootte: ${optimalWidth}x${optimalHeight}`);
-        
-        // Centreren
-        container.style.position = 'absolute';
-        container.style.top = '50%';
-        container.style.left = '50%';
-        container.style.transform = 'translate(-50%, -50%)';
-        
-        // Voor portret foto's: iets anders centreren
-        if (optimalHeight > optimalWidth) {
-            // Portret foto's iets hoger plaatsen voor betere balans
-            container.style.transform = 'translate(-50%, -48%)';
-        }
+        // Simpele fallback - doet niets speciaals
     }
     
-    // **EXACT DEZELFDE METHODE ALS STAMBOOMMANAGER: Setup event listeners voor foto overlay**
     setupPhotoOverlayEvents() {
-        const overlay = document.getElementById('rtcPhotoLargeOverlay');
-        if (!overlay) return;
-        
-        // Sluit met Escape key
-        const closeOnEscape = (e) => {
-            if (e.key === 'Escape') {
-                this.closePhotoOverlay();
-                document.removeEventListener('keydown', closeOnEscape);
-            }
-        };
-        document.addEventListener('keydown', closeOnEscape);
-        
-        // Sluit knop
-        const closeBtn = overlay.querySelector('.photo-large-close');
-        if (closeBtn) {
-            closeBtn.addEventListener('click', () => {
-                this.closePhotoOverlay();
-            });
-        }
-        
-        // Sluit knop footer
-        const closeBtnFooter = overlay.querySelector('.photo-large-close-btn');
-        if (closeBtnFooter) {
-            closeBtnFooter.addEventListener('click', () => {
-                this.closePhotoOverlay();
-            });
-        }
-        
-        // Klik buiten container om te sluiten
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) {
-                this.closePhotoOverlay();
-            }
-        });
-        
-        // Cleanup on animation end
-        overlay.addEventListener('animationend', function handler() {
-            if (overlay.style.display === 'none') {
-                document.removeEventListener('keydown', closeOnEscape);
-                overlay.removeEventListener('animationend', handler);
-            }
-        });
-        
-        // Window resize event - pas grootte aan bij resizen
-        const resizeHandler = () => {
-            const img = document.getElementById('rtcLargePhotoImg');
-            if (img && img.complete) {
-                this.adjustPhotoSize(img);
-            }
-        };
-        
-        window.addEventListener('resize', resizeHandler);
-        
-        // Sla resize handler op voor later cleanup
-        overlay.dataset.resizeHandler = 'active';
-        overlay._resizeHandler = resizeHandler;
+        // Niet meer nodig voor PhotoViewer, maar fallback events kunnen hier blijven
     }
     
-    // **EXACT DEZELFDE METHODE ALS STAMBOOMMANAGER: Sluit foto overlay netjes**
     closePhotoOverlay() {
         const overlay = document.getElementById('rtcPhotoLargeOverlay');
         if (overlay) {
-            // Verwijder resize listener
-            if (overlay._resizeHandler) {
-                window.removeEventListener('resize', overlay._resizeHandler);
-            }
-            
-            overlay.style.opacity = '0';
-            overlay.style.transition = 'opacity 0.2s ease';
-            
-            setTimeout(() => {
-                if (overlay.parentNode) {
-                    overlay.parentNode.removeChild(overlay);
-                }
-                // Cleanup globale referentie
-                window.currentRTCPhotoManager = null;
-            }, 200);
+            overlay.remove();
         }
     }
     

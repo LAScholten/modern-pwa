@@ -14,11 +14,9 @@ class ReuTeefCombinatie {
         this.hondenCache = new Map();
         this.isLoading = false; // Voorkom dubbele laadpogingen - IDENTIEK AAN SEARCHMANAGER
         
-        // Foto caches - IDENTIEK AAN STAMBOOMMANAGER
+        // Foto caches - ALLEEN VOOR CHECK OF FOTO'S BESTAAN, NIET VOOR WEERGAVE
         this.dogPhotosCache = new Map();
         this.dogHasPhotosCache = new Map();
-        this.dogThumbnailsCache = new Map();
-        this.fullPhotoCache = new Map();
         
         // COI Calculator instance - LAAT INITIALISEREN
         this.coiCalculator = null;
@@ -402,10 +400,8 @@ class ReuTeefCombinatie {
             }
         };
         
-        // Globale event handlers voor foto's
-        this._eventHandlers = {};
+        // Geen event handlers meer voor foto's
         this._isActive = true;
-        this.setupGlobalEventListeners();
     }
     
     injectDependencies(db, auth) {
@@ -425,6 +421,7 @@ class ReuTeefCombinatie {
     }
     
     // ==================== FOTO CACHE METHODES ====================
+    // ALLEEN VOOR CHECK OF FOTO'S BESTAAN, GEEN WEERGAVE
     
     async checkDogHasPhotos(dogId) {
         if (!dogId || dogId === 0) return false;
@@ -441,219 +438,6 @@ class ReuTeefCombinatie {
         } catch (error) {
             console.error('Fout bij checken foto\'s voor hond:', dogId, error);
             return false;
-        }
-    }
-    
-    async getDogThumbnails(dogId, limit = 9) {
-        if (!dogId || dogId === 0) return [];
-        const dog = this.getDogById(dogId);
-        if (!dog || !dog.stamboomnr) return [];
-        const cacheKey = `thumbs_${dogId}_${dog.stamboomnr}_${limit}`;
-        if (this.dogThumbnailsCache.has(cacheKey)) {
-            return this.dogThumbnailsCache.get(cacheKey);
-        }
-        try {
-            const thumbnails = await this.db.getFotoThumbnails(dog.stamboomnr, limit);
-            this.dogThumbnailsCache.set(cacheKey, thumbnails || []);
-            return thumbnails || [];
-        } catch (error) {
-            console.error('Fout bij ophalen thumbnails voor hond:', dogId, error);
-            return [];
-        }
-    }
-    
-    async getFullSizeFoto(fotoId) {
-        if (!fotoId) return null;
-        const cacheKey = `full_${fotoId}`;
-        if (this.fullPhotoCache.has(cacheKey)) {
-            return this.fullPhotoCache.get(cacheKey);
-        }
-        try {
-            const foto = await this.db.getFotoById(fotoId);
-            if (foto) {
-                this.fullPhotoCache.set(cacheKey, foto);
-            }
-            return foto;
-        } catch (error) {
-            console.error('Fout bij ophalen volledige foto:', fotoId, error);
-            return null;
-        }
-    }
-    
-    // ==================== GLOBALE EVENT LISTENERS ====================
-    
-    setupGlobalEventListeners() {
-        // Event delegation voor foto thumbnail clicks
-        const thumbnailClickHandler = async (e) => {
-            if (!this._isActive) return;
-            
-            const thumbnail = e.target.closest('.photo-thumbnail');
-            if (thumbnail) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                const photoId = thumbnail.getAttribute('data-photo-id');
-                const isThumbnail = thumbnail.getAttribute('data-is-thumbnail') === 'true';
-                
-                if (!photoId) return;
-                
-                try {
-                    // Laad pas de volledige foto als er op geklikt wordt
-                    const fullPhoto = await this.getFullSizeFoto(photoId);
-                    
-                    if (fullPhoto && fullPhoto.data) {
-                        // Haal hondnaam op uit de popup
-                        const popupTitle = document.querySelector('.rtc-popup-title, .popup-title');
-                        let dogName = '';
-                        if (popupTitle) {
-                            dogName = popupTitle.textContent.trim();
-                            dogName = dogName.replace(/^[^a-zA-Z]*/, '').trim();
-                        }
-                        
-                        this.showLargePhoto(fullPhoto.data, dogName);
-                    } else {
-                        console.error('Kon volledige foto niet laden:', photoId);
-                        // Probeer de thumbnail als fallback
-                        const imgElement = thumbnail.querySelector('img');
-                        if (imgElement && imgElement.src) {
-                            this.showLargePhoto(imgElement.src, dogName);
-                        }
-                    }
-                } catch (error) {
-                    console.error('Fout bij laden volledige foto:', error);
-                }
-            }
-        };
-        
-        // Event delegation voor grote foto sluitknoppen
-        const photoCloseHandler = (e) => {
-            if (!this._isActive) return;
-            
-            if (e.target.classList.contains('photo-large-close') || 
-                e.target.classList.contains('photo-large-close-btn') ||
-                e.target.closest('.photo-large-close') ||
-                e.target.closest('.photo-large-close-btn')) {
-                const overlay = document.getElementById('rtcPhotoLargeOverlay');
-                if (overlay) {
-                    overlay.style.display = 'none';
-                    setTimeout(() => {
-                        if (overlay.parentNode) {
-                            overlay.parentNode.removeChild(overlay);
-                        }
-                    }, 300);
-                }
-            }
-            
-            // Klik buiten de grote foto om te sluiten
-            if (e.target.id === 'rtcPhotoLargeOverlay') {
-                const overlay = e.target;
-                overlay.style.display = 'none';
-                setTimeout(() => {
-                    if (overlay.parentNode) {
-                        overlay.parentNode.removeChild(overlay);
-                    }
-                }, 300);
-            }
-        };
-        
-        // Escape key handler voor foto overlays
-        const escapeKeyHandler = (e) => {
-            if (!this._isActive) return;
-            
-            if (e.key === 'Escape') {
-                // Sluit grote foto overlay
-                const photoOverlay = document.getElementById('rtcPhotoLargeOverlay');
-                if (photoOverlay && photoOverlay.style.display !== 'none') {
-                    photoOverlay.style.display = 'none';
-                    setTimeout(() => {
-                        if (photoOverlay.parentNode) {
-                            photoOverlay.parentNode.removeChild(photoOverlay);
-                        }
-                    }, 300);
-                    return;
-                }
-                
-                // Sluit detail popup overlay
-                const popupOverlay = document.getElementById('rtcPedigreePopupOverlay');
-                if (popupOverlay && popupOverlay.style.display !== 'none') {
-                    popupOverlay.style.display = 'none';
-                }
-            }
-        };
-        
-        // Voeg event listeners toe en sla referenties op
-        document.addEventListener('click', thumbnailClickHandler);
-        document.addEventListener('click', photoCloseHandler);
-        document.addEventListener('keydown', escapeKeyHandler);
-        
-        // Sla referenties op voor cleanup
-        this._eventHandlers.thumbnailClick = thumbnailClickHandler;
-        this._eventHandlers.photoClose = photoCloseHandler;
-        this._eventHandlers.escapeKey = escapeKeyHandler;
-    }
-    
-    removeGlobalEventListeners() {
-        // Verwijder alle event listeners die we hebben toegevoegd
-        if (this._eventHandlers.thumbnailClick) {
-            document.removeEventListener('click', this._eventHandlers.thumbnailClick);
-            delete this._eventHandlers.thumbnailClick;
-        }
-        
-        if (this._eventHandlers.photoClose) {
-            document.removeEventListener('click', this._eventHandlers.photoClose);
-            delete this._eventHandlers.photoClose;
-        }
-        
-        if (this._eventHandlers.escapeKey) {
-            document.removeEventListener('keydown', this._eventHandlers.escapeKey);
-            delete this._eventHandlers.escapeKey;
-        }
-    }
-    
-    showLargePhoto(photoData, dogName = '') {
-        if (!this._isActive) return;
-        
-        console.log('Toon grote foto:', photoData.substring(0, 100) + '...');
-        
-        // Verwijder bestaande overlay
-        const existingOverlay = document.getElementById('rtcPhotoLargeOverlay');
-        if (existingOverlay) {
-            existingOverlay.remove();
-        }
-        
-        // Maak nieuwe overlay
-        const overlayHTML = `
-            <div class="photo-large-overlay" id="rtcPhotoLargeOverlay" style="display: flex;">
-                <div class="photo-large-container" id="rtcPhotoLargeContainer">
-                    <div class="photo-large-header">
-                        <button type="button" class="btn-close btn-close-white photo-large-close"></button>
-                    </div>
-                    <div class="photo-large-content">
-                        <img src="${photoData}" 
-                             alt="${dogName || 'Foto'}" 
-                             class="photo-large-img"
-                             id="rtcPhotoLargeImg"
-                             style="max-width: 90vw; max-height: 80vh; object-fit: contain;">
-                    </div>
-                    <div class="photo-large-footer">
-                        <button type="button" class="btn btn-secondary photo-large-close-btn">
-                            <i class="bi bi-x-circle me-1"></i> ${this.t('closePhoto')}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        document.body.insertAdjacentHTML('beforeend', overlayHTML);
-        
-        // Sluit met Escape key (we gebruiken de globale handler)
-        const overlay = document.getElementById('rtcPhotoLargeOverlay');
-        if (overlay) {
-            overlay.addEventListener('animationend', function handler() {
-                if (overlay.style.display === 'none') {
-                    overlay.removeEventListener('animationend', handler);
-                }
-            });
         }
     }
     
@@ -1882,7 +1666,6 @@ class ReuTeefCombinatie {
             return { coi6Gen: '0.0', homozygosity6Gen: '0.0', kinship6Gen: '0.0' };
         }
         
-
         // Complexe gevallen - probeer minimaal iets
         return { coi6Gen: '0.0', homozygosity6Gen: '0.0', kinship6Gen: '0.0' };
     }

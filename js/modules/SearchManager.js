@@ -3,7 +3,7 @@
 /**
  * Search Manager Module
  * Beheert het zoeken naar honden met real-time filtering op naam en kennelnaam
- * Inclusief foto functionaliteit met thumbnail viewer en fullscreen viewer
+ * Inclusief foto functionaliteit met thumbnail viewer (gebruikt PhotoViewer voor vergroting)
  * Inclusief nakomelingen functionaliteit
  * Beide kolommen zijn nu scrollbaar
  * SUPABASE VERSIE MET PAGINATIE - FIXED VERSION
@@ -12,6 +12,7 @@
  * **NAKOMELINGEN FIXED**: Nakomelingen modal blijft open, hond details in aparte modal
  * **SPECIALE TEKENS FIXED**: Zoeken negeert nu speciale tekens (ä, ö, ü, ß, etc.)
  * **PRIVEINFO TOEGEVOEGD**: Toont priveinfo als huidige gebruiker eigenaar is
+ * **PHOTOVIEWER INTEGRATIE**: Gebruikt PhotoViewer voor het vergroten van foto's
  */
 
 class SearchManager extends BaseModule {
@@ -28,7 +29,8 @@ class SearchManager extends BaseModule {
         this.isLoading = false; // Voorkom dubbele laadpogingen
         this.currentOffspringModalDogId = null; // Bewaar huidige nakomelingen hond ID
         this.currentOffspringModalDogName = null; // Bewaar huidige nakomelingen hond naam
-        this.currentUserId = null; // NIEUW: Huidige gebruiker ID voor priveinfo
+        this.currentUserId = null; // Huidige gebruiker ID voor priveinfo
+        this.photoViewerLoaded = false; // Track of PhotoViewer is geladen
         
         // Vertalingen uitgebreid met nakomelingen functionaliteit
         this.translations = {
@@ -143,6 +145,7 @@ class SearchManager extends BaseModule {
                 noPhotos: "Geen foto's beschikbaar",
                 clickToEnlarge: "Klik om te vergroten",
                 closePhoto: "Sluiten",
+                loadingPhotoViewer: "Fotoviewer laden...",
                 
                 // NAKOMELINGEN vertalingen
                 offspring: "Nakomelingen",
@@ -280,6 +283,7 @@ class SearchManager extends BaseModule {
                 noPhotos: "No photos available",
                 clickToEnlarge: "Click to enlarge",
                 closePhoto: "Close",
+                loadingPhotoViewer: "Loading photo viewer...",
                 
                 // OFFSPRING translations
                 offspring: "Offspring",
@@ -374,6 +378,7 @@ class SearchManager extends BaseModule {
                 noPhotos: "Keine Fotos verfügbar",
                 clickToEnlarge: "Klicken zum Vergrößern",
                 closePhoto: "Schließen",
+                loadingPhotoViewer: "Fotobetrachter laden...",
                 
                 // NAKOMELINGEN Übersetzungen
                 offspring: "Nachkommen",
@@ -417,6 +422,89 @@ class SearchManager extends BaseModule {
     initialize() {
         console.log('SearchManager: initializing...');
         return Promise.resolve();
+    }
+    
+    // NIEUW: Methode om PhotoViewer dynamisch te laden
+    async loadPhotoViewer() {
+        if (window.photoViewer) {
+            // PhotoViewer is al geladen (instance bestaat al)
+            return true;
+        }
+        
+        if (this.photoViewerLoaded) {
+            // We zijn al bezig met laden, wacht even
+            return new Promise((resolve) => {
+                const checkInterval = setInterval(() => {
+                    if (window.photoViewer) {
+                        clearInterval(checkInterval);
+                        resolve(true);
+                    }
+                }, 100);
+            });
+        }
+        
+        this.photoViewerLoaded = true;
+        
+        return new Promise((resolve, reject) => {
+            console.log('SearchManager: PhotoViewer module wordt dynamisch geladen...');
+            
+            // Toon korte melding dat viewer wordt geladen
+            if (window.uiHandler && window.uiHandler.showToast) {
+                window.uiHandler.showToast(this.t('loadingPhotoViewer'), 'info', 1000);
+            }
+            
+            const script = document.createElement('script');
+            script.src = 'js/modules/PhotoViewer.js';
+            script.onload = () => {
+                console.log('SearchManager: PhotoViewer module geladen');
+                // Wacht 1 tick om zeker te zijn dat de defineProperty werkt
+                setTimeout(() => {
+                    if (window.photoViewer) {
+                        console.log('SearchManager: PhotoViewer instance beschikbaar');
+                        resolve(true);
+                    } else {
+                        console.warn('SearchManager: PhotoViewer class geladen maar instance nog niet, forceren...');
+                        // Forceer aanmaken instance
+                        window._photoViewer = new window.PhotoViewerClass();
+                        Object.defineProperty(window, 'photoViewer', {
+                            get: function() { return window._photoViewer; }
+                        });
+                        resolve(true);
+                    }
+                }, 50);
+            };
+            script.onerror = (error) => {
+                console.error('SearchManager: Fout bij laden PhotoViewer:', error);
+                this.photoViewerLoaded = false;
+                reject(error);
+            };
+            document.head.appendChild(script);
+        });
+    }
+    
+    // NIEUW: Methode om foto te tonen met PhotoViewer
+    async showPhotoWithViewer(photoSrc, dogName = '') {
+        try {
+            // Zorg dat PhotoViewer geladen is
+            await this.loadPhotoViewer();
+            
+            // Toon foto met PhotoViewer
+            if (window.photoViewer && window.photoViewer.showPhoto) {
+                // Update taal van PhotoViewer
+                if (window.photoViewer.updateLanguage) {
+                    window.photoViewer.updateLanguage(this.currentLang);
+                }
+                
+                window.photoViewer.showPhoto(photoSrc, dogName);
+            } else {
+                console.error('PhotoViewer niet beschikbaar na laden');
+                // Fallback naar oude methode? Of gewoon error
+                alert('Fotoviewer kon niet worden geladen');
+            }
+        } catch (error) {
+            console.error('Fout bij tonen foto met PhotoViewer:', error);
+            alert('Fotoviewer kon niet worden geladen: ' + error.message);
+        }
     }
     
     // NIEUW: Methode om huidige gebruiker ID op te halen
@@ -553,7 +641,7 @@ class SearchManager extends BaseModule {
     
     // Setup globale event listeners eenmalig
     setupGlobalEventListeners() {
-        // Event delegation voor foto thumbnail clicks
+        // Event delegation voor foto thumbnail clicks - GEBRUIKT PHOTOVIEWER
         document.addEventListener('click', (e) => {
             const thumbnail = e.target.closest('.photo-thumbnail');
             if (thumbnail) {
@@ -566,34 +654,17 @@ class SearchManager extends BaseModule {
                 console.log('Foto geklikt, src:', photoSrc ? photoSrc.substring(0, 100) + '...' : 'geen src');
                 
                 if (photoSrc && photoSrc.trim() !== '') {
-                    this.showLargePhoto(photoSrc, dogName);
+                    // Gebruik PhotoViewer in plaats van eigen showLargePhoto
+                    this.showPhotoWithViewer(photoSrc, dogName);
                 } else {
                     console.error('Geen geldige foto src gevonden in attribuut');
                     // Probeer img src als fallback
                     const imgElement = thumbnail.querySelector('img');
                     if (imgElement && imgElement.src) {
                         console.log('Gebruik img src als fallback:', imgElement.src.substring(0, 100) + '...');
-                        this.showLargePhoto(imgElement.src, dogName);
+                        this.showPhotoWithViewer(imgElement.src, dogName);
                     }
                 }
-            }
-        });
-        
-        // Event delegation voor grote foto sluitknoppen
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('photo-large-close') || 
-                e.target.classList.contains('photo-large-close-btn') ||
-                e.target.closest('.photo-large-close') ||
-                e.target.closest('.photo-large-close-btn')) {
-                const overlay = document.getElementById('photoLargeOverlay');
-                if (overlay) {
-                    this.closePhotoOverlay();
-                }
-            }
-            
-            // Klik buiten de grote foto om te sluiten
-            if (e.target.id === 'photoLargeOverlay') {
-                this.closePhotoOverlay();
             }
         });
         
@@ -814,222 +885,6 @@ class SearchManager extends BaseModule {
     async checkDogHasPhotos(dogId) {
         const photos = await this.getDogPhotos(dogId);
         return photos.length > 0;
-    }
-    
-    // **GECORRIGEERDE METHODE: Toon grote foto - ADAPTIVE VERSION**
-    showLargePhoto(photoData, dogName = '') {
-        console.log('Toon grote foto (SearchManager - Adaptive):', photoData ? 'data gevonden' : 'geen data');
-        
-        // Verwijder bestaande overlay
-        const existingOverlay = document.getElementById('photoLargeOverlay');
-        if (existingOverlay) {
-            existingOverlay.remove();
-        }
-        
-        // Maak nieuwe overlay
-        const overlayHTML = `
-            <div class="photo-large-overlay" id="photoLargeOverlay" style="display: flex;">
-                <div class="photo-large-container" id="photoLargeContainer">
-                    <div class="photo-large-header">
-                        <h5 class="modal-title mb-0 text-white">
-                            <i class="bi bi-image me-2"></i> ${dogName || 'Foto'}
-                        </h5>
-                        <button type="button" class="btn-close btn-close-white photo-large-close" aria-label="${this.t('closePhoto')}"></button>
-                    </div>
-                    <div class="photo-large-content" id="photoLargeContent">
-                        <img src="${photoData}" 
-                             alt="${dogName || 'Foto'}" 
-                             class="photo-large-img"
-                             id="photoLargeImg"
-                             onload="window.currentPhotoManager && window.currentPhotoManager.adjustPhotoSize(this)">
-                    </div>
-                    <div class="photo-large-footer">
-                        <button type="button" class="btn btn-secondary photo-large-close-btn">
-                            <i class="bi bi-x-lg me-1"></i> ${this.t('closePhoto')}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        document.body.insertAdjacentHTML('beforeend', overlayHTML);
-        
-        // Zet een referentie naar deze manager zodat de onload functie hem kan vinden
-        window.currentPhotoManager = this;
-        
-        // Als de foto al geladen is (cached), pas dan direct de grootte aan
-        const img = document.getElementById('photoLargeImg');
-        if (img.complete) {
-            this.adjustPhotoSize(img);
-        }
-        
-        // Event listeners voor sluiten
-        this.setupPhotoOverlayEvents();
-    }
-    
-    // **NIEUWE METHODE: Pas foto grootte aan voor optimale weergave**
-    adjustPhotoSize(imgElement) {
-        if (!imgElement) return;
-        
-        const container = document.getElementById('photoLargeContainer');
-        const content = document.getElementById('photoLargeContent');
-        if (!container || !content) return;
-        
-        // Haal originele afmetingen op
-        const naturalWidth = imgElement.naturalWidth;
-        const naturalHeight = imgElement.naturalHeight;
-        
-        if (!naturalWidth || !naturalHeight) {
-            console.warn('Kan foto afmetingen niet bepalen');
-            return;
-        }
-        
-        console.log(`Foto afmetingen: ${naturalWidth}x${naturalHeight}`);
-        
-        // Bereken beschikbare ruimte (met veilige marge)
-        const maxContainerWidth = window.innerWidth * 0.95;
-        const maxContainerHeight = window.innerHeight * 0.95;
-        const safeMargin = 60; // Ruimte voor header/footer
-        
-        const availableWidth = maxContainerWidth;
-        const availableHeight = maxContainerHeight - safeMargin;
-        
-        // Bereken optimale grootte
-        let optimalWidth = naturalWidth;
-        let optimalHeight = naturalHeight;
-        
-        // Als foto breder is dan beschikbaar
-        if (optimalWidth > availableWidth) {
-            const ratio = availableWidth / optimalWidth;
-            optimalWidth = availableWidth;
-            optimalHeight = optimalHeight * ratio;
-        }
-        
-        // Als foto nu te hoog is
-        if (optimalHeight > availableHeight) {
-            const ratio = availableHeight / optimalHeight;
-            optimalHeight = availableHeight;
-            optimalWidth = optimalWidth * ratio;
-        }
-        
-        // Als de foto erg klein is (thumbnail), vergroot hem dan een beetje
-        const minSize = 300; // Minimale grootte voor leesbaarheid
-        if (optimalWidth < minSize && optimalHeight < minSize) {
-            // Vergroot proportioneel tot minSize
-            const scale = minSize / Math.max(optimalWidth, optimalHeight);
-            optimalWidth *= scale;
-            optimalHeight *= scale;
-            
-            // Zorg dat we niet buiten het scherm gaan
-            if (optimalWidth > availableWidth) {
-                optimalWidth = availableWidth;
-                optimalHeight = (optimalHeight / optimalWidth) * availableWidth;
-            }
-            if (optimalHeight > availableHeight) {
-                optimalHeight = availableHeight;
-                optimalWidth = (optimalWidth / optimalHeight) * availableHeight;
-            }
-        }
-        
-        // Pas container grootte aan
-        container.style.width = optimalWidth + 'px';
-        container.style.height = (optimalHeight + safeMargin) + 'px';
-        
-        console.log(`Optimale grootte: ${optimalWidth}x${optimalHeight}`);
-        
-        // Centreren
-        container.style.position = 'absolute';
-        container.style.top = '50%';
-        container.style.left = '50%';
-        container.style.transform = 'translate(-50%, -50%)';
-        
-        // Voor portret foto's: iets anders centreren
-        if (optimalHeight > optimalWidth) {
-            // Portret foto's iets hoger plaatsen voor betere balans
-            container.style.transform = 'translate(-50%, -48%)';
-        }
-    }
-    
-    // **NIEUWE METHODE: Setup event listeners voor foto overlay**
-    setupPhotoOverlayEvents() {
-        const overlay = document.getElementById('photoLargeOverlay');
-        if (!overlay) return;
-        
-        // Sluit met Escape key
-        const closeOnEscape = (e) => {
-            if (e.key === 'Escape') {
-                this.closePhotoOverlay();
-                document.removeEventListener('keydown', closeOnEscape);
-            }
-        };
-        document.addEventListener('keydown', closeOnEscape);
-        
-        // Sluit knop
-        const closeBtn = overlay.querySelector('.photo-large-close');
-        if (closeBtn) {
-            closeBtn.addEventListener('click', () => {
-                this.closePhotoOverlay();
-            });
-        }
-        
-        // Sluit knop footer
-        const closeBtnFooter = overlay.querySelector('.photo-large-close-btn');
-        if (closeBtnFooter) {
-            closeBtnFooter.addEventListener('click', () => {
-                this.closePhotoOverlay();
-            });
-        }
-        
-        // Klik buiten container om te sluiten
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) {
-                this.closePhotoOverlay();
-            }
-        });
-        
-        // Cleanup on animation end
-        overlay.addEventListener('animationend', function handler() {
-            if (overlay.style.display === 'none') {
-                document.removeEventListener('keydown', closeOnEscape);
-                overlay.removeEventListener('animationend', handler);
-            }
-        });
-        
-        // Window resize event - pas grootte aan bij resizen
-        const resizeHandler = () => {
-            const img = document.getElementById('photoLargeImg');
-            if (img && img.complete) {
-                this.adjustPhotoSize(img);
-            }
-        };
-        
-        window.addEventListener('resize', resizeHandler);
-        
-        // Sla resize handler op voor later cleanup
-        overlay.dataset.resizeHandler = 'active';
-        overlay._resizeHandler = resizeHandler;
-    }
-    
-    // **NIEUWE METHODE: Sluit foto overlay netjes**
-    closePhotoOverlay() {
-        const overlay = document.getElementById('photoLargeOverlay');
-        if (overlay) {
-            // Verwijder resize listener
-            if (overlay._resizeHandler) {
-                window.removeEventListener('resize', overlay._resizeHandler);
-            }
-            
-            overlay.style.opacity = '0';
-            overlay.style.transition = 'opacity 0.2s ease';
-            
-            setTimeout(() => {
-                if (overlay.parentNode) {
-                    overlay.parentNode.removeChild(overlay);
-                }
-                // Cleanup globale referentie
-                window.currentPhotoManager = null;
-            }, 200);
-        }
     }
     
     // Toon nakomelingen modal
@@ -2289,148 +2144,6 @@ class SearchManager extends BaseModule {
                 }
                 
                 /* ============================================= */
-                /* GROTE FOTO OVERLAY STYLES - ADAPTIVE CONTAINER */
-                /* ============================================= */
-                .photo-large-overlay {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    background: rgba(0, 0, 0, 0.97);
-                    z-index: 99999;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    animation: fadeIn 0.2s;
-                }
-                
-                .photo-large-container {
-                    background: #000;
-                    overflow: hidden;
-                    display: flex;
-                    flex-direction: column;
-                    margin: 0;
-                    border: none;
-                    border-radius: 4px;
-                    box-shadow: 0 15px 50px rgba(0,0,0,0.9);
-                    position: relative;
-                    max-width: 95vw;
-                    max-height: 95vh;
-                }
-                
-                .photo-large-header {
-                    padding: 10px 15px;
-                    background: rgba(0, 0, 0, 0.7);
-                    color: white;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    flex-shrink: 0;
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    z-index: 10;
-                    backdrop-filter: blur(5px);
-                }
-                
-                .photo-large-header .modal-title {
-                    margin: 0;
-                    font-size: 1rem;
-                    font-weight: 500;
-                    max-width: 70%;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    white-space: nowrap;
-                    color: white;
-                }
-                
-                .photo-large-close {
-                    background: rgba(255, 255, 255, 0.15);
-                    border: none;
-                    color: white;
-                    opacity: 0.9;
-                    font-size: 1.2rem;
-                    cursor: pointer;
-                    width: 30px;
-                    height: 30px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    border-radius: 50%;
-                    transition: all 0.2s;
-                    flex-shrink: 0;
-                }
-                
-                .photo-large-close:hover {
-                    opacity: 1;
-                    background: rgba(255, 255, 255, 0.25);
-                }
-                
-                .photo-large-content {
-                    padding: 0;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    overflow: hidden;
-                    flex: 1;
-                    width: 100%;
-                    height: 100%;
-                    background: #000;
-                }
-                
-                .photo-large-img {
-                    display: block;
-                    object-fit: contain;
-                    width: 100%;
-                    height: 100%;
-                }
-                
-                .photo-large-footer {
-                    padding: 10px 15px;
-                    background: rgba(0, 0, 0, 0.7);
-                    color: white;
-                    text-align: center;
-                    flex-shrink: 0;
-                    position: absolute;
-                    bottom: 0;
-                    left: 0;
-                    right: 0;
-                    z-index: 10;
-                    backdrop-filter: blur(5px);
-                }
-                
-                .photo-large-close-btn {
-                    background: rgba(255, 255, 255, 0.15);
-                    border: 1px solid rgba(255, 255, 255, 0.3);
-                    color: white;
-                    min-width: 90px;
-                    font-size: 0.9rem;
-                    padding: 6px 15px;
-                    transition: all 0.2s;
-                    border-radius: 4px;
-                }
-                
-                .photo-large-close-btn:hover {
-                    background: #5a6268;     /* <-- TOEVOEGEN */
-                    border-color: #545b62;   /* <-- TOEVOEGEN */
-                    color: white;            /* <-- TOEVOEGEN */
-                }
-                
-                /* Hide controls when not hovering for cleaner view */
-                .photo-large-header,
-                .photo-large-footer {
-                    opacity: 0;
-                    transition: opacity 0.3s ease;
-                }
-                
-                .photo-large-container:hover .photo-large-header,
-                .photo-large-container:hover .photo-large-footer {
-                    opacity: 1;
-                }
-                
-                /* ============================================= */
                 /* NAKOMELINGEN MODAL STYLES - AANGEPAST VOOR MOBIEL */
                 /* ============================================= */
                 .offspring-modal-overlay {
@@ -2548,10 +2261,6 @@ class SearchManager extends BaseModule {
                     z-index: 1100;
                 }
                 
-                #photoLargeOverlay {
-                    z-index: 1110;
-                }
-                
                 /* Scrollbar styling */
                 #searchResultsContainer::-webkit-scrollbar,
                 #detailsContainer::-webkit-scrollbar,
@@ -2596,22 +2305,6 @@ class SearchManager extends BaseModule {
                     }
                 }
                 
-                /* Animation */
-                @keyframes zoomIn {
-                    from {
-                        opacity: 0;
-                        transform: scale(0.95);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: scale(1);
-                    }
-                }
-                
-                .photo-large-container {
-                    animation: zoomIn 0.3s ease-out;
-                }
-                
                 @media (max-width: 768px) {
                     .modal-body {
                         max-height: calc(100vh - 200px);
@@ -2654,41 +2347,7 @@ class SearchManager extends BaseModule {
                         height: 40px;
                     }
                     
-                    /* ADAPTIVE CONTAINER MOBILE RESPONSIVE */
-                    .photo-large-container {
-                        max-width: 98vw;
-                        max-height: 98vh;
-                    }
-                    
-                    .photo-large-header {
-                        padding: 8px 12px;
-                    }
-                    
-                    .photo-large-header .modal-title {
-                        font-size: 0.9rem;
-                    }
-                    
-                    .photo-large-close {
-                        width: 28px;
-                        height: 28px;
-                        font-size: 1.1rem;
-                    }
-                    
-                    .photo-large-footer {
-                        padding: 8px 12px;
-                    }
-                    
-                    .photo-large-close-btn {
-                        min-width: 80px;
-                        font-size: 0.85rem;
-                        padding: 5px 12px;
-                    }
-                    
                     /* Show controls by default on mobile (easier to close) */
-                    .photo-large-header,
-                    .photo-large-footer {
-                        opacity: 1;
-                    }
                     
                     /* AANPASSING: Stamboomnummer, ras, geslacht, vachtkleur en nakomelingen iets kleiner op mobiel */
                     .dog-details-line .stamboom,
@@ -2761,38 +2420,6 @@ class SearchManager extends BaseModule {
                     
                     /* Verklein specifieke kolommen op zeer kleine schermen */
                     @media (max-width: 480px) {
-                        /* Extra small screens for photo container */
-                        .photo-large-container {
-                            max-width: 100vw;
-                            max-height: 100vh;
-                            border-radius: 0;
-                        }
-                        
-                        .photo-large-header {
-                            padding: 6px 10px;
-                        }
-                        
-                        .photo-large-header .modal-title {
-                            font-size: 0.85rem;
-                            max-width: 65%;
-                        }
-                        
-                        .photo-large-close {
-                            width: 26px;
-                            height: 26px;
-                            font-size: 1rem;
-                        }
-                        
-                        .photo-large-footer {
-                            padding: 6px 10px;
-                        }
-                        
-                        .photo-large-close-btn {
-                            min-width: 70px;
-                            font-size: 0.8rem;
-                            padding: 4px 10px;
-                        }
-                        
                         .offspring-modal-container {
                             width: 98% !important;
                             max-width: 98% !important;
