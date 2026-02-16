@@ -2482,6 +2482,7 @@ class DekReuenManager extends BaseModule {
     
     /**
      * Opslaan met gezondheidsgegevens en terugschrijven naar honden tabel
+     * IDENTIEKE STRUCTUUR voor zowel toevoegen als bijwerken!
      */
     async saveDekReu() {
         try {
@@ -2526,7 +2527,7 @@ class DekReuenManager extends BaseModule {
             };
             
             if (this.editingDekReuId) {
-                // Update dek reu gegevens
+                // BESTAANDE dek reu bijwerken - UPDATE
                 const updateData = {
                     actief: document.getElementById('actiefCheck').checked,
                     beschrijving: document.getElementById('beschrijvingField').value || null
@@ -2539,21 +2540,8 @@ class DekReuenManager extends BaseModule {
                 
                 if (error) throw error;
                 
-                // Update gezondheidsgegevens van de hond
-                const { error: healthError } = await this.getSupabase()
-                    .from('honden')
-                    .update(healthData)
-                    .eq('id', hondId);
-                
-                if (healthError) {
-                    console.warn('Kon gezondheidsgegevens niet bijwerken:', healthError);
-                } else {
-                    console.log('✅ Gezondheidsgegevens bijgewerkt in honden tabel');
-                }
-                
-                alert('Dek reu bijgewerkt!');
-                
             } else {
+                // NIEUWE dek reu toevoegen - INSERT
                 // Haal email op van ingelogde gebruiker
                 const email = document.getElementById('email').value || user.email;
                 
@@ -2575,21 +2563,21 @@ class DekReuenManager extends BaseModule {
                     }
                     return;
                 }
-                
-                // Update gezondheidsgegevens van de hond
-                const { error: healthError } = await this.getSupabase()
-                    .from('honden')
-                    .update(healthData)
-                    .eq('id', hondId);
-                
-                if (healthError) {
-                    console.warn('Kon gezondheidsgegevens niet bijwerken:', healthError);
-                } else {
-                    console.log('✅ Gezondheidsgegevens bijgewerkt in honden tabel');
-                }
-                
-                alert('Dek reu toegevoegd!');
             }
+            
+            // ALTIJD gezondheidsgegevens van de hond bijwerken (IDENTIEK voor beide!)
+            const { error: healthError } = await this.getSupabase()
+                .from('honden')
+                .update(healthData)
+                .eq('id', hondId);
+            
+            if (healthError) {
+                console.warn('Kon gezondheidsgegevens niet bijwerken:', healthError);
+            } else {
+                console.log('✅ Gezondheidsgegevens bijgewerkt in honden tabel');
+            }
+            
+            alert(this.editingDekReuId ? 'Dek reu bijgewerkt!' : 'Dek reu toegevoegd!');
             
             const modal = bootstrap.Modal.getInstance(document.getElementById('addEditDekReuModal'));
             if (modal) modal.hide();
