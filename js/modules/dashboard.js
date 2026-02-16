@@ -31,7 +31,7 @@ function initDashboardModule() {
                         <div class="card-body">
                             <ul class="mb-0">
                                 <li class="app-text" data-key="feature1"><strong>Rasprofiel</strong> - Diepgaande informatie over de Eurasier: karakter, geschiedenis, FCI-rasstandaard</li>
-                                <li class="app-text" data-key="feature2"><strong>Database en Galerij</strong> – Stambomen en  foto's van Eurasiers</li>
+                                <li class="app-text" data-key="feature2"><strong>Database en Galerij</strong> – Stambomen en  foto's van Eurasiers, Dekreuen en Nest aankondigingen</li>
                             </ul>
                         </div>
                     </div>
@@ -106,7 +106,7 @@ function translateDashboardModule(lang) {
             aboutAppDesc: "Deze Progressive Web App is een platform voor de Eurasier gemeenschap - een plek waar rasliefhebbers alles vinden over de Eurasier.",
             coreFeaturesTitle: "📋 Kerninhoud & functionaliteiten:",
             feature1: "• Rasprofiel - Diepgaande informatie over de Eurasier: karakter, geschiedenis, FCI-rasstandaard",
-            feature2: "• Database en Galerij – Stambomen en  foto's van Eurasiers",
+            feature2: "• Database en Galerij – Stambomen en  foto's van Eurasiers, Dekreuen en Nest aankondigingen",
             forEnthusiastsTitle: "❤️ Voor de ware Eurasier liefhebber:",
             enthusiast1: "• Nieuw eigenaar? → Leer alles over je nieuwe viervoeter, ook via de facebook pagina",
             enthusiast2: "• Fokker? → Word Gebruiker+ om je eigen honden en nesten in te voeren in de Database",
@@ -127,7 +127,7 @@ function translateDashboardModule(lang) {
             aboutAppDesc: "This Progressive Web App is a platform for the Eurasier community - a place where breed enthusiasts can find everything about the Eurasier.",
             coreFeaturesTitle: "📋 Core content & functionalities:",
             feature1: "• Breed Profile - In-depth information about the Eurasier: character, history, FCI breed standard",
-            feature2: "• Database and Gallery – Pedigrees and photos of Eurasiers",
+            feature2: "• Database and Gallery – Pedigrees and photos of Eurasiers, Stud dogs and Litter announcements",
             forEnthusiastsTitle: "❤️ For the true Eurasier enthusiast:",
             enthusiast1: "• New owner? → Learn everything about your new four-legged friend, also on the facebook page",
             enthusiast2: "• Breeder? → Become User+ to enter your own dogs and litters in the Database",
@@ -148,7 +148,7 @@ function translateDashboardModule(lang) {
             aboutAppDesc: "Diese Progressive Web App ist eine Plattform für die Eurasier-Gemeinschaft - ein Ort, an dem Rassenliebhaber alles über den Eurasier finden können.",
             coreFeaturesTitle: "📋 Kerninhalte & Funktionalitäten:",
             feature1: "• Rasseprofil - Tiefgehende Informationen über den Eurasier: Charakter, Geschichte, FCI-Rassestandard",
-            feature2: "• Datenbank und Galerie – Ahnentafel und Fotos von Eurasier",
+            feature2: "• Datenbank und Galerie – Ahnentafel und Fotos von Eurasier, dek Ruden und Wurf Ankündigungen",
             forEnthusiastsTitle: "❤️ Für den echten Eurasier-Liebhaber:",
             enthusiast1: "• Neuer Besitzer? → Erfahren Sie alles über Ihren neuen Vierbeiner, auch über die Facebook-Seite",
             enthusiast2: "• Züchter? → Werden Sie Benutzer+, um Ihre eigenen Hunde und Würfe in die Datenbank einzutragen",
