@@ -1576,22 +1576,9 @@ class DekReuenManager extends BaseModule {
      */
     async populateEditForm(dekreu) {
         try {
-            if (dekreu.hond_id) {
+            // Zorg dat de hond geselecteerd is in Tom Select (disabled, maar wel zichtbaar)
+            if (dekreu.hond_id && document.getElementById('hondSelect')) {
                 const tomSelect = await this.initTomSelect(dekreu.hond_id);
-                
-                const hond = dekreu.hond || await this.getHondById(dekreu.hond_id);
-                if (hond && tomSelect) {
-                    const optionData = {
-                        id: hond.id,
-                        naam: hond.naam || 'Onbekend',
-                        kennelnaam: hond.kennelnaam || '',
-                        stamboomnr: hond.stamboomnr || '-',
-                        displayName: `${hond.naam || 'Onbekend'}${hond.kennelnaam ? ' (' + hond.kennelnaam + ')' : ''}`
-                    };
-                    
-                    tomSelect.addOption(optionData);
-                    tomSelect.setValue(hond.id);
-                }
             }
             
             const actiefCheck = document.getElementById('actiefCheck');
@@ -1632,7 +1619,7 @@ class DekReuenManager extends BaseModule {
                 await this.loadDogCountryAndPostalCode(dekreu.hond_id);
             }
             
-            // Zorg dat de knop altijd "Opslaan" heet (zowel bij toevoegen als bewerken)
+            // Zorg dat de knop altijd "Opslaan" heet
             const saveBtn = document.getElementById('saveDekReuBtn');
             if (saveBtn) {
                 saveBtn.innerHTML = `<i class="bi bi-check-circle"></i> ${this.t('save')}`;
@@ -2498,16 +2485,22 @@ class DekReuenManager extends BaseModule {
      */
     async saveDekReu() {
         try {
-            const selectElement = document.getElementById('hondSelect');
             let hondId = null;
             
-            if (selectElement.tomselect) {
-                hondId = selectElement.tomselect.getValue();
+            // Bij bewerken gebruiken we de hond_id uit de opgeslagen data
+            if (this.editingDekReuId) {
+                hondId = this.selectedHondId;
             } else {
-                hondId = selectElement.value;
+                // Bij toevoegen halen we de hondId uit de select
+                const selectElement = document.getElementById('hondSelect');
+                if (selectElement.tomselect) {
+                    hondId = selectElement.tomselect.getValue();
+                } else {
+                    hondId = selectElement.value;
+                }
             }
             
-            if (!hondId && !this.editingDekReuId) {
+            if (!hondId) {
                 alert('Selecteer een hond');
                 return;
             }
@@ -2547,17 +2540,15 @@ class DekReuenManager extends BaseModule {
                 if (error) throw error;
                 
                 // Update gezondheidsgegevens van de hond
-                if (this.selectedHondId) {
-                    const { error: healthError } = await this.getSupabase()
-                        .from('honden')
-                        .update(healthData)
-                        .eq('id', this.selectedHondId);
-                    
-                    if (healthError) {
-                        console.warn('Kon gezondheidsgegevens niet bijwerken:', healthError);
-                    } else {
-                        console.log('✅ Gezondheidsgegevens bijgewerkt in honden tabel');
-                    }
+                const { error: healthError } = await this.getSupabase()
+                    .from('honden')
+                    .update(healthData)
+                    .eq('id', hondId);
+                
+                if (healthError) {
+                    console.warn('Kon gezondheidsgegevens niet bijwerken:', healthError);
+                } else {
+                    console.log('✅ Gezondheidsgegevens bijgewerkt in honden tabel');
                 }
                 
                 alert('Dek reu bijgewerkt!');
@@ -2585,17 +2576,16 @@ class DekReuenManager extends BaseModule {
                     return;
                 }
                 
-                if (hondId) {
-                    const { error: healthError } = await this.getSupabase()
-                        .from('honden')
-                        .update(healthData)
-                        .eq('id', hondId);
-                    
-                    if (healthError) {
-                        console.warn('Kon gezondheidsgegevens niet bijwerken:', healthError);
-                    } else {
-                        console.log('✅ Gezondheidsgegevens bijgewerkt in honden tabel');
-                    }
+                // Update gezondheidsgegevens van de hond
+                const { error: healthError } = await this.getSupabase()
+                    .from('honden')
+                    .update(healthData)
+                    .eq('id', hondId);
+                
+                if (healthError) {
+                    console.warn('Kon gezondheidsgegevens niet bijwerken:', healthError);
+                } else {
+                    console.log('✅ Gezondheidsgegevens bijgewerkt in honden tabel');
                 }
                 
                 alert('Dek reu toegevoegd!');
