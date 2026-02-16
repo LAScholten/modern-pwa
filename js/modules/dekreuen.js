@@ -209,8 +209,7 @@ class DekReuenManager extends BaseModule {
                 other: "Anders",
                 countryRequired: "Land is verplicht voor dek reuen",
                 postalCode: "Postcode",
-                email: "Email (ingelogde gebruiker)",
-                yourEmail: "Jouw email"
+                email: "Email (toegevoegd door)"
             },
             en: {
                 dekReuen: "Stud Dogs",
@@ -382,8 +381,7 @@ class DekReuenManager extends BaseModule {
                 other: "Other",
                 countryRequired: "Country is required for stud dogs",
                 postalCode: "Postal Code",
-                email: "Email (logged in user)",
-                yourEmail: "Your email"
+                email: "Email (added by)"
             },
             de: {
                 dekReuen: "Zuchtrüden",
@@ -555,8 +553,7 @@ class DekReuenManager extends BaseModule {
                 other: "Andere",
                 countryRequired: "Land ist für Zuchtrüden erforderlich",
                 postalCode: "Postleitzahl",
-                email: "Email (angemeldeter Benutzer)",
-                yourEmail: "Ihre Email"
+                email: "Email (hinzugefügt von)"
             }
         };
     }
@@ -1185,16 +1182,6 @@ class DekReuenManager extends BaseModule {
     }
     
     /**
-     * Haal email op van de ingelogde gebruiker
-     */
-    getCurrentUserEmail() {
-        if (this.currentUser && this.currentUser.email) {
-            return this.currentUser.email;
-        }
-        return null;
-    }
-    
-    /**
      * Vul gezondheidsformulier met data uit de hond
      */
     populateHealthForm(hond) {
@@ -1296,6 +1283,9 @@ class DekReuenManager extends BaseModule {
         
         const postalCodeInput = document.getElementById('postalCode');
         if (postalCodeInput) postalCodeInput.value = '';
+        
+        const emailInput = document.getElementById('email');
+        if (emailInput) emailInput.value = '';
     }
     
     /**
@@ -1483,7 +1473,7 @@ class DekReuenManager extends BaseModule {
             
             this.resetHealthForm();
             
-            // Vul email van ingelogde gebruiker
+            // Vul email van ingelogde gebruiker (dit wordt opgeslagen bij de dek reu)
             const emailInput = document.getElementById('email');
             if (emailInput && this.currentUser && this.currentUser.email) {
                 emailInput.value = this.currentUser.email;
@@ -1550,12 +1540,6 @@ class DekReuenManager extends BaseModule {
             const modalElement = document.getElementById('addEditDekReuModal');
             const modal = new bootstrap.Modal(modalElement);
             
-            // Vul email van ingelogde gebruiker
-            const emailInput = document.getElementById('email');
-            if (emailInput && this.currentUser && this.currentUser.email) {
-                emailInput.value = this.currentUser.email;
-            }
-            
             await this.populateEditForm(dekReuData);
             
             const eyesSelect = document.getElementById('eyes');
@@ -1618,6 +1602,15 @@ class DekReuenManager extends BaseModule {
             const beschrijvingField = document.getElementById('beschrijvingField');
             if (beschrijvingField) {
                 beschrijvingField.value = dekreu.beschrijving || '';
+            }
+            
+            // Vul de opgeslagen email
+            const emailInput = document.getElementById('email');
+            if (emailInput && dekreu.email) {
+                emailInput.value = dekreu.email;
+            } else if (emailInput && this.currentUser && this.currentUser.email) {
+                // Fallback naar huidige gebruiker als er geen email is opgeslagen
+                emailInput.value = this.currentUser.email;
             }
             
             if (dekreu.hond_id) {
@@ -2030,7 +2023,7 @@ class DekReuenManager extends BaseModule {
                                                 </div>
                                                 <div class="col-md-4">
                                                     <label for="email" class="form-label fw-semibold">${this.t('email')}</label>
-                                                    <input type="email" class="form-control" id="email" readonly disabled placeholder="${this.t('yourEmail')}">
+                                                    <input type="email" class="form-control" id="email" readonly disabled placeholder="${this.t('email')}">
                                                 </div>
                                             </div>
                                             
@@ -2038,6 +2031,7 @@ class DekReuenManager extends BaseModule {
                                                 <i class="bi bi-exclamation-triangle"></i>
                                                 <strong>Velden met * zijn verplicht voor dek reuen.</strong> 
                                                 Gezondheidsgegevens, land en postcode worden opgeslagen bij deze hond in het hondenbestand.
+                                                Email wordt opgeslagen bij de dek reu.
                                             </div>
                                         </div>
                                     </div>
@@ -2113,9 +2107,6 @@ class DekReuenManager extends BaseModule {
             
             const fotos = await this.getHondFotos(h.id);
             const eersteFotos = fotos.slice(0, 3);
-            
-            // Haal email op van de ingelogde gebruiker voor weergave
-            const email = this.getCurrentUserEmail();
             
             let fotosHTML = '';
             if (fotos.length > 0) {
@@ -2194,7 +2185,7 @@ class DekReuenManager extends BaseModule {
                         </div>
                         <div class="col-12">
                             <span class="text-muted">${t('email')}:</span> 
-                            <span class="fw-semibold">${email || t('noEmail')}</span>
+                            <span class="fw-semibold">${dek.email || t('noEmail')}</span>
                         </div>
                     </div>
                 </div>
@@ -2280,9 +2271,6 @@ class DekReuenManager extends BaseModule {
             const h = dek.hond || {};
             const canEdit = this.isAdmin || dek.toegevoegd_door === user?.id;
             
-            // Haal email op van de ingelogde gebruiker voor weergave
-            const email = this.getCurrentUserEmail();
-            
             const fotos = await this.getHondFotos(h.id);
             const eersteFotos = fotos.slice(0, 3);
             
@@ -2338,7 +2326,7 @@ class DekReuenManager extends BaseModule {
                                     <span class="d-block"><span class="text-muted">${t('thyroid')}:</span> ${h.schildklier || '-'}</span>
                                     <span class="d-block"><span class="text-muted">${t('country')}:</span> ${h.land || '-'}</span>
                                     <span class="d-block"><span class="text-muted">${t('postalCode')}:</span> ${h.postcode || '-'}</span>
-                                    <span class="d-block"><span class="text-muted">${t('email')}:</span> ${email || t('noEmail')}</span>
+                                    <span class="d-block"><span class="text-muted">${t('email')}:</span> ${dek.email || t('noEmail')}</span>
                                 </div>
                                 <div class="col-md-3 text-end">
                                     ${canEdit ? `
@@ -2584,13 +2572,17 @@ class DekReuenManager extends BaseModule {
                 alert('Dek reu bijgewerkt!');
                 
             } else {
+                // Haal email op van ingelogde gebruiker
+                const email = document.getElementById('email').value || user.email;
+                
                 const { error } = await this.getSupabase()
                     .from('dekreuen')
                     .insert({
                         hond_id: parseInt(hondId),
                         toegevoegd_door: user.id,
                         actief: document.getElementById('actiefCheck').checked,
-                        beschrijving: document.getElementById('beschrijvingField').value || null
+                        beschrijving: document.getElementById('beschrijvingField').value || null,
+                        email: email // Email van de toevoeger opslaan
                     });
                 
                 if (error) {
