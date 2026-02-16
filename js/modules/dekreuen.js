@@ -1066,26 +1066,26 @@ class DekReuenManager extends BaseModule {
     }
     
     /**
-     * Haal email op van gebruiker die de hond heeft toegevoegd
+     * Haal email op van de eigenaar uit de dekreuen tabel
      */
-    async getUserEmail(userId) {
+    async getOwnerEmail(dekReuId) {
         try {
-            if (!userId) return null;
+            if (!dekReuId) return null;
             
             const supabase = this.getSupabase();
             if (!supabase) return null;
             
             const { data, error } = await supabase
-                .from('profiles')
+                .from('dekreuen')
                 .select('email')
-                .eq('id', userId)
+                .eq('id', dekReuId)
                 .single();
             
             if (error) throw error;
             
             return data?.email || null;
         } catch (error) {
-            console.error('❌ Fout bij ophalen email:', error);
+            console.error('❌ Fout bij ophalen email uit dekreuen:', error);
             return null;
         }
     }
@@ -1438,7 +1438,7 @@ class DekReuenManager extends BaseModule {
             const modal = new bootstrap.Modal(modalElement);
             
             await this.populateEditForm(dekReuData);
-            
+            document.getElementById('saveDekReuBtn')?.addEventListener('click', () => this.saveDekReu());
             const eyesSelect = document.getElementById('eyes');
             if (eyesSelect) {
                 eyesSelect.addEventListener('change', (e) => {
@@ -1516,6 +1516,13 @@ class DekReuenManager extends BaseModule {
             } else if (dekreu.hond_id) {
                 await this.loadDogHealthData(dekreu.hond_id);
                 await this.loadDogCountry(dekreu.hond_id);
+            }
+            
+            // Haal email op uit de dekreuen tabel
+            const email = await this.getOwnerEmail(dekreu.id);
+            const emailField = document.getElementById('email');
+            if (emailField) {
+                emailField.value = email || '';
             }
             
             const saveBtn = document.getElementById('saveDekReuBtn');
@@ -1949,8 +1956,8 @@ class DekReuenManager extends BaseModule {
             const fotos = await this.getHondFotos(h.id);
             const eersteFotos = fotos.slice(0, 3);
             
-            // Haal email op van toegevoegd_door
-            const email = await this.getUserEmail(dek.toegevoegd_door);
+            // Haal email op uit de dekreuen tabel
+            const email = await this.getOwnerEmail(dek.id);
             
             let fotosHTML = '';
             if (fotos.length > 0) {
@@ -2111,8 +2118,8 @@ class DekReuenManager extends BaseModule {
             const h = dek.hond || {};
             const canEdit = this.isAdmin || dek.toegevoegd_door === user?.id;
             
-            // Haal email op van toegevoegd_door
-            const email = await this.getUserEmail(dek.toegevoegd_door);
+            // Haal email op uit de dekreuen tabel
+            const email = await this.getOwnerEmail(dek.id);
             
             const fotos = await this.getHondFotos(h.id);
             const eersteFotos = fotos.slice(0, 3);
@@ -2395,13 +2402,11 @@ class DekReuenManager extends BaseModule {
                 
                 if (error) throw error;
                 
-                if (hondId || this.selectedHondId) {
-                    const targetHondId = hondId || this.selectedHondId;
-                    
+                if (this.selectedHondId) {
                     const { error: healthError } = await this.getSupabase()
                         .from('honden')
                         .update(healthData)
-                        .eq('id', targetHondId);
+                        .eq('id', this.selectedHondId);
                     
                     if (healthError) {
                         console.warn('Kon gezondheidsgegevens niet bijwerken:', healthError);
