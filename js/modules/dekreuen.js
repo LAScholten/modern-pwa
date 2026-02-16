@@ -1604,13 +1604,10 @@ class DekReuenManager extends BaseModule {
                 beschrijvingField.value = dekreu.beschrijving || '';
             }
             
-            // Vul de opgeslagen email
+            // Vul de opgeslagen email (deze is readonly, dus alleen voor weergave)
             const emailInput = document.getElementById('email');
             if (emailInput && dekreu.email) {
                 emailInput.value = dekreu.email;
-            } else if (emailInput && this.currentUser && this.currentUser.email) {
-                // Fallback naar huidige gebruiker als er geen email is opgeslagen
-                emailInput.value = this.currentUser.email;
             }
             
             if (dekreu.hond_id) {
@@ -1635,14 +1632,10 @@ class DekReuenManager extends BaseModule {
                 await this.loadDogCountryAndPostalCode(dekreu.hond_id);
             }
             
+            // Zorg dat de knop altijd "Opslaan" heet (zowel bij toevoegen als bewerken)
             const saveBtn = document.getElementById('saveDekReuBtn');
             if (saveBtn) {
-                saveBtn.innerHTML = `<i class="bi bi-pencil-square"></i> ${this.t('edit')}`;
-            }
-            
-            const modalTitle = document.querySelector('#addEditDekReuModal .modal-title');
-            if (modalTitle) {
-                modalTitle.innerHTML = `<i class="bi bi-pencil-square"></i> ${this.t('editDekReu')}`;
+                saveBtn.innerHTML = `<i class="bi bi-check-circle"></i> ${this.t('save')}`;
             }
             
             const uploadSection = document.getElementById('photoUploadSection');
@@ -1792,8 +1785,6 @@ class DekReuenManager extends BaseModule {
     getAddEditModalHTML(mode = 'add') {
         const title = mode === 'add' ? this.t('addDekReu') : this.t('editDekReu');
         const icon = mode === 'add' ? 'bi-plus-circle' : 'bi-pencil-square';
-        const saveButtonText = mode === 'add' ? this.t('save') : this.t('edit');
-        const saveButtonIcon = mode === 'add' ? 'bi-check-circle' : 'bi-pencil-square';
         const hondSelectDisabled = mode === 'edit' ? 'disabled' : '';
         
         return `
@@ -2041,7 +2032,7 @@ class DekReuenManager extends BaseModule {
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">${this.t('cancel')}</button>
                             <button type="button" class="btn btn-success" id="saveDekReuBtn">
-                                <i class="bi ${saveButtonIcon}"></i> ${saveButtonText}
+                                <i class="bi bi-check-circle"></i> ${this.t('save')}
                             </button>
                         </div>
                     </div>
@@ -2542,6 +2533,7 @@ class DekReuenManager extends BaseModule {
             };
             
             if (this.editingDekReuId) {
+                // Update dek reu gegevens
                 const updateData = {
                     actief: document.getElementById('actiefCheck').checked,
                     beschrijving: document.getElementById('beschrijvingField').value || null
@@ -2554,13 +2546,12 @@ class DekReuenManager extends BaseModule {
                 
                 if (error) throw error;
                 
-                if (hondId || this.selectedHondId) {
-                    const targetHondId = hondId || this.selectedHondId;
-                    
+                // Update gezondheidsgegevens van de hond
+                if (this.selectedHondId) {
                     const { error: healthError } = await this.getSupabase()
                         .from('honden')
                         .update(healthData)
-                        .eq('id', targetHondId);
+                        .eq('id', this.selectedHondId);
                     
                     if (healthError) {
                         console.warn('Kon gezondheidsgegevens niet bijwerken:', healthError);
