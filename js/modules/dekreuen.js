@@ -161,7 +161,7 @@ class DekReuenManager extends BaseModule {
                 healthDataFromDatabase: "Gezondheidsgegevens zijn geladen uit het hondenbestand",
                 noHealthData: "Nog geen gezondheidsgegevens bekend voor deze hond",
                 
-                // Land, Postcode en Email
+                // Land en Email
                 country: "Land *",
                 selectCountry: "Selecteer land...",
                 netherlands: "Nederland",
@@ -169,47 +169,10 @@ class DekReuenManager extends BaseModule {
                 germany: "Duitsland",
                 france: "Frankrijk",
                 uk: "Verenigd Koninkrijk",
-                ireland: "Ierland",
-                denmark: "Denemarken",
-                sweden: "Zweden",
-                norway: "Noorwegen",
-                finland: "Finland",
-                iceland: "IJsland",
-                poland: "Polen",
-                czech: "Tsjechië",
-                slovakia: "Slowakije",
-                hungary: "Hongarije",
-                austria: "Oostenrijk",
-                switzerland: "Zwitserland",
-                italy: "Italië",
-                spain: "Spanje",
-                portugal: "Portugal",
-                greece: "Griekenland",
-                croatia: "Kroatië",
-                slovenia: "Slovenië",
-                bosnia: "Bosnië en Herzegovina",
-                serbia: "Servië",
-                montenegro: "Montenegro",
-                albania: "Albanië",
-                kosovo: "Kosovo",
-                northmacedonia: "Noord-Macedonië",
-                bulgaria: "Bulgarije",
-                romania: "Roemenië",
-                moldova: "Moldavië",
-                ukraine: "Oekraïne",
-                belarus: "Wit-Rusland",
-                lithuania: "Litouwen",
-                latvia: "Letland",
-                estonia: "Estland",
-                russia: "Rusland",
-                usa: "Verenigde Staten",
-                canada: "Canada",
-                australia: "Australië",
-                newzealand: "Nieuw-Zeeland",
                 other: "Anders",
                 countryRequired: "Land is verplicht voor dek reuen",
-                postalCode: "Postcode",
-                email: "Email (toegevoegd door)"
+                email: "Email",
+                noEmail: "Geen email bekend"
             },
             en: {
                 dekReuen: "Stud Dogs",
@@ -333,7 +296,7 @@ class DekReuenManager extends BaseModule {
                 healthDataFromDatabase: "Health data loaded from dog database",
                 noHealthData: "No health data available for this dog yet",
                 
-                // Country, Postal Code and Email
+                // Country and Email
                 country: "Country *",
                 selectCountry: "Select country...",
                 netherlands: "Netherlands",
@@ -341,47 +304,10 @@ class DekReuenManager extends BaseModule {
                 germany: "Germany",
                 france: "France",
                 uk: "United Kingdom",
-                ireland: "Ireland",
-                denmark: "Denmark",
-                sweden: "Sweden",
-                norway: "Norway",
-                finland: "Finland",
-                iceland: "Iceland",
-                poland: "Poland",
-                czech: "Czech Republic",
-                slovakia: "Slovakia",
-                hungary: "Hungary",
-                austria: "Austria",
-                switzerland: "Switzerland",
-                italy: "Italy",
-                spain: "Spain",
-                portugal: "Portugal",
-                greece: "Greece",
-                croatia: "Croatia",
-                slovenia: "Slovenia",
-                bosnia: "Bosnia and Herzegovina",
-                serbia: "Serbia",
-                montenegro: "Montenegro",
-                albania: "Albania",
-                kosovo: "Kosovo",
-                northmacedonia: "North Macedonia",
-                bulgaria: "Bulgaria",
-                romania: "Romania",
-                moldova: "Moldova",
-                ukraine: "Ukraine",
-                belarus: "Belarus",
-                lithuania: "Lithuania",
-                latvia: "Latvia",
-                estonia: "Estonia",
-                russia: "Russia",
-                usa: "United States",
-                canada: "Canada",
-                australia: "Australia",
-                newzealand: "New Zealand",
                 other: "Other",
                 countryRequired: "Country is required for stud dogs",
-                postalCode: "Postal Code",
-                email: "Email (added by)"
+                email: "Email",
+                noEmail: "No email known"
             },
             de: {
                 dekReuen: "Zuchtrüden",
@@ -505,7 +431,7 @@ class DekReuenManager extends BaseModule {
                 healthDataFromDatabase: "Gesundheitsdaten aus der Hunde-Datenbank geladen",
                 noHealthData: "Noch keine Gesundheitsdaten für diesen Hund vorhanden",
                 
-                // Land, Postleitzahl und Email
+                // Land und Email
                 country: "Land *",
                 selectCountry: "Land auswählen...",
                 netherlands: "Niederlande",
@@ -513,47 +439,10 @@ class DekReuenManager extends BaseModule {
                 germany: "Deutschland",
                 france: "Frankreich",
                 uk: "Vereinigtes Königreich",
-                ireland: "Irland",
-                denmark: "Dänemark",
-                sweden: "Schweden",
-                norway: "Norwegen",
-                finland: "Finnland",
-                iceland: "Island",
-                poland: "Polen",
-                czech: "Tschechien",
-                slovakia: "Slowakei",
-                hungary: "Ungarn",
-                austria: "Österreich",
-                switzerland: "Schweiz",
-                italy: "Italien",
-                spain: "Spanien",
-                portugal: "Portugal",
-                greece: "Griechenland",
-                croatia: "Kroatien",
-                slovenia: "Slowenien",
-                bosnia: "Bosnien und Herzegowina",
-                serbia: "Serbien",
-                montenegro: "Montenegro",
-                albania: "Albanien",
-                kosovo: "Kosovo",
-                northmacedonia: "Nordmazedonien",
-                bulgaria: "Bulgarien",
-                romania: "Rumänien",
-                moldova: "Moldawien",
-                ukraine: "Ukraine",
-                belarus: "Weißrussland",
-                lithuania: "Litauen",
-                latvia: "Lettland",
-                estonia: "Estland",
-                russia: "Russland",
-                usa: "Vereinigte Staaten",
-                canada: "Kanada",
-                australia: "Australien",
-                newzealand: "Neuseeland",
                 other: "Andere",
                 countryRequired: "Land ist für Zuchtrüden erforderlich",
-                postalCode: "Postleitzahl",
-                email: "Email (hinzugefügt von)"
+                email: "Email",
+                noEmail: "Keine Email bekannt"
             }
         };
     }
@@ -1066,7 +955,7 @@ class DekReuenManager extends BaseModule {
                     
                     await this.loadHondFotos(this.selectedHondId);
                     await this.loadDogHealthData(this.selectedHondId);
-                    await this.loadDogCountryAndPostalCode(this.selectedHondId);
+                    await this.loadDogCountry(this.selectedHondId);
                 } else {
                     const uploadSection = document.getElementById('photoUploadSection');
                     if (uploadSection) {
@@ -1150,34 +1039,54 @@ class DekReuenManager extends BaseModule {
     }
     
     /**
-     * Laad land en postcode van een hond en vul het formulier
+     * Laad land van een hond en vul het formulier
      */
-    async loadDogCountryAndPostalCode(hondId) {
+    async loadDogCountry(hondId) {
         try {
             const supabase = this.getSupabase();
             if (!supabase) return;
             
             const { data: hond, error } = await supabase
                 .from('honden')
-                .select('land, postcode')
+                .select('land')
                 .eq('id', hondId)
                 .single();
             
             if (error) throw error;
             
-            if (hond) {
+            if (hond && hond.land) {
                 const countrySelect = document.getElementById('country');
-                if (countrySelect && hond.land) {
+                if (countrySelect) {
                     countrySelect.value = hond.land;
-                }
-                
-                const postalCodeInput = document.getElementById('postalCode');
-                if (postalCodeInput && hond.postcode) {
-                    postalCodeInput.value = hond.postcode;
                 }
             }
         } catch (error) {
-            console.error('❌ Fout bij laden land en postcode:', error);
+            console.error('❌ Fout bij laden land:', error);
+        }
+    }
+    
+    /**
+     * Haal email op van gebruiker die de hond heeft toegevoegd
+     */
+    async getUserEmail(userId) {
+        try {
+            if (!userId) return null;
+            
+            const supabase = this.getSupabase();
+            if (!supabase) return null;
+            
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('email')
+                .eq('id', userId)
+                .single();
+            
+            if (error) throw error;
+            
+            return data?.email || null;
+        } catch (error) {
+            console.error('❌ Fout bij ophalen email:', error);
+            return null;
         }
     }
     
@@ -1280,12 +1189,6 @@ class DekReuenManager extends BaseModule {
         
         const countrySelect = document.getElementById('country');
         if (countrySelect) countrySelect.value = '';
-        
-        const postalCodeInput = document.getElementById('postalCode');
-        if (postalCodeInput) postalCodeInput.value = '';
-        
-        const emailInput = document.getElementById('email');
-        if (emailInput) emailInput.value = '';
     }
     
     /**
@@ -1473,12 +1376,6 @@ class DekReuenManager extends BaseModule {
             
             this.resetHealthForm();
             
-            // Vul email van ingelogde gebruiker (dit wordt opgeslagen bij de dek reu)
-            const emailInput = document.getElementById('email');
-            if (emailInput && this.currentUser && this.currentUser.email) {
-                emailInput.value = this.currentUser.email;
-            }
-            
             await this.initTomSelect();
             
             document.getElementById('uploadDekReuPhotoBtn')?.addEventListener('click', () => this.uploadPhoto());
@@ -1576,9 +1473,22 @@ class DekReuenManager extends BaseModule {
      */
     async populateEditForm(dekreu) {
         try {
-            // Zorg dat de hond geselecteerd is in Tom Select (disabled, maar wel zichtbaar)
-            if (dekreu.hond_id && document.getElementById('hondSelect')) {
+            if (dekreu.hond_id) {
                 const tomSelect = await this.initTomSelect(dekreu.hond_id);
+                
+                const hond = dekreu.hond || await this.getHondById(dekreu.hond_id);
+                if (hond && tomSelect) {
+                    const optionData = {
+                        id: hond.id,
+                        naam: hond.naam || 'Onbekend',
+                        kennelnaam: hond.kennelnaam || '',
+                        stamboomnr: hond.stamboomnr || '-',
+                        displayName: `${hond.naam || 'Onbekend'}${hond.kennelnaam ? ' (' + hond.kennelnaam + ')' : ''}`
+                    };
+                    
+                    tomSelect.addOption(optionData);
+                    tomSelect.setValue(hond.id);
+                }
             }
             
             const actiefCheck = document.getElementById('actiefCheck');
@@ -1589,12 +1499,6 @@ class DekReuenManager extends BaseModule {
             const beschrijvingField = document.getElementById('beschrijvingField');
             if (beschrijvingField) {
                 beschrijvingField.value = dekreu.beschrijving || '';
-            }
-            
-            // Vul de opgeslagen email (deze is readonly, dus alleen voor weergave)
-            const emailInput = document.getElementById('email');
-            if (emailInput && dekreu.email) {
-                emailInput.value = dekreu.email;
             }
             
             if (dekreu.hond_id) {
@@ -1609,20 +1513,19 @@ class DekReuenManager extends BaseModule {
                 if (countrySelect && dekreu.hond.land) {
                     countrySelect.value = dekreu.hond.land;
                 }
-                
-                const postalCodeInput = document.getElementById('postalCode');
-                if (postalCodeInput && dekreu.hond.postcode) {
-                    postalCodeInput.value = dekreu.hond.postcode;
-                }
             } else if (dekreu.hond_id) {
                 await this.loadDogHealthData(dekreu.hond_id);
-                await this.loadDogCountryAndPostalCode(dekreu.hond_id);
+                await this.loadDogCountry(dekreu.hond_id);
             }
             
-            // Zorg dat de knop altijd "Opslaan" heet
             const saveBtn = document.getElementById('saveDekReuBtn');
             if (saveBtn) {
-                saveBtn.innerHTML = `<i class="bi bi-check-circle"></i> ${this.t('save')}`;
+                saveBtn.innerHTML = `<i class="bi bi-pencil-square"></i> ${this.t('edit')}`;
+            }
+            
+            const modalTitle = document.querySelector('#addEditDekReuModal .modal-title');
+            if (modalTitle) {
+                modalTitle.innerHTML = `<i class="bi bi-pencil-square"></i> ${this.t('editDekReu')}`;
             }
             
             const uploadSection = document.getElementById('photoUploadSection');
@@ -1772,6 +1675,8 @@ class DekReuenManager extends BaseModule {
     getAddEditModalHTML(mode = 'add') {
         const title = mode === 'add' ? this.t('addDekReu') : this.t('editDekReu');
         const icon = mode === 'add' ? 'bi-plus-circle' : 'bi-pencil-square';
+        const saveButtonText = mode === 'add' ? this.t('save') : this.t('edit');
+        const saveButtonIcon = mode === 'add' ? 'bi-check-circle' : 'bi-pencil-square';
         const hondSelectDisabled = mode === 'edit' ? 'disabled' : '';
         
         return `
@@ -1943,9 +1848,9 @@ class DekReuenManager extends BaseModule {
                                                 </div>
                                             </div>
                                             
-                                            <!-- Rij 4: Land, Postcode en Email -->
+                                            <!-- Rij 4: Land en Email -->
                                             <div class="row mb-3">
-                                                <div class="col-md-4">
+                                                <div class="col-md-6">
                                                     <label for="country" class="form-label fw-semibold">${this.t('country')}</label>
                                                     <select class="form-select" id="country" required>
                                                         <option value="">${this.t('selectCountry')}</option>
@@ -1954,62 +1859,20 @@ class DekReuenManager extends BaseModule {
                                                         <option value="Duitsland">${this.t('germany')}</option>
                                                         <option value="Frankrijk">${this.t('france')}</option>
                                                         <option value="Verenigd Koninkrijk">${this.t('uk')}</option>
-                                                        <option value="Ierland">${this.t('ireland')}</option>
-                                                        <option value="Denemarken">${this.t('denmark')}</option>
-                                                        <option value="Zweden">${this.t('sweden')}</option>
-                                                        <option value="Noorwegen">${this.t('norway')}</option>
-                                                        <option value="Finland">${this.t('finland')}</option>
-                                                        <option value="IJsland">${this.t('iceland')}</option>
-                                                        <option value="Polen">${this.t('poland')}</option>
-                                                        <option value="Tsjechië">${this.t('czech')}</option>
-                                                        <option value="Slowakije">${this.t('slovakia')}</option>
-                                                        <option value="Hongarije">${this.t('hungary')}</option>
-                                                        <option value="Oostenrijk">${this.t('austria')}</option>
-                                                        <option value="Zwitserland">${this.t('switzerland')}</option>
-                                                        <option value="Italië">${this.t('italy')}</option>
-                                                        <option value="Spanje">${this.t('spain')}</option>
-                                                        <option value="Portugal">${this.t('portugal')}</option>
-                                                        <option value="Griekenland">${this.t('greece')}</option>
-                                                        <option value="Kroatië">${this.t('croatia')}</option>
-                                                        <option value="Slovenië">${this.t('slovenia')}</option>
-                                                        <option value="Bosnië en Herzegovina">${this.t('bosnia')}</option>
-                                                        <option value="Servië">${this.t('serbia')}</option>
-                                                        <option value="Montenegro">${this.t('montenegro')}</option>
-                                                        <option value="Albanië">${this.t('albania')}</option>
-                                                        <option value="Kosovo">${this.t('kosovo')}</option>
-                                                        <option value="Noord-Macedonië">${this.t('northmacedonia')}</option>
-                                                        <option value="Bulgarije">${this.t('bulgaria')}</option>
-                                                        <option value="Roemenië">${this.t('romania')}</option>
-                                                        <option value="Moldavië">${this.t('moldova')}</option>
-                                                        <option value="Oekraïne">${this.t('ukraine')}</option>
-                                                        <option value="Wit-Rusland">${this.t('belarus')}</option>
-                                                        <option value="Litouwen">${this.t('lithuania')}</option>
-                                                        <option value="Letland">${this.t('latvia')}</option>
-                                                        <option value="Estland">${this.t('estonia')}</option>
-                                                        <option value="Rusland">${this.t('russia')}</option>
-                                                        <option value="Verenigde Staten">${this.t('usa')}</option>
-                                                        <option value="Canada">${this.t('canada')}</option>
-                                                        <option value="Australië">${this.t('australia')}</option>
-                                                        <option value="Nieuw-Zeeland">${this.t('newzealand')}</option>
                                                         <option value="Anders">${this.t('other')}</option>
                                                     </select>
                                                     <div id="countryError" class="invalid-feedback" style="display: none;"></div>
                                                 </div>
-                                                <div class="col-md-4">
-                                                    <label for="postalCode" class="form-label fw-semibold">${this.t('postalCode')}</label>
-                                                    <input type="text" class="form-control" id="postalCode" placeholder="1234 AB">
-                                                </div>
-                                                <div class="col-md-4">
+                                                <div class="col-md-6">
                                                     <label for="email" class="form-label fw-semibold">${this.t('email')}</label>
-                                                    <input type="email" class="form-control" id="email" readonly disabled placeholder="${this.t('email')}">
+                                                    <input type="email" class="form-control" id="email" readonly disabled>
                                                 </div>
                                             </div>
                                             
                                             <div class="alert alert-warning mb-0">
                                                 <i class="bi bi-exclamation-triangle"></i>
                                                 <strong>Velden met * zijn verplicht voor dek reuen.</strong> 
-                                                Gezondheidsgegevens, land en postcode worden opgeslagen bij deze hond in het hondenbestand.
-                                                Email wordt opgeslagen bij de dek reu.
+                                                Gezondheidsgegevens en land worden opgeslagen bij deze hond in het hondenbestand.
                                             </div>
                                         </div>
                                     </div>
@@ -2019,7 +1882,7 @@ class DekReuenManager extends BaseModule {
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">${this.t('cancel')}</button>
                             <button type="button" class="btn btn-success" id="saveDekReuBtn">
-                                <i class="bi bi-check-circle"></i> ${this.t('save')}
+                                <i class="bi ${saveButtonIcon}"></i> ${saveButtonText}
                             </button>
                         </div>
                     </div>
@@ -2085,6 +1948,9 @@ class DekReuenManager extends BaseModule {
             
             const fotos = await this.getHondFotos(h.id);
             const eersteFotos = fotos.slice(0, 3);
+            
+            // Haal email op van toegevoegd_door
+            const email = await this.getUserEmail(dek.toegevoegd_door);
             
             let fotosHTML = '';
             if (fotos.length > 0) {
@@ -2158,12 +2024,8 @@ class DekReuenManager extends BaseModule {
                             <span class="fw-semibold">${h.land || '-'}</span>
                         </div>
                         <div class="col-6">
-                            <span class="text-muted">${t('postalCode')}:</span> 
-                            <span class="fw-semibold">${h.postcode || '-'}</span>
-                        </div>
-                        <div class="col-12">
                             <span class="text-muted">${t('email')}:</span> 
-                            <span class="fw-semibold">${dek.email || t('noEmail')}</span>
+                            <span class="fw-semibold">${email || t('noEmail')}</span>
                         </div>
                     </div>
                 </div>
@@ -2249,6 +2111,9 @@ class DekReuenManager extends BaseModule {
             const h = dek.hond || {};
             const canEdit = this.isAdmin || dek.toegevoegd_door === user?.id;
             
+            // Haal email op van toegevoegd_door
+            const email = await this.getUserEmail(dek.toegevoegd_door);
+            
             const fotos = await this.getHondFotos(h.id);
             const eersteFotos = fotos.slice(0, 3);
             
@@ -2303,8 +2168,7 @@ class DekReuenManager extends BaseModule {
                                     <span class="d-block"><span class="text-muted">${t('dandyWalker')}:</span> ${h.dandyWalker || '-'}</span>
                                     <span class="d-block"><span class="text-muted">${t('thyroid')}:</span> ${h.schildklier || '-'}</span>
                                     <span class="d-block"><span class="text-muted">${t('country')}:</span> ${h.land || '-'}</span>
-                                    <span class="d-block"><span class="text-muted">${t('postalCode')}:</span> ${h.postcode || '-'}</span>
-                                    <span class="d-block"><span class="text-muted">${t('email')}:</span> ${dek.email || t('noEmail')}</span>
+                                    <span class="d-block"><span class="text-muted">${t('email')}:</span> ${email || t('noEmail')}</span>
                                 </div>
                                 <div class="col-md-3 text-end">
                                     ${canEdit ? `
@@ -2485,22 +2349,16 @@ class DekReuenManager extends BaseModule {
      */
     async saveDekReu() {
         try {
+            const selectElement = document.getElementById('hondSelect');
             let hondId = null;
             
-            // Bij bewerken gebruiken we de hond_id uit de opgeslagen data
-            if (this.editingDekReuId) {
-                hondId = this.selectedHondId;
+            if (selectElement.tomselect) {
+                hondId = selectElement.tomselect.getValue();
             } else {
-                // Bij toevoegen halen we de hondId uit de select
-                const selectElement = document.getElementById('hondSelect');
-                if (selectElement.tomselect) {
-                    hondId = selectElement.tomselect.getValue();
-                } else {
-                    hondId = selectElement.value;
-                }
+                hondId = selectElement.value;
             }
             
-            if (!hondId) {
+            if (!hondId && !this.editingDekReuId) {
                 alert('Selecteer een hond');
                 return;
             }
@@ -2521,12 +2379,10 @@ class DekReuenManager extends BaseModule {
                 dandyWalker: document.getElementById('dandyWalker').value || null,
                 schildklier: document.getElementById('thyroid').value || null,
                 schildklierverklaring: document.getElementById('thyroidExplanation')?.value || null,
-                land: document.getElementById('country').value || null,
-                postcode: document.getElementById('postalCode').value || null
+                land: document.getElementById('country').value || null
             };
             
             if (this.editingDekReuId) {
-                // Update dek reu gegevens
                 const updateData = {
                     actief: document.getElementById('actiefCheck').checked,
                     beschrijving: document.getElementById('beschrijvingField').value || null
@@ -2539,32 +2395,31 @@ class DekReuenManager extends BaseModule {
                 
                 if (error) throw error;
                 
-                // Update gezondheidsgegevens van de hond
-                const { error: healthError } = await this.getSupabase()
-                    .from('honden')
-                    .update(healthData)
-                    .eq('id', hondId);
-                
-                if (healthError) {
-                    console.warn('Kon gezondheidsgegevens niet bijwerken:', healthError);
-                } else {
-                    console.log('✅ Gezondheidsgegevens bijgewerkt in honden tabel');
+                if (hondId || this.selectedHondId) {
+                    const targetHondId = hondId || this.selectedHondId;
+                    
+                    const { error: healthError } = await this.getSupabase()
+                        .from('honden')
+                        .update(healthData)
+                        .eq('id', targetHondId);
+                    
+                    if (healthError) {
+                        console.warn('Kon gezondheidsgegevens niet bijwerken:', healthError);
+                    } else {
+                        console.log('✅ Gezondheidsgegevens bijgewerkt in honden tabel');
+                    }
                 }
                 
                 alert('Dek reu bijgewerkt!');
                 
             } else {
-                // Haal email op van ingelogde gebruiker
-                const email = document.getElementById('email').value || user.email;
-                
                 const { error } = await this.getSupabase()
                     .from('dekreuen')
                     .insert({
                         hond_id: parseInt(hondId),
                         toegevoegd_door: user.id,
                         actief: document.getElementById('actiefCheck').checked,
-                        beschrijving: document.getElementById('beschrijvingField').value || null,
-                        email: email // Email van de toevoeger opslaan
+                        beschrijving: document.getElementById('beschrijvingField').value || null
                     });
                 
                 if (error) {
@@ -2576,16 +2431,17 @@ class DekReuenManager extends BaseModule {
                     return;
                 }
                 
-                // Update gezondheidsgegevens van de hond
-                const { error: healthError } = await this.getSupabase()
-                    .from('honden')
-                    .update(healthData)
-                    .eq('id', hondId);
-                
-                if (healthError) {
-                    console.warn('Kon gezondheidsgegevens niet bijwerken:', healthError);
-                } else {
-                    console.log('✅ Gezondheidsgegevens bijgewerkt in honden tabel');
+                if (hondId) {
+                    const { error: healthError } = await this.getSupabase()
+                        .from('honden')
+                        .update(healthData)
+                        .eq('id', hondId);
+                    
+                    if (healthError) {
+                        console.warn('Kon gezondheidsgegevens niet bijwerken:', healthError);
+                    } else {
+                        console.log('✅ Gezondheidsgegevens bijgewerkt in honden tabel');
+                    }
                 }
                 
                 alert('Dek reu toegevoegd!');
