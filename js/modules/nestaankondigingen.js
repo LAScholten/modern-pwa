@@ -4,6 +4,7 @@
  * NestAankondigingen Management Module voor Supabase
  * Beheert nest aankondigingen overzicht en beheer
  * MET GEZONDHEIDSINFO VAN BEIDE OUDERS IN OVERZICHT (zelfde als DekReuen)
+ * Ouders nu naast elkaar met gezondheidsinfo in twee kolommen
  */
 
 class NestAankondigingenManager extends BaseModule {
@@ -549,32 +550,92 @@ class NestAankondigingenManager extends BaseModule {
                 .parents-container {
                     background-color: #f8f9fa;
                     border-radius: 8px;
-                    padding: 15px;
+                    padding: 20px;
                 }
                 
-                .parent-badge {
-                    display: block;
-                    padding: 8px 12px;
+                .parent-column {
+                    padding: 0 15px;
+                }
+                
+                .parent-header {
+                    font-weight: 600;
+                    margin-bottom: 15px;
+                    padding: 10px 15px;
                     border-radius: 8px;
-                    font-size: 0.95em;
-                    margin-bottom: 8px;
+                    font-size: 1.1em;
                 }
                 
-                .father-badge {
+                .father-header {
                     background-color: #cce5ff;
                     color: #004085;
                     border-left: 4px solid #0d6efd;
                 }
                 
-                .mother-badge {
+                .mother-header {
                     background-color: #d4edda;
                     color: #155724;
                     border-left: 4px solid #198754;
                 }
                 
-                .parent-label {
+                .health-grid {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 10px;
+                    margin-top: 10px;
+                }
+                
+                .health-item {
+                    padding: 8px 12px;
+                    background-color: white;
+                    border-radius: 6px;
+                    border: 1px solid #e9ecef;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+                
+                .health-label {
+                    font-weight: 500;
+                    color: #495057;
+                }
+                
+                .health-value {
                     font-weight: 600;
-                    margin-right: 8px;
+                    color: #212529;
+                    background-color: #f8f9fa;
+                    padding: 2px 8px;
+                    border-radius: 4px;
+                }
+                
+                .explanation-item {
+                    grid-column: span 2;
+                    padding: 8px 12px;
+                    background-color: #fff3cd;
+                    border-radius: 6px;
+                    border: 1px solid #ffeeba;
+                    margin-top: 5px;
+                }
+                
+                .explanation-label {
+                    font-weight: 500;
+                    color: #856404;
+                }
+                
+                .explanation-text {
+                    color: #856404;
+                    font-style: italic;
+                }
+                
+                .dog-name-large {
+                    font-size: 1.1em;
+                    font-weight: 600;
+                    margin-bottom: 5px;
+                }
+                
+                .pedigree-number {
+                    color: #6c757d;
+                    font-size: 0.9em;
+                    margin-bottom: 10px;
                 }
             </style>
         `;
@@ -1253,7 +1314,7 @@ class NestAankondigingenManager extends BaseModule {
     }
     
     /**
-     * Render overzichtslijst met gezondheidsgegevens van beide ouders (zelfde als DekReuen)
+     * Render overzichtslijst met bredere cards en gezondheidsgegevens in twee kolommen
      */
     async renderOverviewList(announcements, container, total = 0, currentPage = 1) {
         const t = this.t.bind(this);
@@ -1282,80 +1343,138 @@ class NestAankondigingenManager extends BaseModule {
                 ? announcement.kennelnaam_nest
                 : `Nest aankondiging #${announcement.id}`;
             
-            // Gezondheidsgegevens Vader (zelfde opmaak als DekReuen)
-            const vaderHealth = `
-                <div class="mt-2 small">
-                    <strong class="d-block mb-1">${t('fatherInfo')}:</strong>
-                    <div class="row g-1">
-                        <div class="col-6"><span class="text-muted">${t('hd')}:</span> <span class="fw-semibold">${vader.heupdysplasie || '-'}</span></div>
-                        <div class="col-6"><span class="text-muted">${t('ed')}:</span> <span class="fw-semibold">${vader.elleboogdysplasie || '-'}</span></div>
-                        <div class="col-6"><span class="text-muted">${t('patella')}:</span> <span class="fw-semibold">${vader.patella || '-'}</span></div>
-                        <div class="col-6"><span class="text-muted">${t('eyes')}:</span> <span class="fw-semibold">${vader.ogen || '-'}</span></div>
-                        <div class="col-6"><span class="text-muted">${t('dandyWalker')}:</span> <span class="fw-semibold">${vader.dandyWalker || '-'}</span></div>
-                        <div class="col-6"><span class="text-muted">${t('thyroid')}:</span> <span class="fw-semibold">${vader.schildklier || '-'}</span></div>
-                        <div class="col-12"><span class="text-muted">${t('country')}:</span> <span class="fw-semibold">${vader.land || '-'}</span></div>
-                    </div>
-                    ${vader.ogenverklaring ? `<div class="mt-1"><span class="text-muted">${t('eyesExplanation')}:</span> <span class="fw-semibold">${vader.ogenverklaring}</span></div>` : ''}
-                    ${vader.schildklierverklaring ? `<div><span class="text-muted">${t('thyroidExplanation')}:</span> <span class="fw-semibold">${vader.schildklierverklaring}</span></div>` : ''}
-                </div>
-            `;
-            
-            // Gezondheidsgegevens Moeder (zelfde opmaak als DekReuen)
-            const moederHealth = `
-                <div class="mt-2 small">
-                    <strong class="d-block mb-1">${t('motherInfo')}:</strong>
-                    <div class="row g-1">
-                        <div class="col-6"><span class="text-muted">${t('hd')}:</span> <span class="fw-semibold">${moeder.heupdysplasie || '-'}</span></div>
-                        <div class="col-6"><span class="text-muted">${t('ed')}:</span> <span class="fw-semibold">${moeder.elleboogdysplasie || '-'}</span></div>
-                        <div class="col-6"><span class="text-muted">${t('patella')}:</span> <span class="fw-semibold">${moeder.patella || '-'}</span></div>
-                        <div class="col-6"><span class="text-muted">${t('eyes')}:</span> <span class="fw-semibold">${moeder.ogen || '-'}</span></div>
-                        <div class="col-6"><span class="text-muted">${t('dandyWalker')}:</span> <span class="fw-semibold">${moeder.dandyWalker || '-'}</span></div>
-                        <div class="col-6"><span class="text-muted">${t('thyroid')}:</span> <span class="fw-semibold">${moeder.schildklier || '-'}</span></div>
-                        <div class="col-12"><span class="text-muted">${t('country')}:</span> <span class="fw-semibold">${moeder.land || '-'}</span></div>
-                    </div>
-                    ${moeder.ogenverklaring ? `<div class="mt-1"><span class="text-muted">${t('eyesExplanation')}:</span> <span class="fw-semibold">${moeder.ogenverklaring}</span></div>` : ''}
-                    ${moeder.schildklierverklaring ? `<div><span class="text-muted">${t('thyroidExplanation')}:</span> <span class="fw-semibold">${moeder.schildklierverklaring}</span></div>` : ''}
-                </div>
-            `;
-            
             html += `
-                <div class="col-md-6 col-lg-4 mb-4">
-                    <div class="card announcement-card h-100 shadow-sm">
+                <div class="col-12 mb-4">
+                    <div class="card announcement-card shadow-sm">
                         <div class="card-header bg-light">
-                            <h6 class="card-title mb-0">
+                            <h5 class="card-title mb-0">
                                 <i class="bi bi-megaphone text-primary me-2"></i>
                                 ${headerTitle}
-                            </h6>
+                            </h5>
                         </div>
                         <div class="card-body">
                             <div class="parents-container">
-                                <!-- Vader -->
-                                <div class="parent-badge father-badge">
-                                    <span class="parent-label">${t('fatherInfo')}:</span>
-                                    <strong>${vaderNaam}</strong>
-                                    ${vader.stamboomnr ? `<br><small class="text-muted">${vader.stamboomnr}</small>` : ''}
-                                    ${vaderHealth}
-                                </div>
-                                
-                                <!-- Moeder -->
-                                <div class="parent-badge mother-badge">
-                                    <span class="parent-label">${t('motherInfo')}:</span>
-                                    <strong>${moederNaam}</strong>
-                                    ${moeder.stamboomnr ? `<br><small class="text-muted">${moeder.stamboomnr}</small>` : ''}
-                                    ${moederHealth}
+                                <div class="row">
+                                    <!-- Vader Column -->
+                                    <div class="col-md-6 parent-column">
+                                        <div class="parent-header father-header">
+                                            <i class="bi bi-gender-male me-2"></i>
+                                            <strong>${t('fatherInfo')}</strong>
+                                        </div>
+                                        <div class="dog-name-large">${vaderNaam}</div>
+                                        ${vader.stamboomnr ? `<div class="pedigree-number">${vader.stamboomnr}</div>` : ''}
+                                        
+                                        <div class="health-grid">
+                                            <div class="health-item">
+                                                <span class="health-label">${t('hd')}:</span>
+                                                <span class="health-value">${vader.heupdysplasie || '-'}</span>
+                                            </div>
+                                            <div class="health-item">
+                                                <span class="health-label">${t('ed')}:</span>
+                                                <span class="health-value">${vader.elleboogdysplasie || '-'}</span>
+                                            </div>
+                                            <div class="health-item">
+                                                <span class="health-label">${t('patella')}:</span>
+                                                <span class="health-value">${vader.patella || '-'}</span>
+                                            </div>
+                                            <div class="health-item">
+                                                <span class="health-label">${t('eyes')}:</span>
+                                                <span class="health-value">${vader.ogen || '-'}</span>
+                                            </div>
+                                            <div class="health-item">
+                                                <span class="health-label">${t('dandyWalker')}:</span>
+                                                <span class="health-value">${vader.dandyWalker || '-'}</span>
+                                            </div>
+                                            <div class="health-item">
+                                                <span class="health-label">${t('thyroid')}:</span>
+                                                <span class="health-value">${vader.schildklier || '-'}</span>
+                                            </div>
+                                            <div class="health-item">
+                                                <span class="health-label">${t('country')}:</span>
+                                                <span class="health-value">${vader.land || '-'}</span>
+                                            </div>
+                                        </div>
+                                        
+                                        ${vader.ogenverklaring ? `
+                                        <div class="explanation-item">
+                                            <span class="explanation-label">${t('eyesExplanation')}:</span><br>
+                                            <span class="explanation-text">${vader.ogenverklaring}</span>
+                                        </div>
+                                        ` : ''}
+                                        ${vader.schildklierverklaring ? `
+                                        <div class="explanation-item">
+                                            <span class="explanation-label">${t('thyroidExplanation')}:</span><br>
+                                            <span class="explanation-text">${vader.schildklierverklaring}</span>
+                                        </div>
+                                        ` : ''}
+                                    </div>
+                                    
+                                    <!-- Moeder Column -->
+                                    <div class="col-md-6 parent-column">
+                                        <div class="parent-header mother-header">
+                                            <i class="bi bi-gender-female me-2"></i>
+                                            <strong>${t('motherInfo')}</strong>
+                                        </div>
+                                        <div class="dog-name-large">${moederNaam}</div>
+                                        ${moeder.stamboomnr ? `<div class="pedigree-number">${moeder.stamboomnr}</div>` : ''}
+                                        
+                                        <div class="health-grid">
+                                            <div class="health-item">
+                                                <span class="health-label">${t('hd')}:</span>
+                                                <span class="health-value">${moeder.heupdysplasie || '-'}</span>
+                                            </div>
+                                            <div class="health-item">
+                                                <span class="health-label">${t('ed')}:</span>
+                                                <span class="health-value">${moeder.elleboogdysplasie || '-'}</span>
+                                            </div>
+                                            <div class="health-item">
+                                                <span class="health-label">${t('patella')}:</span>
+                                                <span class="health-value">${moeder.patella || '-'}</span>
+                                            </div>
+                                            <div class="health-item">
+                                                <span class="health-label">${t('eyes')}:</span>
+                                                <span class="health-value">${moeder.ogen || '-'}</span>
+                                            </div>
+                                            <div class="health-item">
+                                                <span class="health-label">${t('dandyWalker')}:</span>
+                                                <span class="health-value">${moeder.dandyWalker || '-'}</span>
+                                            </div>
+                                            <div class="health-item">
+                                                <span class="health-label">${t('thyroid')}:</span>
+                                                <span class="health-value">${moeder.schildklier || '-'}</span>
+                                            </div>
+                                            <div class="health-item">
+                                                <span class="health-label">${t('country')}:</span>
+                                                <span class="health-value">${moeder.land || '-'}</span>
+                                            </div>
+                                        </div>
+                                        
+                                        ${moeder.ogenverklaring ? `
+                                        <div class="explanation-item">
+                                            <span class="explanation-label">${t('eyesExplanation')}:</span><br>
+                                            <span class="explanation-text">${moeder.ogenverklaring}</span>
+                                        </div>
+                                        ` : ''}
+                                        ${moeder.schildklierverklaring ? `
+                                        <div class="explanation-item">
+                                            <span class="explanation-label">${t('thyroidExplanation')}:</span><br>
+                                            <span class="explanation-text">${moeder.schildklierverklaring}</span>
+                                        </div>
+                                        ` : ''}
+                                    </div>
                                 </div>
                             </div>
                             
                             ${announcement.beschrijving ? `
-                                <div class="mt-3 p-3 bg-light rounded">
+                                <div class="mt-4 p-3 bg-light rounded">
                                     <p class="card-text mb-0">${announcement.beschrijving}</p>
                                 </div>
                             ` : ''}
                             
-                            <div class="mt-3 text-muted small">
+                            <div class="mt-3 text-muted small d-flex justify-content-between align-items-center">
                                 ${announcement.email ? `
                                     <div><i class="bi bi-envelope me-2"></i> ${announcement.email}</div>
-                                ` : ''}
+                                ` : '<div></div>'}
                                 <div><i class="bi bi-calendar me-2"></i> ${formattedDate}</div>
                             </div>
                         </div>
@@ -1722,4 +1841,4 @@ if (typeof module !== 'undefined' && module.exports) {
     window.nestAankondigingenManager = NestAankondigingenManagerInstance;
 }
 
-console.log('📦 NestAankondigingenManager geladen met gezondheidsinfo van beide ouders (zelfde opmaak als DekReuen)');
+console.log('📦 NestAankondigingenManager geladen met bredere cards en gezondheidsinfo in twee kolommen naast elkaar');
