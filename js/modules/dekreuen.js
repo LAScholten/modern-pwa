@@ -4,6 +4,7 @@
  * DekReuen Management Module voor Supabase
  * Beheert dek reuen overzicht en beheer met echte database koppeling
  * MET COMPLETE GEZONDHEIDSINFO IN OVERZICHT en DUIDELIJKE BENAMINGEN
+ * MET HORIZONTALE SCROLL OP MOBIEL
  */
 
 class DekReuenManager extends BaseModule {
@@ -172,7 +173,11 @@ class DekReuenManager extends BaseModule {
                 other: "Anders",
                 countryRequired: "Land is verplicht voor dek reuen",
                 email: "Email",
-                noEmail: "Geen email bekend"
+                noEmail: "Geen email bekend",
+                
+                // Horizontale scroll instructie
+                swipeHint: "← Veeg om meer te zien →",
+                scrollHorizontally: "Horizontaal scrollen"
             },
             en: {
                 dekReuen: "Stud Dogs",
@@ -307,7 +312,11 @@ class DekReuenManager extends BaseModule {
                 other: "Other",
                 countryRequired: "Country is required for stud dogs",
                 email: "Email",
-                noEmail: "No email known"
+                noEmail: "No email known",
+                
+                // Horizontal scroll hint
+                swipeHint: "← Swipe to see more →",
+                scrollHorizontally: "Scroll horizontally"
             },
             de: {
                 dekReuen: "Zuchtrüden",
@@ -442,7 +451,11 @@ class DekReuenManager extends BaseModule {
                 other: "Andere",
                 countryRequired: "Land ist für Zuchtrüden erforderlich",
                 email: "Email",
-                noEmail: "Keine Email bekannt"
+                noEmail: "Keine Email bekannt",
+                
+                // Horizontal scroll hint
+                swipeHint: "← Wischen für mehr →",
+                scrollHorizontally: "Horizontal scrollen"
             }
         };
     }
@@ -1658,11 +1671,17 @@ class DekReuenManager extends BaseModule {
                             </h5>
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                         </div>
-                        <div class="modal-body">
-                            <div id="dekReuenContainer" class="row">
-                                <div class="col-12 text-center py-5">
-                                    <div class="spinner-border text-secondary"></div>
-                                    <p class="mt-3 text-muted">${this.t('loading')}</p>
+                        <div class="modal-body p-0">
+                            <div class="position-relative">
+                                <!-- Horizontale scroll hint voor mobiel -->
+                                <div class="d-block d-md-none text-center text-muted small py-2 bg-light border-bottom">
+                                    <i class="bi bi-arrow-left"></i> ${this.t('swipeHint')} <i class="bi bi-arrow-right"></i>
+                                </div>
+                                <div id="dekReuenContainer" class="p-3">
+                                    <div class="col-12 text-center py-5">
+                                        <div class="spinner-border text-secondary"></div>
+                                        <p class="mt-3 text-muted">${this.t('loading')}</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -2001,7 +2020,7 @@ class DekReuenManager extends BaseModule {
     }
     
     /**
-     * Render overzichtslijst met COMPLETE gezondheidsgegevens
+     * Render overzichtslijst met COMPLETE gezondheidsgegevens en HORIZONTALE SCROLL OP MOBIEL
      */
     async renderOverviewList(dekreuen, container, total = 0, currentPage = 1) {
         const html = [];
@@ -2096,8 +2115,8 @@ class DekReuenManager extends BaseModule {
             `;
             
             html.push(`
-                <div class="col-md-6 col-lg-4 mb-4">
-                    <div class="card h-100 shadow-sm">
+                <div class="col-12 col-sm-6 col-md-4 col-lg-3 dek-reu-card-wrapper" style="min-width: 280px; max-width: 350px;">
+                    <div class="card h-100 shadow-sm mb-3">
                         <div class="card-body">
                             <h5 class="card-title">${h.naam || 'Onbekend'}</h5>
                             <p class="card-text">
@@ -2125,10 +2144,21 @@ class DekReuenManager extends BaseModule {
         const totalPages = Math.ceil(total / this.pageSize);
         const paginationHTML = this.getPaginationHTML(total, currentPage, totalPages, false);
         
+        // Horizontale scroll container voor mobiel
         container.innerHTML = `
-            <div class="row">${html.join('')}</div>
+            <div class="dek-reuen-horizontal-scroll d-block d-md-none">
+                <div class="d-flex flex-nowrap overflow-auto pb-3" style="gap: 1rem; -webkit-overflow-scrolling: touch;">
+                    ${html.join('')}
+                </div>
+            </div>
+            <div class="d-none d-md-block">
+                <div class="row">${html.join('')}</div>
+            </div>
             ${paginationHTML}
         `;
+        
+        // Voeg CSS toe voor horizontaal scrollen
+        this.addHorizontalScrollStyles();
         
         // Click handlers voor foto's met dynamisch laden van PhotoViewer
         container.querySelectorAll('.dek-reu-foto-thumbnail').forEach(thumb => {
@@ -2163,6 +2193,84 @@ class DekReuenManager extends BaseModule {
         });
         
         this.attachPaginationEvents(false);
+    }
+    
+    /**
+     * Voeg CSS toe voor horizontaal scrollen op mobiel
+     */
+    addHorizontalScrollStyles() {
+        // Check of de stijl al bestaat
+        if (document.getElementById('dek-reuen-horizontal-scroll-styles')) {
+            return;
+        }
+        
+        const style = document.createElement('style');
+        style.id = 'dek-reuen-horizontal-scroll-styles';
+        style.textContent = `
+            /* Horizontale scroll container */
+            .dek-reuen-horizontal-scroll {
+                width: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            
+            .dek-reuen-horizontal-scroll .d-flex {
+                scrollbar-width: thin;
+                scrollbar-color: #888 #f1f1f1;
+                padding-left: 0.5rem;
+                padding-right: 0.5rem;
+            }
+            
+            /* Scrollbar styling voor WebKit browsers (Chrome, Safari, Edge) */
+            .dek-reuen-horizontal-scroll .d-flex::-webkit-scrollbar {
+                height: 6px;
+            }
+            
+            .dek-reuen-horizontal-scroll .d-flex::-webkit-scrollbar-track {
+                background: #f1f1f1;
+                border-radius: 10px;
+            }
+            
+            .dek-reuen-horizontal-scroll .d-flex::-webkit-scrollbar-thumb {
+                background: #888;
+                border-radius: 10px;
+            }
+            
+            .dek-reuen-horizontal-scroll .d-flex::-webkit-scrollbar-thumb:hover {
+                background: #555;
+            }
+            
+            /* Card styling in horizontale scroll */
+            .dek-reuen-horizontal-scroll .dek-reu-card-wrapper {
+                flex: 0 0 auto;
+                width: 280px;
+                max-width: 280px;
+                min-width: 280px;
+                padding: 0;
+            }
+            
+            .dek-reuen-horizontal-scroll .card {
+                margin: 0;
+                height: 100%;
+            }
+            
+            /* Eerste en laatste card padding */
+            .dek-reuen-horizontal-scroll .d-flex {
+                padding-left: 12px;
+                padding-right: 12px;
+            }
+            
+            /* Hint tekst styling */
+            .swipe-hint {
+                font-size: 0.8rem;
+                color: #6c757d;
+                background-color: #f8f9fa;
+                padding: 0.5rem;
+                border-bottom: 1px solid #dee2e6;
+            }
+        `;
+        
+        document.head.appendChild(style);
     }
     
     async renderBeheerList(dekreuen, container, total = 0, currentPage = 1) {
@@ -2717,4 +2825,4 @@ const DekReuenManagerInstance = new DekReuenManager();
 window.DekReuenManager = DekReuenManagerInstance;
 window.dekReuenManager = DekReuenManagerInstance;
 
-console.log('📦 DekReuenManager geladen met COMPLETE GEZONDHEIDSINFO in overzicht en DUIDELIJKE BENAMINGEN');
+console.log('📦 DekReuenManager geladen met COMPLETE GEZONDHEIDSINFO in overzicht, DUIDELIJKE BENAMINGEN en HORIZONTALE SCROLL OP MOBIEL');
