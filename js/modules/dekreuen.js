@@ -1944,28 +1944,39 @@ class DekReuenManager extends BaseModule {
         const containerId = isBeheer ? 'dekReuenBeheerContainer' : 'dekReuenContainer';
         const container = document.getElementById(containerId);
         if (!container) return;
-        
+    
         try {
             const supabase = this.getSupabase();
             const { data: { user } } = await supabase.auth.getUser();
-            
+        
+            // Controleer of de gebruiker admin is via de profiles tabel
+            let isAdmin = false;
+            if (user) {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('is_admin')
+                    .eq('user_id', user.id)
+                    .single();
+                isAdmin = profile?.is_admin === true;
+            }
+        
             const from = (page - 1) * this.pageSize;
             const to = from + this.pageSize - 1;
-            
+        
             let query = supabase
                 .from('dekreuen')
                 .select('*, hond:honden(*)', { count: 'exact' })
                 .order('aangemaakt_op', { ascending: false });
-            
-            // Alleen filteren op toegevoegd_door voor beheerweergave
-            if (isBeheer && user && !this.isAdmin) {
+        
+            // Alleen filteren op toegevoegd_door voor niet-admin gebruikers in beheerweergave
+            if (isBeheer && user && !isAdmin) {
                 query = query.eq('toegevoegd_door', user.id);
             }
-            
+        
             const { data, error, count } = await query.range(from, to);
-            
+         
             if (error) throw error;
-            
+        
             if (!data || data.length === 0) {
                 container.innerHTML = `<div class="col-12 text-center py-5">
                     <i class="bi bi-gender-male display-1 text-muted"></i>
@@ -1973,13 +1984,13 @@ class DekReuenManager extends BaseModule {
                 </div>`;
                 return;
             }
-            
+        
             if (isBeheer) {
                 await this.renderBeheerList(data, container, count, page);
             } else {
                 await this.renderOverviewList(data, container, count, page);
             }
-            
+         
         } catch (error) {
             console.error('Fout:', error);
             container.innerHTML = `<div class="col-12 text-center py-5">
