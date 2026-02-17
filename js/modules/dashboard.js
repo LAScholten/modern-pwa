@@ -148,7 +148,7 @@ function translateDashboardModule(lang) {
             aboutAppDesc: "Diese Progressive Web App ist eine Plattform für die Eurasier-Gemeinschaft - ein Ort, an dem Rassenliebhaber alles über den Eurasier finden können.",
             coreFeaturesTitle: "📋 Kerninhalte & Funktionalitäten:",
             feature1: "• Rasseprofil - Tiefgehende Informationen über den Eurasier: Charakter, Geschichte, FCI-Rassestandard",
-            feature2: "• Datenbank und Galerie – Ahnentafel und Fotos von Eurasier, Deckrüden und Wurf Ankündigungen",
+            feature2: "• Datenbank und Galerie – Ahnentafel und Fotos von Eurasier, Deckrüden und Wurfankündigungen",
             forEnthusiastsTitle: "❤️ Für den echten Eurasier-Liebhaber:",
             enthusiast1: "• Neuer Besitzer? → Erfahren Sie alles über Ihren neuen Vierbeiner, auch über die Facebook-Seite",
             enthusiast2: "• Züchter? → Werden Sie Benutzer+, um Ihre eigenen Hunde und Würfe in die Datenbank einzutragen",

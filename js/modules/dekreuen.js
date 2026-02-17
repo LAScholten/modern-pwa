@@ -1091,6 +1091,35 @@ class DekReuenManager extends BaseModule {
     }
     
     /**
+     * Haal email op van de huidige gebruiker uit de profiles tabel
+     */
+    async getCurrentUserEmail() {
+        try {
+            const supabase = this.getSupabase();
+            if (!supabase) return null;
+            
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user || !user.id) return null;
+            
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('email')
+                .eq('user_id', user.id)  // GEWIJZIGD: zoek op user_id in plaats van id
+                .single();
+            
+            if (error) {
+                console.error('❌ Fout bij ophalen email uit profiles:', error);
+                return null;
+            }
+            
+            return data?.email || null;
+        } catch (error) {
+            console.error('❌ Fout bij ophalen huidige gebruiker email:', error);
+            return null;
+        }
+    }
+    
+    /**
      * Vul gezondheidsformulier met data uit de hond
      */
     populateHealthForm(hond) {
@@ -1377,6 +1406,15 @@ class DekReuenManager extends BaseModule {
             this.resetHealthForm();
             
             await this.initTomSelect();
+            
+            // Haal email van huidige gebruiker op en vul het veld
+            const userEmail = await this.getCurrentUserEmail();
+            const emailField = document.getElementById('email');
+            if (emailField && userEmail) {
+                emailField.value = userEmail;
+            } else if (emailField) {
+                emailField.value = '';
+            }
             
             document.getElementById('uploadDekReuPhotoBtn')?.addEventListener('click', () => this.uploadPhoto());
             document.getElementById('saveDekReuBtn')?.addEventListener('click', () => this.saveDekReu());
@@ -1900,6 +1938,7 @@ class DekReuenManager extends BaseModule {
     
     /**
      * Laad dek reuen met paginatie
+     * Voor beheer (isBeheer=true) worden alleen de dek reuen getoond die door de huidige gebruiker zijn toegevoegd
      */
     async loadDekReuen(isBeheer = false, page = 1) {
         const containerId = isBeheer ? 'dekReuenBeheerContainer' : 'dekReuenContainer';
@@ -1908,15 +1947,22 @@ class DekReuenManager extends BaseModule {
         
         try {
             const supabase = this.getSupabase();
+            const { data: { user } } = await supabase.auth.getUser();
             
             const from = (page - 1) * this.pageSize;
             const to = from + this.pageSize - 1;
             
-            const { data, error, count } = await supabase
+            let query = supabase
                 .from('dekreuen')
                 .select('*, hond:honden(*)', { count: 'exact' })
-                .order('aangemaakt_op', { ascending: false })
-                .range(from, to);
+                .order('aangemaakt_op', { ascending: false });
+            
+            // Alleen filteren op toegevoegd_door voor beheerweergave
+            if (isBeheer && user && !this.isAdmin) {
+                query = query.eq('toegevoegd_door', user.id);
+            }
+            
+            const { data, error, count } = await query.range(from, to);
             
             if (error) throw error;
             
@@ -2418,11 +2464,15 @@ class DekReuenManager extends BaseModule {
                 alert('Dek reu bijgewerkt!');
                 
             } else {
+                // Haal email van huidige gebruiker op uit profiles (voor de zekerheid nog een keer, maar staat al in veld)
+                const userEmail = await this.getCurrentUserEmail();
+                
                 const { error } = await this.getSupabase()
                     .from('dekreuen')
                     .insert({
                         hond_id: parseInt(hondId),
                         toegevoegd_door: user.id,
+                        email: userEmail,
                         actief: document.getElementById('actiefCheck').checked,
                         beschrijving: document.getElementById('beschrijvingField').value || null
                     });
