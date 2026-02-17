@@ -4,7 +4,7 @@
  * NestAankondigingen Management Module voor Supabase
  * Beheert nest aankondigingen overzicht en beheer
  * MET GEZONDHEIDSINFO VAN BEIDE OUDERS IN OVERZICHT (zelfde als DekReuen)
- * Ouders nu naast elkaar met gezondheidsinfo in twee kolommen
+ * Ouders naast elkaar met gezondheidsinfo in exact de gewenste indeling
  */
 
 class NestAankondigingenManager extends BaseModule {
@@ -72,7 +72,7 @@ class NestAankondigingenManager extends BaseModule {
                 noPermission: "Je hebt geen rechten om deze actie uit te voeren",
                 announcementFrom: "Aankondiging van",
                 
-                // Gezondheidsitems (zelfde als DekReuen)
+                // Gezondheidsitems
                 healthData: "Gezondheidsgegevens",
                 hd: "HD",
                 ed: "ED",
@@ -84,6 +84,7 @@ class NestAankondigingenManager extends BaseModule {
                 thyroidExplanation: "Toelichting schildklier",
                 notSpecified: "Niet opgegeven",
                 country: "Land",
+                free: "Vrij",
                 
                 // Paginatie
                 prevPage: "Vorige",
@@ -130,7 +131,7 @@ class NestAankondigingenManager extends BaseModule {
                 noPermission: "You don't have permission to perform this action",
                 announcementFrom: "Announcement from",
                 
-                // Health items (same as DekReuen)
+                // Health items
                 healthData: "Health Data",
                 hd: "HD",
                 ed: "ED",
@@ -142,6 +143,7 @@ class NestAankondigingenManager extends BaseModule {
                 thyroidExplanation: "Thyroid explanation",
                 notSpecified: "Not specified",
                 country: "Country",
+                free: "Free",
                 
                 // Pagination
                 prevPage: "Previous",
@@ -188,7 +190,7 @@ class NestAankondigingenManager extends BaseModule {
                 noPermission: "Sie haben keine Berechtigung für diese Aktion",
                 announcementFrom: "Ankündigung von",
                 
-                // Health items (gleiche wie DekReuen)
+                // Health items
                 healthData: "Gesundheitsdaten",
                 hd: "HD",
                 ed: "ED",
@@ -200,6 +202,7 @@ class NestAankondigingenManager extends BaseModule {
                 thyroidExplanation: "Schilddrüsenerklärung",
                 notSpecified: "Nicht angegeben",
                 country: "Land",
+                free: "Frei",
                 
                 // Pagination
                 prevPage: "Vorherige",
@@ -373,6 +376,89 @@ class NestAankondigingenManager extends BaseModule {
                     </div>
                 </div>
             </div>
+            
+            <!-- CSS voor de gezondheidsinfo layout - dit is CRUCIAL -->
+            <style>
+                .health-info {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                    width: 100%;
+                }
+                
+                .health-row-2col {
+                    display: flex !important;
+                    gap: 20px;
+                    width: 100%;
+                }
+                
+                .health-row-2col .health-item {
+                    flex: 1;
+                    min-width: 0;
+                }
+                
+                .health-row {
+                    width: 100%;
+                }
+                
+                .health-item {
+                    line-height: 1.6;
+                }
+                
+                .health-label {
+                    font-weight: 500;
+                    color: #495057;
+                    display: inline-block;
+                    min-width: 90px;
+                }
+                
+                .health-value {
+                    font-weight: 500;
+                    color: #212529;
+                }
+                
+                .explanation-item {
+                    margin-top: 8px;
+                    padding: 6px 10px;
+                    background-color: #fff3cd;
+                    border-radius: 4px;
+                    border: 1px solid #ffeeba;
+                    font-size: 0.95em;
+                }
+                
+                .father-header {
+                    background-color: #cce5ff;
+                    color: #004085;
+                    padding: 8px 12px;
+                    border-radius: 6px;
+                    font-weight: 600;
+                }
+                
+                .mother-header {
+                    background-color: #d4edda;
+                    color: #155724;
+                    padding: 8px 12px;
+                    border-radius: 6px;
+                    font-weight: 600;
+                }
+                
+                .dog-name {
+                    font-weight: 600;
+                    font-size: 1.1em;
+                }
+                
+                .pedigree-number {
+                    color: #6c757d;
+                    font-size: 0.95em;
+                }
+                
+                @media (max-width: 768px) {
+                    .health-row-2col {
+                        flex-direction: column;
+                        gap: 4px;
+                    }
+                }
+            </style>
         `;
     }
     
@@ -532,110 +618,6 @@ class NestAankondigingenManager extends BaseModule {
                 
                 .parent-validation-error {
                     border-color: #dc3545 !important;
-                }
-                
-                .announcement-card {
-                    transition: transform 0.2s;
-                    height: 100%;
-                    border: 1px solid #e0e0e0;
-                    border-radius: 10px;
-                    overflow: hidden;
-                }
-                
-                .announcement-card:hover {
-                    transform: translateY(-5px);
-                    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-                }
-                
-                .parents-container {
-                    background-color: #f8f9fa;
-                    border-radius: 8px;
-                    padding: 20px;
-                }
-                
-                .parent-column {
-                    padding: 0 15px;
-                }
-                
-                .parent-header {
-                    font-weight: 600;
-                    margin-bottom: 15px;
-                    padding: 10px 15px;
-                    border-radius: 8px;
-                    font-size: 1.1em;
-                }
-                
-                .father-header {
-                    background-color: #cce5ff;
-                    color: #004085;
-                    border-left: 4px solid #0d6efd;
-                }
-                
-                .mother-header {
-                    background-color: #d4edda;
-                    color: #155724;
-                    border-left: 4px solid #198754;
-                }
-                
-                .health-grid {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 10px;
-                    margin-top: 10px;
-                }
-                
-                .health-item {
-                    padding: 8px 12px;
-                    background-color: white;
-                    border-radius: 6px;
-                    border: 1px solid #e9ecef;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                }
-                
-                .health-label {
-                    font-weight: 500;
-                    color: #495057;
-                }
-                
-                .health-value {
-                    font-weight: 600;
-                    color: #212529;
-                    background-color: #f8f9fa;
-                    padding: 2px 8px;
-                    border-radius: 4px;
-                }
-                
-                .explanation-item {
-                    grid-column: span 2;
-                    padding: 8px 12px;
-                    background-color: #fff3cd;
-                    border-radius: 6px;
-                    border: 1px solid #ffeeba;
-                    margin-top: 5px;
-                }
-                
-                .explanation-label {
-                    font-weight: 500;
-                    color: #856404;
-                }
-                
-                .explanation-text {
-                    color: #856404;
-                    font-style: italic;
-                }
-                
-                .dog-name-large {
-                    font-size: 1.1em;
-                    font-weight: 600;
-                    margin-bottom: 5px;
-                }
-                
-                .pedigree-number {
-                    color: #6c757d;
-                    font-size: 0.9em;
-                    margin-bottom: 10px;
                 }
             </style>
         `;
@@ -1314,7 +1296,12 @@ class NestAankondigingenManager extends BaseModule {
     }
     
     /**
-     * Render overzichtslijst met bredere cards en gezondheidsgegevens in twee kolommen
+     * Render overzichtslijst met exact de gewenste indeling
+     * Eerste rij: HD en ED naast elkaar
+     * Tweede rij: Patella en Ogen naast elkaar
+     * Derde rij: Dandy Walker op eigen regel
+     * Vierde rij: Schildklier op eigen regel
+     * Vijfde rij: Land op eigen regel
      */
     async renderOverviewList(announcements, container, total = 0, currentPage = 1) {
         const t = this.t.bind(this);
@@ -1338,10 +1325,8 @@ class NestAankondigingenManager extends BaseModule {
             // Moeder display naam
             const moederNaam = moeder.kennelnaam ? `${moeder.naam || 'Onbekend'} ${moeder.kennelnaam}` : (moeder.naam || 'Onbekend');
             
-            // Gebruik kennelnaam_nest voor de header, of een standaard tekst als die niet bestaat
-            const headerTitle = announcement.kennelnaam_nest 
-                ? announcement.kennelnaam_nest
-                : `Nest aankondiging #${announcement.id}`;
+            // Gebruik kennelnaam_nest voor de header
+            const headerTitle = announcement.kennelnaam_nest || 'Nest aankondiging';
             
             html += `
                 <div class="col-12 mb-4">
@@ -1353,18 +1338,22 @@ class NestAankondigingenManager extends BaseModule {
                             </h5>
                         </div>
                         <div class="card-body">
-                            <div class="parents-container">
-                                <div class="row">
-                                    <!-- Vader Column -->
-                                    <div class="col-md-6 parent-column">
-                                        <div class="parent-header father-header">
-                                            <i class="bi bi-gender-male me-2"></i>
-                                            <strong>${t('fatherInfo')}</strong>
-                                        </div>
-                                        <div class="dog-name-large">${vaderNaam}</div>
+                            <div class="row">
+                                <!-- Vader Column -->
+                                <div class="col-md-6">
+                                    <div class="parent-header father-header mb-3">
+                                        <i class="bi bi-gender-male me-2"></i>
+                                        <strong>${t('fatherInfo')}</strong>
+                                    </div>
+                                    
+                                    <div class="dog-info">
+                                        <div class="dog-name">${vaderNaam}</div>
                                         ${vader.stamboomnr ? `<div class="pedigree-number">${vader.stamboomnr}</div>` : ''}
-                                        
-                                        <div class="health-grid">
+                                    </div>
+                                    
+                                    <div class="health-info">
+                                        <!-- Rij 1: HD en ED naast elkaar -->
+                                        <div class="health-row-2col">
                                             <div class="health-item">
                                                 <span class="health-label">${t('hd')}:</span>
                                                 <span class="health-value">${vader.heupdysplasie || '-'}</span>
@@ -1373,6 +1362,10 @@ class NestAankondigingenManager extends BaseModule {
                                                 <span class="health-label">${t('ed')}:</span>
                                                 <span class="health-value">${vader.elleboogdysplasie || '-'}</span>
                                             </div>
+                                        </div>
+                                        
+                                        <!-- Rij 2: Patella en Ogen naast elkaar -->
+                                        <div class="health-row-2col">
                                             <div class="health-item">
                                                 <span class="health-label">${t('patella')}:</span>
                                                 <span class="health-value">${vader.patella || '-'}</span>
@@ -1381,44 +1374,62 @@ class NestAankondigingenManager extends BaseModule {
                                                 <span class="health-label">${t('eyes')}:</span>
                                                 <span class="health-value">${vader.ogen || '-'}</span>
                                             </div>
+                                        </div>
+                                        
+                                        <!-- Rij 3: Dandy Walker op eigen regel -->
+                                        <div class="health-row">
                                             <div class="health-item">
                                                 <span class="health-label">${t('dandyWalker')}:</span>
-                                                <span class="health-value">${vader.dandyWalker || '-'}</span>
+                                                <span class="health-value">${vader.dandyWalker || t('free')}</span>
                                             </div>
+                                        </div>
+                                        
+                                        <!-- Rij 4: Schildklier op eigen regel -->
+                                        <div class="health-row">
                                             <div class="health-item">
                                                 <span class="health-label">${t('thyroid')}:</span>
                                                 <span class="health-value">${vader.schildklier || '-'}</span>
                                             </div>
+                                        </div>
+                                        
+                                        <!-- Rij 5: Land op eigen regel -->
+                                        <div class="health-row">
                                             <div class="health-item">
                                                 <span class="health-label">${t('country')}:</span>
                                                 <span class="health-value">${vader.land || '-'}</span>
                                             </div>
                                         </div>
-                                        
-                                        ${vader.ogenverklaring ? `
-                                        <div class="explanation-item">
-                                            <span class="explanation-label">${t('eyesExplanation')}:</span><br>
-                                            <span class="explanation-text">${vader.ogenverklaring}</span>
-                                        </div>
-                                        ` : ''}
-                                        ${vader.schildklierverklaring ? `
-                                        <div class="explanation-item">
-                                            <span class="explanation-label">${t('thyroidExplanation')}:</span><br>
-                                            <span class="explanation-text">${vader.schildklierverklaring}</span>
-                                        </div>
-                                        ` : ''}
                                     </div>
                                     
-                                    <!-- Moeder Column -->
-                                    <div class="col-md-6 parent-column">
-                                        <div class="parent-header mother-header">
-                                            <i class="bi bi-gender-female me-2"></i>
-                                            <strong>${t('motherInfo')}</strong>
-                                        </div>
-                                        <div class="dog-name-large">${moederNaam}</div>
+                                    ${vader.ogenverklaring ? `
+                                    <div class="explanation-item">
+                                        <span class="explanation-label">${t('eyesExplanation')}:</span>
+                                        <span class="explanation-text">${vader.ogenverklaring}</span>
+                                    </div>
+                                    ` : ''}
+                                    ${vader.schildklierverklaring ? `
+                                    <div class="explanation-item">
+                                        <span class="explanation-label">${t('thyroidExplanation')}:</span>
+                                        <span class="explanation-text">${vader.schildklierverklaring}</span>
+                                    </div>
+                                    ` : ''}
+                                </div>
+                                
+                                <!-- Moeder Column -->
+                                <div class="col-md-6">
+                                    <div class="parent-header mother-header mb-3">
+                                        <i class="bi bi-gender-female me-2"></i>
+                                        <strong>${t('motherInfo')}</strong>
+                                    </div>
+                                    
+                                    <div class="dog-info">
+                                        <div class="dog-name">${moederNaam}</div>
                                         ${moeder.stamboomnr ? `<div class="pedigree-number">${moeder.stamboomnr}</div>` : ''}
-                                        
-                                        <div class="health-grid">
+                                    </div>
+                                    
+                                    <div class="health-info">
+                                        <!-- Rij 1: HD en ED naast elkaar -->
+                                        <div class="health-row-2col">
                                             <div class="health-item">
                                                 <span class="health-label">${t('hd')}:</span>
                                                 <span class="health-value">${moeder.heupdysplasie || '-'}</span>
@@ -1427,6 +1438,10 @@ class NestAankondigingenManager extends BaseModule {
                                                 <span class="health-label">${t('ed')}:</span>
                                                 <span class="health-value">${moeder.elleboogdysplasie || '-'}</span>
                                             </div>
+                                        </div>
+                                        
+                                        <!-- Rij 2: Patella en Ogen naast elkaar -->
+                                        <div class="health-row-2col">
                                             <div class="health-item">
                                                 <span class="health-label">${t('patella')}:</span>
                                                 <span class="health-value">${moeder.patella || '-'}</span>
@@ -1435,33 +1450,45 @@ class NestAankondigingenManager extends BaseModule {
                                                 <span class="health-label">${t('eyes')}:</span>
                                                 <span class="health-value">${moeder.ogen || '-'}</span>
                                             </div>
+                                        </div>
+                                        
+                                        <!-- Rij 3: Dandy Walker op eigen regel -->
+                                        <div class="health-row">
                                             <div class="health-item">
                                                 <span class="health-label">${t('dandyWalker')}:</span>
-                                                <span class="health-value">${moeder.dandyWalker || '-'}</span>
+                                                <span class="health-value">${moeder.dandyWalker || t('free')}</span>
                                             </div>
+                                        </div>
+                                        
+                                        <!-- Rij 4: Schildklier op eigen regel -->
+                                        <div class="health-row">
                                             <div class="health-item">
                                                 <span class="health-label">${t('thyroid')}:</span>
                                                 <span class="health-value">${moeder.schildklier || '-'}</span>
                                             </div>
+                                        </div>
+                                        
+                                        <!-- Rij 5: Land op eigen regel -->
+                                        <div class="health-row">
                                             <div class="health-item">
                                                 <span class="health-label">${t('country')}:</span>
                                                 <span class="health-value">${moeder.land || '-'}</span>
                                             </div>
                                         </div>
-                                        
-                                        ${moeder.ogenverklaring ? `
-                                        <div class="explanation-item">
-                                            <span class="explanation-label">${t('eyesExplanation')}:</span><br>
-                                            <span class="explanation-text">${moeder.ogenverklaring}</span>
-                                        </div>
-                                        ` : ''}
-                                        ${moeder.schildklierverklaring ? `
-                                        <div class="explanation-item">
-                                            <span class="explanation-label">${t('thyroidExplanation')}:</span><br>
-                                            <span class="explanation-text">${moeder.schildklierverklaring}</span>
-                                        </div>
-                                        ` : ''}
                                     </div>
+                                    
+                                    ${moeder.ogenverklaring ? `
+                                    <div class="explanation-item">
+                                        <span class="explanation-label">${t('eyesExplanation')}:</span>
+                                        <span class="explanation-text">${moeder.ogenverklaring}</span>
+                                    </div>
+                                    ` : ''}
+                                    ${moeder.schildklierverklaring ? `
+                                    <div class="explanation-item">
+                                        <span class="explanation-label">${t('thyroidExplanation')}:</span>
+                                        <span class="explanation-text">${moeder.schildklierverklaring}</span>
+                                    </div>
+                                    ` : ''}
                                 </div>
                             </div>
                             
@@ -1841,4 +1868,9 @@ if (typeof module !== 'undefined' && module.exports) {
     window.nestAankondigingenManager = NestAankondigingenManagerInstance;
 }
 
-console.log('📦 NestAankondigingenManager geladen met bredere cards en gezondheidsinfo in twee kolommen naast elkaar');
+console.log('📦 NestAankondigingenManager geladen met exact de gewenste indeling:');
+console.log('   - Rij 1: HD en ED naast elkaar');
+console.log('   - Rij 2: Patella en Ogen naast elkaar');
+console.log('   - Rij 3: Dandy Walker op eigen regel (Vrij indien leeg)');
+console.log('   - Rij 4: Schildklier op eigen regel');
+console.log('   - Rij 5: Land op eigen regel');
