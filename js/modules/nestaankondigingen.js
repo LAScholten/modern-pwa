@@ -47,6 +47,8 @@ class NestAankondigingenManager extends BaseModule {
                 editAnnouncement: "Nest Aankondiging Bewerken",
                 father: "Vader (Reu) *",
                 mother: "Moeder (Teef) *",
+                kennelName: "Kennelnaam *",
+                kennelNamePlaceholder: "Naam van uw kennel",
                 description: "Beschrijving",
                 email: "Email (voor contact)",
                 save: "Opslaan",
@@ -67,6 +69,7 @@ class NestAankondigingenManager extends BaseModule {
                 motherInfo: "Moeder",
                 back: "Terug",
                 noPermission: "Je hebt geen rechten om deze actie uit te voeren",
+                announcementFrom: "Aankondiging van",
                 
                 // Gezondheidsitems (zelfde als DekReuen)
                 healthData: "Gezondheidsgegevens",
@@ -102,6 +105,8 @@ class NestAankondigingenManager extends BaseModule {
                 editAnnouncement: "Edit Nest Announcement",
                 father: "Father (Male) *",
                 mother: "Mother (Female) *",
+                kennelName: "Kennel name *",
+                kennelNamePlaceholder: "Your kennel name",
                 description: "Description",
                 email: "Email (for contact)",
                 save: "Save",
@@ -122,6 +127,7 @@ class NestAankondigingenManager extends BaseModule {
                 motherInfo: "Mother",
                 back: "Back",
                 noPermission: "You don't have permission to perform this action",
+                announcementFrom: "Announcement from",
                 
                 // Health items (same as DekReuen)
                 healthData: "Health Data",
@@ -157,6 +163,8 @@ class NestAankondigingenManager extends BaseModule {
                 editAnnouncement: "Wurfankündigung Bearbeiten",
                 father: "Vater (Rüde) *",
                 mother: "Mutter (Hündin) *",
+                kennelName: "Zwinger name *",
+                kennelNamePlaceholder: "Ihr Zwinger name",
                 description: "Beschreibung",
                 email: "Email (für Kontakt)",
                 save: "Speichern",
@@ -177,6 +185,7 @@ class NestAankondigingenManager extends BaseModule {
                 motherInfo: "Mutter",
                 back: "Zurück",
                 noPermission: "Sie haben keine Berechtigung für diese Aktion",
+                announcementFrom: "Ankündigung von",
                 
                 // Health items (gleiche wie DekReuen)
                 healthData: "Gesundheitsdaten",
@@ -405,7 +414,7 @@ class NestAankondigingenManager extends BaseModule {
     }
     
     /**
-     * Modal voor toevoegen/bewerken (blijft zoals het was)
+     * Modal voor toevoegen/bewerken
      */
     getAddEditModalHTML(mode = 'add') {
         const title = mode === 'add' ? this.t('addAnnouncement') : this.t('editAnnouncement');
@@ -456,6 +465,13 @@ class NestAankondigingenManager extends BaseModule {
                                             ${mode === 'edit' ? '<small class="text-muted d-block mt-2">De ouders kunnen niet worden gewijzigd bij bewerken</small>' : ''}
                                         </div>
                                     </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="kennelName" class="form-label">${this.t('kennelName')}</label>
+                                    <input type="text" class="form-control" id="kennelName" 
+                                           placeholder="${this.t('kennelNamePlaceholder')}" 
+                                           maxlength="100" required>
                                 </div>
                                 
                                 <div class="mb-3">
@@ -778,6 +794,12 @@ class NestAankondigingenManager extends BaseModule {
                 }
             }
             
+            // Kennelnaam invullen
+            const kennelNameField = document.getElementById('kennelName');
+            if (kennelNameField) {
+                kennelNameField.value = announcement.kennelnaam_nest || '';
+            }
+            
             const emailField = document.getElementById('email');
             if (emailField) {
                 emailField.value = announcement.email || '';
@@ -1007,12 +1029,19 @@ class NestAankondigingenManager extends BaseModule {
         
         const vaderIdInput = document.getElementById('vader_id');
         const moederIdInput = document.getElementById('moeder_id');
+        const kennelNameInput = document.getElementById('kennelName');
         
         const vaderId = vaderIdInput?.value;
         const moederId = moederIdInput?.value;
+        const kennelnaam_nest = kennelNameInput?.value.trim();
         
         if (!vaderId || !moederId) {
             this.showStatus('Vader en moeder zijn verplicht', 'danger');
+            return;
+        }
+        
+        if (!kennelnaam_nest) {
+            this.showStatus('Kennelnaam is verplicht', 'danger');
             return;
         }
         
@@ -1042,6 +1071,7 @@ class NestAankondigingenManager extends BaseModule {
             vader_id: vaderIdInt,
             moeder_id: moederIdInt,
             toegevoegd_door: userId,
+            kennelnaam_nest: kennelnaam_nest,
             email: email || null,
             beschrijving: beschrijving || null
         };
@@ -1247,6 +1277,11 @@ class NestAankondigingenManager extends BaseModule {
             // Moeder display naam
             const moederNaam = moeder.kennelnaam ? `${moeder.naam || 'Onbekend'} ${moeder.kennelnaam}` : (moeder.naam || 'Onbekend');
             
+            // Gebruik kennelnaam_nest voor de header, of een standaard tekst als die niet bestaat
+            const headerTitle = announcement.kennelnaam_nest 
+                ? announcement.kennelnaam_nest
+                : `Nest aankondiging #${announcement.id}`;
+            
             // Gezondheidsgegevens Vader (zelfde opmaak als DekReuen)
             const vaderHealth = `
                 <div class="mt-2 small">
@@ -1289,7 +1324,7 @@ class NestAankondigingenManager extends BaseModule {
                         <div class="card-header bg-light">
                             <h6 class="card-title mb-0">
                                 <i class="bi bi-megaphone text-primary me-2"></i>
-                                Nest aankondiging #${announcement.id}
+                                ${headerTitle}
                             </h6>
                         </div>
                         <div class="card-body">
@@ -1385,7 +1420,7 @@ class NestAankondigingenManager extends BaseModule {
                         <div class="card-body">
                             <div class="row align-items-center">
                                 <div class="col-md-3">
-                                    <h6 class="mb-1">Nest #${ann.id}</h6>
+                                    <h6 class="mb-1">${ann.kennelnaam_nest || `Nest #${ann.id}`}</h6>
                                     <small class="text-muted d-block">${formattedDate}</small>
                                 </div>
                                 <div class="col-md-3 small">
