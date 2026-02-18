@@ -2420,7 +2420,7 @@ class NestAankondigingenManager extends BaseModule {
             // Genereer foto thumbnails voor vader
             let vaderFotosHTML = '';
             if (vaderFotos.length > 0) {
-                const eersteFotos = vaderFotos.slice(0, 3);
+                const eersteFotos = vaderFotos.slice(0, 5);
                 vaderFotosHTML = `
                     <div class="photo-thumbnails">
                         <small class="text-muted d-block mb-1">${t('photos')}:</small>
@@ -2445,7 +2445,7 @@ class NestAankondigingenManager extends BaseModule {
             // Genereer foto thumbnails voor moeder
             let moederFotosHTML = '';
             if (moederFotos.length > 0) {
-                const eersteFotos = moederFotos.slice(0, 3);
+                const eersteFotos = moederFotos.slice(0, 5);
                 moederFotosHTML = `
                     <div class="photo-thumbnails">
                         <small class="text-muted d-block mb-1">${t('photos')}:</small>
@@ -2757,7 +2757,7 @@ class NestAankondigingenManager extends BaseModule {
             // Genereer foto thumbnails voor vader
             let vaderFotosHTML = '';
             if (vaderFotos.length > 0) {
-                const eersteFotos = vaderFotos.slice(0, 2);
+                const eersteFotos = vaderFotos.slice(0, 5);
                 vaderFotosHTML = `
                     <div class="mt-2">
                         <div class="d-flex flex-wrap gap-1">
@@ -2783,7 +2783,7 @@ class NestAankondigingenManager extends BaseModule {
             // Genereer foto thumbnails voor moeder
             let moederFotosHTML = '';
             if (moederFotos.length > 0) {
-                const eersteFotos = moederFotos.slice(0, 2);
+                const eersteFotos = moederFotos.slice(0, 5);
                 moederFotosHTML = `
                     <div class="mt-2">
                         <div class="d-flex flex-wrap gap-1">
