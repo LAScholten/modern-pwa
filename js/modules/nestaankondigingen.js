@@ -12,6 +12,7 @@
  * UPDATE 4: Aparte nestfoto's met eigen modal (max 15, 1 per keer met paginatie)
  * UPDATE 5: Opmerkingen bij nestfoto's mogelijk
  * UPDATE 6: Toegevoegd "Stamboom pups" knop die ReuTeefStamboom gebruikt
+ * UPDATE 7: Toegevoegd getDogById methode voor ReuTeefStamboom compatibiliteit
  */
 
 class NestAankondigingenManager extends BaseModule {
@@ -30,7 +31,8 @@ class NestAankondigingenManager extends BaseModule {
         this.totalAnnouncements = 0;
         
         // Voor autocomplete van honden
-        this.allDogs = [];
+        this.allDogs = []; // Wordt gebruikt voor autocomplete
+        this.allHonden = []; // Voor ReuTeefStamboom (zelfde naam als in ReuTeefCombinatie)
         this.db = window.hondenService;
         this.auth = window.auth;
         this.supabase = null;
@@ -51,6 +53,12 @@ class NestAankondigingenManager extends BaseModule {
         // Voor het bewerken van een specifieke foto
         this.editingFotoId = null;
         this.editingFotoData = null;
+        
+        // ReuTeefStamboom module referentie (zelfde als ReuTeefCombinatie)
+        this.stamboomModule = null;
+        
+        // Cache voor honden (voor getDogById)
+        this.hondenCache = new Map();
         
         this.translations = {
             nl: {
@@ -379,6 +387,35 @@ class NestAankondigingenManager extends BaseModule {
             this.supabase = window.supabase;
             return this.supabase;
         }
+        return null;
+    }
+    
+    /**
+     * NIEUW: getDogById methode voor ReuTeefStamboom compatibiliteit
+     * Zoekt een hond op ID in allHonden of haalt deze op uit de cache
+     */
+    getDogById(id) {
+        if (!id || id === 0) return null;
+        
+        // Eerst in cache zoeken
+        if (this.hondenCache.has(id)) {
+            return this.hondenCache.get(id);
+        }
+        
+        // Dan in allHonden array zoeken
+        const dog = this.allHonden.find(dog => dog.id === id);
+        if (dog) {
+            this.hondenCache.set(id, dog);
+            return dog;
+        }
+        
+        // Als niet gevonden, probeer in allDogs (voor compatibiliteit)
+        const dog2 = this.allDogs.find(dog => dog.id === id);
+        if (dog2) {
+            this.hondenCache.set(id, dog2);
+            return dog2;
+        }
+        
         return null;
     }
     
@@ -1083,60 +1120,88 @@ class NestAankondigingenManager extends BaseModule {
     }
     
     /**
-     * EENVOUDIGE OPLOSSING: Laad ReuTeefStamboom module
+     * **GECORRIGEERD**: Gebruik exact dezelfde methode als ReuTeefCombinatie
+     * Zorgt dat allHonden array wordt doorgegeven aan ReuTeefStamboom
      */
-    async ensureReuTeefStamboom() {
-        // Check of de module al bestaat
-        if (window.reuTeefStamboomInstance && typeof window.reuTeefStamboomInstance.showFuturePuppyPedigree === 'function') {
-            console.log('✅ ReuTeefStamboom is al geladen');
-            return window.reuTeefStamboomInstance;
-        }
-        
-        // Check of de klasse bestaat maar nog geen instantie
-        if (window.ReuTeefStamboom && typeof window.ReuTeefStamboom === 'function') {
-            console.log('✅ ReuTeefStamboom klasse gevonden, maak instantie');
-            try {
-                const instance = new window.ReuTeefStamboom(window.mainModule || window);
-                window.reuTeefStamboomInstance = instance;
-                return instance;
-            } catch (e) {
-                console.error('❌ Kon geen ReuTeefStamboom instantie maken:', e);
+    async showPuppyPedigree(announcement) {
+        try {
+            console.log('Show puppy pedigree for announcement', announcement);
+            
+            // Haal vader en moeder op
+            const vader = this.allDogs.find(d => d.id === announcement.vader_id);
+            const moeder = this.allDogs.find(d => d.id === announcement.moeder_id);
+            
+            if (!vader || !moeder) {
+                alert('Kan vader of moeder niet vinden');
+                return;
             }
+            
+            // Zorg dat allHonden gevuld is (zelfde als ReuTeefCombinatie)
+            this.allHonden = this.allDogs;
+            
+            // Initialiseer stamboom module als die nog niet bestaat (zelfde als ReuTeefCombinatie)
+            if (!this.stamboomModule) {
+                if (typeof ReuTeefStamboom === 'undefined') {
+                    // Als de klasse nog niet bestaat, laad het script
+                    await this.loadReuTeefStamboomScript();
+                }
+                // Geef deze instantie (this) mee aan de constructor - net als in ReuTeefCombinatie
+                this.stamboomModule = new ReuTeefStamboom(this);
+            }
+            
+            console.log('✅ ReuTeefStamboom gevonden, toon stamboom voor pups van', vader.naam, 'en', moeder.naam);
+            console.log('📊 Aantal honden in allHonden:', this.allHonden.length);
+            
+            // Toon de stamboom van de toekomstige pup
+            await this.stamboomModule.showFuturePuppyPedigree(moeder, vader);
+            
+        } catch (error) {
+            console.error('Fout bij tonen stamboom pups:', error);
+            alert('Fout bij laden stamboom: ' + error.message);
         }
-        
-        // Laad het script
-        console.log('📦 ReuTeefStamboom wordt geladen...');
-        
+    }
+    
+    /**
+     * Hulpfunctie om ReuTeefStamboom script te laden indien nodig
+     */
+    async loadReuTeefStamboomScript() {
         return new Promise((resolve, reject) => {
+            // Controleer of het script al in de pagina staat
+            if (document.querySelector('script[src*="ReuTeefStamboom.js"]')) {
+                // Script wordt al geladen, wacht tot het beschikbaar is
+                let checkCount = 0;
+                const checkInterval = setInterval(() => {
+                    if (typeof ReuTeefStamboom !== 'undefined') {
+                        clearInterval(checkInterval);
+                        resolve();
+                    } else if (checkCount > 50) {
+                        clearInterval(checkInterval);
+                        reject(new Error('Timeout wachten op ReuTeefStamboom'));
+                    }
+                    checkCount++;
+                }, 100);
+                return;
+            }
+            
+            // Laad het script
             const script = document.createElement('script');
             script.src = 'js/modules/ReuTeefStamboom.js';
             script.onload = () => {
                 // Wacht tot de klasse beschikbaar is
                 let checkCount = 0;
                 const checkInterval = setInterval(() => {
-                    if (window.ReuTeefStamboom) {
+                    if (typeof ReuTeefStamboom !== 'undefined') {
                         clearInterval(checkInterval);
-                        try {
-                            // Maak instantie met mainModule
-                            const instance = new window.ReuTeefStamboom(window.mainModule || window);
-                            window.reuTeefStamboomInstance = instance;
-                            console.log('✅ ReuTeefStamboom geladen en geïnstantieerd');
-                            resolve(instance);
-                        } catch (e) {
-                            console.error('❌ Fout bij instantiëren ReuTeefStamboom:', e);
-                            reject(e);
-                        }
+                        resolve();
                     } else if (checkCount > 30) {
                         clearInterval(checkInterval);
-                        console.error('❌ ReuTeefStamboom niet gevonden na laden');
-                        reject(new Error('ReuTeefStamboom niet beschikbaar na laden'));
+                        reject(new Error('ReuTeefStamboom niet gevonden na laden'));
                     }
                     checkCount++;
                 }, 100);
             };
             script.onerror = () => {
-                console.error('❌ ReuTeefStamboom script laden mislukt');
-                reject(new Error('ReuTeefStamboom laden mislukt'));
+                reject(new Error('ReuTeefStamboom script laden mislukt'));
             };
             document.head.appendChild(script);
         });
@@ -1907,41 +1972,6 @@ class NestAankondigingenManager extends BaseModule {
         } catch (error) {
             console.error('Fout bij tonen nestfoto beheer modal:', error);
             alert('Fout bij laden nestfoto\'s: ' + error.message);
-        }
-    }
-    
-    /**
-     * NIEUW: Toon stamboom van pups (fictieve pup)
-     */
-    async showPuppyPedigree(announcement) {
-        try {
-            console.log('Show puppy pedigree for announcement', announcement);
-            
-            // Haal vader en moeder op
-            const vader = this.allDogs.find(d => d.id === announcement.vader_id);
-            const moeder = this.allDogs.find(d => d.id === announcement.moeder_id);
-            
-            if (!vader || !moeder) {
-                alert('Kan vader of moeder niet vinden');
-                return;
-            }
-            
-            // Laad ReuTeefStamboom
-            const reuTeefStamboom = await this.ensureReuTeefStamboom();
-            
-            if (!reuTeefStamboom) {
-                alert('Stamboom module niet beschikbaar');
-                return;
-            }
-            
-            console.log('✅ ReuTeefStamboom gevonden, toon stamboom voor pups van', vader.naam, 'en', moeder.naam);
-            
-            // Toon de stamboom van de toekomstige pup
-            await reuTeefStamboom.showFuturePuppyPedigree(moeder, vader);
-            
-        } catch (error) {
-            console.error('Fout bij tonen stamboom pups:', error);
-            alert('Fout bij laden stamboom: ' + error.message);
         }
     }
     
