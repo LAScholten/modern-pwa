@@ -11,6 +11,7 @@
  * UPDATE 3: Paginatiebalkje 80% van originele grootte
  * UPDATE 4: Aparte nestfoto's met eigen modal (max 15, 1 per keer met paginatie)
  * UPDATE 5: Opmerkingen bij nestfoto's mogelijk
+ * UPDATE 6: Toegevoegd "Stamboom pups" knop die ReuTeefStamboom gebruikt
  */
 
 class NestAankondigingenManager extends BaseModule {
@@ -144,6 +145,10 @@ class NestAankondigingenManager extends BaseModule {
                 remarkSaved: "Opmerking succesvol opgeslagen!",
                 remarkSaveFailed: "Fout bij opslaan opmerking: ",
                 
+                // NIEUW: Stamboom pups knop
+                puppyPedigree: "Stamboom pups",
+                viewPuppyPedigree: "Bekijk stamboom van de pups",
+                
                 // Paginatie
                 prevPage: "Vorige",
                 nextPage: "Volgende",
@@ -241,6 +246,10 @@ class NestAankondigingenManager extends BaseModule {
                 clickToAddRemark: "Click to add remark",
                 remarkSaved: "Remark saved successfully!",
                 remarkSaveFailed: "Failed to save remark: ",
+                
+                // NEW: Puppy pedigree button
+                puppyPedigree: "Puppy Pedigree",
+                viewPuppyPedigree: "View puppy pedigree",
                 
                 // Pagination
                 prevPage: "Previous",
@@ -340,6 +349,10 @@ class NestAankondigingenManager extends BaseModule {
                 remarkSaved: "Bemerkung erfolgreich gespeichert!",
                 remarkSaveFailed: "Fehler beim Speichern: ",
                 
+                // NEW: Welpenstammbaum Button
+                puppyPedigree: "Welpenstammbaum",
+                viewPuppyPedigree: "Welpenstammbaum anzeigen",
+                
                 // Pagination
                 prevPage: "Vorherige",
                 nextPage: "Nächste",
@@ -386,6 +399,46 @@ class NestAankondigingenManager extends BaseModule {
             script.onerror = () => {
                 console.error('❌ PhotoViewer script laden mislukt');
                 reject(new Error('PhotoViewer laden mislukt'));
+            };
+            document.head.appendChild(script);
+        });
+    }
+    
+    /**
+     * Zorg dat ReuTeefStamboom geladen is
+     */
+    ensureReuTeefStamboom() {
+        return new Promise((resolve, reject) => {
+            // Check of de klasse al bestaat
+            if (window.ReuTeefStamboom && window.reuTeefStamboomInstance) {
+                console.log('✅ ReuTeefStamboom is al geladen');
+                resolve(window.reuTeefStamboomInstance);
+                return;
+            }
+            
+            console.log('📦 ReuTeefStamboom wordt dynamisch geladen...');
+            
+            // Laad het script
+            const script = document.createElement('script');
+            script.src = 'js/modules/ReuTeefStamboom.js';
+            script.onload = () => {
+                let checkCount = 0;
+                const checkInterval = setInterval(() => {
+                    if (window.ReuTeefStamboom && window.reuTeefStamboomInstance) {
+                        clearInterval(checkInterval);
+                        console.log('✅ ReuTeefStamboom geladen');
+                        resolve(window.reuTeefStamboomInstance);
+                    } else if (checkCount > 20) { // 2 seconden timeout
+                        clearInterval(checkInterval);
+                        console.error('❌ ReuTeefStamboom niet gevonden na laden');
+                        reject(new Error('ReuTeefStamboom niet beschikbaar'));
+                    }
+                    checkCount++;
+                }, 100);
+            };
+            script.onerror = () => {
+                console.error('❌ ReuTeefStamboom script laden mislukt');
+                reject(new Error('ReuTeefStamboom laden mislukt'));
             };
             document.head.appendChild(script);
         });
@@ -1400,6 +1453,19 @@ class NestAankondigingenManager extends BaseModule {
                     transform: scale(1.05);
                 }
                 
+                /* NIEUW: Stamboom pups knop styling */
+                .btn-puppy-pedigree {
+                    background-color: #20c997;
+                    color: white;
+                    transition: all 0.2s;
+                }
+                
+                .btn-puppy-pedigree:hover {
+                    background-color: #198754;
+                    color: white;
+                    transform: scale(1.05);
+                }
+                
                 /* Card header ook verkleind */
                 .announcement-card .card-header {
                     padding: 0.5rem 1rem;
@@ -1864,6 +1930,42 @@ class NestAankondigingenManager extends BaseModule {
         } catch (error) {
             console.error('Fout bij tonen nestfoto beheer modal:', error);
             alert('Fout bij laden nestfoto\'s: ' + error.message);
+        }
+    }
+    
+    /**
+     * NIEUW: Toon stamboom van pups (fictieve pup)
+     */
+    async showPuppyPedigree(announcement) {
+        try {
+            console.log('Show puppy pedigree for announcement', announcement);
+            
+            // Haal vader en moeder op
+            const vader = this.allDogs.find(d => d.id === announcement.vader_id);
+            const moeder = this.allDogs.find(d => d.id === announcement.moeder_id);
+            
+            if (!vader || !moeder) {
+                alert('Kan vader of moeder niet vinden');
+                return;
+            }
+            
+            // Laad ReuTeefStamboom
+            const reuTeefStamboom = await this.ensureReuTeefStamboom();
+            
+            if (!reuTeefStamboom) {
+                alert('Stamboom module niet beschikbaar');
+                return;
+            }
+            
+            // Zorg dat de stamboom module de juiste mainModule heeft
+            // (neem aan dat de mainModule al is ingesteld in de instantie)
+            
+            // Toon de stamboom van de toekomstige pup
+            await reuTeefStamboom.showFuturePuppyPedigree(moeder, vader);
+            
+        } catch (error) {
+            console.error('Fout bij tonen stamboom pups:', error);
+            alert('Fout bij laden stamboom: ' + error.message);
         }
     }
     
@@ -2386,7 +2488,7 @@ class NestAankondigingenManager extends BaseModule {
      * Derde rij: Dandy Walker op eigen regel
      * Vierde rij: Schildklier op eigen regel
      * Vijfde rij: Land op eigen regel
-     * Met foto thumbnails van beide ouders EN knop voor nestfoto's
+     * Met foto thumbnails van beide ouders EN knop voor nestfoto's EN knop voor stamboom pups
      */
     async renderOverviewList(announcements, container, total = 0, currentPage = 1) {
         const t = this.t.bind(this);
@@ -2638,14 +2740,24 @@ class NestAankondigingenManager extends BaseModule {
                                     <div><i class="bi bi-calendar me-2"></i> ${formattedDate}</div>
                                 </div>
                                 
-                                <!-- NIEUW: Nestfoto knop -->
-                                <button class="btn btn-sm btn-nest-photos view-nest-photos" 
-                                        data-nest-id="${announcement.id}"
-                                        data-nest-naam="${headerTitle}"
-                                        data-nest-fotos-count="${nestFotos.length}">
-                                    <i class="bi bi-images me-1"></i> 
-                                    ${t('nestPhotos')} (${nestFotos.length})
-                                </button>
+                                <div class="d-flex gap-2">
+                                    <!-- NIEUW: Stamboom pups knop -->
+                                    <button class="btn btn-sm btn-puppy-pedigree show-puppy-pedigree" 
+                                            data-announcement='${JSON.stringify(announcement).replace(/'/g, '&apos;')}'
+                                            title="${t('viewPuppyPedigree')}">
+                                        <i class="bi bi-diagram-3 me-1"></i> 
+                                        ${t('puppyPedigree')}
+                                    </button>
+                                    
+                                    <!-- NIEUW: Nestfoto knop -->
+                                    <button class="btn btn-sm btn-nest-photos view-nest-photos" 
+                                            data-nest-id="${announcement.id}"
+                                            data-nest-naam="${headerTitle}"
+                                            data-nest-fotos-count="${nestFotos.length}">
+                                        <i class="bi bi-images me-1"></i> 
+                                        ${t('nestPhotos')} (${nestFotos.length})
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -2701,6 +2813,21 @@ class NestAankondigingenManager extends BaseModule {
                         // Geen foto's, toon melding
                         alert(this.t('noNestPhotos'));
                     }
+                }
+            });
+        });
+        
+        // NIEUW: Click handlers voor stamboom pups knoppen
+        container.querySelectorAll('.show-puppy-pedigree').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                try {
+                    const announcement = JSON.parse(btn.dataset.announcement.replace(/&apos;/g, "'"));
+                    this.showPuppyPedigree(announcement);
+                } catch (error) {
+                    console.error('Fout bij parsen announcement:', error);
                 }
             });
         });
@@ -2828,6 +2955,13 @@ class NestAankondigingenManager extends BaseModule {
                                     ${moederFotosHTML}
                                 </div>
                                 <div class="col-md-3 text-end">
+                                    <!-- NIEUW: Stamboom pups knop in beheer -->
+                                    <button class="btn btn-sm btn-outline-success puppy-pedigree-beheer mb-1 w-100" 
+                                            data-announcement='${JSON.stringify(ann).replace(/'/g, '&apos;')}'>
+                                        <i class="bi bi-diagram-3 me-1"></i> 
+                                        ${t('puppyPedigree')}
+                                    </button>
+                                    
                                     <!-- NIEUW: Nestfoto knop in beheer -->
                                     <button class="btn btn-sm btn-outline-info manage-nest-photos mb-1 w-100" 
                                             data-announcement='${JSON.stringify(ann).replace(/'/g, '&apos;')}'>
@@ -2898,6 +3032,18 @@ class NestAankondigingenManager extends BaseModule {
                 try {
                     const announcement = JSON.parse(btn.dataset.announcement.replace(/&apos;/g, "'"));
                     this.showNestFotoBeheerModal(announcement);
+                } catch (e) {
+                    console.error(e);
+                }
+            });
+        });
+        
+        // NIEUW: Click handlers voor stamboom pups in beheer
+        container.querySelectorAll('.puppy-pedigree-beheer').forEach(btn => {
+            btn.addEventListener('click', () => {
+                try {
+                    const announcement = JSON.parse(btn.dataset.announcement.replace(/&apos;/g, "'"));
+                    this.showPuppyPedigree(announcement);
                 } catch (e) {
                     console.error(e);
                 }
@@ -3231,4 +3377,4 @@ if (typeof module !== 'undefined' && module.exports) {
     window.nestAankondigingenManager = NestAankondigingenManagerInstance;
 }
 
-console.log('📦 NestAankondigingenManager geladen met 1 per pagina, paginatie 80%, tekst 70%, nestfoto\'s MET OPMERKINGEN (max 15, 1 per keer met paginatie)');
+console.log('📦 NestAankondigingenManager geladen met 1 per pagina, paginatie 80%, tekst 70%, nestfoto\'s MET OPMERKINGEN (max 15, 1 per keer met paginatie) en STAMBOOM PUPS knop');
