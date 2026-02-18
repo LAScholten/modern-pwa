@@ -13,6 +13,7 @@
  * UPDATE 5: Opmerkingen bij nestfoto's mogelijk
  * UPDATE 6: Toegevoegd "Stamboom pups" knop die ReuTeefStamboom gebruikt
  * UPDATE 7: Toegevoegd getDogById methode voor ReuTeefStamboom compatibiliteit
+ * UPDATE 8: Gecorrigeerde foto weergave voor ouders
  */
 
 class NestAankondigingenManager extends BaseModule {
@@ -59,6 +60,9 @@ class NestAankondigingenManager extends BaseModule {
         
         // Cache voor honden (voor getDogById)
         this.hondenCache = new Map();
+        
+        // Cache voor foto's
+        this.fotosCache = new Map();
         
         this.translations = {
             nl: {
@@ -421,25 +425,34 @@ class NestAankondigingenManager extends BaseModule {
     
     /**
      * Haal foto's op voor een specifieke hond (ouders)
+     * GECORRIGEERD: Betere foutafhandeling en cache
      */
     async getHondFotos(hondId) {
         try {
             if (!hondId) return [];
             
+            // Check cache
+            const cacheKey = `hond_${hondId}`;
+            if (this.fotosCache.has(cacheKey)) {
+                return this.fotosCache.get(cacheKey);
+            }
+            
             const supabase = this.getSupabase();
             if (!supabase) return [];
             
+            // Haal hond gegevens op met stamboomnummer
             const { data: hondData, error: hondError } = await supabase
                 .from('honden')
                 .select('stamboomnr, naam, kennelnaam')
                 .eq('id', hondId)
                 .single();
                 
-            if (hondError || !hondData) {
-                console.error('❌ Kon hond niet vinden:', hondError);
+            if (hondError || !hondData || !hondData.stamboomnr) {
+                console.log('❌ Geen stamboomnummer gevonden voor hond:', hondId);
                 return [];
             }
             
+            // Haal foto's op via stamboomnummer
             const { data: fotos, error } = await supabase
                 .from('fotos')
                 .select('*')
@@ -451,7 +464,17 @@ class NestAankondigingenManager extends BaseModule {
                 return [];
             }
             
-            return fotos || [];
+            // Valideer dat elke foto een geldige data URL heeft
+            const geldigeFotos = (fotos || []).filter(foto => {
+                return foto && foto.data && foto.data.startsWith('data:image');
+            });
+            
+            console.log(`📸 ${geldigeFotos.length} foto's gevonden voor hond ${hondId}`);
+            
+            // Sla op in cache
+            this.fotosCache.set(cacheKey, geldigeFotos);
+            
+            return geldigeFotos;
             
         } catch (error) {
             console.error('❌ Fout bij ophalen foto\'s:', error);
@@ -466,6 +489,12 @@ class NestAankondigingenManager extends BaseModule {
         try {
             if (!nestId) return [];
             
+            // Check cache
+            const cacheKey = `nest_${nestId}`;
+            if (this.fotosCache.has(cacheKey)) {
+                return this.fotosCache.get(cacheKey);
+            }
+            
             const supabase = this.getSupabase();
             if (!supabase) return [];
             
@@ -473,18 +502,62 @@ class NestAankondigingenManager extends BaseModule {
                 .from('nest_fotos')
                 .select('*')
                 .eq('nest_id', nestId)
-                .order('uploaded_at', { ascending: true }); // Oplopend voor chronologische volgorde
+                .order('uploaded_at', { ascending: true });
             
             if (error) {
                 console.error('❌ Fout bij ophalen nestfoto\'s:', error);
                 return [];
             }
             
-            return fotos || [];
+            // Valideer foto's
+            const geldigeFotos = (fotos || []).filter(foto => {
+                return foto && foto.data && foto.data.startsWith('data:image');
+            });
+            
+            this.fotosCache.set(cacheKey, geldigeFotos);
+            
+            return geldigeFotos;
             
         } catch (error) {
             console.error('❌ Fout bij ophalen nestfoto\'s:', error);
             return [];
+        }
+    }
+    
+    /**
+     * NIEUW: Toon foto in PhotoViewer of fallback
+     */
+    showFoto(fotoData, titel = '') {
+        try {
+            if (!fotoData || !fotoData.startsWith('data:image')) {
+                console.error('Ongeldige foto data');
+                return;
+            }
+            
+            // Gebruik PhotoViewer als beschikbaar
+            if (window.photoViewer && typeof window.photoViewer.showPhoto === 'function') {
+                window.photoViewer.showPhoto(fotoData, titel);
+            } else {
+                // Fallback: open in nieuw tabblad
+                const newWindow = window.open();
+                if (newWindow) {
+                    newWindow.document.write(`
+                        <html>
+                            <head><title>${titel || 'Foto'}</title></head>
+                            <body style="margin:0; display:flex; align-items:center; justify-content:center; min-height:100vh; background:#000;">
+                                <img src="${fotoData}" style="max-width:100%; max-height:100vh; object-fit:contain;">
+                            </body>
+                        </html>
+                    `);
+                    newWindow.document.close();
+                } else {
+                    // Als popup blocker actief is, open direct
+                    window.open(fotoData, '_blank');
+                }
+            }
+        } catch (error) {
+            console.error('Fout bij tonen foto:', error);
+            window.open(fotoData, '_blank');
         }
     }
     
@@ -537,7 +610,7 @@ class NestAankondigingenManager extends BaseModule {
                 
                 const base64Data = e.target.result;
                 
-                // Maak thumbnail (optioneel, voor overzicht)
+                // Maak thumbnail
                 let thumbnail = null;
                 try {
                     const img = new Image();
@@ -586,7 +659,7 @@ class NestAankondigingenManager extends BaseModule {
                     type: file.type,
                     uploaded_at: new Date().toISOString(),
                     geupload_door: user.id,
-                    opmerking: remark || null // NIEUW: opslaan van opmerking
+                    opmerking: remark || null
                 };
                 
                 const { data: dbData, error: dbError } = await this.getSupabase()
@@ -605,7 +678,8 @@ class NestAankondigingenManager extends BaseModule {
                 
                 fileInput.value = '';
                 
-                // Herlaad de nestfoto's
+                // Clear cache en herlaad
+                this.fotosCache.delete(`nest_${this.selectedNestId}`);
                 await this.loadNestFotos(this.selectedNestId);
                 
             } catch (error) {
@@ -642,8 +716,9 @@ class NestAankondigingenManager extends BaseModule {
             
             this.showSuccess(t('remarkSaved'), 'nestFotosContainer');
             
-            // Herlaad de nestfoto's om de bijgewerkte opmerking te tonen
+            // Clear cache en herlaad
             if (this.selectedNestId) {
+                this.fotosCache.delete(`nest_${this.selectedNestId}`);
                 await this.loadNestFotos(this.selectedNestId);
             }
             
@@ -681,7 +756,9 @@ class NestAankondigingenManager extends BaseModule {
             
             this.showSuccess(t('nestPhotoDeleteSuccess'), 'nestFotosContainer');
             
+            // Clear cache en herlaad
             if (this.selectedNestId) {
+                this.fotosCache.delete(`nest_${this.selectedNestId}`);
                 await this.loadNestFotos(this.selectedNestId);
             }
             
@@ -826,7 +903,8 @@ class NestAankondigingenManager extends BaseModule {
                                 </button>
                                 <div class="card-img-top nest-foto-thumbnail" 
                                      style="height: 150px; cursor: pointer; background: #f8f9fa; display: flex; align-items: center; justify-content: center; overflow: hidden;"
-                                     data-foto='${JSON.stringify(foto).replace(/'/g, '&apos;')}'
+                                     data-foto-data="${foto.data}"
+                                     data-foto-id="${foto.id}"
                                      data-nest-naam="${this.selectedNestKennelnaam || ''}">
                                     <img src="${foto.thumbnail || foto.data}" alt="Nestfoto" 
                                          style="max-width: 100%; max-height: 100%; object-fit: cover;">
@@ -874,21 +952,15 @@ class NestAankondigingenManager extends BaseModule {
         
         // Click handlers voor foto's
         container.querySelectorAll('.nest-foto-thumbnail').forEach(thumb => {
-            thumb.addEventListener('click', async (e) => {
+            thumb.addEventListener('click', (e) => {
                 e.stopPropagation();
-                try {
-                    const foto = JSON.parse(thumb.dataset.foto.replace(/&apos;/g, "'"));
-                    const nestNaam = thumb.dataset.nestNaam || this.selectedNestKennelnaam || '';
-                    
-                    // Gebruik PhotoViewer via ReuTeefStamboom of direct
-                    if (window.photoViewer) {
-                        window.photoViewer.showPhoto(foto.data, nestNaam);
-                    } else {
-                        // Fallback
-                        window.open(foto.data, '_blank');
-                    }
-                } catch (error) {
-                    console.error('Fout bij tonen foto:', error);
+                const fotoData = thumb.dataset.fotoData;
+                const nestNaam = thumb.dataset.nestNaam || this.selectedNestKennelnaam || '';
+                
+                if (fotoData && fotoData.startsWith('data:image')) {
+                    this.showFoto(fotoData, nestNaam);
+                } else {
+                    console.error('Geen geldige foto data');
                 }
             });
         });
@@ -962,7 +1034,7 @@ class NestAankondigingenManager extends BaseModule {
                                         <div class="gallery-thumbnail ${index === 0 ? 'border border-primary' : ''}" 
                                              style="width: 100%; height: 50px; cursor: pointer; overflow: hidden; border-radius: 4px;"
                                              data-index="${index}"
-                                             data-foto='${JSON.stringify(foto).replace(/'/g, '&apos;')}'>
+                                             data-foto-data="${foto.data}">
                                             <img src="${foto.thumbnail || foto.data}" alt="Thumb" style="width: 100%; height: 100%; object-fit: cover;">
                                         </div>
                                     </div>
@@ -2535,8 +2607,9 @@ class NestAankondigingenManager extends BaseModule {
                         <div class="d-flex flex-wrap">
                             ${eersteFotos.map(foto => `
                                 <div class="photo-thumbnail" 
-                                     data-foto='${JSON.stringify(foto).replace(/'/g, '&apos;')}'
-                                     data-hond-naam="${vaderNaam}">
+                                     data-foto-data="${foto.data}"
+                                     data-hond-naam="${vaderNaam}"
+                                     title="${t('viewPhoto')}">
                                     <img src="${foto.thumbnail || foto.data}" alt="Foto">
                                 </div>
                             `).join('')}
@@ -2560,8 +2633,9 @@ class NestAankondigingenManager extends BaseModule {
                         <div class="d-flex flex-wrap">
                             ${eersteFotos.map(foto => `
                                 <div class="photo-thumbnail" 
-                                     data-foto='${JSON.stringify(foto).replace(/'/g, '&apos;')}'
-                                     data-hond-naam="${moederNaam}">
+                                     data-foto-data="${foto.data}"
+                                     data-hond-naam="${moederNaam}"
+                                     title="${t('viewPhoto')}">
                                     <img src="${foto.thumbnail || foto.data}" alt="Foto">
                                 </div>
                             `).join('')}
@@ -2773,22 +2847,19 @@ class NestAankondigingenManager extends BaseModule {
         
         container.innerHTML = `<div class="row">${html}</div>`;
         
-        // Click handlers voor ouderfoto's
+        // GECORRIGEERD: Click handlers voor ouderfoto's
         container.querySelectorAll('.photo-thumbnail').forEach(thumb => {
-            thumb.addEventListener('click', async (e) => {
+            thumb.addEventListener('click', (e) => {
                 e.stopPropagation();
-                try {
-                    const foto = JSON.parse(thumb.dataset.foto.replace(/&apos;/g, "'"));
-                    const hondNaam = thumb.dataset.hondNaam || '';
-                    
-                    // Gebruik PhotoViewer via ReuTeefStamboom of direct
-                    if (window.photoViewer) {
-                        window.photoViewer.showPhoto(foto.data, hondNaam);
-                    } else {
-                        window.open(foto.data, '_blank');
-                    }
-                } catch (error) {
-                    console.error('Fout bij tonen foto:', error);
+                e.preventDefault();
+                
+                const fotoData = thumb.dataset.fotoData;
+                const hondNaam = thumb.dataset.hondNaam || '';
+                
+                if (fotoData && fotoData.startsWith('data:image')) {
+                    this.showFoto(fotoData, hondNaam);
+                } else {
+                    console.error('Geen geldige foto data');
                 }
             });
         });
@@ -2891,7 +2962,7 @@ class NestAankondigingenManager extends BaseModule {
                             ${eersteFotos.map(foto => `
                                 <div class="photo-thumbnail" 
                                      style="width: 30px; height: 30px;"
-                                     data-foto='${JSON.stringify(foto).replace(/'/g, '&apos;')}'
+                                     data-foto-data="${foto.data}"
                                      data-hond-naam="${vaderNaam}">
                                     <img src="${foto.thumbnail || foto.data}" alt="Foto">
                                 </div>
@@ -2917,7 +2988,7 @@ class NestAankondigingenManager extends BaseModule {
                             ${eersteFotos.map(foto => `
                                 <div class="photo-thumbnail" 
                                      style="width: 30px; height: 30px;"
-                                     data-foto='${JSON.stringify(foto).replace(/'/g, '&apos;')}'
+                                     data-foto-data="${foto.data}"
                                      data-hond-naam="${moederNaam}">
                                     <img src="${foto.thumbnail || foto.data}" alt="Foto">
                                 </div>
@@ -3001,22 +3072,19 @@ class NestAankondigingenManager extends BaseModule {
             ${paginationHTML}
         `;
         
-        // Click handlers voor ouderfoto's in beheer lijst
+        // GECORRIGEERD: Click handlers voor ouderfoto's in beheer lijst
         container.querySelectorAll('.photo-thumbnail').forEach(thumb => {
-            thumb.addEventListener('click', async (e) => {
+            thumb.addEventListener('click', (e) => {
                 e.stopPropagation();
-                try {
-                    const foto = JSON.parse(thumb.dataset.foto.replace(/&apos;/g, "'"));
-                    const hondNaam = thumb.dataset.hondNaam || '';
-                    
-                    // Gebruik PhotoViewer via ReuTeefStamboom of direct
-                    if (window.photoViewer) {
-                        window.photoViewer.showPhoto(foto.data, hondNaam);
-                    } else {
-                        window.open(foto.data, '_blank');
-                    }
-                } catch (error) {
-                    console.error('Fout bij tonen foto:', error);
+                e.preventDefault();
+                
+                const fotoData = thumb.dataset.fotoData;
+                const hondNaam = thumb.dataset.hondNaam || '';
+                
+                if (fotoData && fotoData.startsWith('data:image')) {
+                    this.showFoto(fotoData, hondNaam);
+                } else {
+                    console.error('Geen geldige foto data');
                 }
             });
         });
