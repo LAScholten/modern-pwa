@@ -10,6 +10,7 @@
  * UPDATE 2: Tekst in cards kleiner gemaakt (70% van origineel)
  * UPDATE 3: Paginatiebalkje 80% van originele grootte
  * UPDATE 4: Aparte nestfoto's met eigen modal (max 15, 1 per keer met paginatie)
+ * UPDATE 5: Opmerkingen bij nestfoto's mogelijk
  */
 
 class NestAankondigingenManager extends BaseModule {
@@ -45,6 +46,10 @@ class NestAankondigingenManager extends BaseModule {
         // Voor de fotogalerij modal
         this.currentFotoIndex = 0;
         this.currentNestFotos = [];
+        
+        // Voor het bewerken van een specifieke foto
+        this.editingFotoId = null;
+        this.editingFotoData = null;
         
         this.translations = {
             nl: {
@@ -128,6 +133,16 @@ class NestAankondigingenManager extends BaseModule {
                 photoCounter: "Foto {current} van {total}",
                 previous: "Vorige",
                 next: "Volgende",
+                
+                // NIEUW: Opmerkingen bij nestfoto's
+                remark: "Opmerking",
+                addRemark: "Opmerking toevoegen",
+                editRemark: "Opmerking bewerken",
+                saveRemark: "Opmerking opslaan",
+                noRemark: "Geen opmerking",
+                clickToAddRemark: "Klik om opmerking toe te voegen",
+                remarkSaved: "Opmerking succesvol opgeslagen!",
+                remarkSaveFailed: "Fout bij opslaan opmerking: ",
                 
                 // Paginatie
                 prevPage: "Vorige",
@@ -217,6 +232,16 @@ class NestAankondigingenManager extends BaseModule {
                 previous: "Previous",
                 next: "Next",
                 
+                // NEW: Remarks for nest photos
+                remark: "Remark",
+                addRemark: "Add remark",
+                editRemark: "Edit remark",
+                saveRemark: "Save remark",
+                noRemark: "No remark",
+                clickToAddRemark: "Click to add remark",
+                remarkSaved: "Remark saved successfully!",
+                remarkSaveFailed: "Failed to save remark: ",
+                
                 // Pagination
                 prevPage: "Previous",
                 nextPage: "Next",
@@ -304,6 +329,16 @@ class NestAankondigingenManager extends BaseModule {
                 photoCounter: "Foto {current} von {total}",
                 previous: "Vorherige",
                 next: "Nächste",
+                
+                // NEW: Bemerkungen für Wurffotos
+                remark: "Bemerkung",
+                addRemark: "Bemerkung hinzufügen",
+                editRemark: "Bemerkung bearbeiten",
+                saveRemark: "Bemerkung speichern",
+                noRemark: "Keine Bemerkung",
+                clickToAddRemark: "Klicken um Bemerkung hinzuzufügen",
+                remarkSaved: "Bemerkung erfolgreich gespeichert!",
+                remarkSaveFailed: "Fehler beim Speichern: ",
                 
                 // Pagination
                 prevPage: "Vorherige",
@@ -444,7 +479,7 @@ class NestAankondigingenManager extends BaseModule {
     /**
      * NIEUW: Upload nestfoto voor geselecteerd nest
      */
-    async uploadNestPhoto() {
+    async uploadNestPhoto(remark = '') {
         const t = this.t.bind(this);
         
         if (!this.selectedNestId) {
@@ -538,7 +573,8 @@ class NestAankondigingenManager extends BaseModule {
                     size: file.size,
                     type: file.type,
                     uploaded_at: new Date().toISOString(),
-                    geupload_door: user.id
+                    geupload_door: user.id,
+                    opmerking: remark || null // NIEUW: opslaan van opmerking
                 };
                 
                 const { data: dbData, error: dbError } = await this.getSupabase()
@@ -573,6 +609,39 @@ class NestAankondigingenManager extends BaseModule {
         };
         
         reader.readAsDataURL(file);
+    }
+    
+    /**
+     * NIEUW: Update opmerking bij een nestfoto
+     */
+    async updateNestPhotoRemark(fotoId, remark) {
+        const t = this.t.bind(this);
+        
+        try {
+            const supabase = this.getSupabase();
+            if (!supabase) throw new Error('Geen database verbinding');
+            
+            const { error } = await supabase
+                .from('nest_fotos')
+                .update({ opmerking: remark || null })
+                .eq('id', fotoId);
+            
+            if (error) throw error;
+            
+            this.showSuccess(t('remarkSaved'), 'nestFotosContainer');
+            
+            // Herlaad de nestfoto's om de bijgewerkte opmerking te tonen
+            if (this.selectedNestId) {
+                await this.loadNestFotos(this.selectedNestId);
+            }
+            
+            return true;
+            
+        } catch (error) {
+            console.error('❌ Fout bij bijwerken opmerking:', error);
+            this.showError(`${t('remarkSaveFailed')}${error.message}`, 'nestFotosContainer');
+            return false;
+        }
     }
     
     /**
@@ -611,6 +680,74 @@ class NestAankondigingenManager extends BaseModule {
     }
     
     /**
+     * NIEUW: Toon modal voor het bewerken van een opmerking
+     */
+    showRemarkModal(fotoId, currentRemark) {
+        const t = this.t.bind(this);
+        
+        // Modal HTML
+        const modalHTML = `
+            <div class="modal fade" id="editRemarkModal" tabindex="-1" data-bs-backdrop="static">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header bg-info text-white">
+                            <h5 class="modal-title">
+                                <i class="bi bi-chat-dots"></i> ${t('editRemark')}
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label for="remarkText" class="form-label">${t('remark')}</label>
+                                <textarea class="form-control" id="remarkText" rows="4">${currentRemark || ''}</textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">${t('cancel')}</button>
+                            <button type="button" class="btn btn-info text-white" id="saveRemarkBtn">
+                                <i class="bi bi-check-circle"></i> ${t('saveRemark')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Voeg modal toe aan DOM
+        let modalsContainer = document.getElementById('modalsContainer');
+        if (!modalsContainer) {
+            modalsContainer = document.createElement('div');
+            modalsContainer.id = 'modalsContainer';
+            document.body.appendChild(modalsContainer);
+        }
+        
+        // Verwijder bestaande remark modal
+        const existingModal = document.getElementById('editRemarkModal');
+        if (existingModal) existingModal.remove();
+        
+        modalsContainer.insertAdjacentHTML('beforeend', modalHTML);
+        
+        // Event listener voor opslaan
+        document.getElementById('saveRemarkBtn')?.addEventListener('click', async () => {
+            const newRemark = document.getElementById('remarkText')?.value;
+            await this.updateNestPhotoRemark(fotoId, newRemark);
+            
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editRemarkModal'));
+            if (modal) modal.hide();
+        });
+        
+        // Toon modal
+        const modalElement = document.getElementById('editRemarkModal');
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+        
+        // Cleanup bij sluiten
+        modalElement.addEventListener('hidden.bs.modal', () => {
+            modalElement.remove();
+        });
+    }
+    
+    /**
      * NIEUW: Laad en toon nestfoto's voor geselecteerd nest
      */
     async loadNestFotos(nestId) {
@@ -623,7 +760,7 @@ class NestAankondigingenManager extends BaseModule {
     }
     
     /**
-     * NIEUW: Toon nestfoto's in de container met verwijderknop en uploadmogelijkheid
+     * NIEUW: Toon nestfoto's in de container met verwijderknop, opmerking en uploadmogelijkheid
      */
     async displayNestFotos() {
         const container = document.getElementById('nestFotosContainer');
@@ -637,6 +774,10 @@ class NestAankondigingenManager extends BaseModule {
                 <label for="nestPhotoFile" class="form-label">${t('selectNestPhotoToUpload')} (max 15)</label>
                 <input class="form-control" type="file" id="nestPhotoFile" accept="image/*">
                 <div class="form-text">${t('maxSize')}</div>
+            </div>
+            <div class="mb-3">
+                <label for="uploadRemark" class="form-label">${t('remark')} (optioneel)</label>
+                <textarea class="form-control" id="uploadRemark" rows="2" placeholder="${t('clickToAddRemark')}"></textarea>
             </div>
             <button class="btn btn-info w-100 mb-3" id="uploadNestPhotoBtn">
                 <i class="bi bi-cloud-upload"></i> ${t('uploadNestPhoto')}
@@ -658,26 +799,50 @@ class NestAankondigingenManager extends BaseModule {
             html += '<div class="row">';
             
             for (const foto of this.nestFotos) {
+                // Formatteer datum
+                const uploadDate = foto.uploaded_at ? new Date(foto.uploaded_at).toLocaleDateString() : 'Onbekend';
+                
                 html += `
-                    <div class="col-md-4 col-lg-3 mb-3" id="nest-foto-${foto.id}">
-                        <div class="card h-100 position-relative">
-                            <button class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 delete-nest-photo-btn" 
-                                    data-foto-id="${foto.id}"
-                                    style="z-index: 10; border-radius: 50%; width: 32px; height: 32px; padding: 0;"
-                                    title="${t('deleteNestPhoto')}">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                            <div class="card-img-top nest-foto-thumbnail" 
-                                 style="height: 120px; cursor: pointer; background: #f8f9fa; display: flex; align-items: center; justify-content: center; overflow: hidden;"
-                                 data-foto='${JSON.stringify(foto).replace(/'/g, '&apos;')}'
-                                 data-nest-naam="${this.selectedNestKennelnaam || ''}">
-                                <img src="${foto.thumbnail || foto.data}" alt="Nestfoto" 
-                                     style="max-width: 100%; max-height: 100%; object-fit: cover;">
+                    <div class="col-md-6 col-lg-4 mb-3" id="nest-foto-${foto.id}">
+                        <div class="card h-100">
+                            <div class="position-relative">
+                                <button class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 delete-nest-photo-btn" 
+                                        data-foto-id="${foto.id}"
+                                        style="z-index: 10; border-radius: 50%; width: 32px; height: 32px; padding: 0;"
+                                        title="${t('deleteNestPhoto')}">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                                <div class="card-img-top nest-foto-thumbnail" 
+                                     style="height: 150px; cursor: pointer; background: #f8f9fa; display: flex; align-items: center; justify-content: center; overflow: hidden;"
+                                     data-foto='${JSON.stringify(foto).replace(/'/g, '&apos;')}'
+                                     data-nest-naam="${this.selectedNestKennelnaam || ''}">
+                                    <img src="${foto.thumbnail || foto.data}" alt="Nestfoto" 
+                                         style="max-width: 100%; max-height: 100%; object-fit: cover;">
+                                </div>
                             </div>
-                            <div class="card-body p-2">
+                            <div class="card-body">
                                 <small class="text-muted d-block text-truncate">
                                     ${foto.filename || 'Nestfoto'}
                                 </small>
+                                <small class="text-muted d-block">
+                                    ${uploadDate}
+                                </small>
+                                
+                                <!-- NIEUW: Opmerking sectie -->
+                                <div class="mt-2 p-2 bg-light rounded" style="min-height: 50px;">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <small class="fw-semibold">${t('remark')}:</small>
+                                        <button class="btn btn-sm btn-outline-info py-0 px-1 edit-remark-btn" 
+                                                data-foto-id="${foto.id}"
+                                                data-current-remark='${(foto.opmerking || "").replace(/'/g, "\\'")}'
+                                                title="${t('editRemark')}">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </button>
+                                    </div>
+                                    <small class="d-block mt-1 remark-text" style="word-break: break-word;">
+                                        ${foto.opmerking ? foto.opmerking : `<span class="text-muted fst-italic">${t('noRemark')}</span>`}
+                                    </small>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -690,7 +855,10 @@ class NestAankondigingenManager extends BaseModule {
         container.innerHTML = html;
         
         // Event listener voor upload knop
-        document.getElementById('uploadNestPhotoBtn')?.addEventListener('click', () => this.uploadNestPhoto());
+        document.getElementById('uploadNestPhotoBtn')?.addEventListener('click', () => {
+            const remark = document.getElementById('uploadRemark')?.value || '';
+            this.uploadNestPhoto(remark);
+        });
         
         // Click handlers voor foto's
         container.querySelectorAll('.nest-foto-thumbnail').forEach(thumb => {
@@ -727,6 +895,16 @@ class NestAankondigingenManager extends BaseModule {
                 await this.deleteNestPhoto(fotoId, fotoElement);
             });
         });
+        
+        // NIEUW: Click handlers voor bewerk opmerking knoppen
+        container.querySelectorAll('.edit-remark-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const fotoId = btn.dataset.fotoId;
+                const currentRemark = btn.dataset.currentRemark || '';
+                this.showRemarkModal(fotoId, currentRemark);
+            });
+        });
     }
     
     /**
@@ -752,6 +930,12 @@ class NestAankondigingenManager extends BaseModule {
                         <div class="modal-body">
                             <div id="galleryFotoContainer" class="text-center mb-3">
                                 <img id="currentGalleryFoto" src="" alt="Nestfoto" class="img-fluid" style="max-height: 500px;">
+                            </div>
+                            
+                            <!-- NIEUW: Toon opmerking bij huidige foto -->
+                            <div id="currentFotoRemark" class="alert alert-info mb-3" style="display: none;">
+                                <i class="bi bi-chat-dots me-2"></i>
+                                <span id="remarkText"></span>
                             </div>
                             
                             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -814,6 +998,7 @@ class NestAankondigingenManager extends BaseModule {
         const currentImg = document.getElementById('currentGalleryFoto');
         if (currentImg && fotos.length > 0) {
             currentImg.src = fotos[0].data;
+            this.updateGalleryRemark(fotos[0]);
         }
         
         // Event listeners voor navigatie
@@ -874,6 +1059,9 @@ class NestAankondigingenManager extends BaseModule {
                 .replace('{total}', this.currentNestFotos.length.toString());
         }
         
+        // Update opmerking
+        this.updateGalleryRemark(currentFoto);
+        
         // Update miniaturen highlight
         document.querySelectorAll('.gallery-thumbnail').forEach((thumb, index) => {
             if (index === this.currentFotoIndex) {
@@ -892,6 +1080,28 @@ class NestAankondigingenManager extends BaseModule {
         }
         if (nextBtn) {
             nextBtn.disabled = this.currentFotoIndex === this.currentNestFotos.length - 1;
+        }
+    }
+    
+    /**
+     * NIEUW: Update de opmerking in de galerij
+     */
+    updateGalleryRemark(foto) {
+        const remarkContainer = document.getElementById('currentFotoRemark');
+        const remarkText = document.getElementById('remarkText');
+        const t = this.t.bind(this);
+        
+        if (foto.opmerking) {
+            if (remarkContainer) {
+                remarkContainer.style.display = 'block';
+            }
+            if (remarkText) {
+                remarkText.textContent = foto.opmerking;
+            }
+        } else {
+            if (remarkContainer) {
+                remarkContainer.style.display = 'none';
+            }
         }
     }
     
@@ -3021,4 +3231,4 @@ if (typeof module !== 'undefined' && module.exports) {
     window.nestAankondigingenManager = NestAankondigingenManagerInstance;
 }
 
-console.log('📦 NestAankondigingenManager geladen met 1 per pagina, paginatie 80%, tekst 70%, en NESTFOTO GALERIJ (max 15, 1 per keer met paginatie)');
+console.log('📦 NestAankondigingenManager geladen met 1 per pagina, paginatie 80%, tekst 70%, nestfoto\'s MET OPMERKINGEN (max 15, 1 per keer met paginatie)');
