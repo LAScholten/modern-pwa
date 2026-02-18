@@ -405,42 +405,63 @@ class NestAankondigingenManager extends BaseModule {
     }
     
     /**
-     * Zorg dat ReuTeefStamboom geladen is
+     * VERBETERD: Zorg dat ReuTeefStamboom beschikbaar is (gebruik bestaande instantie)
      */
     ensureReuTeefStamboom() {
         return new Promise((resolve, reject) => {
-            // Check of de klasse al bestaat
+            // Check of de klasse en instantie al bestaan
             if (window.ReuTeefStamboom && window.reuTeefStamboomInstance) {
-                console.log('✅ ReuTeefStamboom is al geladen');
+                console.log('✅ ReuTeefStamboom is al geladen, gebruik bestaande instantie');
                 resolve(window.reuTeefStamboomInstance);
                 return;
             }
             
-            console.log('📦 ReuTeefStamboom wordt dynamisch geladen...');
-            
-            // Laad het script
-            const script = document.createElement('script');
-            script.src = 'js/modules/ReuTeefStamboom.js';
-            script.onload = () => {
+            // Check of alleen de klasse bestaat maar nog geen instantie
+            if (window.ReuTeefStamboom && typeof window.ReuTeefStamboom === 'function') {
+                console.log('✅ ReuTeefStamboom klasse bestaat, wacht op instantie...');
+                
+                // Wacht maximaal 2 seconden op de instantie
                 let checkCount = 0;
                 const checkInterval = setInterval(() => {
-                    if (window.ReuTeefStamboom && window.reuTeefStamboomInstance) {
+                    if (window.reuTeefStamboomInstance) {
                         clearInterval(checkInterval);
-                        console.log('✅ ReuTeefStamboom geladen');
+                        console.log('✅ ReuTeefStamboom instantie gevonden');
                         resolve(window.reuTeefStamboomInstance);
-                    } else if (checkCount > 20) { // 2 seconden timeout
+                    } else if (checkCount > 20) {
                         clearInterval(checkInterval);
-                        console.error('❌ ReuTeefStamboom niet gevonden na laden');
-                        reject(new Error('ReuTeefStamboom niet beschikbaar'));
+                        console.warn('⚠️ ReuTeefStamboom instantie niet gevonden, maar klasse bestaat');
+                        // Probeer zelf een instantie te maken
+                        try {
+                            const instance = new window.ReuTeefStamboom(window.mainModule);
+                            window.reuTeefStamboomInstance = instance;
+                            console.log('✅ ReuTeefStamboom instantie handmatig aangemaakt');
+                            resolve(instance);
+                        } catch (e) {
+                            console.error('❌ Kon geen ReuTeefStamboom instantie maken:', e);
+                            reject(new Error('ReuTeefStamboom instantie kon niet worden gemaakt'));
+                        }
                     }
                     checkCount++;
                 }, 100);
-            };
-            script.onerror = () => {
-                console.error('❌ ReuTeefStamboom script laden mislukt');
-                reject(new Error('ReuTeefStamboom laden mislukt'));
-            };
-            document.head.appendChild(script);
+                return;
+            }
+            
+            // Als de klasse nog niet bestaat, wacht dan maximaal 3 seconden
+            console.log('⏳ Wachten op ReuTeefStamboom...');
+            
+            let checkCount = 0;
+            const checkInterval = setInterval(() => {
+                if (window.ReuTeefStamboom && window.reuTeefStamboomInstance) {
+                    clearInterval(checkInterval);
+                    console.log('✅ ReuTeefStamboom gevonden na wachten');
+                    resolve(window.reuTeefStamboomInstance);
+                } else if (checkCount > 30) { // 3 seconden timeout
+                    clearInterval(checkInterval);
+                    console.error('❌ ReuTeefStamboom niet gevonden na timeout');
+                    reject(new Error('ReuTeefStamboom niet beschikbaar'));
+                }
+                checkCount++;
+            }, 100);
         });
     }
     
@@ -1949,7 +1970,7 @@ class NestAankondigingenManager extends BaseModule {
                 return;
             }
             
-            // Laad ReuTeefStamboom
+            // Gebruik de verbeterde ensure methode
             const reuTeefStamboom = await this.ensureReuTeefStamboom();
             
             if (!reuTeefStamboom) {
@@ -1957,8 +1978,7 @@ class NestAankondigingenManager extends BaseModule {
                 return;
             }
             
-            // Zorg dat de stamboom module de juiste mainModule heeft
-            // (neem aan dat de mainModule al is ingesteld in de instantie)
+            console.log('✅ ReuTeefStamboom gevonden, toon stamboom voor pups van', vader.naam, 'en', moeder.naam);
             
             // Toon de stamboom van de toekomstige pup
             await reuTeefStamboom.showFuturePuppyPedigree(moeder, vader);
