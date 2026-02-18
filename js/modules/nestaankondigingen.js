@@ -11,9 +11,6 @@
  * UPDATE 3: Paginatiebalkje 80% van originele grootte
  * UPDATE 4: Aparte nestfoto's met eigen modal (max 15, 1 per keer met paginatie)
  * UPDATE 5: Opmerkingen bij nestfoto's mogelijk
- * UPDATE 6: Toegevoegd "Stamboom pups" knop die ReuTeefStamboom gebruikt
- * UPDATE 7: Toegevoegd getDogById methode voor ReuTeefStamboom compatibiliteit
- * UPDATE 8: Gecorrigeerde foto weergave voor ouders
  */
 
 class NestAankondigingenManager extends BaseModule {
@@ -32,8 +29,7 @@ class NestAankondigingenManager extends BaseModule {
         this.totalAnnouncements = 0;
         
         // Voor autocomplete van honden
-        this.allDogs = []; // Wordt gebruikt voor autocomplete
-        this.allHonden = []; // Voor ReuTeefStamboom (zelfde naam als in ReuTeefCombinatie)
+        this.allDogs = [];
         this.db = window.hondenService;
         this.auth = window.auth;
         this.supabase = null;
@@ -54,15 +50,6 @@ class NestAankondigingenManager extends BaseModule {
         // Voor het bewerken van een specifieke foto
         this.editingFotoId = null;
         this.editingFotoData = null;
-        
-        // ReuTeefStamboom module referentie (zelfde als ReuTeefCombinatie)
-        this.stamboomModule = null;
-        
-        // Cache voor honden (voor getDogById)
-        this.hondenCache = new Map();
-        
-        // Cache voor foto's
-        this.fotosCache = new Map();
         
         this.translations = {
             nl: {
@@ -156,10 +143,6 @@ class NestAankondigingenManager extends BaseModule {
                 clickToAddRemark: "Klik om opmerking toe te voegen",
                 remarkSaved: "Opmerking succesvol opgeslagen!",
                 remarkSaveFailed: "Fout bij opslaan opmerking: ",
-                
-                // NIEUW: Stamboom pups knop
-                puppyPedigree: "Stamboom pups",
-                viewPuppyPedigree: "Bekijk stamboom van de pups",
                 
                 // Paginatie
                 prevPage: "Vorige",
@@ -259,10 +242,6 @@ class NestAankondigingenManager extends BaseModule {
                 remarkSaved: "Remark saved successfully!",
                 remarkSaveFailed: "Failed to save remark: ",
                 
-                // NEW: Puppy pedigree button
-                puppyPedigree: "Puppy Pedigree",
-                viewPuppyPedigree: "View puppy pedigree",
-                
                 // Pagination
                 prevPage: "Previous",
                 nextPage: "Next",
@@ -361,10 +340,6 @@ class NestAankondigingenManager extends BaseModule {
                 remarkSaved: "Bemerkung erfolgreich gespeichert!",
                 remarkSaveFailed: "Fehler beim Speichern: ",
                 
-                // NEW: Welpenstammbaum Button
-                puppyPedigree: "Welpenstammbaum",
-                viewPuppyPedigree: "Welpenstammbaum anzeigen",
-                
                 // Pagination
                 prevPage: "Vorherige",
                 nextPage: "Nächste",
@@ -376,6 +351,44 @@ class NestAankondigingenManager extends BaseModule {
     
     t(key) {
         return this.translations[this.currentLang][key] || key;
+    }
+    
+    /**
+     * Zorg dat PhotoViewer geladen is, laad hem anders dynamisch
+     */
+    async ensurePhotoViewer() {
+        // Als PhotoViewer al bestaat, niets doen
+        if (window.photoViewer && typeof window.photoViewer.showPhoto === 'function') {
+            return;
+        }
+        
+        console.log('📸 PhotoViewer wordt dynamisch geladen...');
+        
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'js/modules/PhotoViewer.js';
+            script.onload = () => {
+                // Wacht kort tot de PhotoViewer beschikbaar is
+                let checkCount = 0;
+                const checkInterval = setInterval(() => {
+                    if (window.photoViewer) {
+                        clearInterval(checkInterval);
+                        console.log('✅ PhotoViewer geladen en klaar voor gebruik');
+                        resolve();
+                    } else if (checkCount > 20) { // 2 seconden timeout
+                        clearInterval(checkInterval);
+                        console.error('❌ PhotoViewer niet gevonden na laden');
+                        reject(new Error('PhotoViewer niet beschikbaar'));
+                    }
+                    checkCount++;
+                }, 100);
+            };
+            script.onerror = () => {
+                console.error('❌ PhotoViewer script laden mislukt');
+                reject(new Error('PhotoViewer laden mislukt'));
+            };
+            document.head.appendChild(script);
+        });
     }
     
     /**
@@ -395,64 +408,26 @@ class NestAankondigingenManager extends BaseModule {
     }
     
     /**
-     * NIEUW: getDogById methode voor ReuTeefStamboom compatibiliteit
-     * Zoekt een hond op ID in allHonden of haalt deze op uit de cache
-     */
-    getDogById(id) {
-        if (!id || id === 0) return null;
-        
-        // Eerst in cache zoeken
-        if (this.hondenCache.has(id)) {
-            return this.hondenCache.get(id);
-        }
-        
-        // Dan in allHonden array zoeken
-        const dog = this.allHonden.find(dog => dog.id === id);
-        if (dog) {
-            this.hondenCache.set(id, dog);
-            return dog;
-        }
-        
-        // Als niet gevonden, probeer in allDogs (voor compatibiliteit)
-        const dog2 = this.allDogs.find(dog => dog.id === id);
-        if (dog2) {
-            this.hondenCache.set(id, dog2);
-            return dog2;
-        }
-        
-        return null;
-    }
-    
-    /**
      * Haal foto's op voor een specifieke hond (ouders)
-     * GECORRIGEERD: Betere foutafhandeling en cache
      */
     async getHondFotos(hondId) {
         try {
             if (!hondId) return [];
             
-            // Check cache
-            const cacheKey = `hond_${hondId}`;
-            if (this.fotosCache.has(cacheKey)) {
-                return this.fotosCache.get(cacheKey);
-            }
-            
             const supabase = this.getSupabase();
             if (!supabase) return [];
             
-            // Haal hond gegevens op met stamboomnummer
             const { data: hondData, error: hondError } = await supabase
                 .from('honden')
                 .select('stamboomnr, naam, kennelnaam')
                 .eq('id', hondId)
                 .single();
                 
-            if (hondError || !hondData || !hondData.stamboomnr) {
-                console.log('❌ Geen stamboomnummer gevonden voor hond:', hondId);
+            if (hondError || !hondData) {
+                console.error('❌ Kon hond niet vinden:', hondError);
                 return [];
             }
             
-            // Haal foto's op via stamboomnummer
             const { data: fotos, error } = await supabase
                 .from('fotos')
                 .select('*')
@@ -464,17 +439,7 @@ class NestAankondigingenManager extends BaseModule {
                 return [];
             }
             
-            // Valideer dat elke foto een geldige data URL heeft
-            const geldigeFotos = (fotos || []).filter(foto => {
-                return foto && foto.data && foto.data.startsWith('data:image');
-            });
-            
-            console.log(`📸 ${geldigeFotos.length} foto's gevonden voor hond ${hondId}`);
-            
-            // Sla op in cache
-            this.fotosCache.set(cacheKey, geldigeFotos);
-            
-            return geldigeFotos;
+            return fotos || [];
             
         } catch (error) {
             console.error('❌ Fout bij ophalen foto\'s:', error);
@@ -489,12 +454,6 @@ class NestAankondigingenManager extends BaseModule {
         try {
             if (!nestId) return [];
             
-            // Check cache
-            const cacheKey = `nest_${nestId}`;
-            if (this.fotosCache.has(cacheKey)) {
-                return this.fotosCache.get(cacheKey);
-            }
-            
             const supabase = this.getSupabase();
             if (!supabase) return [];
             
@@ -502,62 +461,18 @@ class NestAankondigingenManager extends BaseModule {
                 .from('nest_fotos')
                 .select('*')
                 .eq('nest_id', nestId)
-                .order('uploaded_at', { ascending: true });
+                .order('uploaded_at', { ascending: true }); // Oplopend voor chronologische volgorde
             
             if (error) {
                 console.error('❌ Fout bij ophalen nestfoto\'s:', error);
                 return [];
             }
             
-            // Valideer foto's
-            const geldigeFotos = (fotos || []).filter(foto => {
-                return foto && foto.data && foto.data.startsWith('data:image');
-            });
-            
-            this.fotosCache.set(cacheKey, geldigeFotos);
-            
-            return geldigeFotos;
+            return fotos || [];
             
         } catch (error) {
             console.error('❌ Fout bij ophalen nestfoto\'s:', error);
             return [];
-        }
-    }
-    
-    /**
-     * NIEUW: Toon foto in PhotoViewer of fallback
-     */
-    showFoto(fotoData, titel = '') {
-        try {
-            if (!fotoData || !fotoData.startsWith('data:image')) {
-                console.error('Ongeldige foto data');
-                return;
-            }
-            
-            // Gebruik PhotoViewer als beschikbaar
-            if (window.photoViewer && typeof window.photoViewer.showPhoto === 'function') {
-                window.photoViewer.showPhoto(fotoData, titel);
-            } else {
-                // Fallback: open in nieuw tabblad
-                const newWindow = window.open();
-                if (newWindow) {
-                    newWindow.document.write(`
-                        <html>
-                            <head><title>${titel || 'Foto'}</title></head>
-                            <body style="margin:0; display:flex; align-items:center; justify-content:center; min-height:100vh; background:#000;">
-                                <img src="${fotoData}" style="max-width:100%; max-height:100vh; object-fit:contain;">
-                            </body>
-                        </html>
-                    `);
-                    newWindow.document.close();
-                } else {
-                    // Als popup blocker actief is, open direct
-                    window.open(fotoData, '_blank');
-                }
-            }
-        } catch (error) {
-            console.error('Fout bij tonen foto:', error);
-            window.open(fotoData, '_blank');
         }
     }
     
@@ -610,7 +525,7 @@ class NestAankondigingenManager extends BaseModule {
                 
                 const base64Data = e.target.result;
                 
-                // Maak thumbnail
+                // Maak thumbnail (optioneel, voor overzicht)
                 let thumbnail = null;
                 try {
                     const img = new Image();
@@ -659,7 +574,7 @@ class NestAankondigingenManager extends BaseModule {
                     type: file.type,
                     uploaded_at: new Date().toISOString(),
                     geupload_door: user.id,
-                    opmerking: remark || null
+                    opmerking: remark || null // NIEUW: opslaan van opmerking
                 };
                 
                 const { data: dbData, error: dbError } = await this.getSupabase()
@@ -678,8 +593,7 @@ class NestAankondigingenManager extends BaseModule {
                 
                 fileInput.value = '';
                 
-                // Clear cache en herlaad
-                this.fotosCache.delete(`nest_${this.selectedNestId}`);
+                // Herlaad de nestfoto's
                 await this.loadNestFotos(this.selectedNestId);
                 
             } catch (error) {
@@ -716,9 +630,8 @@ class NestAankondigingenManager extends BaseModule {
             
             this.showSuccess(t('remarkSaved'), 'nestFotosContainer');
             
-            // Clear cache en herlaad
+            // Herlaad de nestfoto's om de bijgewerkte opmerking te tonen
             if (this.selectedNestId) {
-                this.fotosCache.delete(`nest_${this.selectedNestId}`);
                 await this.loadNestFotos(this.selectedNestId);
             }
             
@@ -756,9 +669,7 @@ class NestAankondigingenManager extends BaseModule {
             
             this.showSuccess(t('nestPhotoDeleteSuccess'), 'nestFotosContainer');
             
-            // Clear cache en herlaad
             if (this.selectedNestId) {
-                this.fotosCache.delete(`nest_${this.selectedNestId}`);
                 await this.loadNestFotos(this.selectedNestId);
             }
             
@@ -903,8 +814,7 @@ class NestAankondigingenManager extends BaseModule {
                                 </button>
                                 <div class="card-img-top nest-foto-thumbnail" 
                                      style="height: 150px; cursor: pointer; background: #f8f9fa; display: flex; align-items: center; justify-content: center; overflow: hidden;"
-                                     data-foto-data="${foto.data}"
-                                     data-foto-id="${foto.id}"
+                                     data-foto='${JSON.stringify(foto).replace(/'/g, '&apos;')}'
                                      data-nest-naam="${this.selectedNestKennelnaam || ''}">
                                     <img src="${foto.thumbnail || foto.data}" alt="Nestfoto" 
                                          style="max-width: 100%; max-height: 100%; object-fit: cover;">
@@ -952,15 +862,26 @@ class NestAankondigingenManager extends BaseModule {
         
         // Click handlers voor foto's
         container.querySelectorAll('.nest-foto-thumbnail').forEach(thumb => {
-            thumb.addEventListener('click', (e) => {
+            thumb.addEventListener('click', async (e) => {
                 e.stopPropagation();
-                const fotoData = thumb.dataset.fotoData;
-                const nestNaam = thumb.dataset.nestNaam || this.selectedNestKennelnaam || '';
-                
-                if (fotoData && fotoData.startsWith('data:image')) {
-                    this.showFoto(fotoData, nestNaam);
-                } else {
-                    console.error('Geen geldige foto data');
+                try {
+                    const foto = JSON.parse(thumb.dataset.foto.replace(/&apos;/g, "'"));
+                    const nestNaam = thumb.dataset.nestNaam || this.selectedNestKennelnaam || '';
+                    
+                    // Laad PhotoViewer dynamisch
+                    await this.ensurePhotoViewer();
+                    
+                    // Toon de foto
+                    window.photoViewer.showPhoto(foto.data, nestNaam);
+                } catch (error) {
+                    console.error('Fout bij tonen foto:', error);
+                    // Fallback: open direct in nieuw tabblad
+                    try {
+                        const foto = JSON.parse(thumb.dataset.foto.replace(/&apos;/g, "'"));
+                        window.open(foto.data, '_blank');
+                    } catch (fallbackError) {
+                        console.error('Ook fallback mislukt:', fallbackError);
+                    }
                 }
             });
         });
@@ -1034,7 +955,7 @@ class NestAankondigingenManager extends BaseModule {
                                         <div class="gallery-thumbnail ${index === 0 ? 'border border-primary' : ''}" 
                                              style="width: 100%; height: 50px; cursor: pointer; overflow: hidden; border-radius: 4px;"
                                              data-index="${index}"
-                                             data-foto-data="${foto.data}">
+                                             data-foto='${JSON.stringify(foto).replace(/'/g, '&apos;')}'>
                                             <img src="${foto.thumbnail || foto.data}" alt="Thumb" style="width: 100%; height: 100%; object-fit: cover;">
                                         </div>
                                     </div>
@@ -1189,94 +1110,6 @@ class NestAankondigingenManager extends BaseModule {
         if (document.getElementById('nestAankondigingenModal')) {
             this.translateModalContent();
         }
-    }
-    
-    /**
-     * **GECORRIGEERD**: Gebruik exact dezelfde methode als ReuTeefCombinatie
-     * Zorgt dat allHonden array wordt doorgegeven aan ReuTeefStamboom
-     */
-    async showPuppyPedigree(announcement) {
-        try {
-            console.log('Show puppy pedigree for announcement', announcement);
-            
-            // Haal vader en moeder op
-            const vader = this.allDogs.find(d => d.id === announcement.vader_id);
-            const moeder = this.allDogs.find(d => d.id === announcement.moeder_id);
-            
-            if (!vader || !moeder) {
-                alert('Kan vader of moeder niet vinden');
-                return;
-            }
-            
-            // Zorg dat allHonden gevuld is (zelfde als ReuTeefCombinatie)
-            this.allHonden = this.allDogs;
-            
-            // Initialiseer stamboom module als die nog niet bestaat (zelfde als ReuTeefCombinatie)
-            if (!this.stamboomModule) {
-                if (typeof ReuTeefStamboom === 'undefined') {
-                    // Als de klasse nog niet bestaat, laad het script
-                    await this.loadReuTeefStamboomScript();
-                }
-                // Geef deze instantie (this) mee aan de constructor - net als in ReuTeefCombinatie
-                this.stamboomModule = new ReuTeefStamboom(this);
-            }
-            
-            console.log('✅ ReuTeefStamboom gevonden, toon stamboom voor pups van', vader.naam, 'en', moeder.naam);
-            console.log('📊 Aantal honden in allHonden:', this.allHonden.length);
-            
-            // Toon de stamboom van de toekomstige pup
-            await this.stamboomModule.showFuturePuppyPedigree(moeder, vader);
-            
-        } catch (error) {
-            console.error('Fout bij tonen stamboom pups:', error);
-            alert('Fout bij laden stamboom: ' + error.message);
-        }
-    }
-    
-    /**
-     * Hulpfunctie om ReuTeefStamboom script te laden indien nodig
-     */
-    async loadReuTeefStamboomScript() {
-        return new Promise((resolve, reject) => {
-            // Controleer of het script al in de pagina staat
-            if (document.querySelector('script[src*="ReuTeefStamboom.js"]')) {
-                // Script wordt al geladen, wacht tot het beschikbaar is
-                let checkCount = 0;
-                const checkInterval = setInterval(() => {
-                    if (typeof ReuTeefStamboom !== 'undefined') {
-                        clearInterval(checkInterval);
-                        resolve();
-                    } else if (checkCount > 50) {
-                        clearInterval(checkInterval);
-                        reject(new Error('Timeout wachten op ReuTeefStamboom'));
-                    }
-                    checkCount++;
-                }, 100);
-                return;
-            }
-            
-            // Laad het script
-            const script = document.createElement('script');
-            script.src = 'js/modules/ReuTeefStamboom.js';
-            script.onload = () => {
-                // Wacht tot de klasse beschikbaar is
-                let checkCount = 0;
-                const checkInterval = setInterval(() => {
-                    if (typeof ReuTeefStamboom !== 'undefined') {
-                        clearInterval(checkInterval);
-                        resolve();
-                    } else if (checkCount > 30) {
-                        clearInterval(checkInterval);
-                        reject(new Error('ReuTeefStamboom niet gevonden na laden'));
-                    }
-                    checkCount++;
-                }, 100);
-            };
-            script.onerror = () => {
-                reject(new Error('ReuTeefStamboom script laden mislukt'));
-            };
-            document.head.appendChild(script);
-        });
     }
     
     /**
@@ -1563,19 +1396,6 @@ class NestAankondigingenManager extends BaseModule {
                 
                 .btn-nest-photos:hover {
                     background-color: #5a32a3;
-                    color: white;
-                    transform: scale(1.05);
-                }
-                
-                /* NIEUW: Stamboom pups knop styling */
-                .btn-puppy-pedigree {
-                    background-color: #20c997;
-                    color: white;
-                    transition: all 0.2s;
-                }
-                
-                .btn-puppy-pedigree:hover {
-                    background-color: #198754;
                     color: white;
                     transform: scale(1.05);
                 }
@@ -2566,7 +2386,7 @@ class NestAankondigingenManager extends BaseModule {
      * Derde rij: Dandy Walker op eigen regel
      * Vierde rij: Schildklier op eigen regel
      * Vijfde rij: Land op eigen regel
-     * Met foto thumbnails van beide ouders EN knop voor nestfoto's EN knop voor stamboom pups
+     * Met foto thumbnails van beide ouders EN knop voor nestfoto's
      */
     async renderOverviewList(announcements, container, total = 0, currentPage = 1) {
         const t = this.t.bind(this);
@@ -2607,9 +2427,8 @@ class NestAankondigingenManager extends BaseModule {
                         <div class="d-flex flex-wrap">
                             ${eersteFotos.map(foto => `
                                 <div class="photo-thumbnail" 
-                                     data-foto-data="${foto.data}"
-                                     data-hond-naam="${vaderNaam}"
-                                     title="${t('viewPhoto')}">
+                                     data-foto='${JSON.stringify(foto).replace(/'/g, '&apos;')}'
+                                     data-hond-naam="${vaderNaam}">
                                     <img src="${foto.thumbnail || foto.data}" alt="Foto">
                                 </div>
                             `).join('')}
@@ -2633,9 +2452,8 @@ class NestAankondigingenManager extends BaseModule {
                         <div class="d-flex flex-wrap">
                             ${eersteFotos.map(foto => `
                                 <div class="photo-thumbnail" 
-                                     data-foto-data="${foto.data}"
-                                     data-hond-naam="${moederNaam}"
-                                     title="${t('viewPhoto')}">
+                                     data-foto='${JSON.stringify(foto).replace(/'/g, '&apos;')}'
+                                     data-hond-naam="${moederNaam}">
                                     <img src="${foto.thumbnail || foto.data}" alt="Foto">
                                 </div>
                             `).join('')}
@@ -2820,24 +2638,14 @@ class NestAankondigingenManager extends BaseModule {
                                     <div><i class="bi bi-calendar me-2"></i> ${formattedDate}</div>
                                 </div>
                                 
-                                <div class="d-flex gap-2">
-                                    <!-- NIEUW: Stamboom pups knop -->
-                                    <button class="btn btn-sm btn-puppy-pedigree show-puppy-pedigree" 
-                                            data-announcement='${JSON.stringify(announcement).replace(/'/g, '&apos;')}'
-                                            title="${t('viewPuppyPedigree')}">
-                                        <i class="bi bi-diagram-3 me-1"></i> 
-                                        ${t('puppyPedigree')}
-                                    </button>
-                                    
-                                    <!-- NIEUW: Nestfoto knop -->
-                                    <button class="btn btn-sm btn-nest-photos view-nest-photos" 
-                                            data-nest-id="${announcement.id}"
-                                            data-nest-naam="${headerTitle}"
-                                            data-nest-fotos-count="${nestFotos.length}">
-                                        <i class="bi bi-images me-1"></i> 
-                                        ${t('nestPhotos')} (${nestFotos.length})
-                                    </button>
-                                </div>
+                                <!-- NIEUW: Nestfoto knop -->
+                                <button class="btn btn-sm btn-nest-photos view-nest-photos" 
+                                        data-nest-id="${announcement.id}"
+                                        data-nest-naam="${headerTitle}"
+                                        data-nest-fotos-count="${nestFotos.length}">
+                                    <i class="bi bi-images me-1"></i> 
+                                    ${t('nestPhotos')} (${nestFotos.length})
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -2847,19 +2655,28 @@ class NestAankondigingenManager extends BaseModule {
         
         container.innerHTML = `<div class="row">${html}</div>`;
         
-        // GECORRIGEERD: Click handlers voor ouderfoto's
+        // Click handlers voor ouderfoto's
         container.querySelectorAll('.photo-thumbnail').forEach(thumb => {
-            thumb.addEventListener('click', (e) => {
+            thumb.addEventListener('click', async (e) => {
                 e.stopPropagation();
-                e.preventDefault();
-                
-                const fotoData = thumb.dataset.fotoData;
-                const hondNaam = thumb.dataset.hondNaam || '';
-                
-                if (fotoData && fotoData.startsWith('data:image')) {
-                    this.showFoto(fotoData, hondNaam);
-                } else {
-                    console.error('Geen geldige foto data');
+                try {
+                    const foto = JSON.parse(thumb.dataset.foto.replace(/&apos;/g, "'"));
+                    const hondNaam = thumb.dataset.hondNaam || '';
+                    
+                    // Laad PhotoViewer dynamisch
+                    await this.ensurePhotoViewer();
+                    
+                    // Toon de foto
+                    window.photoViewer.showPhoto(foto.data, hondNaam);
+                } catch (error) {
+                    console.error('Fout bij tonen foto:', error);
+                    // Fallback: open direct in nieuw tabblad
+                    try {
+                        const foto = JSON.parse(thumb.dataset.foto.replace(/&apos;/g, "'"));
+                        window.open(foto.data, '_blank');
+                    } catch (fallbackError) {
+                        console.error('Ook fallback mislukt:', fallbackError);
+                    }
                 }
             });
         });
@@ -2884,21 +2701,6 @@ class NestAankondigingenManager extends BaseModule {
                         // Geen foto's, toon melding
                         alert(this.t('noNestPhotos'));
                     }
-                }
-            });
-        });
-        
-        // NIEUW: Click handlers voor stamboom pups knoppen
-        container.querySelectorAll('.show-puppy-pedigree').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                try {
-                    const announcement = JSON.parse(btn.dataset.announcement.replace(/&apos;/g, "'"));
-                    this.showPuppyPedigree(announcement);
-                } catch (error) {
-                    console.error('Fout bij parsen announcement:', error);
                 }
             });
         });
@@ -2962,7 +2764,7 @@ class NestAankondigingenManager extends BaseModule {
                             ${eersteFotos.map(foto => `
                                 <div class="photo-thumbnail" 
                                      style="width: 30px; height: 30px;"
-                                     data-foto-data="${foto.data}"
+                                     data-foto='${JSON.stringify(foto).replace(/'/g, '&apos;')}'
                                      data-hond-naam="${vaderNaam}">
                                     <img src="${foto.thumbnail || foto.data}" alt="Foto">
                                 </div>
@@ -2988,7 +2790,7 @@ class NestAankondigingenManager extends BaseModule {
                             ${eersteFotos.map(foto => `
                                 <div class="photo-thumbnail" 
                                      style="width: 30px; height: 30px;"
-                                     data-foto-data="${foto.data}"
+                                     data-foto='${JSON.stringify(foto).replace(/'/g, '&apos;')}'
                                      data-hond-naam="${moederNaam}">
                                     <img src="${foto.thumbnail || foto.data}" alt="Foto">
                                 </div>
@@ -3026,13 +2828,6 @@ class NestAankondigingenManager extends BaseModule {
                                     ${moederFotosHTML}
                                 </div>
                                 <div class="col-md-3 text-end">
-                                    <!-- NIEUW: Stamboom pups knop in beheer -->
-                                    <button class="btn btn-sm btn-outline-success puppy-pedigree-beheer mb-1 w-100" 
-                                            data-announcement='${JSON.stringify(ann).replace(/'/g, '&apos;')}'>
-                                        <i class="bi bi-diagram-3 me-1"></i> 
-                                        ${t('puppyPedigree')}
-                                    </button>
-                                    
                                     <!-- NIEUW: Nestfoto knop in beheer -->
                                     <button class="btn btn-sm btn-outline-info manage-nest-photos mb-1 w-100" 
                                             data-announcement='${JSON.stringify(ann).replace(/'/g, '&apos;')}'>
@@ -3072,19 +2867,27 @@ class NestAankondigingenManager extends BaseModule {
             ${paginationHTML}
         `;
         
-        // GECORRIGEERD: Click handlers voor ouderfoto's in beheer lijst
+        // Click handlers voor ouderfoto's in beheer lijst
         container.querySelectorAll('.photo-thumbnail').forEach(thumb => {
-            thumb.addEventListener('click', (e) => {
+            thumb.addEventListener('click', async (e) => {
                 e.stopPropagation();
-                e.preventDefault();
-                
-                const fotoData = thumb.dataset.fotoData;
-                const hondNaam = thumb.dataset.hondNaam || '';
-                
-                if (fotoData && fotoData.startsWith('data:image')) {
-                    this.showFoto(fotoData, hondNaam);
-                } else {
-                    console.error('Geen geldige foto data');
+                try {
+                    const foto = JSON.parse(thumb.dataset.foto.replace(/&apos;/g, "'"));
+                    const hondNaam = thumb.dataset.hondNaam || '';
+                    
+                    // Laad PhotoViewer dynamisch
+                    await this.ensurePhotoViewer();
+                    
+                    window.photoViewer.showPhoto(foto.data, hondNaam);
+                } catch (error) {
+                    console.error('Fout bij tonen foto:', error);
+                    // Fallback
+                    try {
+                        const foto = JSON.parse(thumb.dataset.foto.replace(/&apos;/g, "'"));
+                        window.open(foto.data, '_blank');
+                    } catch (fallbackError) {
+                        console.error('Ook fallback mislukt:', fallbackError);
+                    }
                 }
             });
         });
@@ -3095,18 +2898,6 @@ class NestAankondigingenManager extends BaseModule {
                 try {
                     const announcement = JSON.parse(btn.dataset.announcement.replace(/&apos;/g, "'"));
                     this.showNestFotoBeheerModal(announcement);
-                } catch (e) {
-                    console.error(e);
-                }
-            });
-        });
-        
-        // NIEUW: Click handlers voor stamboom pups in beheer
-        container.querySelectorAll('.puppy-pedigree-beheer').forEach(btn => {
-            btn.addEventListener('click', () => {
-                try {
-                    const announcement = JSON.parse(btn.dataset.announcement.replace(/&apos;/g, "'"));
-                    this.showPuppyPedigree(announcement);
                 } catch (e) {
                     console.error(e);
                 }
@@ -3440,4 +3231,4 @@ if (typeof module !== 'undefined' && module.exports) {
     window.nestAankondigingenManager = NestAankondigingenManagerInstance;
 }
 
-console.log('📦 NestAankondigingenManager geladen met 1 per pagina, paginatie 80%, tekst 70%, nestfoto\'s MET OPMERKINGEN (max 15, 1 per keer met paginatie) en STAMBOOM PUPS knop');
+console.log('📦 NestAankondigingenManager geladen met 1 per pagina, paginatie 80%, tekst 70%, nestfoto\'s MET OPMERKINGEN (max 15, 1 per keer met paginatie)');
