@@ -5,6 +5,8 @@
  * Beheert nest aankondigingen overzicht en beheer
  * MET GEZONDHEIDSINFO VAN BEIDE OUDERS IN OVERZICHT (zelfde als DekReuen)
  * Ouders naast elkaar met gezondheidsinfo in exact de gewenste indeling
+ * 
+ * UPDATE: Toont 1 aankondiging per pagina met paginatie bovenaan
  */
 
 class NestAankondigingenManager extends BaseModule {
@@ -17,9 +19,9 @@ class NestAankondigingenManager extends BaseModule {
         this.isUserPlus = this.userRole === 'gebruiker+';
         this.currentView = 'overview';
         
-        // Paginatie variabelen
+        // Paginatie variabelen - AANGEPAST: 1 item per pagina
         this.currentPage = 1;
-        this.pageSize = 100;
+        this.pageSize = 1; // <-- VERANDERD van 100 naar 1
         this.totalAnnouncements = 0;
         
         // Voor autocomplete van honden
@@ -90,7 +92,7 @@ class NestAankondigingenManager extends BaseModule {
                 prevPage: "Vorige",
                 nextPage: "Volgende",
                 pageInfo: "Pagina {page} van {totalPages}",
-                showingResults: "{start}-{end} van {total} aankondigingen"
+                showingResults: "Aankondiging {start} van {total}"
             },
             en: {
                 nestAnnouncements: "Nest Announcements",
@@ -149,7 +151,7 @@ class NestAankondigingenManager extends BaseModule {
                 prevPage: "Previous",
                 nextPage: "Next",
                 pageInfo: "Page {page} of {totalPages}",
-                showingResults: "{start}-{end} of {total} announcements"
+                showingResults: "Announcement {start} of {total}"
             },
             de: {
                 nestAnnouncements: "Wurfankündigungen",
@@ -208,7 +210,7 @@ class NestAankondigingenManager extends BaseModule {
                 prevPage: "Vorherige",
                 nextPage: "Nächste",
                 pageInfo: "Seite {page} von {totalPages}",
-                showingResults: "{start}-{end} von {total} Ankündigungen"
+                showingResults: "Ankündigung {start} von {total}"
             }
         };
     }
@@ -360,6 +362,10 @@ class NestAankondigingenManager extends BaseModule {
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
+                            <!-- PAGINATIE BOVENAAN - Zoals in screenshot -->
+                            <div id="paginationTopContainer" class="mb-3"></div>
+                            
+                            <!-- Container voor de aankondiging -->
                             <div id="nestAankondigingenContainer" class="row">
                                 <div class="col-12 text-center py-5">
                                     <div class="spinner-border text-primary"></div>
@@ -450,6 +456,15 @@ class NestAankondigingenManager extends BaseModule {
                 .pedigree-number {
                     color: #6c757d;
                     font-size: 0.95em;
+                }
+                
+                .pagination {
+                    margin-bottom: 0;
+                }
+                
+                .pagination-info {
+                    font-size: 0.9em;
+                    color: #6c757d;
                 }
                 
                 @media (max-width: 768px) {
@@ -1186,9 +1201,12 @@ class NestAankondigingenManager extends BaseModule {
     
     /**
      * Laad nest aankondigingen voor overzicht met paginatie
+     * AANGEPAST: Toont 1 aankondiging per pagina
      */
     async loadAnnouncements(page = 1) {
         const container = document.getElementById('nestAankondigingenContainer');
+        const paginationTopContainer = document.getElementById('paginationTopContainer');
+        
         if (!container) return;
         
         try {
@@ -1214,10 +1232,20 @@ class NestAankondigingenManager extends BaseModule {
                         <p class="mt-3 text-muted">${this.t('noAnnouncements')}</p>
                     </div>
                 `;
+                if (paginationTopContainer) paginationTopContainer.innerHTML = '';
                 return;
             }
             
-            await this.renderOverviewList(announcements, container, count, page);
+            // Render eerst de paginatie bovenaan
+            const totalPages = Math.ceil(this.totalAnnouncements / this.pageSize);
+            const paginationHTML = this.getPaginationHTML(this.totalAnnouncements, page, totalPages, false);
+            
+            if (paginationTopContainer) {
+                paginationTopContainer.innerHTML = paginationHTML;
+            }
+            
+            // Render de aankondiging (slechts 1)
+            await this.renderOverviewList(announcements, container, this.totalAnnouncements, page);
             
         } catch (error) {
             console.error('Fout bij laden aankondigingen:', error);
@@ -1510,13 +1538,7 @@ class NestAankondigingenManager extends BaseModule {
             `;
         }
         
-        const totalPages = Math.ceil(total / this.pageSize);
-        const paginationHTML = this.getPaginationHTML(total, currentPage, totalPages, false);
-        
-        container.innerHTML = `
-            <div class="row">${html}</div>
-            ${paginationHTML}
-        `;
+        container.innerHTML = `<div class="row">${html}</div>`;
         
         this.attachPaginationEvents(false);
     }
@@ -1661,37 +1683,43 @@ class NestAankondigingenManager extends BaseModule {
         if (totalPages <= 1) return '';
         
         const start = ((currentPage - 1) * this.pageSize) + 1;
-        const end = Math.min(currentPage * this.pageSize, total);
         
         return `
-            <div class="row mt-4">
+            <div class="row mt-2 mb-3">
                 <div class="col-12">
-                    <nav aria-label="Paginatie">
-                        <ul class="pagination justify-content-center">
-                            <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-                                <a class="page-link nest-pagination" href="#" data-page="${currentPage - 1}" data-beheer="${isBeheer}">
-                                    ${this.t('prevPage')}
-                                </a>
-                            </li>
-                            
-                            ${this.generatePageNumbers(currentPage, totalPages).map(page => `
-                                <li class="page-item ${page === currentPage ? 'active' : ''}">
-                                    <a class="page-link nest-pagination" href="#" data-page="${page}" data-beheer="${isBeheer}">
-                                        ${page}
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="pagination-info">
+                            ${this.t('showingResults').replace('{start}', start).replace('{total}', total)}
+                        </span>
+                        <nav aria-label="Paginatie">
+                            <ul class="pagination mb-0">
+                                <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                                    <a class="page-link nest-pagination" href="#" data-page="${currentPage - 1}" data-beheer="${isBeheer}">
+                                        ${this.t('prevPage')}
                                     </a>
                                 </li>
-                            `).join('')}
-                            
-                            <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-                                <a class="page-link nest-pagination" href="#" data-page="${currentPage + 1}" data-beheer="${isBeheer}">
-                                    ${this.t('nextPage')}
-                                </a>
-                            </li>
-                        </ul>
-                    </nav>
-                    <p class="text-center text-muted small mt-2">
-                        ${this.t('showingResults').replace('{start}', start).replace('{end}', end).replace('{total}', total)}
-                    </p>
+                                
+                                ${this.generatePageNumbers(currentPage, totalPages).map(page => {
+                                    if (page === '...') {
+                                        return `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                                    }
+                                    return `
+                                        <li class="page-item ${page === currentPage ? 'active' : ''}">
+                                            <a class="page-link nest-pagination" href="#" data-page="${page}" data-beheer="${isBeheer}">
+                                                ${page}
+                                            </a>
+                                        </li>
+                                    `;
+                                }).join('')}
+                                
+                                <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                                    <a class="page-link nest-pagination" href="#" data-page="${currentPage + 1}" data-beheer="${isBeheer}">
+                                        ${this.t('nextPage')}
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
                 </div>
             </div>
         `;
@@ -1868,7 +1896,7 @@ if (typeof module !== 'undefined' && module.exports) {
     window.nestAankondigingenManager = NestAankondigingenManagerInstance;
 }
 
-console.log('📦 NestAankondigingenManager geladen met exact de gewenste indeling:');
+console.log('📦 NestAankondigingenManager geladen met exact de gewenste indeling: 1 per pagina met paginatie bovenaan');
 console.log('   - Rij 1: HD en ED naast elkaar');
 console.log('   - Rij 2: Patella en Ogen naast elkaar');
 console.log('   - Rij 3: Dandy Walker op eigen regel (Vrij indien leeg)');
