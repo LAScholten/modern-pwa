@@ -9,6 +9,7 @@
  * UPDATE: Toont 1 aankondiging per pagina met paginatie bovenaan
  * UPDATE 2: Tekst in cards kleiner gemaakt (70% van origineel)
  * UPDATE 3: Paginatiebalkje 80% van originele grootte
+ * UPDATE 4: Foto thumbnails van beide ouders toegevoegd (zelfde functionaliteit als DekReuen)
  */
 
 class NestAankondigingenManager extends BaseModule {
@@ -35,6 +36,12 @@ class NestAankondigingenManager extends BaseModule {
         // Bewerken variabelen
         this.editingAnnouncementId = null;
         this.editingAnnouncementData = null;
+        
+        // Foto gerelateerde variabelen
+        this.selectedHondId = null;
+        this.selectedHondStamboomnr = null;
+        this.selectedHondNaam = null;
+        this.hondFotos = [];
         
         this.translations = {
             nl: {
@@ -89,6 +96,11 @@ class NestAankondigingenManager extends BaseModule {
                 notSpecified: "Niet opgegeven",
                 country: "Land",
                 free: "Vrij",
+                
+                // Foto's
+                photos: "Foto's",
+                noPhotos: "Geen foto's beschikbaar",
+                viewPhoto: "Bekijk foto",
                 
                 // Paginatie
                 prevPage: "Vorige",
@@ -149,6 +161,11 @@ class NestAankondigingenManager extends BaseModule {
                 country: "Country",
                 free: "Free",
                 
+                // Photos
+                photos: "Photos",
+                noPhotos: "No photos available",
+                viewPhoto: "View photo",
+                
                 // Pagination
                 prevPage: "Previous",
                 nextPage: "Next",
@@ -208,6 +225,11 @@ class NestAankondigingenManager extends BaseModule {
                 country: "Land",
                 free: "Frei",
                 
+                // Photos
+                photos: "Fotos",
+                noPhotos: "Keine Fotos verfügbar",
+                viewPhoto: "Foto ansehen",
+                
                 // Pagination
                 prevPage: "Vorherige",
                 nextPage: "Nächste",
@@ -219,6 +241,44 @@ class NestAankondigingenManager extends BaseModule {
     
     t(key) {
         return this.translations[this.currentLang][key] || key;
+    }
+    
+    /**
+     * Zorg dat PhotoViewer geladen is, laad hem anders dynamisch
+     */
+    async ensurePhotoViewer() {
+        // Als PhotoViewer al bestaat, niets doen
+        if (window.photoViewer && typeof window.photoViewer.showPhoto === 'function') {
+            return;
+        }
+        
+        console.log('📸 PhotoViewer wordt dynamisch geladen...');
+        
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'js/modules/PhotoViewer.js';
+            script.onload = () => {
+                // Wacht kort tot de PhotoViewer beschikbaar is
+                let checkCount = 0;
+                const checkInterval = setInterval(() => {
+                    if (window.photoViewer) {
+                        clearInterval(checkInterval);
+                        console.log('✅ PhotoViewer geladen en klaar voor gebruik');
+                        resolve();
+                    } else if (checkCount > 20) { // 2 seconden timeout
+                        clearInterval(checkInterval);
+                        console.error('❌ PhotoViewer niet gevonden na laden');
+                        reject(new Error('PhotoViewer niet beschikbaar'));
+                    }
+                    checkCount++;
+                }, 100);
+            };
+            script.onerror = () => {
+                console.error('❌ PhotoViewer script laden mislukt');
+                reject(new Error('PhotoViewer laden mislukt'));
+            };
+            document.head.appendChild(script);
+        });
     }
     
     /**
@@ -235,6 +295,46 @@ class NestAankondigingenManager extends BaseModule {
             return this.supabase;
         }
         return null;
+    }
+    
+    /**
+     * Haal foto's op voor een specifieke hond
+     */
+    async getHondFotos(hondId) {
+        try {
+            if (!hondId) return [];
+            
+            const supabase = this.getSupabase();
+            if (!supabase) return [];
+            
+            const { data: hondData, error: hondError } = await supabase
+                .from('honden')
+                .select('stamboomnr, naam, kennelnaam')
+                .eq('id', hondId)
+                .single();
+                
+            if (hondError || !hondData) {
+                console.error('❌ Kon hond niet vinden:', hondError);
+                return [];
+            }
+            
+            const { data: fotos, error } = await supabase
+                .from('fotos')
+                .select('*')
+                .eq('stamboomnr', hondData.stamboomnr)
+                .order('uploaded_at', { ascending: false });
+            
+            if (error) {
+                console.error('❌ Fout bij ophalen foto\'s:', error);
+                return [];
+            }
+            
+            return fotos || [];
+            
+        } catch (error) {
+            console.error('❌ Fout bij ophalen foto\'s:', error);
+            return [];
+        }
     }
     
     updateLanguage(lang) {
@@ -468,6 +568,55 @@ class NestAankondigingenManager extends BaseModule {
                     border-radius: 6px;
                     font-weight: 600;
                     font-size: 0.8rem;
+                }
+                
+                /* Foto thumbnails styling */
+                .photo-thumbnails {
+                    margin-top: 12px;
+                    padding-top: 8px;
+                    border-top: 1px solid #dee2e6;
+                }
+                
+                .photo-thumbnails .small {
+                    color: #6c757d;
+                    margin-bottom: 8px;
+                }
+                
+                .photo-thumbnails .d-flex {
+                    gap: 8px;
+                }
+                
+                .photo-thumbnail {
+                    width: 50px;
+                    height: 50px;
+                    cursor: pointer;
+                    border-radius: 4px;
+                    overflow: hidden;
+                    border: 1px solid #dee2e6;
+                    transition: transform 0.2s, box-shadow 0.2s;
+                }
+                
+                .photo-thumbnail:hover {
+                    transform: scale(1.1);
+                    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+                    z-index: 10;
+                }
+                
+                .photo-thumbnail img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                }
+                
+                .photo-thumbnail-more {
+                    width: 50px;
+                    height: 50px;
+                    background: #f8f9fa;
+                    border-radius: 4px;
+                    border: 1px solid #dee2e6;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
                 }
                 
                 /* Card header ook verkleind */
@@ -1378,6 +1527,7 @@ class NestAankondigingenManager extends BaseModule {
      * Derde rij: Dandy Walker op eigen regel
      * Vierde rij: Schildklier op eigen regel
      * Vijfde rij: Land op eigen regel
+     * Met foto thumbnails van beide ouders
      */
     async renderOverviewList(announcements, container, total = 0, currentPage = 1) {
         const t = this.t.bind(this);
@@ -1390,6 +1540,10 @@ class NestAankondigingenManager extends BaseModule {
             // Haal moeder gegevens op
             const moeder = this.allDogs.find(d => d.id === announcement.moeder_id) || {};
             
+            // Haal foto's op voor vader en moeder
+            const vaderFotos = await this.getHondFotos(vader.id);
+            const moederFotos = await this.getHondFotos(moeder.id);
+            
             // Formatteer datum
             const date = new Date(announcement.aangemaakt_op);
             const formattedDate = date.toLocaleDateString(this.currentLang === 'nl' ? 'nl-NL' : 
@@ -1400,6 +1554,56 @@ class NestAankondigingenManager extends BaseModule {
             
             // Moeder display naam
             const moederNaam = moeder.kennelnaam ? `${moeder.naam || 'Onbekend'} ${moeder.kennelnaam}` : (moeder.naam || 'Onbekend');
+            
+            // Genereer foto thumbnails voor vader
+            let vaderFotosHTML = '';
+            if (vaderFotos.length > 0) {
+                const eersteFotos = vaderFotos.slice(0, 3);
+                vaderFotosHTML = `
+                    <div class="photo-thumbnails">
+                        <small class="text-muted d-block mb-1">${t('photos')}:</small>
+                        <div class="d-flex flex-wrap">
+                            ${eersteFotos.map(foto => `
+                                <div class="photo-thumbnail" 
+                                     data-foto='${JSON.stringify(foto).replace(/'/g, '&apos;')}'
+                                     data-hond-naam="${vaderNaam}">
+                                    <img src="${foto.thumbnail || foto.data}" alt="Foto">
+                                </div>
+                            `).join('')}
+                            ${vaderFotos.length > 3 ? `
+                                <div class="photo-thumbnail-more">
+                                    <span class="small text-muted">+${vaderFotos.length - 3}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Genereer foto thumbnails voor moeder
+            let moederFotosHTML = '';
+            if (moederFotos.length > 0) {
+                const eersteFotos = moederFotos.slice(0, 3);
+                moederFotosHTML = `
+                    <div class="photo-thumbnails">
+                        <small class="text-muted d-block mb-1">${t('photos')}:</small>
+                        <div class="d-flex flex-wrap">
+                            ${eersteFotos.map(foto => `
+                                <div class="photo-thumbnail" 
+                                     data-foto='${JSON.stringify(foto).replace(/'/g, '&apos;')}'
+                                     data-hond-naam="${moederNaam}">
+                                    <img src="${foto.thumbnail || foto.data}" alt="Foto">
+                                </div>
+                            `).join('')}
+                            ${moederFotos.length > 3 ? `
+                                <div class="photo-thumbnail-more">
+                                    <span class="small text-muted">+${moederFotos.length - 3}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }
             
             // Gebruik kennelnaam_nest voor de header
             const headerTitle = announcement.kennelnaam_nest || 'Nest aankondiging';
@@ -1481,6 +1685,9 @@ class NestAankondigingenManager extends BaseModule {
                                         <span class="explanation-text">${vader.schildklierverklaring}</span>
                                     </div>
                                     ` : ''}
+                                    
+                                    <!-- Vader foto thumbnails -->
+                                    ${vaderFotosHTML}
                                 </div>
                                 
                                 <!-- Moeder Column -->
@@ -1549,6 +1756,9 @@ class NestAankondigingenManager extends BaseModule {
                                         <span class="explanation-text">${moeder.schildklierverklaring}</span>
                                     </div>
                                     ` : ''}
+                                    
+                                    <!-- Moeder foto thumbnails -->
+                                    ${moederFotosHTML}
                                 </div>
                             </div>
                             
@@ -1571,6 +1781,32 @@ class NestAankondigingenManager extends BaseModule {
         }
         
         container.innerHTML = `<div class="row">${html}</div>`;
+        
+        // Click handlers voor foto's met dynamisch laden van PhotoViewer
+        container.querySelectorAll('.photo-thumbnail').forEach(thumb => {
+            thumb.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                try {
+                    const foto = JSON.parse(thumb.dataset.foto.replace(/&apos;/g, "'"));
+                    const hondNaam = thumb.dataset.hondNaam || '';
+                    
+                    // Laad PhotoViewer dynamisch
+                    await this.ensurePhotoViewer();
+                    
+                    // Toon de foto
+                    window.photoViewer.showPhoto(foto.data, hondNaam);
+                } catch (error) {
+                    console.error('Fout bij tonen foto:', error);
+                    // Fallback: open direct in nieuw tabblad
+                    try {
+                        const foto = JSON.parse(thumb.dataset.foto.replace(/&apos;/g, "'"));
+                        window.open(foto.data, '_blank');
+                    } catch (fallbackError) {
+                        console.error('Ook fallback mislukt:', fallbackError);
+                    }
+                }
+            });
+        });
         
         this.attachPaginationEvents(false);
     }
@@ -1603,6 +1839,10 @@ class NestAankondigingenManager extends BaseModule {
             const moeder = this.allDogs.find(d => d.id === ann.moeder_id) || {};
             const canEdit = isAdmin || ann.toegevoegd_door === user?.id;
             
+            // Haal foto's op voor vader en moeder
+            const vaderFotos = await this.getHondFotos(vader.id);
+            const moederFotos = await this.getHondFotos(moeder.id);
+            
             // Formatteer datum
             const date = new Date(ann.aangemaakt_op);
             const formattedDate = date.toLocaleDateString(this.currentLang === 'nl' ? 'nl-NL' : 
@@ -1613,6 +1853,58 @@ class NestAankondigingenManager extends BaseModule {
             
             // Moeder display naam
             const moederNaam = moeder.kennelnaam ? `${moeder.naam || 'Onbekend'} ${moeder.kennelnaam}` : (moeder.naam || 'Onbekend');
+            
+            // Genereer foto thumbnails voor vader
+            let vaderFotosHTML = '';
+            if (vaderFotos.length > 0) {
+                const eersteFotos = vaderFotos.slice(0, 2);
+                vaderFotosHTML = `
+                    <div class="mt-2">
+                        <div class="d-flex flex-wrap gap-1">
+                            ${eersteFotos.map(foto => `
+                                <div class="photo-thumbnail" 
+                                     style="width: 30px; height: 30px;"
+                                     data-foto='${JSON.stringify(foto).replace(/'/g, '&apos;')}'
+                                     data-hond-naam="${vaderNaam}">
+                                    <img src="${foto.thumbnail || foto.data}" alt="Foto">
+                                </div>
+                            `).join('')}
+                            ${vaderFotos.length > 2 ? `
+                                <div class="d-flex align-items-center justify-content-center" 
+                                     style="width: 30px; height: 30px; background: #f8f9fa; border-radius: 3px; border: 1px solid #dee2e6;">
+                                    <span class="small text-muted">+${vaderFotos.length - 2}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Genereer foto thumbnails voor moeder
+            let moederFotosHTML = '';
+            if (moederFotos.length > 0) {
+                const eersteFotos = moederFotos.slice(0, 2);
+                moederFotosHTML = `
+                    <div class="mt-2">
+                        <div class="d-flex flex-wrap gap-1">
+                            ${eersteFotos.map(foto => `
+                                <div class="photo-thumbnail" 
+                                     style="width: 30px; height: 30px;"
+                                     data-foto='${JSON.stringify(foto).replace(/'/g, '&apos;')}'
+                                     data-hond-naam="${moederNaam}">
+                                    <img src="${foto.thumbnail || foto.data}" alt="Foto">
+                                </div>
+                            `).join('')}
+                            ${moederFotos.length > 2 ? `
+                                <div class="d-flex align-items-center justify-content-center" 
+                                     style="width: 30px; height: 30px; background: #f8f9fa; border-radius: 3px; border: 1px solid #dee2e6;">
+                                    <span class="small text-muted">+${moederFotos.length - 2}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }
             
             html += `
                 <div class="col-12 mb-3">
@@ -1627,11 +1919,13 @@ class NestAankondigingenManager extends BaseModule {
                                     <strong>${t('fatherInfo')}:</strong><br>
                                     ${vaderNaam}<br>
                                     <span class="text-muted">HD: ${vader.heupdysplasie || '-'} | ED: ${vader.elleboogdysplasie || '-'}</span>
+                                    ${vaderFotosHTML}
                                 </div>
                                 <div class="col-md-3 small">
                                     <strong>${t('motherInfo')}:</strong><br>
                                     ${moederNaam}<br>
                                     <span class="text-muted">HD: ${moeder.heupdysplasie || '-'} | ED: ${moeder.elleboogdysplasie || '-'}</span>
+                                    ${moederFotosHTML}
                                 </div>
                                 <div class="col-md-3 text-end">
                                     ${canEdit ? `
@@ -1665,6 +1959,31 @@ class NestAankondigingenManager extends BaseModule {
             <div class="row">${html}</div>
             ${paginationHTML}
         `;
+        
+        // Click handlers voor foto's in beheer lijst
+        container.querySelectorAll('.photo-thumbnail').forEach(thumb => {
+            thumb.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                try {
+                    const foto = JSON.parse(thumb.dataset.foto.replace(/&apos;/g, "'"));
+                    const hondNaam = thumb.dataset.hondNaam || '';
+                    
+                    // Laad PhotoViewer dynamisch
+                    await this.ensurePhotoViewer();
+                    
+                    window.photoViewer.showPhoto(foto.data, hondNaam);
+                } catch (error) {
+                    console.error('Fout bij tonen foto:', error);
+                    // Fallback
+                    try {
+                        const foto = JSON.parse(thumb.dataset.foto.replace(/&apos;/g, "'"));
+                        window.open(foto.data, '_blank');
+                    } catch (fallbackError) {
+                        console.error('Ook fallback mislukt:', fallbackError);
+                    }
+                }
+            });
+        });
         
         container.querySelectorAll('.edit-announcement').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -1928,4 +2247,4 @@ if (typeof module !== 'undefined' && module.exports) {
     window.nestAankondigingenManager = NestAankondigingenManagerInstance;
 }
 
-console.log('📦 NestAankondigingenManager geladen met 1 per pagina, paginatie 80%, tekst 70%');
+console.log('📦 NestAankondigingenManager geladen met 1 per pagina, paginatie 80%, tekst 70%, en foto thumbnails van beide ouders');
