@@ -367,105 +367,6 @@ class NestAankondigingenManager extends BaseModule {
     }
     
     /**
-     * Zorg dat PhotoViewer geladen is, laad hem anders dynamisch
-     */
-    async ensurePhotoViewer() {
-        // Als PhotoViewer al bestaat, niets doen
-        if (window.photoViewer && typeof window.photoViewer.showPhoto === 'function') {
-            return;
-        }
-        
-        console.log('📸 PhotoViewer wordt dynamisch geladen...');
-        
-        return new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.src = 'js/modules/PhotoViewer.js';
-            script.onload = () => {
-                // Wacht kort tot de PhotoViewer beschikbaar is
-                let checkCount = 0;
-                const checkInterval = setInterval(() => {
-                    if (window.photoViewer) {
-                        clearInterval(checkInterval);
-                        console.log('✅ PhotoViewer geladen en klaar voor gebruik');
-                        resolve();
-                    } else if (checkCount > 20) { // 2 seconden timeout
-                        clearInterval(checkInterval);
-                        console.error('❌ PhotoViewer niet gevonden na laden');
-                        reject(new Error('PhotoViewer niet beschikbaar'));
-                    }
-                    checkCount++;
-                }, 100);
-            };
-            script.onerror = () => {
-                console.error('❌ PhotoViewer script laden mislukt');
-                reject(new Error('PhotoViewer laden mislukt'));
-            };
-            document.head.appendChild(script);
-        });
-    }
-    
-    /**
-     * VERBETERD: Zorg dat ReuTeefStamboom beschikbaar is (gebruik bestaande instantie)
-     */
-    ensureReuTeefStamboom() {
-        return new Promise((resolve, reject) => {
-            // Check of de klasse en instantie al bestaan
-            if (window.ReuTeefStamboom && window.reuTeefStamboomInstance) {
-                console.log('✅ ReuTeefStamboom is al geladen, gebruik bestaande instantie');
-                resolve(window.reuTeefStamboomInstance);
-                return;
-            }
-            
-            // Check of alleen de klasse bestaat maar nog geen instantie
-            if (window.ReuTeefStamboom && typeof window.ReuTeefStamboom === 'function') {
-                console.log('✅ ReuTeefStamboom klasse bestaat, wacht op instantie...');
-                
-                // Wacht maximaal 2 seconden op de instantie
-                let checkCount = 0;
-                const checkInterval = setInterval(() => {
-                    if (window.reuTeefStamboomInstance) {
-                        clearInterval(checkInterval);
-                        console.log('✅ ReuTeefStamboom instantie gevonden');
-                        resolve(window.reuTeefStamboomInstance);
-                    } else if (checkCount > 20) {
-                        clearInterval(checkInterval);
-                        console.warn('⚠️ ReuTeefStamboom instantie niet gevonden, maar klasse bestaat');
-                        // Probeer zelf een instantie te maken
-                        try {
-                            const instance = new window.ReuTeefStamboom(window.mainModule);
-                            window.reuTeefStamboomInstance = instance;
-                            console.log('✅ ReuTeefStamboom instantie handmatig aangemaakt');
-                            resolve(instance);
-                        } catch (e) {
-                            console.error('❌ Kon geen ReuTeefStamboom instantie maken:', e);
-                            reject(new Error('ReuTeefStamboom instantie kon niet worden gemaakt'));
-                        }
-                    }
-                    checkCount++;
-                }, 100);
-                return;
-            }
-            
-            // Als de klasse nog niet bestaat, wacht dan maximaal 3 seconden
-            console.log('⏳ Wachten op ReuTeefStamboom...');
-            
-            let checkCount = 0;
-            const checkInterval = setInterval(() => {
-                if (window.ReuTeefStamboom && window.reuTeefStamboomInstance) {
-                    clearInterval(checkInterval);
-                    console.log('✅ ReuTeefStamboom gevonden na wachten');
-                    resolve(window.reuTeefStamboomInstance);
-                } else if (checkCount > 30) { // 3 seconden timeout
-                    clearInterval(checkInterval);
-                    console.error('❌ ReuTeefStamboom niet gevonden na timeout');
-                    reject(new Error('ReuTeefStamboom niet beschikbaar'));
-                }
-                checkCount++;
-            }, 100);
-        });
-    }
-    
-    /**
      * Simpele functie om de Supabase client te krijgen
      */
     getSupabase() {
@@ -942,20 +843,15 @@ class NestAankondigingenManager extends BaseModule {
                     const foto = JSON.parse(thumb.dataset.foto.replace(/&apos;/g, "'"));
                     const nestNaam = thumb.dataset.nestNaam || this.selectedNestKennelnaam || '';
                     
-                    // Laad PhotoViewer dynamisch
-                    await this.ensurePhotoViewer();
-                    
-                    // Toon de foto
-                    window.photoViewer.showPhoto(foto.data, nestNaam);
+                    // Gebruik PhotoViewer via ReuTeefStamboom of direct
+                    if (window.photoViewer) {
+                        window.photoViewer.showPhoto(foto.data, nestNaam);
+                    } else {
+                        // Fallback
+                        window.open(foto.data, '_blank');
+                    }
                 } catch (error) {
                     console.error('Fout bij tonen foto:', error);
-                    // Fallback: open direct in nieuw tabblad
-                    try {
-                        const foto = JSON.parse(thumb.dataset.foto.replace(/&apos;/g, "'"));
-                        window.open(foto.data, '_blank');
-                    } catch (fallbackError) {
-                        console.error('Ook fallback mislukt:', fallbackError);
-                    }
                 }
             });
         });
@@ -1184,6 +1080,66 @@ class NestAankondigingenManager extends BaseModule {
         if (document.getElementById('nestAankondigingenModal')) {
             this.translateModalContent();
         }
+    }
+    
+    /**
+     * EENVOUDIGE OPLOSSING: Laad ReuTeefStamboom module
+     */
+    async ensureReuTeefStamboom() {
+        // Check of de module al bestaat
+        if (window.reuTeefStamboomInstance && typeof window.reuTeefStamboomInstance.showFuturePuppyPedigree === 'function') {
+            console.log('✅ ReuTeefStamboom is al geladen');
+            return window.reuTeefStamboomInstance;
+        }
+        
+        // Check of de klasse bestaat maar nog geen instantie
+        if (window.ReuTeefStamboom && typeof window.ReuTeefStamboom === 'function') {
+            console.log('✅ ReuTeefStamboom klasse gevonden, maak instantie');
+            try {
+                const instance = new window.ReuTeefStamboom(window.mainModule || window);
+                window.reuTeefStamboomInstance = instance;
+                return instance;
+            } catch (e) {
+                console.error('❌ Kon geen ReuTeefStamboom instantie maken:', e);
+            }
+        }
+        
+        // Laad het script
+        console.log('📦 ReuTeefStamboom wordt geladen...');
+        
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'js/modules/ReuTeefStamboom.js';
+            script.onload = () => {
+                // Wacht tot de klasse beschikbaar is
+                let checkCount = 0;
+                const checkInterval = setInterval(() => {
+                    if (window.ReuTeefStamboom) {
+                        clearInterval(checkInterval);
+                        try {
+                            // Maak instantie met mainModule
+                            const instance = new window.ReuTeefStamboom(window.mainModule || window);
+                            window.reuTeefStamboomInstance = instance;
+                            console.log('✅ ReuTeefStamboom geladen en geïnstantieerd');
+                            resolve(instance);
+                        } catch (e) {
+                            console.error('❌ Fout bij instantiëren ReuTeefStamboom:', e);
+                            reject(e);
+                        }
+                    } else if (checkCount > 30) {
+                        clearInterval(checkInterval);
+                        console.error('❌ ReuTeefStamboom niet gevonden na laden');
+                        reject(new Error('ReuTeefStamboom niet beschikbaar na laden'));
+                    }
+                    checkCount++;
+                }, 100);
+            };
+            script.onerror = () => {
+                console.error('❌ ReuTeefStamboom script laden mislukt');
+                reject(new Error('ReuTeefStamboom laden mislukt'));
+            };
+            document.head.appendChild(script);
+        });
     }
     
     /**
@@ -1970,7 +1926,7 @@ class NestAankondigingenManager extends BaseModule {
                 return;
             }
             
-            // Gebruik de verbeterde ensure methode
+            // Laad ReuTeefStamboom
             const reuTeefStamboom = await this.ensureReuTeefStamboom();
             
             if (!reuTeefStamboom) {
@@ -2795,20 +2751,14 @@ class NestAankondigingenManager extends BaseModule {
                     const foto = JSON.parse(thumb.dataset.foto.replace(/&apos;/g, "'"));
                     const hondNaam = thumb.dataset.hondNaam || '';
                     
-                    // Laad PhotoViewer dynamisch
-                    await this.ensurePhotoViewer();
-                    
-                    // Toon de foto
-                    window.photoViewer.showPhoto(foto.data, hondNaam);
+                    // Gebruik PhotoViewer via ReuTeefStamboom of direct
+                    if (window.photoViewer) {
+                        window.photoViewer.showPhoto(foto.data, hondNaam);
+                    } else {
+                        window.open(foto.data, '_blank');
+                    }
                 } catch (error) {
                     console.error('Fout bij tonen foto:', error);
-                    // Fallback: open direct in nieuw tabblad
-                    try {
-                        const foto = JSON.parse(thumb.dataset.foto.replace(/&apos;/g, "'"));
-                        window.open(foto.data, '_blank');
-                    } catch (fallbackError) {
-                        console.error('Ook fallback mislukt:', fallbackError);
-                    }
                 }
             });
         });
@@ -3029,19 +2979,14 @@ class NestAankondigingenManager extends BaseModule {
                     const foto = JSON.parse(thumb.dataset.foto.replace(/&apos;/g, "'"));
                     const hondNaam = thumb.dataset.hondNaam || '';
                     
-                    // Laad PhotoViewer dynamisch
-                    await this.ensurePhotoViewer();
-                    
-                    window.photoViewer.showPhoto(foto.data, hondNaam);
+                    // Gebruik PhotoViewer via ReuTeefStamboom of direct
+                    if (window.photoViewer) {
+                        window.photoViewer.showPhoto(foto.data, hondNaam);
+                    } else {
+                        window.open(foto.data, '_blank');
+                    }
                 } catch (error) {
                     console.error('Fout bij tonen foto:', error);
-                    // Fallback
-                    try {
-                        const foto = JSON.parse(thumb.dataset.foto.replace(/&apos;/g, "'"));
-                        window.open(foto.data, '_blank');
-                    } catch (fallbackError) {
-                        console.error('Ook fallback mislukt:', fallbackError);
-                    }
                 }
             });
         });
