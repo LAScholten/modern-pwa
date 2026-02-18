@@ -1456,7 +1456,7 @@ class NestAankondigingenManager extends BaseModule {
                                         <div class="health-row">
                                             <div class="health-item">
                                                 <span class="health-label">${t('dandyWalker')}:</span>
-                                                <span class="health-value">${vader.dandyWalker || t('free')}</span>
+                                                <span class="health-value">${vader.dandyWalker ? vader.dandyWalker : '-'}</span>
                                             </div>
                                         </div>
                                         
@@ -1532,7 +1532,7 @@ class NestAankondigingenManager extends BaseModule {
                                         <div class="health-row">
                                             <div class="health-item">
                                                 <span class="health-label">${t('dandyWalker')}:</span>
-                                                <span class="health-value">${moeder.dandyWalker || t('free')}</span>
+                                                <span class="health-value">${moeder.dandyWalker ? moeder.dandyWalker : '-'}</span>
                                             </div>
                                         </div>
                                         
