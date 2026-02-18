@@ -1467,14 +1467,6 @@ class NestAankondigingenManager extends BaseModule {
                                                 <span class="health-value">${vader.schildklier || '-'}</span>
                                             </div>
                                         </div>
-                                        
-                                        <!-- Rij 5: Land op eigen regel -->
-                                        <div class="health-row">
-                                            <div class="health-item">
-                                                <span class="health-label">${t('country')}:</span>
-                                                <span class="health-value">${vader.land || '-'}</span>
-                                            </div>
-                                        </div>
                                     </div>
                                     
                                     ${vader.ogenverklaring ? `
@@ -1541,14 +1533,6 @@ class NestAankondigingenManager extends BaseModule {
                                             <div class="health-item">
                                                 <span class="health-label">${t('thyroid')}:</span>
                                                 <span class="health-value">${moeder.schildklier || '-'}</span>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Rij 5: Land op eigen regel -->
-                                        <div class="health-row">
-                                            <div class="health-item">
-                                                <span class="health-label">${t('country')}:</span>
-                                                <span class="health-value">${moeder.land || '-'}</span>
                                             </div>
                                         </div>
                                     </div>
