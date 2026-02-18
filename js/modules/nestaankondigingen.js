@@ -7,6 +7,8 @@
  * Ouders naast elkaar met gezondheidsinfo in exact de gewenste indeling
  * 
  * UPDATE: Toont 1 aankondiging per pagina met paginatie bovenaan
+ * UPDATE 2: Tekst in cards kleiner gemaakt (70% van origineel)
+ * UPDATE 3: Paginatiebalkje 80% van originele grootte
  */
 
 class NestAankondigingenManager extends BaseModule {
@@ -19,9 +21,9 @@ class NestAankondigingenManager extends BaseModule {
         this.isUserPlus = this.userRole === 'gebruiker+';
         this.currentView = 'overview';
         
-        // Paginatie variabelen - AANGEPAST: 1 item per pagina
+        // Paginatie variabelen - 1 item per pagina
         this.currentPage = 1;
-        this.pageSize = 1; // <-- VERANDERD van 100 naar 1
+        this.pageSize = 1;
         this.totalAnnouncements = 0;
         
         // Voor autocomplete van honden
@@ -362,8 +364,8 @@ class NestAankondigingenManager extends BaseModule {
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
-                            <!-- PAGINATIE BOVENAAN - Zoals in screenshot -->
-                            <div id="paginationTopContainer" class="mb-3"></div>
+                            <!-- PAGINATIE BOVENAAN - 80% van normale grootte -->
+                            <div id="paginationTopContainer" class="mb-2 pagination-sm-container"></div>
                             
                             <!-- Container voor de aankondiging -->
                             <div id="nestAankondigingenContainer" class="row">
@@ -383,18 +385,36 @@ class NestAankondigingenManager extends BaseModule {
                 </div>
             </div>
             
-            <!-- CSS voor de gezondheidsinfo layout - dit is CRUCIAL -->
+            <!-- CSS voor de gezondheidsinfo layout en kleinere tekst -->
             <style>
+                /* Algemene card tekst verkleining naar 70% */
+                .announcement-card {
+                    font-size: 0.7rem;
+                }
+                
+                /* Hondenamen blijven normale grootte (1rem = 100%) */
+                .announcement-card .dog-name {
+                    font-weight: 600;
+                    font-size: 1rem;
+                }
+                
+                /* Pedigree nummer ook normale grootte */
+                .announcement-card .pedigree-number {
+                    color: #6c757d;
+                    font-size: 0.95rem;
+                }
+                
+                /* Health items */
                 .health-info {
                     display: flex;
                     flex-direction: column;
-                    gap: 8px;
+                    gap: 4px;
                     width: 100%;
                 }
                 
                 .health-row-2col {
                     display: flex !important;
-                    gap: 20px;
+                    gap: 15px;
                     width: 100%;
                 }
                 
@@ -408,14 +428,14 @@ class NestAankondigingenManager extends BaseModule {
                 }
                 
                 .health-item {
-                    line-height: 1.6;
+                    line-height: 1.4;
                 }
                 
                 .health-label {
                     font-weight: 500;
                     color: #495057;
                     display: inline-block;
-                    min-width: 90px;
+                    min-width: 70px;
                 }
                 
                 .health-value {
@@ -424,53 +444,81 @@ class NestAankondigingenManager extends BaseModule {
                 }
                 
                 .explanation-item {
-                    margin-top: 8px;
-                    padding: 6px 10px;
+                    margin-top: 6px;
+                    padding: 4px 8px;
                     background-color: #fff3cd;
                     border-radius: 4px;
                     border: 1px solid #ffeeba;
-                    font-size: 0.95em;
+                    font-size: 0.65rem;
                 }
                 
                 .father-header {
                     background-color: #cce5ff;
                     color: #004085;
-                    padding: 8px 12px;
+                    padding: 6px 10px;
                     border-radius: 6px;
                     font-weight: 600;
+                    font-size: 0.8rem;
                 }
                 
                 .mother-header {
                     background-color: #d4edda;
                     color: #155724;
-                    padding: 8px 12px;
+                    padding: 6px 10px;
                     border-radius: 6px;
                     font-weight: 600;
+                    font-size: 0.8rem;
                 }
                 
-                .dog-name {
-                    font-weight: 600;
-                    font-size: 1.1em;
+                /* Card header ook verkleind */
+                .announcement-card .card-header {
+                    padding: 0.5rem 1rem;
                 }
                 
-                .pedigree-number {
-                    color: #6c757d;
-                    font-size: 0.95em;
+                .announcement-card .card-header h5 {
+                    font-size: 0.9rem;
                 }
                 
-                .pagination {
-                    margin-bottom: 0;
+                /* Card body padding verkleind */
+                .announcement-card .card-body {
+                    padding: 1rem;
                 }
                 
-                .pagination-info {
-                    font-size: 0.9em;
-                    color: #6c757d;
+                /* Beschrijving tekst */
+                .announcement-card .bg-light {
+                    padding: 0.5rem !important;
+                    font-size: 0.7rem;
+                }
+                
+                /* Email en datum */
+                .announcement-card .text-muted.small {
+                    font-size: 0.65rem !important;
+                }
+                
+                /* PAGINATIE - 80% van normale grootte */
+                .pagination-sm-container .pagination {
+                    --bs-pagination-font-size: 0.8rem;
+                    --bs-pagination-padding-x: 0.5rem;
+                    --bs-pagination-padding-y: 0.25rem;
+                }
+                
+                .pagination-sm-container .pagination-info {
+                    font-size: 0.8rem;
+                }
+                
+                .pagination-sm-container .page-link {
+                    padding: 0.25rem 0.5rem;
+                    font-size: 0.8rem;
                 }
                 
                 @media (max-width: 768px) {
                     .health-row-2col {
                         flex-direction: column;
-                        gap: 4px;
+                        gap: 2px;
+                    }
+                    
+                    .announcement-card .dog-name {
+                        font-size: 0.9rem;
                     }
                 }
             </style>
@@ -1201,7 +1249,7 @@ class NestAankondigingenManager extends BaseModule {
     
     /**
      * Laad nest aankondigingen voor overzicht met paginatie
-     * AANGEPAST: Toont 1 aankondiging per pagina
+     * Toont 1 aankondiging per pagina
      */
     async loadAnnouncements(page = 1) {
         const container = document.getElementById('nestAankondigingenContainer');
@@ -1896,9 +1944,4 @@ if (typeof module !== 'undefined' && module.exports) {
     window.nestAankondigingenManager = NestAankondigingenManagerInstance;
 }
 
-console.log('📦 NestAankondigingenManager geladen met exact de gewenste indeling: 1 per pagina met paginatie bovenaan');
-console.log('   - Rij 1: HD en ED naast elkaar');
-console.log('   - Rij 2: Patella en Ogen naast elkaar');
-console.log('   - Rij 3: Dandy Walker op eigen regel (Vrij indien leeg)');
-console.log('   - Rij 4: Schildklier op eigen regel');
-console.log('   - Rij 5: Land op eigen regel');
+console.log('📦 NestAankondigingenManager geladen met 1 per pagina, paginatie 80%, tekst 70%');
