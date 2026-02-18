@@ -11,6 +11,7 @@
  * UPDATE 3: Paginatiebalkje 80% van originele grootte
  * UPDATE 4: Aparte nestfoto's met eigen modal (max 15, 1 per keer met paginatie)
  * UPDATE 5: Opmerkingen bij nestfoto's mogelijk
+ * UPDATE 6: Stamboomweergave voor pups toegevoegd (zelfde als ReuTeefCombinatie)
  */
 
 class NestAankondigingenManager extends BaseModule {
@@ -50,6 +51,11 @@ class NestAankondigingenManager extends BaseModule {
         // Voor het bewerken van een specifieke foto
         this.editingFotoId = null;
         this.editingFotoData = null;
+        
+        // Voor stamboom weergave (zelfde als ReuTeefCombinatie)
+        this.stamboomModule = null;
+        this.hondenCache = new Map();
+        this.allHonden = []; // Wordt later gevuld met this.allDogs
         
         this.translations = {
             nl: {
@@ -134,7 +140,7 @@ class NestAankondigingenManager extends BaseModule {
                 previous: "Vorige",
                 next: "Volgende",
                 
-                // NIEUW: Opmerkingen bij nestfoto's
+                // Opmerkingen bij nestfoto's
                 remark: "Opmerking",
                 addRemark: "Opmerking toevoegen",
                 editRemark: "Opmerking bewerken",
@@ -148,7 +154,14 @@ class NestAankondigingenManager extends BaseModule {
                 prevPage: "Vorige",
                 nextPage: "Volgende",
                 pageInfo: "Pagina {page} van {totalPages}",
-                showingResults: "Aankondiging {start} van {total}"
+                showingResults: "Aankondiging {start} van {total}",
+                
+                // Stamboom voor pups
+                viewPuppyPedigree: "Bekijk stamboom pups",
+                puppyPedigree: "Stamboom pups",
+                futurePuppy: "Toekomstige pup",
+                father: "Vader",
+                mother: "Moeder"
             },
             en: {
                 nestAnnouncements: "Nest Announcements",
@@ -208,7 +221,7 @@ class NestAankondigingenManager extends BaseModule {
                 noPhotos: "No photos available",
                 viewPhoto: "View photo",
                 
-                // Nest photos - new
+                // Nest photos
                 nestPhotos: "Nest Photos",
                 viewNestPhotos: "View nest photos",
                 noNestPhotos: "No nest photos available",
@@ -232,7 +245,7 @@ class NestAankondigingenManager extends BaseModule {
                 previous: "Previous",
                 next: "Next",
                 
-                // NEW: Remarks for nest photos
+                // Remarks for nest photos
                 remark: "Remark",
                 addRemark: "Add remark",
                 editRemark: "Edit remark",
@@ -246,7 +259,14 @@ class NestAankondigingenManager extends BaseModule {
                 prevPage: "Previous",
                 nextPage: "Next",
                 pageInfo: "Page {page} of {totalPages}",
-                showingResults: "Announcement {start} of {total}"
+                showingResults: "Announcement {start} of {total}",
+                
+                // Pedigree for puppies
+                viewPuppyPedigree: "View puppy pedigree",
+                puppyPedigree: "Puppy pedigree",
+                futurePuppy: "Future puppy",
+                father: "Father",
+                mother: "Mother"
             },
             de: {
                 nestAnnouncements: "Wurfankündigungen",
@@ -306,7 +326,7 @@ class NestAankondigingenManager extends BaseModule {
                 noPhotos: "Keine Fotos verfügbar",
                 viewPhoto: "Foto ansehen",
                 
-                // Nest photos - new
+                // Nest photos
                 nestPhotos: "Wurffotos",
                 viewNestPhotos: "Wurffotos ansehen",
                 noNestPhotos: "Keine Wurffotos verfügbar",
@@ -330,7 +350,7 @@ class NestAankondigingenManager extends BaseModule {
                 previous: "Vorherige",
                 next: "Nächste",
                 
-                // NEW: Bemerkungen für Wurffotos
+                // Bemerkungen für Wurffotos
                 remark: "Bemerkung",
                 addRemark: "Bemerkung hinzufügen",
                 editRemark: "Bemerkung bearbeiten",
@@ -344,7 +364,14 @@ class NestAankondigingenManager extends BaseModule {
                 prevPage: "Vorherige",
                 nextPage: "Nächste",
                 pageInfo: "Seite {page} von {totalPages}",
-                showingResults: "Ankündigung {start} von {total}"
+                showingResults: "Ankündigung {start} von {total}",
+                
+                // Pedigree for puppies
+                viewPuppyPedigree: "Stammbaum der Welpen ansehen",
+                puppyPedigree: "Stammbaum der Welpen",
+                futurePuppy: "Zukünftiger Welpe",
+                father: "Vater",
+                mother: "Mutter"
             }
         };
     }
@@ -448,7 +475,7 @@ class NestAankondigingenManager extends BaseModule {
     }
     
     /**
-     * NIEUW: Haal nestfoto's op voor een specifiek nest
+     * Haal nestfoto's op voor een specifiek nest
      */
     async getNestFotos(nestId) {
         try {
@@ -477,7 +504,7 @@ class NestAankondigingenManager extends BaseModule {
     }
     
     /**
-     * NIEUW: Upload nestfoto voor geselecteerd nest
+     * Upload nestfoto voor geselecteerd nest
      */
     async uploadNestPhoto(remark = '') {
         const t = this.t.bind(this);
@@ -574,7 +601,7 @@ class NestAankondigingenManager extends BaseModule {
                     type: file.type,
                     uploaded_at: new Date().toISOString(),
                     geupload_door: user.id,
-                    opmerking: remark || null // NIEUW: opslaan van opmerking
+                    opmerking: remark || null
                 };
                 
                 const { data: dbData, error: dbError } = await this.getSupabase()
@@ -612,7 +639,7 @@ class NestAankondigingenManager extends BaseModule {
     }
     
     /**
-     * NIEUW: Update opmerking bij een nestfoto
+     * Update opmerking bij een nestfoto
      */
     async updateNestPhotoRemark(fotoId, remark) {
         const t = this.t.bind(this);
@@ -645,7 +672,7 @@ class NestAankondigingenManager extends BaseModule {
     }
     
     /**
-     * NIEUW: Verwijder een nestfoto
+     * Verwijder een nestfoto
      */
     async deleteNestPhoto(fotoId, fotoElement) {
         const t = this.t.bind(this);
@@ -680,7 +707,7 @@ class NestAankondigingenManager extends BaseModule {
     }
     
     /**
-     * NIEUW: Toon modal voor het bewerken van een opmerking
+     * Toon modal voor het bewerken van een opmerking
      */
     showRemarkModal(fotoId, currentRemark) {
         const t = this.t.bind(this);
@@ -748,7 +775,7 @@ class NestAankondigingenManager extends BaseModule {
     }
     
     /**
-     * NIEUW: Laad en toon nestfoto's voor geselecteerd nest
+     * Laad en toon nestfoto's voor geselecteerd nest
      */
     async loadNestFotos(nestId) {
         if (!nestId) return;
@@ -760,7 +787,7 @@ class NestAankondigingenManager extends BaseModule {
     }
     
     /**
-     * NIEUW: Toon nestfoto's in de container met verwijderknop, opmerking en uploadmogelijkheid
+     * Toon nestfoto's in de container met verwijderknop, opmerking en uploadmogelijkheid
      */
     async displayNestFotos() {
         const container = document.getElementById('nestFotosContainer');
@@ -828,7 +855,7 @@ class NestAankondigingenManager extends BaseModule {
                                     ${uploadDate}
                                 </small>
                                 
-                                <!-- NIEUW: Opmerking sectie -->
+                                <!-- Opmerking sectie -->
                                 <div class="mt-2 p-2 bg-light rounded" style="min-height: 50px;">
                                     <div class="d-flex justify-content-between align-items-start">
                                         <small class="fw-semibold">${t('remark')}:</small>
@@ -896,7 +923,7 @@ class NestAankondigingenManager extends BaseModule {
             });
         });
         
-        // NIEUW: Click handlers voor bewerk opmerking knoppen
+        // Click handlers voor bewerk opmerking knoppen
         container.querySelectorAll('.edit-remark-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -908,7 +935,7 @@ class NestAankondigingenManager extends BaseModule {
     }
     
     /**
-     * NIEUW: Toon de nestfoto galerij modal
+     * Toon de nestfoto galerij modal
      */
     async showNestPhotoGallery(nestId, nestNaam, fotos) {
         this.currentNestFotos = fotos;
@@ -932,7 +959,7 @@ class NestAankondigingenManager extends BaseModule {
                                 <img id="currentGalleryFoto" src="" alt="Nestfoto" class="img-fluid" style="max-height: 500px;">
                             </div>
                             
-                            <!-- NIEUW: Toon opmerking bij huidige foto -->
+                            <!-- Toon opmerking bij huidige foto -->
                             <div id="currentFotoRemark" class="alert alert-info mb-3" style="display: none;">
                                 <i class="bi bi-chat-dots me-2"></i>
                                 <span id="remarkText"></span>
@@ -1039,7 +1066,7 @@ class NestAankondigingenManager extends BaseModule {
     }
     
     /**
-     * NIEUW: Update galerij weergave na navigatie
+     * Update galerij weergave na navigatie
      */
     updateGalleryDisplay() {
         if (!this.currentNestFotos || this.currentNestFotos.length === 0) return;
@@ -1084,7 +1111,7 @@ class NestAankondigingenManager extends BaseModule {
     }
     
     /**
-     * NIEUW: Update de opmerking in de galerij
+     * Update de opmerking in de galerij
      */
     updateGalleryRemark(foto) {
         const remarkContainer = document.getElementById('currentFotoRemark');
@@ -1387,7 +1414,7 @@ class NestAankondigingenManager extends BaseModule {
                     justify-content: center;
                 }
                 
-                /* NIEUW: Nestfoto knop styling */
+                /* Nestfoto knop styling */
                 .btn-nest-photos {
                     background-color: #6f42c1;
                     color: white;
@@ -1439,6 +1466,19 @@ class NestAankondigingenManager extends BaseModule {
                 .pagination-sm-container .page-link {
                     padding: 0.25rem 0.5rem;
                     font-size: 0.8rem;
+                }
+                
+                /* Stamboom knop styling */
+                .btn-pedigree {
+                    background-color: #17a2b8;
+                    color: white;
+                    transition: all 0.2s;
+                }
+                
+                .btn-pedigree:hover {
+                    background-color: #138496;
+                    color: white;
+                    transform: scale(1.05);
                 }
                 
                 @media (max-width: 768px) {
@@ -1617,7 +1657,7 @@ class NestAankondigingenManager extends BaseModule {
     }
     
     /**
-     * NIEUW: Modal voor nestfoto beheer (vanuit beheer view)
+     * Modal voor nestfoto beheer (vanuit beheer view)
      */
     getNestFotoBeheerModalHTML() {
         const t = this.t.bind(this);
@@ -1691,11 +1731,15 @@ class NestAankondigingenManager extends BaseModule {
                 return naamA.localeCompare(naamB);
             });
             
+            // Vul ook allHonden voor stamboom module
+            this.allHonden = this.allDogs;
+            
             console.log(`${this.allDogs.length} honden geladen voor autocomplete`);
             
         } catch (error) {
             console.error('Fout bij laden honden:', error);
             this.allDogs = [];
+            this.allHonden = [];
         }
     }
     
@@ -1829,7 +1873,7 @@ class NestAankondigingenManager extends BaseModule {
     }
     
     /**
-     * NIEUW: Toon modal voor nestfoto beheer
+     * Toon modal voor nestfoto beheer
      */
     async showNestFotoBeheerModal(announcement) {
         try {
@@ -1865,6 +1909,69 @@ class NestAankondigingenManager extends BaseModule {
             console.error('Fout bij tonen nestfoto beheer modal:', error);
             alert('Fout bij laden nestfoto\'s: ' + error.message);
         }
+    }
+    
+    /**
+     * Toon stamboom van pups (fictieve pup) - PRECIES ZOALS IN ReuTeefCombinatie
+     */
+    async showPuppyPedigree(announcement) {
+        try {
+            console.log('Show puppy pedigree for announcement', announcement);
+            
+            // Haal vader en moeder op
+            const vader = this.allDogs.find(d => d.id === announcement.vader_id);
+            const moeder = this.allDogs.find(d => d.id === announcement.moeder_id);
+            
+            if (!vader || !moeder) {
+                alert('Kan vader of moeder niet vinden');
+                return;
+            }
+            
+            // Zorg dat allHonden gevuld is (nodig voor ReuTeefStamboom)
+            this.allHonden = this.allDogs;
+            
+            // Initialiseer stamboom module als die nog niet bestaat
+            if (!this.stamboomModule) {
+                this.stamboomModule = new ReuTeefStamboom(this);
+            }
+            
+            console.log('✅ Toon stamboom voor pups van', vader.naam, 'en', moeder.naam);
+            
+            // Toon de stamboom van de toekomstige pup
+            await this.stamboomModule.showFuturePuppyPedigree(moeder, vader);
+            
+        } catch (error) {
+            console.error('Fout bij tonen stamboom pups:', error);
+            alert('Fout bij laden stamboom: ' + error.message);
+        }
+    }
+    
+    /**
+     * getDogById voor ReuTeefStamboom (wordt gebruikt door de stamboom module)
+     */
+    getDogById(id) {
+        if (!id || id === 0) return null;
+        
+        // Eerst in cache zoeken
+        if (this.hondenCache.has(id)) {
+            return this.hondenCache.get(id);
+        }
+        
+        // Dan in allHonden array zoeken
+        const dog = this.allHonden.find(dog => dog.id === id);
+        if (dog) {
+            this.hondenCache.set(id, dog);
+            return dog;
+        }
+        
+        // Als niet gevonden, probeer in allDogs
+        const dog2 = this.allDogs.find(dog => dog.id === id);
+        if (dog2) {
+            this.hondenCache.set(id, dog2);
+            return dog2;
+        }
+        
+        return null;
     }
     
     /**
@@ -2403,7 +2510,7 @@ class NestAankondigingenManager extends BaseModule {
             const vaderFotos = await this.getHondFotos(vader.id);
             const moederFotos = await this.getHondFotos(moeder.id);
             
-            // NIEUW: Haal nestfoto's op voor teller
+            // Haal nestfoto's op voor teller
             const nestFotos = await this.getNestFotos(announcement.id);
             
             // Formatteer datum
@@ -2638,14 +2745,24 @@ class NestAankondigingenManager extends BaseModule {
                                     <div><i class="bi bi-calendar me-2"></i> ${formattedDate}</div>
                                 </div>
                                 
-                                <!-- NIEUW: Nestfoto knop -->
-                                <button class="btn btn-sm btn-nest-photos view-nest-photos" 
-                                        data-nest-id="${announcement.id}"
-                                        data-nest-naam="${headerTitle}"
-                                        data-nest-fotos-count="${nestFotos.length}">
-                                    <i class="bi bi-images me-1"></i> 
-                                    ${t('nestPhotos')} (${nestFotos.length})
-                                </button>
+                                <div class="d-flex gap-2">
+                                    <!-- Stamboom knop -->
+                                    <button class="btn btn-sm btn-pedigree view-pedigree" 
+                                            data-announcement='${JSON.stringify(announcement).replace(/'/g, '&apos;')}'
+                                            title="${t('viewPuppyPedigree')}">
+                                        <i class="bi bi-diagram-3 me-1"></i> 
+                                        ${t('viewPuppyPedigree')}
+                                    </button>
+                                    
+                                    <!-- Nestfoto knop -->
+                                    <button class="btn btn-sm btn-nest-photos view-nest-photos" 
+                                            data-nest-id="${announcement.id}"
+                                            data-nest-naam="${headerTitle}"
+                                            data-nest-fotos-count="${nestFotos.length}">
+                                        <i class="bi bi-images me-1"></i> 
+                                        ${t('nestPhotos')} (${nestFotos.length})
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -2681,7 +2798,22 @@ class NestAankondigingenManager extends BaseModule {
             });
         });
         
-        // NIEUW: Click handlers voor nestfoto knoppen
+        // Click handlers voor stamboom knoppen
+        container.querySelectorAll('.view-pedigree').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                try {
+                    const announcement = JSON.parse(btn.dataset.announcement.replace(/&apos;/g, "'"));
+                    this.showPuppyPedigree(announcement);
+                } catch (error) {
+                    console.error('Fout bij tonen stamboom:', error);
+                }
+            });
+        });
+        
+        // Click handlers voor nestfoto knoppen
         container.querySelectorAll('.view-nest-photos').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 e.preventDefault();
@@ -2740,7 +2872,7 @@ class NestAankondigingenManager extends BaseModule {
             const vaderFotos = await this.getHondFotos(vader.id);
             const moederFotos = await this.getHondFotos(moeder.id);
             
-            // NIEUW: Haal nestfoto's op voor teller
+            // Haal nestfoto's op voor teller
             const nestFotos = await this.getNestFotos(ann.id);
             
             // Formatteer datum
@@ -2828,7 +2960,7 @@ class NestAankondigingenManager extends BaseModule {
                                     ${moederFotosHTML}
                                 </div>
                                 <div class="col-md-3 text-end">
-                                    <!-- NIEUW: Nestfoto knop in beheer -->
+                                    <!-- Nestfoto knop in beheer -->
                                     <button class="btn btn-sm btn-outline-info manage-nest-photos mb-1 w-100" 
                                             data-announcement='${JSON.stringify(ann).replace(/'/g, '&apos;')}'>
                                         <i class="bi bi-images me-1"></i> 
@@ -2892,7 +3024,7 @@ class NestAankondigingenManager extends BaseModule {
             });
         });
         
-        // NIEUW: Click handlers voor nestfoto beheer
+        // Click handlers voor nestfoto beheer
         container.querySelectorAll('.manage-nest-photos').forEach(btn => {
             btn.addEventListener('click', () => {
                 try {
@@ -3231,4 +3363,4 @@ if (typeof module !== 'undefined' && module.exports) {
     window.nestAankondigingenManager = NestAankondigingenManagerInstance;
 }
 
-console.log('📦 NestAankondigingenManager geladen met 1 per pagina, paginatie 80%, tekst 70%, nestfoto\'s MET OPMERKINGEN (max 15, 1 per keer met paginatie)');
+console.log('📦 NestAankondigingenManager geladen met 1 per pagina, paginatie 80%, tekst 70%, nestfoto\'s MET OPMERKINGEN (max 15, 1 per keer met paginatie) en STAMBOOMWEERGAVE');
