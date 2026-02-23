@@ -57,6 +57,9 @@ class NestAankondigingenManager extends BaseModule {
         this.hondenCache = new Map();
         this.allHonden = []; // Wordt later gevuld met this.allDogs
         
+        // **CSS toevoegen bij instantiatie**
+        this.addReuTeefStamboomStyles();
+        
         this.translations = {
             nl: {
                 nestAnnouncements: "Nest aankondigingen",
@@ -161,7 +164,45 @@ class NestAankondigingenManager extends BaseModule {
                 puppyPedigree: "Stamboom pups",
                 futurePuppy: "Toekomstige pup",
                 father: "Vader",
-                mother: "Moeder"
+                mother: "Moeder",
+                combinedParents: "Combinatie ouders",
+                
+                // COI labels
+                coi6Gen: "COI 6 Gen",
+                homozygosity6Gen: "Homozygotie 6 Gen",
+                kinship6Gen: "Kinship 6 Gen",
+                predictedCoi: "Voorspelde Inteeltcoëfficiënt",
+                healthInLine: "Gezondheid in de lijn 6 generaties",
+                healthCategory: "Gezondheidscategorie",
+                motherLine: "Moederlijn",
+                fatherLine: "Vaderlijn",
+                hdA: "HD A",
+                hdB: "HD B",
+                hdC: "HD C",
+                hdD: "HD D",
+                hdE: "HD E",
+                hdUnknown: "HD niet bekend",
+                ed0: "ED 0",
+                ed1: "ED 1",
+                ed2: "ED 2",
+                ed3: "ED 3",
+                edUnknown: "ED niet bekend",
+                pl0: "PL 0",
+                pl1: "PL 1",
+                pl2: "PL 2",
+                pl3: "PL 3",
+                plUnknown: "PL niet bekend",
+                eyesFree: "Ogen vrij",
+                eyesDist: "Ogen Dist",
+                eyesOther: "Ogen overig",
+                eyesUnknown: "Ogen niet bekend",
+                dwlmDnaFree: "Dandy Walker (DNA) vrij",
+                dwlmParentsFree: "Dandy Walker (ouders) vrij",
+                dwlmUnknown: "Dandy Walker niet bekend",
+                thyroidTested: "Schildklier getest",
+                thyroidUnknown: "Schildklier niet bekend",
+                clickForDetails: "Klik voor details",
+                closePopup: "Sluiten"
             },
             en: {
                 nestAnnouncements: "Nest Announcements",
@@ -266,7 +307,45 @@ class NestAankondigingenManager extends BaseModule {
                 puppyPedigree: "Puppy pedigree",
                 futurePuppy: "Future puppy",
                 father: "Father",
-                mother: "Mother"
+                mother: "Mother",
+                combinedParents: "Combination parents",
+                
+                // COI labels
+                coi6Gen: "COI 6 Gen",
+                homozygosity6Gen: "Homozygotie 6 Gen",
+                kinship6Gen: "Kinship 6 Gen",
+                predictedCoi: "Predicted Inbreeding Coefficient",
+                healthInLine: "Health in the line 6 generations",
+                healthCategory: "Health category",
+                motherLine: "Mother line",
+                fatherLine: "Father line",
+                hdA: "HD A",
+                hdB: "HD B",
+                hdC: "HD C",
+                hdD: "HD D",
+                hdE: "HD E",
+                hdUnknown: "HD unknown",
+                ed0: "ED 0",
+                ed1: "ED 1",
+                ed2: "ED 2",
+                ed3: "ED 3",
+                edUnknown: "ED unknown",
+                pl0: "PL 0",
+                pl1: "PL 1",
+                pl2: "PL 2",
+                pl3: "PL 3",
+                plUnknown: "PL unknown",
+                eyesFree: "Eyes free",
+                eyesDist: "Eyes Dist",
+                eyesOther: "Eyes other",
+                eyesUnknown: "Eyes unknown",
+                dwlmDnaFree: "Dandy Walker (DNA) free",
+                dwlmParentsFree: "Dandy Walker (parents) free",
+                dwlmUnknown: "Dandy Walker unknown",
+                thyroidTested: "Thyroid tested",
+                thyroidUnknown: "Thyroid unknown",
+                clickForDetails: "Click for details",
+                closePopup: "Close"
             },
             de: {
                 nestAnnouncements: "Wurfankündigungen",
@@ -371,13 +450,363 @@ class NestAankondigingenManager extends BaseModule {
                 puppyPedigree: "Stammbaum der Welpen",
                 futurePuppy: "Zukünftiger Welpe",
                 father: "Vater",
-                mother: "Mutter"
+                mother: "Mutter",
+                combinedParents: "Kombination Eltern",
+                
+                // COI labels
+                coi6Gen: "COI 6 Gen",
+                homozygosity6Gen: "Homozygotie 6 Gen",
+                kinship6Gen: "Kinship 6 Gen",
+                predictedCoi: "Vorhergesagter Inzuchtkoeffizient",
+                healthInLine: "Gesundheit in der Linie 6 Generationen",
+                healthCategory: "Gesundheitskategorie",
+                motherLine: "Mutterlinie",
+                fatherLine: "Vaterlinie",
+                hdA: "HD A",
+                hdB: "HD B",
+                hdC: "HD C",
+                hdD: "HD D",
+                hdE: "HD E",
+                hdUnknown: "HD unbekannt",
+                ed0: "ED 0",
+                ed1: "ED 1",
+                ed2: "ED 2",
+                ed3: "ED 3",
+                edUnknown: "ED unbekannt",
+                pl0: "PL 0",
+                pl1: "PL 1",
+                pl2: "PL 2",
+                pl3: "PL 3",
+                plUnknown: "PL unbekannt",
+                eyesFree: "Augen frei",
+                eyesDist: "Augen Dist",
+                eyesOther: "Augen sonstige",
+                eyesUnknown: "Augen unbekannt",
+                dwlmDnaFree: "Dandy Walker (DNA) frei",
+                dwlmParentsFree: "Dandy Walker (Eltern) frei",
+                dwlmUnknown: "Dandy Walker unbekannt",
+                thyroidTested: "Schilddrüse getestet",
+                thyroidUnknown: "Schilddrüse unbekannt",
+                clickForDetails: "Klicken für Details",
+                closePopup: "Schließen"
             }
         };
     }
     
-    t(key) {
-        return this.translations[this.currentLang][key] || key;
+    t(key, params = {}) {
+        let text = this.translations[this.currentLang][key] || key;
+        
+        // Vervang parameters in tekst
+        Object.keys(params).forEach(param => {
+            text = text.replace(`{${param}}`, params[param]);
+        });
+        
+        return text;
+    }
+    
+    /**
+     * Voeg de CSS toe voor de popup layout (zelfde als in ReuTeefCombinatie)
+     */
+    addReuTeefStamboomStyles() {
+        if (document.querySelector('#reuteef-stamboom-nest-styles')) {
+            return;
+        }
+        
+        const style = document.createElement('style');
+        style.id = 'reuteef-stamboom-nest-styles';
+        style.textContent = `
+            /* GEÏSOLEERDE DETAIL POPUP STYLES */
+            .rtc-pedigree-popup-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.7);
+                z-index: 1060;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                animation: rtc-fadeIn 0.3s;
+                overflow-y: auto;
+            }
+            
+            @keyframes rtc-fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            
+            .rtc-pedigree-popup-container {
+                background: white;
+                border-radius: 12px;
+                max-width: 400px;
+                max-height: 80vh;
+                overflow-y: auto;
+                animation: rtc-slideUp 0.3s;
+                box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+                width: calc(100% - 20px);
+                margin: 10px;
+            }
+            
+            @keyframes rtc-slideUp {
+                from { 
+                    opacity: 0;
+                    transform: translateY(30px);
+                }
+                to { 
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+            
+            .rtc-dog-detail-popup {
+                display: flex;
+                flex-direction: column;
+                height: 100%;
+            }
+            
+            .rtc-popup-header {
+                background: #0d6efd;
+                color: white;
+                padding: 12px 16px;
+                border-radius: 12px 12px 0 0;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                position: sticky;
+                top: 0;
+                z-index: 1;
+            }
+            
+            .rtc-popup-title {
+                margin: 0;
+                font-size: 1.1rem;
+                display: flex;
+                align-items: center;
+                flex: 1;
+            }
+            
+            .rtc-popup-header .rtc-btn-close {
+                display: inline-block;
+                width: 24px;
+                height: 24px;
+                background: transparent;
+                border: none;
+                position: relative;
+                cursor: pointer;
+                opacity: 0.8;
+                z-index: 2;
+                filter: invert(1) grayscale(100%) brightness(200%) !important;
+            }
+            
+            .rtc-popup-header .rtc-btn-close::before,
+            .rtc-popup-header .rtc-btn-close::after {
+                content: '';
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                width: 18px;
+                height: 2px;
+                background: #000 !important;
+                transform-origin: center;
+            }
+            
+            .rtc-popup-header .rtc-btn-close::before {
+                transform: translate(-50%, -50%) rotate(45deg);
+            }
+            
+            .rtc-popup-header .rtc-btn-close::after {
+                transform: translate(-50%, -50%) rotate(-45deg);
+            }
+            
+            .rtc-popup-header .rtc-btn-close:hover {
+                opacity: 1;
+            }
+            
+            .rtc-popup-body {
+                padding: 15px;
+                flex: 1;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            .rtc-info-section {
+                margin-bottom: 20px;
+            }
+            
+            .rtc-info-section h6 {
+                color: #495057;
+                margin-bottom: 10px;
+                padding-bottom: 6px;
+                border-bottom: 2px solid #e9ecef;
+                display: flex;
+                align-items: center;
+                font-size: 1rem;
+            }
+            
+            /* DRIE WAARDES NAAST ELKAAR */
+            .rtc-three-values-row {
+                display: flex !important;
+                flex-direction: row !important;
+                justify-content: space-between !important;
+                align-items: stretch !important;
+                gap: 8px !important;
+                margin: 10px 0 !important;
+                width: 100% !important;
+            }
+            
+            .rtc-value-box {
+                flex: 1 !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: center !important;
+                text-align: center !important;
+                padding: 8px 4px !important;
+                background: #f8f9fa !important;
+                border-radius: 6px !important;
+                border: 1px solid #dee2e6 !important;
+                min-height: 60px !important;
+                min-width: 0 !important;
+            }
+            
+            .rtc-value-label {
+                font-size: 0.68rem !important;
+                font-weight: 600 !important;
+                color: #495057 !important;
+                margin-bottom: 4px !important;
+                line-height: 1.2 !important;
+                white-space: normal !important;
+                word-break: break-word !important;
+                width: 100% !important;
+                display: block !important;
+            }
+            
+            .rtc-value-number {
+                font-size: 0.85rem !important;
+                font-weight: bold !important;
+                line-height: 1.2 !important;
+                color: #212529 !important;
+            }
+            
+            .rtc-coi-value {
+                font-weight: bold !important;
+            }
+            
+            /* Gezondheidstabel */
+            .health-analysis-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 15px;
+                font-size: 0.85rem;
+            }
+            
+            .health-analysis-table th {
+                background-color: #f8f9fa;
+                padding: 10px 8px;
+                text-align: center;
+                border: 1px solid #dee2e6;
+                font-weight: 600;
+                color: #495057;
+            }
+            
+            .health-analysis-table td {
+                padding: 8px;
+                border: 1px solid #dee2e6;
+                text-align: center;
+                vertical-align: middle;
+            }
+            
+            .health-category {
+                text-align: left !important;
+                font-weight: 500;
+                padding-left: 12px;
+                background-color: #f8f9fa;
+            }
+            
+            .mother-count {
+                background-color: #fff3cd;
+                color: #856404;
+            }
+            
+            .father-count {
+                background-color: #d1ecf1;
+                color: #0c5460;
+            }
+            
+            .count-high {
+                font-weight: bold;
+                background-color: #f8d7da !important;
+                color: #721c24 !important;
+            }
+            
+            .count-good {
+                font-weight: bold;
+                background-color: #d4edda !important;
+                color: #155724 !important;
+            }
+            
+            .rtc-popup-footer {
+                padding: 16px 20px;
+                border-top: 1px solid #dee2e6;
+                display: flex;
+                justify-content: center;
+                background: #f8f9fa;
+                border-radius: 0 0 12px 12px;
+            }
+            
+            .rtc-popup-close-btn {
+                min-width: 130px;
+                padding: 10px 25px;
+                font-size: 1rem;
+            }
+            
+            @media (max-width: 767px) {
+                .rtc-three-values-row {
+                    gap: 4px !important;
+                    margin: 8px 0 !important;
+                }
+                
+                .rtc-value-box {
+                    padding: 6px 3px !important;
+                    min-height: 55px !important;
+                }
+                
+                .rtc-value-label {
+                    font-size: 0.61rem !important;
+                }
+                
+                .rtc-value-number {
+                    font-size: 0.8rem !important;
+                }
+                
+                .health-analysis-table {
+                    font-size: 0.75rem;
+                }
+            }
+            
+            @media (max-width: 480px) {
+                .rtc-three-values-row {
+                    gap: 3px !important;
+                }
+                
+                .rtc-value-box {
+                    padding: 5px 2px !important;
+                    min-height: 50px !important;
+                }
+                
+                .rtc-value-label {
+                    font-size: 0.58rem !important;
+                }
+                
+                .rtc-value-number {
+                    font-size: 0.75rem !important;
+                }
+            }
+        `;
+        
+        document.head.appendChild(style);
+        console.log('✅ ReuTeefStamboom styles toegevoegd aan NestAankondigingen');
     }
     
     /**
@@ -488,7 +917,7 @@ class NestAankondigingenManager extends BaseModule {
                 .from('nest_fotos')
                 .select('*')
                 .eq('nest_id', nestId)
-                .order('uploaded_at', { ascending: true }); // Oplopend voor chronologische volgorde
+                .order('uploaded_at', { ascending: true });
             
             if (error) {
                 console.error('❌ Fout bij ophalen nestfoto\'s:', error);
@@ -1912,7 +2341,7 @@ class NestAankondigingenManager extends BaseModule {
     }
     
     /**
-     * Toon stamboom van pups (fictieve pup) - PRECIES ZOALS IN ReuTeefCombinatie
+     * Toon stamboom van pups (fictieve pup)
      */
     async showPuppyPedigree(announcement) {
         try {
@@ -1927,18 +2356,86 @@ class NestAankondigingenManager extends BaseModule {
                 return;
             }
             
-            // Zorg dat allHonden gevuld is (nodig voor ReuTeefStamboom)
+            // Zorg dat allHonden gevuld is
             this.allHonden = this.allDogs;
             
-            // Initialiseer stamboom module als die nog niet bestaat
-            if (!this.stamboomModule) {
-                this.stamboomModule = new ReuTeefStamboom(this);
+            // Maak een mainModule voor de stamboom
+            const stamboomMainModule = {
+                t: (key, params) => this.t(key, params),
+                currentLang: this.currentLang,
+                db: this.db,
+                allHonden: this.allDogs,
+                hondenCache: new Map(),
+                getDogById: (id) => {
+                    if (!id || id === 0) return null;
+                    const dog = this.allDogs.find(d => d.id === id);
+                    if (dog) {
+                        return {
+                            ...dog,
+                            vader_id: dog.vader_id || dog.vaderId,
+                            moeder_id: dog.moeder_id || dog.moederId
+                        };
+                    }
+                    return null;
+                },
+                checkDogHasPhotos: async (dogId) => {
+                    const dog = this.allDogs.find(d => d.id === dogId);
+                    if (!dog || !dog.stamboomnr) return false;
+                    try {
+                        const { data: fotos } = await this.getSupabase()
+                            .from('fotos')
+                            .select('id')
+                            .eq('stamboomnr', dog.stamboomnr)
+                            .limit(1);
+                        return fotos && fotos.length > 0;
+                    } catch {
+                        return false;
+                    }
+                },
+                showAlert: (message, type) => console.log(`Alert: ${message} (${type})`)
+            };
+            
+            // Vul cache
+            this.allDogs.forEach(dog => {
+                stamboomMainModule.hondenCache.set(dog.id, dog);
+                if (dog.stamboomnr) {
+                    stamboomMainModule.hondenCache.set(dog.stamboomnr, dog);
+                }
+            });
+            
+            // Maak stamboom module
+            const stamboomModule = new ReuTeefStamboom(stamboomMainModule);
+            
+            // Bereid data voor
+            stamboomModule.allDogs = [...this.allDogs];
+            
+            // Maak virtuele toekomstige pup
+            const futurePuppy = {
+                id: -999999,
+                naam: this.t('futurePuppy'),
+                geslacht: 'onbekend',
+                vader_id: vader.id,
+                moeder_id: moeder.id,
+                vader: vader.naam,
+                moeder: moeder.naam,
+                kennelnaam: this.t('combinedParents'),
+                stamboomnr: 'VOORSPELD',
+                geboortedatum: new Date().toISOString().split('T')[0],
+                vachtkleur: `${vader.vachtkleur || ''}/${moeder.vachtkleur || ''}`.trim()
+            };
+            stamboomModule.allDogs.push(futurePuppy);
+            
+            // Initialiseer COI calculator
+            if (typeof COICalculator !== 'undefined') {
+                stamboomModule.coiCalculator = new COICalculator(stamboomModule.allDogs);
             }
             
-            console.log('✅ Toon stamboom voor pups van', vader.naam, 'en', moeder.naam);
+            if (stamboomModule.initialize) {
+                await stamboomModule.initialize();
+            }
             
-            // Toon de stamboom van de toekomstige pup
-            await this.stamboomModule.showFuturePuppyPedigree(moeder, vader);
+            // Toon stamboom
+            await stamboomModule.showFuturePuppyPedigree(moeder, vader);
             
         } catch (error) {
             console.error('Fout bij tonen stamboom pups:', error);
