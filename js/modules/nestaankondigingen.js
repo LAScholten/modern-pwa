@@ -1,19 +1,5 @@
 // js/modules/NestAankondigingen.js
 
-/**
- * NestAankondigingen Management Module voor Supabase
- * Beheert nest aankondigingen overzicht en beheer
- * MET GEZONDHEIDSINFO VAN BEIDE OUDERS IN OVERZICHT (zelfde als DekReuen)
- * Ouders naast elkaar met gezondheidsinfo in exact de gewenste indeling
- * 
- * UPDATE: Toont 1 aankondiging per pagina met paginatie bovenaan
- * UPDATE 2: Tekst in cards kleiner gemaakt (70% van origineel)
- * UPDATE 3: Paginatiebalkje 80% van originele grootte
- * UPDATE 4: Aparte nestfoto's met eigen modal (max 15, 1 per keer met paginatie)
- * UPDATE 5: Opmerkingen bij nestfoto's mogelijk
- * UPDATE 6: Stamboomweergave voor pups toegevoegd (zelfde als ReuTeefCombinatie)
- */
-
 class NestAankondigingenManager extends BaseModule {
     constructor() {
         super();
@@ -78,6 +64,9 @@ class NestAankondigingenManager extends BaseModule {
                 mother: "Moeder (Teef) *",
                 kennelName: "Kennelnaam *",
                 kennelNamePlaceholder: "Naam van uw kennel",
+                birthDate: "Geboortedatum *",
+                maleCount: "Aantal reuen *",
+                femaleCount: "Aantal teven *",
                 description: "Beschrijving",
                 email: "Email (voor contact)",
                 save: "Opslaan",
@@ -99,6 +88,10 @@ class NestAankondigingenManager extends BaseModule {
                 back: "Terug",
                 noPermission: "Je hebt geen rechten om deze actie uit te voeren",
                 announcementFrom: "Aankondiging van",
+                birthInfo: "Nest informatie",
+                birthDateLabel: "Geboren op",
+                maleCountLabel: "Reuen",
+                femaleCountLabel: "Teven",
                 
                 // Gezondheidsitems
                 healthData: "Gezondheidsgegevens",
@@ -166,6 +159,7 @@ class NestAankondigingenManager extends BaseModule {
                 father: "Vader",
                 mother: "Moeder",
                 combinedParents: "Combinatie ouders",
+                futurePuppyTitle: "Nest van: {kennelnaam_nest}",
                 
                 // COI labels
                 coi6Gen: "COI 6 Gen",
@@ -202,7 +196,11 @@ class NestAankondigingenManager extends BaseModule {
                 thyroidTested: "Schildklier getest",
                 thyroidUnknown: "Schildklier niet bekend",
                 clickForDetails: "Klik voor details",
-                closePopup: "Sluiten"
+                closePopup: "Sluiten",
+                
+                // Kopieer functionaliteit
+                copyEmail: "Kopieer e-mailadres",
+                emailCopied: "E-mailadres gekopieerd!"
             },
             en: {
                 nestAnnouncements: "Nest Announcements",
@@ -221,6 +219,9 @@ class NestAankondigingenManager extends BaseModule {
                 mother: "Mother (Female) *",
                 kennelName: "Kennel name *",
                 kennelNamePlaceholder: "Your kennel name",
+                birthDate: "Birth date *",
+                maleCount: "Number of males *",
+                femaleCount: "Number of females *",
                 description: "Description",
                 email: "Email (for contact)",
                 save: "Save",
@@ -242,6 +243,10 @@ class NestAankondigingenManager extends BaseModule {
                 back: "Back",
                 noPermission: "You don't have permission to perform this action",
                 announcementFrom: "Announcement from",
+                birthInfo: "Nest information",
+                birthDateLabel: "Born on",
+                maleCountLabel: "Males",
+                femaleCountLabel: "Females",
                 
                 // Health items
                 healthData: "Health Data",
@@ -309,6 +314,7 @@ class NestAankondigingenManager extends BaseModule {
                 father: "Father",
                 mother: "Mother",
                 combinedParents: "Combination parents",
+                futurePuppyTitle: "Nest from: {kennelnaam_nest}",
                 
                 // COI labels
                 coi6Gen: "COI 6 Gen",
@@ -345,7 +351,11 @@ class NestAankondigingenManager extends BaseModule {
                 thyroidTested: "Thyroid tested",
                 thyroidUnknown: "Thyroid unknown",
                 clickForDetails: "Click for details",
-                closePopup: "Close"
+                closePopup: "Close",
+                
+                // Copy functionality
+                copyEmail: "Copy email address",
+                emailCopied: "Email address copied!"
             },
             de: {
                 nestAnnouncements: "Wurfankündigungen",
@@ -364,6 +374,9 @@ class NestAankondigingenManager extends BaseModule {
                 mother: "Mutter (Hündin) *",
                 kennelName: "Zwinger name *",
                 kennelNamePlaceholder: "Ihr Zwinger name",
+                birthDate: "Geburtsdatum *",
+                maleCount: "Anzahl Rüden *",
+                femaleCount: "Anzahl Hündinnen *",
                 description: "Beschreibung",
                 email: "Email (für Kontakt)",
                 save: "Speichern",
@@ -385,6 +398,10 @@ class NestAankondigingenManager extends BaseModule {
                 back: "Zurück",
                 noPermission: "Sie haben keine Berechtigung für diese Aktion",
                 announcementFrom: "Ankündigung von",
+                birthInfo: "Wurfinformationen",
+                birthDateLabel: "Geboren am",
+                maleCountLabel: "Rüden",
+                femaleCountLabel: "Hündinnen",
                 
                 // Health items
                 healthData: "Gesundheitsdaten",
@@ -452,6 +469,7 @@ class NestAankondigingenManager extends BaseModule {
                 father: "Vater",
                 mother: "Mutter",
                 combinedParents: "Kombination Eltern",
+                futurePuppyTitle: "Wurf von: {kennelnaam_nest}",
                 
                 // COI labels
                 coi6Gen: "COI 6 Gen",
@@ -488,7 +506,11 @@ class NestAankondigingenManager extends BaseModule {
                 thyroidTested: "Schilddrüse getestet",
                 thyroidUnknown: "Schilddrüse unbekannt",
                 clickForDetails: "Klicken für Details",
-                closePopup: "Schließen"
+                closePopup: "Schließen",
+                
+                // Copy functionality
+                copyEmail: "E-Mail-Adresse kopieren",
+                emailCopied: "E-Mail-Adresse kopiert!"
             }
         };
     }
@@ -503,6 +525,16 @@ class NestAankondigingenManager extends BaseModule {
         
         return text;
     }
+    
+    /**
+     * SQL voor het toevoegen van de nieuwe kolommen aan de litters tabel
+     * Voer dit uit in de Supabase SQL editor:
+     * 
+     * ALTER TABLE litters 
+     * ADD COLUMN IF NOT EXISTS geboortedatum DATE,
+     * ADD COLUMN IF NOT EXISTS aantal_reuen INTEGER,
+     * ADD COLUMN IF NOT EXISTS aantal_teven INTEGER;
+     */
     
     /**
      * Voeg de CSS toe voor de popup layout (zelfde als in ReuTeefCombinatie)
@@ -802,6 +834,87 @@ class NestAankondigingenManager extends BaseModule {
                 .rtc-value-number {
                     font-size: 0.75rem !important;
                 }
+            }
+            
+            /* COMPACTE NEST INFORMATIE STYLING */
+            .nest-info-compact {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border-radius: 8px;
+                padding: 8px 15px;
+                margin-bottom: 15px;
+                font-size: 0.75rem;
+            }
+            
+            .nest-info-compact .row {
+                align-items: center;
+            }
+            
+            .nest-info-compact .col {
+                padding: 0 5px;
+            }
+            
+            .nest-info-compact .label {
+                font-size: 0.65rem;
+                opacity: 0.9;
+                margin-bottom: 2px;
+            }
+            
+            .nest-info-compact .value {
+                font-weight: 600;
+                font-size: 0.85rem;
+            }
+            
+            .nest-info-compact .divider {
+                color: rgba(255,255,255,0.3);
+                font-size: 1.2rem;
+                line-height: 1;
+            }
+            
+            @media (max-width: 768px) {
+                .nest-info-compact {
+                    padding: 6px 10px;
+                }
+                
+                .nest-info-compact .value {
+                    font-size: 0.8rem;
+                }
+            }
+            
+            /* Kopieerknop styling */
+            .copy-email-btn {
+                background: transparent;
+                border: none;
+                color: #6c757d;
+                padding: 2px 8px;
+                font-size: 0.8rem;
+                cursor: pointer;
+                transition: all 0.2s;
+                border-radius: 4px;
+            }
+            
+            .copy-email-btn:hover {
+                background-color: #e9ecef;
+                color: #0d6efd;
+            }
+            
+            .copy-email-btn.copied {
+                background-color: #198754;
+                color: white;
+            }
+            
+            .email-container {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            
+            .email-address {
+                font-family: monospace;
+                background-color: #f8f9fa;
+                padding: 2px 8px;
+                border-radius: 4px;
+                font-size: 0.8rem;
             }
         `;
         
@@ -1876,9 +1989,54 @@ class NestAankondigingenManager extends BaseModule {
                     font-size: 0.7rem;
                 }
                 
-                /* Email en datum */
+                /* Email en datum - aangepast voor kopieerknop */
                 .announcement-card .text-muted.small {
                     font-size: 0.65rem !important;
+                }
+                
+                .email-display {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    margin-bottom: 4px;
+                }
+                
+                .email-address {
+                    font-family: monospace;
+                    background-color: #f8f9fa;
+                    padding: 2px 8px;
+                    border-radius: 4px;
+                    font-size: 0.8rem;
+                }
+                
+                .copy-email-btn {
+                    background: transparent;
+                    border: 1px solid #dee2e6;
+                    color: #6c757d;
+                    padding: 2px 8px;
+                    font-size: 0.7rem;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    border-radius: 4px;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 4px;
+                }
+                
+                .copy-email-btn:hover {
+                    background-color: #e9ecef;
+                    color: #0d6efd;
+                    border-color: #0d6efd;
+                }
+                
+                .copy-email-btn.copied {
+                    background-color: #198754;
+                    color: white;
+                    border-color: #198754;
+                }
+                
+                .copy-email-btn i {
+                    font-size: 0.8rem;
                 }
                 
                 /* PAGINATIE - 80% van normale grootte */
@@ -1918,6 +2076,10 @@ class NestAankondigingenManager extends BaseModule {
                     
                     .announcement-card .dog-name {
                         font-size: 0.9rem;
+                    }
+                    
+                    .email-display {
+                        flex-wrap: wrap;
                     }
                 }
             </style>
@@ -1963,7 +2125,7 @@ class NestAankondigingenManager extends BaseModule {
     }
     
     /**
-     * Modal voor toevoegen/bewerken
+     * Modal voor toevoegen/bewerken - MET DE NIEUWE VELDEN
      */
     getAddEditModalHTML(mode = 'add') {
         const title = mode === 'add' ? this.t('addAnnouncement') : this.t('editAnnouncement');
@@ -2016,11 +2178,28 @@ class NestAankondigingenManager extends BaseModule {
                                     </div>
                                 </div>
                                 
-                                <div class="mb-3">
-                                    <label for="kennelName" class="form-label">${this.t('kennelName')}</label>
-                                    <input type="text" class="form-control" id="kennelName" 
-                                           placeholder="${this.t('kennelNamePlaceholder')}" 
-                                           maxlength="100" required>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="kennelName" class="form-label">${this.t('kennelName')}</label>
+                                        <input type="text" class="form-control" id="kennelName" 
+                                               placeholder="${this.t('kennelNamePlaceholder')}" 
+                                               maxlength="100" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="birthDate" class="form-label">${this.t('birthDate')}</label>
+                                        <input type="date" class="form-control" id="birthDate" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="maleCount" class="form-label">${this.t('maleCount')}</label>
+                                        <input type="number" class="form-control" id="maleCount" min="0" max="20" step="1" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="femaleCount" class="form-label">${this.t('femaleCount')}</label>
+                                        <input type="number" class="form-control" id="femaleCount" min="0" max="20" step="1" required>
+                                    </div>
                                 </div>
                                 
                                 <div class="mb-3">
@@ -2392,7 +2571,7 @@ class NestAankondigingenManager extends BaseModule {
                         return false;
                     }
                 },
-                showAlert: (message, type) => console.log(`Alert: ${message} (${type})`)
+                showAlert: (message, type) => console.log(`Alert: ${message} (${type}`)
             };
             
             // Vul cache
@@ -2418,7 +2597,7 @@ class NestAankondigingenManager extends BaseModule {
                 moeder_id: moeder.id,
                 vader: vader.naam,
                 moeder: moeder.naam,
-                kennelnaam: this.t('combinedParents'),
+                kennelnaam: this.t('kennelnaam_nest'),
                 stamboomnr: 'VOORSPELD',
                 geboortedatum: new Date().toISOString().split('T')[0],
                 vachtkleur: `${vader.vachtkleur || ''}/${moeder.vachtkleur || ''}`.trim()
@@ -2434,8 +2613,7 @@ class NestAankondigingenManager extends BaseModule {
                 await stamboomModule.initialize();
             }
             
-            // Toon stamboom
-            await stamboomModule.showFuturePuppyPedigree(moeder, vader);
+            await stamboomModule.showFuturePuppyPedigree(moeder, vader, this.t('futurePuppyTitle', { kennelnaam_nest: announcement.kennelnaam_nest }));
             
         } catch (error) {
             console.error('Fout bij tonen stamboom pups:', error);
@@ -2472,7 +2650,7 @@ class NestAankondigingenManager extends BaseModule {
     }
     
     /**
-     * Vul bewerk formulier met bestaande data
+     * Vul bewerk formulier met bestaande data - MET NIEUWE VELDEN
      */
     async populateEditForm(announcement) {
         try {
@@ -2516,6 +2694,29 @@ class NestAankondigingenManager extends BaseModule {
             const kennelNameField = document.getElementById('kennelName');
             if (kennelNameField) {
                 kennelNameField.value = announcement.kennelnaam_nest || '';
+            }
+            
+            // NIEUW: Geboortedatum invullen
+            const birthDateField = document.getElementById('birthDate');
+            if (birthDateField && announcement.geboortedatum) {
+                // Formatteer datum naar YYYY-MM-DD voor input type="date"
+                const date = new Date(announcement.geboortedatum);
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                birthDateField.value = `${year}-${month}-${day}`;
+            }
+            
+            // NIEUW: Aantal reuen invullen
+            const maleCountField = document.getElementById('maleCount');
+            if (maleCountField) {
+                maleCountField.value = announcement.aantal_reuen || '';
+            }
+            
+            // NIEUW: Aantal teven invullen
+            const femaleCountField = document.getElementById('femaleCount');
+            if (femaleCountField) {
+                femaleCountField.value = announcement.aantal_teven || '';
             }
             
             const emailField = document.getElementById('email');
@@ -2748,10 +2949,16 @@ class NestAankondigingenManager extends BaseModule {
         const vaderIdInput = document.getElementById('vader_id');
         const moederIdInput = document.getElementById('moeder_id');
         const kennelNameInput = document.getElementById('kennelName');
+        const birthDateInput = document.getElementById('birthDate');
+        const maleCountInput = document.getElementById('maleCount');
+        const femaleCountInput = document.getElementById('femaleCount');
         
         const vaderId = vaderIdInput?.value;
         const moederId = moederIdInput?.value;
         const kennelnaam_nest = kennelNameInput?.value.trim();
+        const geboortedatum = birthDateInput?.value;
+        const aantal_reuen = parseInt(maleCountInput?.value);
+        const aantal_teven = parseInt(femaleCountInput?.value);
         
         if (!vaderId || !moederId) {
             this.showStatus('Vader en moeder zijn verplicht', 'danger');
@@ -2760,6 +2967,16 @@ class NestAankondigingenManager extends BaseModule {
         
         if (!kennelnaam_nest) {
             this.showStatus('Kennelnaam is verplicht', 'danger');
+            return;
+        }
+        
+        if (!geboortedatum) {
+            this.showStatus('Geboortedatum is verplicht', 'danger');
+            return;
+        }
+        
+        if (isNaN(aantal_reuen) || isNaN(aantal_teven)) {
+            this.showStatus('Aantal reuen en teven zijn verplicht', 'danger');
             return;
         }
         
@@ -2784,12 +3001,15 @@ class NestAankondigingenManager extends BaseModule {
             return;
         }
         
-        // Data voor opslag
+        // Data voor opslag - MET NIEUWE VELDEN
         const data = {
             vader_id: vaderIdInt,
             moeder_id: moederIdInt,
             toegevoegd_door: userId,
             kennelnaam_nest: kennelnaam_nest,
+            geboortedatum: geboortedatum,
+            aantal_reuen: aantal_reuen,
+            aantal_teven: aantal_teven,
             email: email || null,
             beschrijving: beschrijving || null
         };
@@ -2856,6 +3076,33 @@ class NestAankondigingenManager extends BaseModule {
                     statusDiv.innerHTML = '';
                 }, 5000);
             }
+        }
+    }
+    
+    /**
+     * Kopieer e-mailadres naar klembord
+     */
+    async copyEmailToClipboard(email, buttonElement) {
+        const t = this.t.bind(this);
+        
+        try {
+            await navigator.clipboard.writeText(email);
+            
+            // Toon feedback op de knop
+            const originalText = buttonElement.innerHTML;
+            buttonElement.innerHTML = '<i class="bi bi-check-lg"></i> ' + t('emailCopied');
+            buttonElement.classList.add('copied');
+            
+            // Reset na 2 seconden
+            setTimeout(() => {
+                buttonElement.innerHTML = '<i class="bi bi-files"></i> ' + t('copyEmail');
+                buttonElement.classList.remove('copied');
+            }, 2000);
+            
+        } catch (error) {
+            console.error('Kopieerfout:', error);
+            // Fallback voor oudere browsers
+            alert('Druk op Ctrl+C om het e-mailadres te kopiëren: ' + email);
         }
     }
     
@@ -2985,12 +3232,7 @@ class NestAankondigingenManager extends BaseModule {
     
     /**
      * Render overzichtslijst met exact de gewenste indeling
-     * Eerste rij: HD en ED naast elkaar
-     * Tweede rij: Patella en Ogen naast elkaar
-     * Derde rij: Dandy Walker op eigen regel
-     * Vierde rij: Schildklier op eigen regel
-     * Vijfde rij: Land op eigen regel
-     * Met foto thumbnails van beide ouders EN knop voor nestfoto's
+     * MET COMPACTE NEST INFORMATIE BOVEN HET BESCHRIJVINGSVELD
      */
     async renderOverviewList(announcements, container, total = 0, currentPage = 1) {
         const t = this.t.bind(this);
@@ -3014,6 +3256,14 @@ class NestAankondigingenManager extends BaseModule {
             const date = new Date(announcement.aangemaakt_op);
             const formattedDate = date.toLocaleDateString(this.currentLang === 'nl' ? 'nl-NL' : 
                                                            this.currentLang === 'de' ? 'de-DE' : 'en-US');
+            
+            // Formatteer geboortedatum
+            let geboortedatumFormatted = '';
+            if (announcement.geboortedatum) {
+                const birthDate = new Date(announcement.geboortedatum);
+                geboortedatumFormatted = birthDate.toLocaleDateString(this.currentLang === 'nl' ? 'nl-NL' : 
+                                                                      this.currentLang === 'de' ? 'de-DE' : 'en-US');
+            }
             
             // Vader display naam
             const vaderNaam = vader.kennelnaam ? `${vader.naam || 'Onbekend'} ${vader.kennelnaam}` : (vader.naam || 'Onbekend');
@@ -3228,8 +3478,28 @@ class NestAankondigingenManager extends BaseModule {
                                 </div>
                             </div>
                             
+                            <!-- COMPACTE NEST INFORMATIE - BOVEN HET BESCHRIJVINGSVELD -->
+                            <div class="nest-info-compact mt-3 mb-3">
+                                <div class="row align-items-center">
+                                    <div class="col text-center">
+                                        <div class="label">${t('birthDateLabel')}</div>
+                                        <div class="value">${geboortedatumFormatted || '-'}</div>
+                                    </div>
+                                    <div class="col-auto divider">|</div>
+                                    <div class="col text-center">
+                                        <div class="label">${t('maleCountLabel')}</div>
+                                        <div class="value">${announcement.aantal_reuen || '0'}</div>
+                                    </div>
+                                    <div class="col-auto divider">|</div>
+                                    <div class="col text-center">
+                                        <div class="label">${t('femaleCountLabel')}</div>
+                                        <div class="value">${announcement.aantal_teven || '0'}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
                             ${announcement.beschrijving ? `
-                                <div class="mt-4 p-3 bg-light rounded">
+                                <div class="mt-2 p-3 bg-light rounded">
                                     <p class="card-text mb-0">${announcement.beschrijving}</p>
                                 </div>
                             ` : ''}
@@ -3237,7 +3507,12 @@ class NestAankondigingenManager extends BaseModule {
                             <div class="mt-3 d-flex justify-content-between align-items-center">
                                 <div class="text-muted small">
                                     ${announcement.email ? `
-                                        <div><i class="bi bi-envelope me-2"></i> ${announcement.email}</div>
+                                        <div class="email-display">
+                                            <span class="email-address">${announcement.email}</span>
+                                            <button class="copy-email-btn" data-email="${announcement.email}">
+                                                <i class="bi bi-files"></i> ${t('copyEmail')}
+                                            </button>
+                                        </div>
                                     ` : ''}
                                     <div><i class="bi bi-calendar me-2"></i> ${formattedDate}</div>
                                 </div>
@@ -3268,6 +3543,18 @@ class NestAankondigingenManager extends BaseModule {
         }
         
         container.innerHTML = `<div class="row">${html}</div>`;
+        
+        // Click handlers voor kopieerknoppen
+        container.querySelectorAll('.copy-email-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const email = btn.dataset.email;
+                if (email) {
+                    this.copyEmailToClipboard(email, btn);
+                }
+            });
+        });
         
         // Click handlers voor ouderfoto's
         container.querySelectorAll('.photo-thumbnail').forEach(thumb => {
@@ -3377,6 +3664,14 @@ class NestAankondigingenManager extends BaseModule {
             const formattedDate = date.toLocaleDateString(this.currentLang === 'nl' ? 'nl-NL' : 
                                                            this.currentLang === 'de' ? 'de-DE' : 'en-US');
             
+            // Formatteer geboortedatum
+            let geboortedatumFormatted = '';
+            if (ann.geboortedatum) {
+                const birthDate = new Date(ann.geboortedatum);
+                geboortedatumFormatted = birthDate.toLocaleDateString(this.currentLang === 'nl' ? 'nl-NL' : 
+                                                                      this.currentLang === 'de' ? 'de-DE' : 'en-US');
+            }
+            
             // Vader display naam
             const vaderNaam = vader.kennelnaam ? `${vader.naam || 'Onbekend'} ${vader.kennelnaam}` : (vader.naam || 'Onbekend');
             
@@ -3443,6 +3738,13 @@ class NestAankondigingenManager extends BaseModule {
                                 <div class="col-md-3">
                                     <h6 class="mb-1">${ann.kennelnaam_nest || `Nest #${ann.id}`}</h6>
                                     <small class="text-muted d-block">${formattedDate}</small>
+                                    <small class="text-muted d-block">${t('birthDateLabel')}: ${geboortedatumFormatted || '-'}</small>
+                                    <small class="text-muted d-block">${t('maleCountLabel')}/${t('femaleCountLabel')}: ${ann.aantal_reuen || 0}/${ann.aantal_teven || 0}</small>
+                                    ${ann.email ? `
+                                        <small class="text-muted d-block">
+                                            <i class="bi bi-envelope me-1"></i> ${ann.email}
+                                        </small>
+                                    ` : ''}
                                 </div>
                                 <div class="col-md-3 small">
                                     <strong>${t('fatherInfo')}:</strong><br>
@@ -3860,4 +4162,4 @@ if (typeof module !== 'undefined' && module.exports) {
     window.nestAankondigingenManager = NestAankondigingenManagerInstance;
 }
 
-console.log('📦 NestAankondigingenManager geladen met 1 per pagina, paginatie 80%, tekst 70%, nestfoto\'s MET OPMERKINGEN (max 15, 1 per keer met paginatie) en STAMBOOMWEERGAVE');
+console.log('📦 NestAankondigingenManager geladen met 1 per pagina, paginatie 80%, tekst 70%, nestfoto\'s MET OPMERKINGEN (max 15, 1 per keer met paginatie), STAMBOOMWEERGAVE, COMPACTE NEST INFORMATIE en KOPIEERBARE EMAIL');

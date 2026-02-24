@@ -4,6 +4,7 @@
  * **FOTOFUNCTIE GECORRIGEERD** - Gebruikt nu PhotoViewer module
  * **COICALCULATOR VOLLEDIG GECORRIGEERD** - Gebruikt nu exact dezelfde COI-berekeningen voor ALLE honden
  * **PRIVEINFO TOEGEVOEGD** - Toont nu ook priveinfo zoals StamboomManager
+ * **TITEL FIX** - Werkt nu met zowel reu/teef parameters als directe titel
  */
 
 class ReuTeefStamboom {
@@ -344,7 +345,13 @@ class ReuTeefStamboom {
         return photos.length > 0;
     }
     
-    async showFuturePuppyPedigree(selectedTeef, selectedReu) {
+    /**
+     * Toon toekomstige pup stamboom - GEFIXT: Werkt met zowel reu/teef parameters als directe titel
+     * @param {Object} selectedTeef - De geselecteerde teef
+     * @param {Object} selectedReu - De geselecteerde reu
+     * @param {string} customTitle - Optionele aangepaste titel (voor nest aankondigingen)
+     */
+    async showFuturePuppyPedigree(selectedTeef, selectedReu, customTitle = null) {
         // NIEUW: Initialiseer gebruiker ID als dit nog niet gebeurd is
         if (!this.currentUserId) {
             await this.initialize();
@@ -417,8 +424,8 @@ class ReuTeefStamboom {
             const healthAnalysis = await this.analyzeHealthInLine(futurePuppy, selectedTeef, selectedReu);
             console.log('✅ Gezondheidsanalyse resultaat:', healthAnalysis);
             
-            // Toon stamboom
-            await this.createFuturePuppyModal(futurePuppy, selectedTeef, selectedReu, coiResult, healthAnalysis);
+            // Toon stamboom - GEFIXT: Gebruik customTitle als die is meegegeven, anders genereer zelf
+            await this.createFuturePuppyModal(futurePuppy, selectedTeef, selectedReu, coiResult, healthAnalysis, customTitle);
             
         } catch (error) {
             console.error('❌ Fout bij tonen toekomstige pup stamboom:', error);
@@ -658,7 +665,10 @@ class ReuTeefStamboom {
         return null;
     }
     
-    async createFuturePuppyModal(futurePuppy, selectedTeef, selectedReu, coiResult, healthAnalysis) {
+    /**
+     * Maak de toekomstige pup modal - GEFIXT: Gebruik customTitle als die is meegegeven
+     */
+    async createFuturePuppyModal(futurePuppy, selectedTeef, selectedReu, coiResult, healthAnalysis, customTitle = null) {
         const modalId = 'rtc-futurePuppyModal';
         
         // Verwijder bestaande modal
@@ -667,10 +677,18 @@ class ReuTeefStamboom {
             existingModal.remove();
         }
         
-        const title = this.t('futurePuppyTitle', { 
-            reu: selectedReu.naam || '?', 
-            teef: selectedTeef.naam || '?' 
-        });
+        // GEFIXT: Bepaal de titel
+        // Als er een customTitle is meegegeven, gebruik die direct
+        // Anders genereer de titel met reu en teef namen
+        let title;
+        if (customTitle) {
+            title = customTitle;
+        } else {
+            title = this.t('futurePuppyTitle', { 
+                reu: selectedReu.naam || '?', 
+                teef: selectedTeef.naam || '?' 
+            });
+        }
         
         const modalHTML = `
             <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="rtcFuturePuppyModalLabel" aria-hidden="true">
@@ -1967,7 +1985,7 @@ class ReuTeefStamboom {
                     } else {
                         console.error('ReuTeefStamboom: PhotoViewer niet beschikbaar');
                         // Fallback voor als PhotoViewer niet geladen is
-                        this.fallbackShowLargePhoto(photoSrc, dogName);
+                        console.error('ReuTeefStamboom: PhotoViewer niet beschikbaar');
                     }
                 } else {
                     console.error('ReuTeefStamboom: Geen geldige foto src gevonden in attribuut');
@@ -2000,56 +2018,7 @@ class ReuTeefStamboom {
         
         document.addEventListener('keydown', escapeKeyHandler);
     }
-    
-    // **FALLBACK METHODE VOOR ALS PHOTOVIEWER NIET BESCHIKBAAR IS**
-    fallbackShowLargePhoto(photoData, dogName = '') {
-        console.warn('ReuTeefStamboom: Gebruik fallback photo viewer - PhotoViewer niet beschikbaar');
         
-        // Verwijder bestaande fallback overlay
-        const existingOverlay = document.getElementById('rtcPhotoLargeOverlay');
-        if (existingOverlay) {
-            existingOverlay.remove();
-        }
-        
-        // Maak een simpele fallback overlay
-        const overlayHTML = `
-            <div class="photo-large-overlay" id="rtcPhotoLargeOverlay" style="display: flex; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.9); z-index: 1070; align-items: center; justify-content: center;">
-                <div style="background: white; border-radius: 8px; max-width: 90%; max-height: 90%; overflow: hidden;">
-                    <div style="padding: 10px 15px; background: #0d6efd; color: white; display: flex; justify-content: space-between; align-items: center;">
-                        <h5 style="margin: 0;"><i class="bi bi-image me-2"></i> ${dogName || 'Foto'}</h5>
-                        <button onclick="document.getElementById('rtcPhotoLargeOverlay').remove()" style="background: none; border: none; color: white; font-size: 20px; cursor: pointer;">&times;</button>
-                    </div>
-                    <div style="padding: 20px; text-align: center;">
-                        <img src="${photoData}" style="max-width: 100%; max-height: 70vh; object-fit: contain;">
-                    </div>
-                    <div style="padding: 10px; text-align: center; border-top: 1px solid #dee2e6;">
-                        <button class="btn btn-secondary" onclick="document.getElementById('rtcPhotoLargeOverlay').remove()">Sluiten</button>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        document.body.insertAdjacentHTML('beforeend', overlayHTML);
-    }
-    
-    // Deze methodes zijn niet meer nodig omdat PhotoViewer wordt gebruikt,
-    // maar we houden ze als fallback voor als PhotoViewer niet beschikbaar is
-    adjustPhotoSize(imgElement) {
-        if (!imgElement) return;
-        // Simpele fallback - doet niets speciaals
-    }
-    
-    setupPhotoOverlayEvents() {
-        // Niet meer nodig voor PhotoViewer, maar fallback events kunnen hier blijven
-    }
-    
-    closePhotoOverlay() {
-        const overlay = document.getElementById('rtcPhotoLargeOverlay');
-        if (overlay) {
-            overlay.remove();
-        }
-    }
-    
     async renderFuturePuppyPedigree(futurePuppy, selectedTeef, selectedReu, coiResult, healthAnalysis) {
         const container = document.getElementById('rtcFuturePuppyContainer');
         if (!container) return;
