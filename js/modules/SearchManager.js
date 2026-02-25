@@ -31,8 +31,6 @@ class SearchManager extends BaseModule {
         this.currentOffspringModalDogName = null; // Bewaar huidige nakomelingen hond naam
         this.currentUserId = null; // Huidige gebruiker ID voor priveinfo
         this.photoViewerLoaded = false; // Track of PhotoViewer is geladen
-        this.searchTimeout = null; // Voor debounce bij typen
-        this.parentCache = new Map(); // Cache voor ouders
         
         // Vertalingen uitgebreid met nakomelingen functionaliteit
         this.translations = {
@@ -763,7 +761,7 @@ class SearchManager extends BaseModule {
     async getDogPhotos(dogId) {
         if (!dogId || dogId === 0) return [];
         
-        const dog = this.filteredDogs.find(d => d.id === dogId);
+        const dog = this.allDogs.find(d => d.id === dogId);
         if (!dog || !dog.stamboomnr) return [];
         
         // Check cache
@@ -796,33 +794,6 @@ class SearchManager extends BaseModule {
         }
     }
     
-    // NIEUWE METHODE: Haal ouder informatie op uit database
-    async getParentInfo(parentId) {
-        if (!parentId) return null;
-        
-        // Check cache
-        if (this.parentCache.has(parentId)) {
-            return this.parentCache.get(parentId);
-        }
-        
-        try {
-            const { data, error } = await window.supabase
-                .from('honden')
-                .select('*')
-                .eq('id', parentId)
-                .single();
-            
-            if (error) throw error;
-            
-            // Sla op in cache
-            this.parentCache.set(parentId, data);
-            return data;
-        } catch (error) {
-            console.error('Fout bij ophalen ouder:', error);
-            return null;
-        }
-    }
-    
     // Nakomelingen ophalen voor een hond - GECORRIGEERD: gebruik vader_id en moeder_id ipv vaderId/moederId
     async getDogOffspring(dogId) {
         if (!dogId || dogId === 0) return [];
@@ -833,7 +804,7 @@ class SearchManager extends BaseModule {
         }
         
         try {
-            const dog = this.filteredDogs.find(d => d.id === dogId);
+            const dog = this.allDogs.find(d => d.id === dogId);
             if (!dog) return [];
             
             // DEBUG: Log voor nakomelingen zoeken
@@ -841,29 +812,26 @@ class SearchManager extends BaseModule {
             
             // Zoek nakomelingen waar deze hond vader of moeder is
             // GEBRUIK JUISTE ID NAMEN: vader_id en moeder_id zoals in database
-            // We moeten alle nakomelingen ophalen uit database, niet alleen uit filteredDogs
-            const { data: offspring, error } = await window.supabase
-                .from('honden')
-                .select('*')
-                .or(`vader_id.eq.${dogId},moeder_id.eq.${dogId}`);
+            const allDogs = this.allDogs;
+            const offspring = allDogs.filter(d => {
+                // Debug logging voor elke hond
+                if (d.vader_id === dogId || d.moeder_id === dogId) {
+                    console.log(`Nakomeling gevonden: ${d.naam} (ID: ${d.id}), vader_id: ${d.vader_id}, moeder_id: ${d.moeder_id}`);
+                    return true;
+                }
+                return false;
+            });
             
-            if (error) throw error;
-            
-            console.log(`Totaal ${offspring?.length || 0} nakomelingen gevonden voor hond ID ${dogId}`);
-            
-            if (!offspring || offspring.length === 0) {
-                this.dogOffspringCache.set(dogId, []);
-                return [];
-            }
+            console.log(`Totaal ${offspring.length} nakomelingen gevonden voor hond ID ${dogId}`);
             
             // Voeg ouder informatie toe aan elk nakomeling
-            const offspringWithParents = await Promise.all(offspring.map(async puppy => {
+            const offspringWithParents = offspring.map(puppy => {
                 let fatherInfo = { naam: this.t('parentsUnknown'), stamboomnr: '', kennelnaam: '' };
                 let motherInfo = { naam: this.t('parentsUnknown'), stamboomnr: '', kennelnaam: '' };
                 
                 // Haal vader info op - gebruik vader_id zoals in database
                 if (puppy.vader_id) {
-                    const father = await this.getParentInfo(puppy.vader_id);
+                    const father = allDogs.find(d => d.id === puppy.vader_id);
                     if (father) {
                         fatherInfo = {
                             naam: father.naam || this.t('unknown'),
@@ -875,7 +843,7 @@ class SearchManager extends BaseModule {
                 
                 // Haal moeder info op - gebruik moeder_id zoals in database
                 if (puppy.moeder_id) {
-                    const mother = await this.getParentInfo(puppy.moeder_id);
+                    const mother = allDogs.find(d => d.id === puppy.moeder_id);
                     if (mother) {
                         motherInfo = {
                             naam: mother.naam || this.t('unknown'),
@@ -890,7 +858,7 @@ class SearchManager extends BaseModule {
                     fatherInfo,
                     motherInfo
                 };
-            }));
+            });
             
             // Sorteer op geboortedatum (nieuwste eerst)
             offspringWithParents.sort((a, b) => {
@@ -1109,7 +1077,7 @@ class SearchManager extends BaseModule {
     
     // **NIEUWE METHODE: Toon hond details in aparte modal**
     async showDogDetailsModal(dogId, dogName = '') {
-        const dog = this.filteredDogs.find(d => d.id === dogId);
+        const dog = this.allDogs.find(d => d.id === dogId);
         if (!dog) {
             this.showError(`Hond niet gevonden (ID: ${dogId})`);
             return;
@@ -1195,7 +1163,7 @@ class SearchManager extends BaseModule {
         const contentDiv = document.getElementById('dogDetailsModalContent');
         if (!contentDiv) return;
         
-        const dog = this.filteredDogs.find(d => d.id === dogId);
+        const dog = this.allDogs.find(d => d.id === dogId);
         if (!dog) {
             contentDiv.innerHTML = `
                 <div class="alert alert-danger">
@@ -1225,9 +1193,9 @@ class SearchManager extends BaseModule {
         let fatherInfo = { id: null, naam: t('parentsUnknown'), stamboomnr: '', ras: '', kennelnaam: '' };
         let motherInfo = { id: null, naam: t('parentsUnknown'), stamboomnr: '', ras: '', kennelnaam: '' };
         
-        // CORRECT: Gebruik vader_id zoals in database - haal uit database
+        // CORRECT: Gebruik vader_id zoals in database
         if (dog.vader_id) {
-            const father = await this.getParentInfo(dog.vader_id);
+            const father = this.allDogs.find(d => d.id === dog.vader_id);
             if (father) {
                 fatherInfo = { 
                     id: father.id,
@@ -1239,9 +1207,9 @@ class SearchManager extends BaseModule {
             }
         }
         
-        // CORRECT: Gebruik moeder_id zoals in database - haal uit database
+        // CORRECT: Gebruik moeder_id zoals in database
         if (dog.moeder_id) {
-            const mother = await this.getParentInfo(dog.moeder_id);
+            const mother = this.allDogs.find(d => d.id === dog.moeder_id);
             if (mother) {
                 motherInfo = { 
                     id: mother.id,
@@ -2611,23 +2579,22 @@ class SearchManager extends BaseModule {
         const searchInput = document.getElementById('searchNameInput');
         if (!searchInput) return;
         
-        searchInput.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.trim();
-            
-            // Debounce: wacht 300ms na laatste toetsaanslag
-            if (this.searchTimeout) {
-                clearTimeout(this.searchTimeout);
+        searchInput.addEventListener('focus', async () => {
+            if (this.allDogs.length === 0) {
+                await this.loadSearchData();
             }
+        });
+        
+        searchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase().trim();
             
-            this.searchTimeout = setTimeout(() => {
-                if (searchTerm.length >= 1) {
-                    // Zoek direct in database op naam (begint met)
-                    this.filterDogsInDatabase(searchTerm);
-                } else {
-                    this.showInitialView();
-                    this.clearDetails();
-                }
-            }, 300);
+            if (searchTerm.length >= 1) {
+                // Gebruik dezelfde logica als de kennelnaam zoekfunctie
+                this.filterDogsForNameField(searchTerm);
+            } else {
+                this.showInitialView();
+                this.clearDetails();
+            }
         });
         
         searchInput.addEventListener('keydown', (e) => {
@@ -2642,23 +2609,21 @@ class SearchManager extends BaseModule {
         const searchInput = document.getElementById('searchKennelInput');
         if (!searchInput) return;
         
-        searchInput.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.trim();
-            
-            // Debounce: wacht 300ms na laatste toetsaanslag
-            if (this.searchTimeout) {
-                clearTimeout(this.searchTimeout);
+        searchInput.addEventListener('focus', async () => {
+            if (this.allDogs.length === 0) {
+                await this.loadSearchData();
             }
+        });
+        
+        searchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase().trim();
             
-            this.searchTimeout = setTimeout(() => {
-                if (searchTerm.length >= 1) {
-                    // Zoek direct in database op kennelnaam (begint met)
-                    this.filterDogsByKennelInDatabase(searchTerm);
-                } else {
-                    this.showInitialView();
-                    this.clearDetails();
-                }
-            }, 300);
+            if (searchTerm.length >= 1) {
+                this.filterDogsByKennel(searchTerm);
+            } else {
+                this.showInitialView();
+                this.clearDetails();
+            }
         });
         
         searchInput.addEventListener('keydown', (e) => {
@@ -2667,100 +2632,6 @@ class SearchManager extends BaseModule {
                 this.selectDog(this.filteredDogs[0]);
             }
         });
-    }
-    
-    // NIEUWE METHODE: Zoek in database op naam (begint met)
-    async filterDogsInDatabase(searchTerm = '') {
-        try {
-            // Toon loading indicator
-            this.showSearchLoading();
-            
-            // Normaliseer de zoekterm
-            const normalizedSearchTerm = this.normalizeText(searchTerm);
-            
-            if (normalizedSearchTerm.length < 1) {
-                this.showInitialView();
-                return;
-            }
-            
-            // Voer database query uit - alleen honden die BEGINNEN met de zoekterm!
-            const { data, error } = await window.supabase
-                .from('honden')
-                .select('*')
-                .or(`naam.ilike.${normalizedSearchTerm}%,kennelnaam.ilike.${normalizedSearchTerm}%`)
-                .order('naam', { ascending: true })
-                .limit(100); // Max 100 resultaten voor snelheid
-            
-            if (error) throw error;
-            
-            this.filteredDogs = data || [];
-            this.displaySearchResults();
-            
-            console.log(`🔍 Gevonden: ${this.filteredDogs.length} honden voor "${searchTerm}"`);
-            
-        } catch (error) {
-            console.error('Fout bij zoeken:', error);
-            this.showError('Zoeken mislukt: ' + error.message);
-        } finally {
-            this.hideSearchLoading();
-        }
-    }
-    
-    // NIEUWE METHODE: Zoek in database op kennelnaam (begint met)
-    async filterDogsByKennelInDatabase(searchTerm = '') {
-        try {
-            // Toon loading indicator
-            this.showSearchLoading();
-            
-            // Normaliseer de zoekterm
-            const normalizedSearchTerm = this.normalizeText(searchTerm);
-            
-            if (normalizedSearchTerm.length < 1) {
-                this.showInitialView();
-                return;
-            }
-            
-            // Voer database query uit - alleen honden die BEGINNEN met de zoekterm op kennelnaam!
-            const { data, error } = await window.supabase
-                .from('honden')
-                .select('*')
-                .ilike('kennelnaam', `${normalizedSearchTerm}%`)
-                .order('naam', { ascending: true })
-                .limit(100); // Max 100 resultaten voor snelheid
-            
-            if (error) throw error;
-            
-            this.filteredDogs = data || [];
-            this.displaySearchResults();
-            
-            console.log(`🔍 Gevonden: ${this.filteredDogs.length} honden voor kennel "${searchTerm}"`);
-            
-        } catch (error) {
-            console.error('Fout bij zoeken op kennel:', error);
-            this.showError('Zoeken mislukt: ' + error.message);
-        } finally {
-            this.hideSearchLoading();
-        }
-    }
-    
-    // Helper functie voor loading indicator
-    showSearchLoading() {
-        const container = document.getElementById('searchResultsContainer');
-        if (!container) return;
-        
-        container.innerHTML = `
-            <div class="p-3 text-center">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Zoeken...</span>
-                </div>
-                <p class="mt-2 text-muted">Zoeken...</p>
-            </div>
-        `;
-    }
-    
-    hideSearchLoading() {
-        // Alleen verbergen als we nog resultaten moeten tonen
-        // displaySearchResults zal de echte resultaten tonen
     }
     
     showInitialView() {
@@ -2797,20 +2668,169 @@ class SearchManager extends BaseModule {
         `;
     }
     
-    // Deze methode wordt niet meer gebruikt maar blijft voor compatibiliteit
     async loadSearchData() {
-        // Leeg laten - niet meer nodig
-        console.log('SearchManager: loadSearchData niet meer gebruikt - we zoeken nu direct in database');
-        return Promise.resolve();
+        // Voorkom dubbele laadpogingen
+        if (this.isLoading) {
+            console.log('SearchManager: Al bezig met laden, skip...');
+            return;
+        }
+        
+        try {
+            this.isLoading = true;
+            this.showProgress("Honden laden... (0 geladen)");
+            
+            // Haal huidige gebruiker ID op
+            if (!this.currentUserId) {
+                this.currentUserId = await this.getCurrentUserId();
+            }
+            
+            // GEBRUIK EXACT DEZELFDE METHODE ALS DogDataManager
+            this.allDogs = await this.loadAllDogsWithPaginationDogDataManagerStyle();
+            
+            // Sorteer op naam
+            this.allDogs.sort((a, b) => {
+                const naamA = a.naam || '';
+                const naamB = b.naam || '';
+                return naamA.localeCompare(naamB);
+            });
+            
+            console.log(`SearchManager: ${this.allDogs.length} honden geladen voor zoeken`);
+            
+            // Toon standaard view na laden
+            this.showInitialView();
+            
+        } catch (error) {
+            console.error('SearchManager: Fout bij laden honden:', error);
+            this.showError(`Laden mislukt: ${error.message}`);
+            
+            // Toon lege array bij error
+            this.allDogs = [];
+        } finally {
+            // Zorg dat isLoading altijd wordt gereset
+            this.isLoading = false;
+            // Zorg ervoor dat progress altijd wordt verborgen
+            this.hideProgress();
+        }
     }
     
     /**
      * EXACT DEZELFDE LOADING LOGICA ALS DogDataManager
-     * Wordt niet meer gebruikt maar blijft voor compatibiliteit
      */
     async loadAllDogsWithPaginationDogDataManagerStyle() {
-        console.log('SearchManager: Deze methode wordt niet meer gebruikt - we zoeken nu direct in database');
-        return [];
+        try {
+            console.log('SearchManager: Laden van alle honden met paginatie (DogDataManager stijl)...');
+            
+            // Reset array
+            let allDogs = [];
+            
+            let currentPage = 1;
+            const pageSize = 1000; // Maximaal wat Supabase toestaat
+            let hasMorePages = true;
+            let totalLoaded = 0;
+            
+            // Loop door alle pagina's - ZELFDE LOGICA ALS DogDataManager
+            while (hasMorePages) {
+                console.log(`SearchManager: Laden pagina ${currentPage}...`);
+                
+                // Gebruik de getHonden() methode van hondenService (zelfde als DogDataManager)
+                const result = await hondenService.getHonden(currentPage, pageSize);
+                
+                if (result.honden && result.honden.length > 0) {
+                    // Voeg honden toe aan array
+                    allDogs = allDogs.concat(result.honden);
+                    totalLoaded += result.honden.length;
+                    
+                    // Update progress - ZELFDE ALS DogDataManager
+                    this.showProgress(`Honden laden... (${totalLoaded} geladen)`);
+                    
+                    console.log(`SearchManager: Pagina ${currentPage} geladen: ${result.honden.length} honden`);
+                    
+                    // Controleer of er nog meer pagina's zijn (zelfde als DogDataManager)
+                    hasMorePages = result.heeftVolgende;
+                    
+                    if (hasMorePages) {
+                        currentPage++;
+                    }
+                    
+                    // Veiligheidslimiet voor oneindige lus (zelfde als DogDataManager)
+                    if (currentPage > 100) {
+                        console.warn('SearchManager: Veiligheidslimiet bereikt: te veel pagina\'s geladen');
+                        break;
+                    }
+                } else {
+                    hasMorePages = false;
+                }
+                
+                // Kleine pauze om de server niet te overbelasten (zelfde als DogDataManager)
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+            // DEBUG: Controleer of de juiste velden worden geladen
+            if (allDogs.length > 0) {
+                const sampleDog = allDogs[0];
+                console.log('Voorbeeld hond velden:', Object.keys(sampleDog));
+                console.log('vader_id in sample:', sampleDog.vader_id);
+                console.log('moeder_id in sample:', sampleDog.moeder_id);
+            }
+            
+            console.log(`SearchManager: TOTAAL ${allDogs.length} honden geladen`);
+            
+            return allDogs;
+            
+        } catch (error) {
+            console.error('SearchManager: Fout bij laden honden voor zoeken:', error);
+            throw error;
+        }
+    }
+    
+    filterDogsForNameField(searchTerm = '') {
+        // Normaliseer de zoekterm
+        const normalizedSearchTerm = this.normalizeText(searchTerm);
+        
+        this.filteredDogs = this.allDogs.filter(dog => {
+            // Normaliseer de hond naam en kennelnaam
+            const normalizedNaam = this.normalizeText(dog.naam);
+            const normalizedKennelnaam = this.normalizeText(dog.kennelnaam);
+            
+            // Controleer of de zoekterm voorkomt in de naam
+            if (normalizedNaam.includes(normalizedSearchTerm)) {
+                return true;
+            }
+            
+            // Controleer of de zoekterm voorkomt in de kennelnaam
+            if (normalizedKennelnaam.includes(normalizedSearchTerm)) {
+                return true;
+            }
+            
+            // Controleer of de zoekterm voorkomt in "naam kennelnaam" combinatie
+            const combined = `${normalizedNaam} ${normalizedKennelnaam}`;
+            if (combined.includes(normalizedSearchTerm)) {
+                return true;
+            }
+            
+            return false;
+        });
+        
+        this.displaySearchResults();
+    }
+    
+    filterDogsByKennel(searchTerm = '') {
+        // Normaliseer de zoekterm
+        const normalizedSearchTerm = this.normalizeText(searchTerm);
+        
+        this.filteredDogs = this.allDogs.filter(dog => {
+            // Normaliseer de kennelnaam
+            const normalizedKennelnaam = this.normalizeText(dog.kennelnaam);
+            return normalizedKennelnaam.includes(normalizedSearchTerm);
+        });
+        
+        this.filteredDogs.sort((a, b) => {
+            const naamA = a.naam ? a.naam.toLowerCase() : '';
+            const naamB = b.naam ? b.naam.toLowerCase() : '';
+            return naamA.localeCompare(naamB);
+        });
+        
+        this.displaySearchResults();
     }
     
     displaySearchResults() {
@@ -2948,14 +2968,14 @@ class SearchManager extends BaseModule {
                 document.getElementById('searchNameInput') : 
                 document.getElementById('searchKennelInput');
             if (searchInput) {
-                const searchTerm = searchInput.value.trim();
+                const searchTerm = searchInput.value.toLowerCase().trim();
                 if (searchTerm.length >= 1) {
-                    // Voer zoekopdracht opnieuw uit
-                    if (this.searchType === 'name') {
-                        this.filterDogsInDatabase(searchTerm);
-                    } else {
-                        this.filterDogsByKennelInDatabase(searchTerm);
-                    }
+                    // Simuleer een input event om de zoekresultaten te vernieuwen
+                    const inputEvent = new Event('input', {
+                        bubbles: true,
+                        cancelable: true
+                    });
+                    searchInput.dispatchEvent(inputEvent);
                 } else {
                     this.showInitialView();
                     this.clearDetails();
@@ -2982,7 +3002,7 @@ class SearchManager extends BaseModule {
     }
     
     selectDogById(hondId) {
-        const dog = this.filteredDogs.find(h => h.id === hondId);
+        const dog = this.allDogs.find(h => h.id === hondId);
         if (dog) {
             this.selectDog(dog);
         }
@@ -3023,9 +3043,9 @@ class SearchManager extends BaseModule {
         let fatherInfo = { id: null, naam: t('parentsUnknown'), stamboomnr: '', ras: '', kennelnaam: '' };
         let motherInfo = { id: null, naam: t('parentsUnknown'), stamboomnr: '', ras: '', kennelnaam: '' };
         
-        // CORRECT: Gebruik vader_id zoals in database - haal uit database
+        // CORRECT: Gebruik vader_id zoals in database
         if (dog.vader_id) {
-            const father = await this.getParentInfo(dog.vader_id);
+            const father = this.allDogs.find(d => d.id === dog.vader_id);
             if (father) {
                 fatherInfo = { 
                     id: father.id,
@@ -3037,9 +3057,9 @@ class SearchManager extends BaseModule {
             }
         }
         
-        // CORRECT: Gebruik moeder_id zoals in database - haal uit database
+        // CORRECT: Gebruik moeder_id zoals in database
         if (dog.moeder_id) {
-            const mother = await this.getParentInfo(dog.moeder_id);
+            const mother = this.allDogs.find(d => d.id === dog.moeder_id);
             if (mother) {
                 motherInfo = { 
                     id: mother.id,
@@ -3407,7 +3427,7 @@ class SearchManager extends BaseModule {
             if (backButton) {
                 backButton.addEventListener('click', (e) => {
                     const originalDogId = parseInt(backButton.getAttribute('data-original-dog'));
-                    const originalDog = this.filteredDogs.find(d => d.id === originalDogId);
+                    const originalDog = this.allDogs.find(d => d.id === originalDogId);
                     if (originalDog) {
                         this.showDogDetails(originalDog);
                     }
@@ -3477,7 +3497,7 @@ class SearchManager extends BaseModule {
     }
     
     showParentDetails(parentId, originalDogId) {
-        const parent = this.filteredDogs.find(d => d.id === parentId);
+        const parent = this.allDogs.find(d => d.id === parentId);
         if (parent) {
             this.showDogDetails(parent, true, originalDogId);
             
@@ -3501,7 +3521,7 @@ class SearchManager extends BaseModule {
             }
             
             // Zoek de hond
-            const dog = this.filteredDogs.find(d => d.id === dogId);
+            const dog = this.allDogs.find(d => d.id === dogId);
             if (!dog) {
                 this.showError("Hond niet gevonden");
                 return;
