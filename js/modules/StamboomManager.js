@@ -5,6 +5,7 @@
  * **FOTO PROBLEEM OPGELOST** - Gebruikt nu PhotoViewer voor foto vergroting
  * **PRIVEINFO TOEGEVOEGD** - Toont priveinfo als huidige gebruiker eigenaar is
  * **FOTO-ICOONTJE VOOR OVEROVEROUDERS OPGELOST** - Toont nu camera-icoon ook bij gen4
+ * **OPTIMIZED** - Laadt alle foto's voor de hele stamboom in één query
  */
 
 class StamboomManager extends BaseModule {
@@ -661,7 +662,7 @@ class StamboomManager extends BaseModule {
         return this.allDogs.find(dog => dog.id === id);
     }
     
-    // **EXACT DEZELFDE METHODE ALS SEARCHMANAGER: Foto's ophalen voor een hond**
+    // **OPTIMIZED: Foto's ophalen voor een hond met caching**
     async getDogPhotos(dogId) {
         if (!dogId || dogId === 0) return [];
         
@@ -675,7 +676,7 @@ class StamboomManager extends BaseModule {
         }
         
         try {
-            // **EXACT DEZELFDE QUERY ALS SEARCHMANAGER**
+            // Normale enkele query (wordt alleen gebruikt voor losse foto-aanvragen)
             const { data: fotos, error } = await window.supabase
                 .from('fotos')
                 .select('*')
@@ -695,6 +696,97 @@ class StamboomManager extends BaseModule {
         } catch (error) {
             console.error('Fout bij ophalen foto\'s voor hond:', dogId, error);
             return [];
+        }
+    }
+    
+    // **NIEUW: Laad foto's voor alle honden in de stamboom in één keer**
+    async loadAllPhotosForPedigree(pedigreeTree) {
+        // Verzamel alle unieke stamboomnummers
+        const uniqueStamboomnrs = new Set();
+        const dogsInPedigree = [];
+        
+        // Functie om hond toe te voegen als die bestaat
+        const addDog = (dog) => {
+            if (dog && dog.stamboomnr) {
+                uniqueStamboomnrs.add(dog.stamboomnr);
+                dogsInPedigree.push(dog);
+            }
+        };
+        
+        // Verzamel alle honden uit de stamboom
+        addDog(pedigreeTree.mainDog);
+        addDog(pedigreeTree.father);
+        addDog(pedigreeTree.mother);
+        addDog(pedigreeTree.paternalGrandfather);
+        addDog(pedigreeTree.paternalGrandmother);
+        addDog(pedigreeTree.maternalGrandfather);
+        addDog(pedigreeTree.maternalGrandmother);
+        addDog(pedigreeTree.paternalGreatGrandfather1);
+        addDog(pedigreeTree.paternalGreatGrandmother1);
+        addDog(pedigreeTree.paternalGreatGrandfather2);
+        addDog(pedigreeTree.paternalGreatGrandmother2);
+        addDog(pedigreeTree.maternalGreatGrandfather1);
+        addDog(pedigreeTree.maternalGreatGrandmother1);
+        addDog(pedigreeTree.maternalGreatGrandfather2);
+        addDog(pedigreeTree.maternalGreatGrandmother2);
+        addDog(pedigreeTree.paternalGreatGreatGrandfather1);
+        addDog(pedigreeTree.paternalGreatGreatGrandmother1);
+        addDog(pedigreeTree.paternalGreatGreatGrandfather2);
+        addDog(pedigreeTree.paternalGreatGreatGrandmother2);
+        addDog(pedigreeTree.paternalGreatGreatGrandfather3);
+        addDog(pedigreeTree.paternalGreatGreatGrandmother3);
+        addDog(pedigreeTree.paternalGreatGreatGrandfather4);
+        addDog(pedigreeTree.paternalGreatGreatGrandmother4);
+        addDog(pedigreeTree.maternalGreatGreatGrandfather1);
+        addDog(pedigreeTree.maternalGreatGreatGrandmother1);
+        addDog(pedigreeTree.maternalGreatGreatGrandfather2);
+        addDog(pedigreeTree.maternalGreatGreatGrandmother2);
+        addDog(pedigreeTree.maternalGreatGreatGrandfather3);
+        addDog(pedigreeTree.maternalGreatGreatGrandmother3);
+        addDog(pedigreeTree.maternalGreatGreatGrandfather4);
+        addDog(pedigreeTree.maternalGreatGreatGrandmother4);
+        
+        if (uniqueStamboomnrs.size === 0) return;
+        
+        try {
+            // Haal alle foto's voor deze stamboomnummers in één query op
+            const stamboomnrArray = Array.from(uniqueStamboomnrs);
+            const { data: allPhotos, error } = await window.supabase
+                .from('fotos')
+                .select('*')
+                .in('stamboomnr', stamboomnrArray);
+            
+            if (error) {
+                console.error('Fout bij batch laden foto\'s:', error);
+                return;
+            }
+            
+            console.log(`StamboomManager: ${allPhotos?.length || 0} foto's gevonden voor ${stamboomnrArray.length} honden in stamboom`);
+            
+            // Groepeer foto's per stamboomnr
+            const photosByStamboomnr = {};
+            allPhotos.forEach(photo => {
+                if (!photosByStamboomnr[photo.stamboomnr]) {
+                    photosByStamboomnr[photo.stamboomnr] = [];
+                }
+                photosByStamboomnr[photo.stamboomnr].push(photo);
+            });
+            
+            // Vul de cache voor elke hond
+            dogsInPedigree.forEach(dog => {
+                if (dog.stamboomnr) {
+                    const cacheKey = `${dog.id}_${dog.stamboomnr}`;
+                    const photos = photosByStamboomnr[dog.stamboomnr] || [];
+                    this.dogPhotosCache.set(cacheKey, photos);
+                    
+                    if (photos.length > 0) {
+                        console.log(`StamboomManager: ${photos.length} foto's gecached voor ${dog.naam} (${dog.stamboomnr})`);
+                    }
+                }
+            });
+            
+        } catch (error) {
+            console.error('Fout bij batch laden foto\'s:', error);
         }
     }
     
@@ -1480,6 +1572,9 @@ class StamboomManager extends BaseModule {
         
         const title = this.t('pedigreeTitle').replace('{name}', dog.naam || this.t('unknown'));
         document.getElementById('pedigreeModalLabel').textContent = title;
+        
+        // **OPTIMIZED: Laad ALLE foto's in één keer voordat we renderen**
+        await this.loadAllPhotosForPedigree(pedigreeTree);
         
         await this.renderCompactPedigree(pedigreeTree);
         
@@ -2768,6 +2863,7 @@ class StamboomManager extends BaseModule {
         const container = document.getElementById('pedigreeContainer');
         if (!container) return;
         
+        // **OPTIMIZED: Gebruik nu de batch-geladen foto's uit de cache**
         const mainDogCard = await this.getDogCompactCardHTML(pedigreeTree.mainDog, this.t('mainDog'), true, 0);
         const fatherCard = await this.getDogCompactCardHTML(pedigreeTree.father, this.t('father'), false, 1);
         const motherCard = await this.getDogCompactCardHTML(pedigreeTree.mother, this.t('mother'), false, 1);

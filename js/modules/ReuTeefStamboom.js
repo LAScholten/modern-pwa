@@ -5,6 +5,7 @@
  * **COICALCULATOR VOLLEDIG GECORRIGEERD** - Gebruikt nu exact dezelfde COI-berekeningen voor ALLE honden
  * **PRIVEINFO TOEGEVOEGD** - Toont nu ook priveinfo zoals StamboomManager
  * **TITEL FIX** - Werkt nu met zowel reu/teef parameters als directe titel
+ * **OPTIMIZED** - Laadt alle foto's voor de hele stamboom in één query
  */
 
 class ReuTeefStamboom {
@@ -345,6 +346,96 @@ class ReuTeefStamboom {
         return photos.length > 0;
     }
     
+    // **OPTIMIZED: Laad foto's voor alle honden in de stamboom in één keer**
+    async loadAllPhotosForPedigree(pedigreeTree) {
+        // Verzamel alle unieke stamboomnummers
+        const uniqueStamboomnrs = new Set();
+        const dogsInPedigree = [];
+        
+        // Functie om hond toe te voegen als die bestaat
+        const addDog = (dog) => {
+            if (dog && dog.stamboomnr && dog.id > 0) { // Alleen echte honden, geen virtuele pup
+                uniqueStamboomnrs.add(dog.stamboomnr);
+                dogsInPedigree.push(dog);
+            }
+        };
+        
+        // Verzamel alle honden uit de stamboom (behalve de virtuele toekomstige pup)
+        addDog(pedigreeTree.father);
+        addDog(pedigreeTree.mother);
+        addDog(pedigreeTree.paternalGrandfather);
+        addDog(pedigreeTree.paternalGrandmother);
+        addDog(pedigreeTree.maternalGrandfather);
+        addDog(pedigreeTree.maternalGrandmother);
+        addDog(pedigreeTree.paternalGreatGrandfather1);
+        addDog(pedigreeTree.paternalGreatGrandmother1);
+        addDog(pedigreeTree.paternalGreatGrandfather2);
+        addDog(pedigreeTree.paternalGreatGrandmother2);
+        addDog(pedigreeTree.maternalGreatGrandfather1);
+        addDog(pedigreeTree.maternalGreatGrandmother1);
+        addDog(pedigreeTree.maternalGreatGrandfather2);
+        addDog(pedigreeTree.maternalGreatGrandmother2);
+        addDog(pedigreeTree.paternalGreatGreatGrandfather1);
+        addDog(pedigreeTree.paternalGreatGreatGrandmother1);
+        addDog(pedigreeTree.paternalGreatGreatGrandfather2);
+        addDog(pedigreeTree.paternalGreatGreatGrandmother2);
+        addDog(pedigreeTree.paternalGreatGreatGrandfather3);
+        addDog(pedigreeTree.paternalGreatGreatGrandmother3);
+        addDog(pedigreeTree.paternalGreatGreatGrandfather4);
+        addDog(pedigreeTree.paternalGreatGreatGrandmother4);
+        addDog(pedigreeTree.maternalGreatGreatGrandfather1);
+        addDog(pedigreeTree.maternalGreatGreatGrandmother1);
+        addDog(pedigreeTree.maternalGreatGreatGrandfather2);
+        addDog(pedigreeTree.maternalGreatGreatGrandmother2);
+        addDog(pedigreeTree.maternalGreatGreatGrandfather3);
+        addDog(pedigreeTree.maternalGreatGreatGrandmother3);
+        addDog(pedigreeTree.maternalGreatGreatGrandfather4);
+        addDog(pedigreeTree.maternalGreatGreatGrandmother4);
+        
+        if (uniqueStamboomnrs.size === 0) return;
+        
+        try {
+            // Haal alle foto's voor deze stamboomnummers in één query op
+            const stamboomnrArray = Array.from(uniqueStamboomnrs);
+            const { data: allPhotos, error } = await window.supabase
+                .from('fotos')
+                .select('*')
+                .in('stamboomnr', stamboomnrArray);
+            
+            if (error) {
+                console.error('Fout bij batch laden foto\'s:', error);
+                return;
+            }
+            
+            console.log(`ReuTeefStamboom: ${allPhotos?.length || 0} foto's gevonden voor ${stamboomnrArray.length} honden in stamboom`);
+            
+            // Groepeer foto's per stamboomnr
+            const photosByStamboomnr = {};
+            allPhotos.forEach(photo => {
+                if (!photosByStamboomnr[photo.stamboomnr]) {
+                    photosByStamboomnr[photo.stamboomnr] = [];
+                }
+                photosByStamboomnr[photo.stamboomnr].push(photo);
+            });
+            
+            // Vul de cache voor elke hond
+            dogsInPedigree.forEach(dog => {
+                if (dog.stamboomnr) {
+                    const cacheKey = `${dog.id}_${dog.stamboomnr}`;
+                    const photos = photosByStamboomnr[dog.stamboomnr] || [];
+                    this.dogPhotosCache.set(cacheKey, photos);
+                    
+                    if (photos.length > 0) {
+                        console.log(`ReuTeefStamboom: ${photos.length} foto's gecached voor ${dog.naam} (${dog.stamboomnr})`);
+                    }
+                }
+            });
+            
+        } catch (error) {
+            console.error('Fout bij batch laden foto\'s:', error);
+        }
+    }
+    
     /**
      * Toon toekomstige pup stamboom - GEFIXT: Werkt met zowel reu/teef parameters als directe titel
      * @param {Object} selectedTeef - De geselecteerde teef
@@ -424,8 +515,14 @@ class ReuTeefStamboom {
             const healthAnalysis = await this.analyzeHealthInLine(futurePuppy, selectedTeef, selectedReu);
             console.log('✅ Gezondheidsanalyse resultaat:', healthAnalysis);
             
+            // Bouw de stamboom structuur voor batch loading
+            const pedigreeTree = this.buildFuturePuppyPedigreeTree(futurePuppy, selectedTeef, selectedReu);
+            
+            // **OPTIMIZED: Laad ALLE foto's in één keer voordat we renderen**
+            await this.loadAllPhotosForPedigree(pedigreeTree);
+            
             // Toon stamboom - GEFIXT: Gebruik customTitle als die is meegegeven, anders genereer zelf
-            await this.createFuturePuppyModal(futurePuppy, selectedTeef, selectedReu, coiResult, healthAnalysis, customTitle);
+            await this.createFuturePuppyModal(futurePuppy, selectedTeef, selectedReu, coiResult, healthAnalysis, customTitle, pedigreeTree);
             
         } catch (error) {
             console.error('❌ Fout bij tonen toekomstige pup stamboom:', error);
@@ -668,7 +765,7 @@ class ReuTeefStamboom {
     /**
      * Maak de toekomstige pup modal - GEFIXT: Gebruik customTitle als die is meegegeven
      */
-    async createFuturePuppyModal(futurePuppy, selectedTeef, selectedReu, coiResult, healthAnalysis, customTitle = null) {
+    async createFuturePuppyModal(futurePuppy, selectedTeef, selectedReu, coiResult, healthAnalysis, customTitle = null, pedigreeTree) {
         const modalId = 'rtc-futurePuppyModal';
         
         // Verwijder bestaande modal
@@ -1946,8 +2043,8 @@ class ReuTeefStamboom {
         
         this.setupFuturePuppyModalEvents();
         
-        // Render de stamboom
-        await this.renderFuturePuppyPedigree(futurePuppy, selectedTeef, selectedReu, coiResult, healthAnalysis);
+        // Render de stamboom - gebruik de meegegeven pedigreeTree (al geladen)
+        await this.renderFuturePuppyPedigree(futurePuppy, selectedTeef, selectedReu, coiResult, healthAnalysis, pedigreeTree);
         
         // **EXACT DEZELFDE EVENT LISTENERS ALS STAMBOOMMANAGER - GEBRUIKT PHOTOVIEWER**
         this.setupPhotoEventListeners();
@@ -1984,8 +2081,6 @@ class ReuTeefStamboom {
                         window.photoViewer.showPhoto(photoSrc, dogName);
                     } else {
                         console.error('ReuTeefStamboom: PhotoViewer niet beschikbaar');
-                        // Fallback voor als PhotoViewer niet geladen is
-                        console.error('ReuTeefStamboom: PhotoViewer niet beschikbaar');
                     }
                 } else {
                     console.error('ReuTeefStamboom: Geen geldige foto src gevonden in attribuut');
@@ -1995,8 +2090,6 @@ class ReuTeefStamboom {
                         console.log('ReuTeefStamboom: Gebruik img src als fallback:', imgElement.src.substring(0, 100) + '...');
                         if (window.photoViewer) {
                             window.photoViewer.showPhoto(imgElement.src, dogName);
-                        } else {
-                            this.fallbackShowLargePhoto(imgElement.src, dogName);
                         }
                     }
                 }
@@ -2019,13 +2112,13 @@ class ReuTeefStamboom {
         document.addEventListener('keydown', escapeKeyHandler);
     }
         
-    async renderFuturePuppyPedigree(futurePuppy, selectedTeef, selectedReu, coiResult, healthAnalysis) {
+    async renderFuturePuppyPedigree(futurePuppy, selectedTeef, selectedReu, coiResult, healthAnalysis, pedigreeTree) {
         const container = document.getElementById('rtcFuturePuppyContainer');
         if (!container) return;
         
-        const pedigreeTree = this.buildFuturePuppyPedigreeTree(futurePuppy, selectedTeef, selectedReu);
+        // Gebruik de meegegeven pedigreeTree (al opgebouwd in showFuturePuppyPedigree)
         
-        // Maak alle cards asynchroon
+        // Maak alle cards asynchroon - foto's zijn al gecached door loadAllPhotosForPedigree
         const mainDogCard = await this.generateDogCard(futurePuppy, this.t('mainDog'), true, 0);
         const fatherCard = await this.generateDogCard(selectedReu, this.t('fatherLabel'), false, 1);
         const motherCard = await this.generateDogCard(selectedTeef, this.t('motherLabel'), false, 1);
@@ -2388,6 +2481,7 @@ class ReuTeefStamboom {
         const headerColor = isMainDog ? 'bg-success' : 'bg-secondary';
         
         // **EXACT DEZELFDE LOGICA ALS STAMBOOMMANAGER: Check of hond foto's heeft**
+        // Gebruik de cache, geen nieuwe query
         const hasPhotos = dog.id > 0 ? await this.checkDogHasPhotos(dog.id) : false;
         const cameraIcon = hasPhotos ? '<i class="bi bi-camera text-danger ms-1"></i>' : '';
         
@@ -2538,6 +2632,7 @@ class ReuTeefStamboom {
         const coiColor = this.getCOIColor(coiValues.coi6Gen);
         
         // **EXACT DEZELFDE LOGICA ALS STAMBOOMMANAGER: Foto's ophalen**
+        // Gebruik de cache, geen nieuwe query
         const photos = await this.getDogPhotos(dog.id);
         
         // Maak een gecombineerde naam+kennel string voor de header
