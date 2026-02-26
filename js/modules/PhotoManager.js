@@ -26,6 +26,10 @@ class PhotoManager extends BaseModule {
         this.totalPhotoPages = 0;
         this.isLoadingPhotos = false;
         
+        // Zoek variabelen
+        this.searchTimeout = null;
+        this.minSearchLength = 1;
+        
         // PhotoViewer referentie
         this.photoViewer = null;
         
@@ -41,8 +45,8 @@ class PhotoManager extends BaseModule {
                 describePhoto: "Beschrijf de foto...",
                 uploadPhoto: "Foto Uploaden",
                 noDogsFound: "Geen honden gevonden",
-                loadingAllDogs: "Alle honden laden...",
-                loadedDogs: "honden geladen",
+                loadingAllDogs: "Honden zoeken...",
+                loadedDogs: "honden gevonden",
                 photoOverview: "Foto Overzicht",
                 noPhotos: "Er zijn nog geen foto's geüpload",
                 loadingPhotos: "Foto's laden...",
@@ -62,8 +66,8 @@ class PhotoManager extends BaseModule {
                 deleting: "Foto verwijderen...",
                 deleteSuccess: "Foto succesvol verwijderd!",
                 deleteFailed: "Verwijderen mislukt: ",
-                searchToFindDogs: "Typ om te zoeken...",
-                loadingProgress: "Honden laden: ",
+                searchToFindDogs: "Typ minimaal 1 teken om te zoeken...",
+                loadingProgress: "Honden zoeken: ",
                 viewGallery: "Foto's Bekijken",
                 uploadNewPhoto: "Foto Uploaden",
                 chooseAction: "Kies een actie:",
@@ -76,7 +80,8 @@ class PhotoManager extends BaseModule {
                 showing: "Toont",
                 to: "tot",
                 ofTotal: "van de",
-                photos: "foto's"
+                photos: "foto's",
+                typeToSearch: "Typ om te zoeken..."
             },
             en: {
                 photoGallery: "Photo Gallery",
@@ -89,8 +94,8 @@ class PhotoManager extends BaseModule {
                 describePhoto: "Describe the photo...",
                 uploadPhoto: "Upload Photo",
                 noDogsFound: "No dogs found",
-                loadingAllDogs: "Loading all dogs...",
-                loadedDogs: "dogs loaded",
+                loadingAllDogs: "Searching dogs...",
+                loadedDogs: "dogs found",
                 photoOverview: "Photo Overview",
                 noPhotos: "No photos uploaded yet",
                 loadingPhotos: "Loading photos...",
@@ -110,8 +115,8 @@ class PhotoManager extends BaseModule {
                 deleting: "Deleting photo...",
                 deleteSuccess: "Photo successfully deleted!",
                 deleteFailed: "Delete failed: ",
-                searchToFindDogs: "Type to search...",
-                loadingProgress: "Loading dogs: ",
+                searchToFindDogs: "Type at least 1 character to search...",
+                loadingProgress: "Searching dogs: ",
                 viewGallery: "View Photos",
                 uploadNewPhoto: "Upload Photo",
                 chooseAction: "Choose an action:",
@@ -124,7 +129,8 @@ class PhotoManager extends BaseModule {
                 showing: "Showing",
                 to: "to",
                 ofTotal: "of",
-                photos: "photos"
+                photos: "photos",
+                typeToSearch: "Type to search..."
             },
             de: {
                 photoGallery: "Foto Galerie",
@@ -137,8 +143,8 @@ class PhotoManager extends BaseModule {
                 describePhoto: "Beschreiben Sie das Foto...",
                 uploadPhoto: "Foto hochladen",
                 noDogsFound: "Keine Hunde gefunden",
-                loadingAllDogs: "Alle Hunde laden...",
-                loadedDogs: "Hunde geladen",
+                loadingAllDogs: "Hunde suchen...",
+                loadedDogs: "Hunde gefunden",
                 photoOverview: "Foto Übersicht",
                 noPhotos: "Noch keine Fotos hochgeladen",
                 loadingPhotos: "Fotos laden...",
@@ -158,8 +164,8 @@ class PhotoManager extends BaseModule {
                 deleting: "Foto wird gelöscht...",
                 deleteSuccess: "Foto erfolgreich gelöscht!",
                 deleteFailed: "Löschen fehlgeschlagen: ",
-                searchToFindDogs: "Tippen Sie zum Suchen...",
-                loadingProgress: "Hunde laden: ",
+                searchToFindDogs: "Geben Sie mindestens 1 Zeichen ein...",
+                loadingProgress: "Hunde suchen: ",
                 viewGallery: "Fotos Ansehen",
                 uploadNewPhoto: "Foto Hochladen",
                 chooseAction: "Wählen Sie eine Aktion:",
@@ -172,13 +178,46 @@ class PhotoManager extends BaseModule {
                 showing: "Zeigt",
                 to: "bis",
                 ofTotal: "von",
-                photos: "Fotos"
+                photos: "Fotos",
+                typeToSearch: "Tippen Sie zum Suchen..."
             }
         };
     }
     
     t(key) {
         return this.translations[this.currentLang][key] || key;
+    }
+    
+    /**
+     * Normaliseer een string voor zoeken (verwijder diakritische tekens)
+     */
+    normalizeSearchString(str) {
+        if (!str) return '';
+        
+        // Map voor speciale Duitse karakters
+        const specialMap = {
+            'ß': 'ss',
+            'ẞ': 'SS'
+        };
+        
+        // Vervang speciale karakters eerst
+        let normalized = str;
+        for (const [special, replacement] of Object.entries(specialMap)) {
+            normalized = normalized.replace(new RegExp(special, 'g'), replacement);
+        }
+        
+        // Verwijder diakritische tekens (ä, ö, ü, etc.) en maak lowercase
+        return normalized.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    }
+    
+    /**
+     * Controleer of een string begint met de zoekterm (rekening houdend met normalisatie)
+     */
+    startsWithNormalized(text, searchTerm) {
+        if (!text) return false;
+        const normalizedText = this.normalizeSearchString(text);
+        const normalizedSearch = this.normalizeSearchString(searchTerm);
+        return normalizedText.startsWith(normalizedSearch);
     }
     
     /**
@@ -353,7 +392,7 @@ class PhotoManager extends BaseModule {
                                                             <input type="text" class="form-control" id="photoHondSearch" 
                                                                    placeholder="${t('searchDog')}" autocomplete="off">
                                                             <div class="dropdown-menu w-100" id="dogDropdownMenu" style="max-height: 300px; overflow-y: auto;">
-                                                                <div class="dropdown-item text-muted">${t('loadingAllDogs')}</div>
+                                                                <div class="dropdown-item text-muted">${t('typeToSearch')}</div>
                                                             </div>
                                                         </div>
                                                         <div id="dogLoadingStatus" class="form-text text-muted small"></div>
@@ -547,6 +586,7 @@ class PhotoManager extends BaseModule {
         
         if (!searchInput || !dropdownMenu) return;
         
+        // Toon dropdown bij focus
         searchInput.addEventListener('focus', async () => {
             if (this.allDogs.length === 0 && !this.isLoadingAllDogs) {
                 await this.loadAllDogs();
@@ -556,7 +596,7 @@ class PhotoManager extends BaseModule {
         });
         
         searchInput.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
+            const searchTerm = e.target.value;
             this.filterDogs(searchTerm);
             dropdownMenu.classList.add('show');
         });
@@ -706,12 +746,14 @@ class PhotoManager extends BaseModule {
                 const volledigeNaam = naam + (kennelnaam ? ' ' + kennelnaam : '');
                 const kennelEnNaam = kennelnaam + (naam ? ' ' + naam : '');
                 
-                return naam.includes(searchLower) ||
-                       kennelnaam.includes(searchLower) ||
-                       stamboomnr.includes(searchLower) ||
-                       ras.includes(searchLower) ||
-                       volledigeNaam.includes(searchLower) ||
-                       kennelEnNaam.includes(searchLower);
+                // Controleren of de zoekterm begint met een van de velden
+                // Gebruik de genormaliseerde versie voor diakritische tekens
+                return this.startsWithNormalized(naam, searchTerm) ||
+                       this.startsWithNormalized(kennelnaam, searchTerm) ||
+                       this.startsWithNormalized(stamboomnr, searchTerm) ||
+                       this.startsWithNormalized(ras, searchTerm) ||
+                       this.startsWithNormalized(volledigeNaam, searchTerm) ||
+                       this.startsWithNormalized(kennelEnNaam, searchTerm);
             });
         }
         
