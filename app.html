@@ -312,6 +312,10 @@
                         <button class="list-group-item list-group-item-action d-none" id="editDogDataBtn">
                             <i class="bi bi-pencil-square"></i> <span class="app-text" data-key="editDogData">Data Hond Bewerken</span>
                         </button>
+                        <!-- Overdracht Module knop - ZICHTBAAR voor alle gebruikers -->
+                        <button class="list-group-item list-group-item-action" id="overdrachtBtn">
+                            <i class="bi bi-arrow-left-right"></i> <span class="app-text" data-key="transferModule">Hond Overdracht</span>
+                        </button>
                     </div>
                 </div>
                 
@@ -561,6 +565,9 @@
     
     <!-- NIEUWE MODULE: Nest Aankondigingen -->
     <script src="js/modules/nestaankondigingen.js"></script>
+    
+    <!-- OVERDRACHT MODULE -->
+    <script src="js/modules/overdracht.js"></script>
     
     <script src="js/modules/PrivateInfoManager.js"></script>
     
@@ -1044,7 +1051,8 @@
                 addLitterBtn: document.getElementById('addLitterBtn'),
                 editDogDataBtn: document.getElementById('editDogDataBtn'),
                 searchBtn: document.getElementById('searchBtn'),
-                photoGalleryBtn: document.getElementById('photoGalleryBtn')
+                photoGalleryBtn: document.getElementById('photoGalleryBtn'),
+                overdrachtBtn: document.getElementById('overdrachtBtn')
             };
             
             // RESET: Verberg alle knoppen eerst
@@ -1055,6 +1063,7 @@
             // TOON ALTIJD: Hond Zoeken en Foto Galerij voor ALLE gebruikers
             if (menuButtons.searchBtn) menuButtons.searchBtn.classList.remove('d-none');
             if (menuButtons.photoGalleryBtn) menuButtons.photoGalleryBtn.classList.remove('d-none');
+            if (menuButtons.overdrachtBtn) menuButtons.overdrachtBtn.classList.remove('d-none');
             
             // VOOR GEBRUIKER: toon ook Nest Aankondigingen en Dek Reuen
             if (userRole === 'gebruiker') {
@@ -1170,7 +1179,8 @@
                 'nestAankondigingenBtn': 'nestAnnouncements',
                 'breedingPlanBtn': 'breeding',
                 'dekReuenBtn': 'dekReuen',
-                'privateInfoBtn': 'private'
+                'privateInfoBtn': 'private',
+                'overdrachtBtn': 'overdracht'
             };
             
             for (const [btnId, modalType] of Object.entries(menuButtons)) {
@@ -1418,6 +1428,15 @@
                         alert('De Nest aankondigingen module is nog niet beschikbaar.');
                     }
                     
+                    return;
+                }
+
+                if (modalType === 'overdracht') {
+                    console.log('Opening overdracht module');
+                    if (!window.overdrachtModule) {
+                        window.overdrachtModule = new OverdrachtModule();
+                    }
+                    window.overdrachtModule.showModal();
                     return;
                 }
                 
