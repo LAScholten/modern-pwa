@@ -745,7 +745,6 @@
                 dekReuen: "Dek Reuen",
                 privateInfo: "Privé Informatie",
                 quickOverview: "Snel Overzicht",
-                transferModule: "Hond Overdracht",
                 dogs: "Honden",
                 photos: "Foto's",
                 refresh: "Vernieuwen",
@@ -809,7 +808,8 @@
                 chromeStep3: "Klik op \"Installeren\"",
                 advantageTitle: "Voordeel van een snelkoppeling:",
                 advantageText: "De app werkt als een normale app!",
-                closeBtn: "Sluiten"
+                closeBtn: "Sluiten",
+                transferModule: "Hond Overdracht"
             },
             en: {
                 appTitle: "Eurasier Friends International - Database",
@@ -826,7 +826,6 @@
                 dekReuen: "Stud Dogs",
                 privateInfo: "Private Information",
                 quickOverview: "Quick Overview",
-                transferModule: "Dog Transfer",
                 dogs: "Dogs",
                 photos: "Photos",
                 refresh: "Refresh",
@@ -890,7 +889,8 @@
                 chromeStep3: "Click \"Install\"",
                 advantageTitle: "Advantage of a shortcut:",
                 advantageText: "The app works like a normal app!",
-                closeBtn: "Close"
+                closeBtn: "Close",
+                transferModule: "Dog Transfer"
             },
             de: {
                 appTitle: "Eurasier Friends International - Datenbank",
@@ -907,7 +907,6 @@
                 dekReuen: "Deckrüden",
                 privateInfo: "Private Informationen",
                 quickOverview: "Schnellübersicht",
-                transferModule: "Hundeübertragung",
                 dogs: "Hunde",
                 photos: "Fotos",
                 refresh: "Aktualisieren",
@@ -971,7 +970,8 @@
                 chromeStep3: "Klicken Sie auf \"Installieren\"",
                 advantageTitle: "Vorteil einer Verknüpfung:",
                 advantageText: "Die App funktioniert wie eine normale App!",
-                closeBtn: "Schließen"
+                closeBtn: "Schließen",
+                transferModule: "Hundeübertragung"
             }
         };
 
@@ -1063,7 +1063,7 @@
                 if (btn) btn.classList.add('d-none');
             });
             
-            // TOON ALTIJD: Hond Zoeken en Foto Galerij voor ALLE gebruikers
+            // TOON ALTIJD: Hond Zoeken, Foto Galerij en Overdracht voor ALLE gebruikers
             if (menuButtons.searchBtn) menuButtons.searchBtn.classList.remove('d-none');
             if (menuButtons.photoGalleryBtn) menuButtons.photoGalleryBtn.classList.remove('d-none');
             if (menuButtons.overdrachtBtn) menuButtons.overdrachtBtn.classList.remove('d-none');
@@ -1364,8 +1364,7 @@
             }, 100);
         });
         
-        // VERWIJDER de override van showModal in UIHandler.prototype
-        // UI Handler aanpassing voor LitterManager
+        // AANGEPASTE UI HANDLER - Overdracht nu hetzelfde als DekReuen
         if (UIHandler && UIHandler.prototype) {
             const originalShowModal = UIHandler.prototype.showModal;
             UIHandler.prototype.showModal = function(modalType) {
@@ -1436,10 +1435,15 @@
 
                 if (modalType === 'overdracht') {
                     console.log('Opening overdracht module');
-                    if (!window.overdrachtModule) {
-                        window.overdrachtModule = new OverdrachtModule();
+                    
+                    // 🔴 AANGEPAST: ZELFDE ALS DEKREUEN - direct bestaand object gebruiken
+                    if (window.overdrachtModule && window.overdrachtModule.showModal) {
+                        window.overdrachtModule.showModal();
+                    } else {
+                        console.error('OverdrachtModule niet beschikbaar');
+                        alert('De Overdracht module is nog niet beschikbaar.');
                     }
-                    window.overdrachtModule.showModal();
+                    
                     return;
                 }
                 
