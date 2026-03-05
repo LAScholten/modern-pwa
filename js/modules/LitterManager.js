@@ -2024,7 +2024,7 @@ class LitterManager {
             const combined = `${dogName} ${kennelName}`;
             
             // Controleer of de gecombineerde string begint met de zoekterm
-            const matchesSearch = combined.startsWith(searchTerm.toLowerCase());
+            const matchesSearch = combined.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "").startsWith(searchTerm.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, ""));
             
             // Filter op geslacht
             if (parentType === 'father') {
