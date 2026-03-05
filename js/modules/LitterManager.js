@@ -8,7 +8,6 @@ class LitterManager {
         console.log('LitterManager constructor aangeroepen');
         this.currentLang = localStorage.getItem('appLanguage') || 'nl';
         this.lastBreeds = JSON.parse(localStorage.getItem('lastBreeds') || '[]');
-        this.allDogs = []; // Voor autocomplete van ouders
         this.currentLitterDogs = []; // Houdt de ingevoerde honden van het huidige nest bij
         
         // GEBRUIK WINDOW OBJECT VOOR DEPENDENCIES
@@ -127,6 +126,8 @@ class LitterManager {
                 addedDogs: "Toegevoegde honden:",
                 noDogsAdded: "Nog geen honden toevoegd",
                 parentNotSelected: "Selecteer een geldige hond uit de lijst voor zowel vader als moeder",
+                searching: "Zoeken...",
+                noResults: "Geen honden gevonden",
 
                 // Container titels
                 parentDetails: "Ouderdetails",
@@ -253,6 +254,8 @@ class LitterManager {
                 addedDogs: "Added dogs:",
                 noDogsAdded: "No dogs added yet",
                 parentNotSelected: "Select a valid dog from the list for both father and mother",
+                searching: "Searching...",
+                noResults: "No dogs found",
 
                 // Container titles
                 parentDetails: "Parent Details",
@@ -379,6 +382,8 @@ class LitterManager {
                 addedDogs: "Hinzugefügte Hunden:",
                 noDogsAdded: "Noch keine Hunde hinzugefügt",
                 parentNotSelected: "Wählen Sie einen gültigen Hund aus der Liste für sowohl Vater als auch Mutter",
+                searching: "Suche...",
+                noResults: "Keine Hunde gefunden",
 
                 // Container Titel
                 parentDetails: "Elterndetails",
@@ -403,6 +408,9 @@ class LitterManager {
             en: ["Blond", "Blondgray", "Grayblond", "Blondred", "Redblond", "Red", "Redgray", "Wolfgray", "Wildcolor", "Black", "Black with markings", "White", "Piebold"],
             de: ["Falben", "Falbengrau", "Graufalben", "Falbenrot", "Rotfalben", "Rot", "Rotgrau", "Wolfsgrau", "Wildfarbe", "Schwarz", "Schwarz mit Abzeichen", "Weiß", "Piebold"]
         };
+        
+        // Timeout voor debouncing van zoekopdrachten
+        this.searchTimeout = null;
     }
     
     t(key) {
@@ -417,7 +425,7 @@ class LitterManager {
      * Injecteer database en auth objecten (fallback voor backward compatibility)
      */
     injectDependencies(db, auth) {
-        console.log('LitterManager: injectDependencies aangroepen');
+        console.log('LitterManager: injectDependencies aangeroepen');
         // Gebruik window object als primaire bron, anders de geïnjecteerde dependencies
         this.db = window.hondenService || db;
         this.auth = window.auth || auth;
@@ -710,6 +718,18 @@ class LitterManager {
                 .autocomplete-item .dog-info {
                     font-size: 0.85em;
                     color: #666;
+                }
+                
+                .autocomplete-item.loading,
+                .autocomplete-item.no-results {
+                    cursor: default;
+                    color: #6c757d;
+                    font-style: italic;
+                }
+                
+                .autocomplete-item.loading:hover,
+                .autocomplete-item.no-results:hover {
+                    background-color: white;
                 }
                 
                 .parent-input-wrapper {
@@ -1341,6 +1361,18 @@ class LitterManager {
                     color: #666;
                 }
                 
+                .autocomplete-item.loading,
+                .autocomplete-item.no-results {
+                    cursor: default;
+                    color: #6c757d;
+                    font-style: italic;
+                }
+                
+                .autocomplete-item.loading:hover,
+                .autocomplete-item.no-results:hover {
+                    background-color: white;
+                }
+                
                 .parent-input-wrapper {
                     position: relative;
                 }
@@ -1381,9 +1413,6 @@ class LitterManager {
         // Reset de lijst met ingevoerde honden wanneer modal wordt geopend
         this.currentLitterDogs = [];
         this.updateAddedDogsList();
-        
-        // Laad honden voor autocomplete
-        this.loadAllDogs();
         
         // Event listeners voor alle drie opslaan knoppen
         const saveBtn = document.getElementById('saveDogBtn');
@@ -1465,7 +1494,7 @@ class LitterManager {
             }
         });
         
-        // Setup autocomplete voor ouders - zoals in DogManager
+        // Setup autocomplete voor ouders - dynamisch zoeken
         this.setupParentAutocomplete();
         
         // Setup datum velden voor correcte verwerking
@@ -1851,123 +1880,163 @@ class LitterManager {
         console.log('LitterManager: Ras toegevoegd aan recente rassen:', breedStr);
     }
     
-    async loadAllDogs() {
-        console.log('LitterManager: loadAllDogs aangeroepen');
-        
+    /**
+     * Zoek honden in de database op basis van zoekterm en geslacht
+     * Alleen honden die beginnen met de zoekterm
+     */
+    async searchDogs(searchTerm, gender) {
         if (!this.db) {
-            console.error('LitterManager: Database niet beschikbaar voor loadAllDogs!');
-            return;
+            console.error('LitterManager: Database niet beschikbaar voor zoeken!');
+            return [];
+        }
+        
+        if (!searchTerm || searchTerm.length < 1) {
+            return [];
         }
         
         try {
-            console.log('LitterManager: Laden van alle honden met paginatie...');
+            console.log(`LitterManager: Zoeken naar ${gender} met term: "${searchTerm}" (begint met)`);
             
-            // Reset array
-            this.allDogs = [];
-            
+            // Gebruik de getHonden methode met paginatie en filters
+            // We laden alle honden van het juiste geslacht (max 1000 per keer)
+            let allDogsOfGender = [];
             let currentPage = 1;
-            const pageSize = 1000; // Maximaal wat Supabase toestaat
+            const pageSize = 1000;
             let hasMorePages = true;
             
-            // Loop door alle pagina's
             while (hasMorePages) {
-                console.log(`LitterManager: Laden pagina ${currentPage}...`);
+                console.log(`LitterManager: Laden pagina ${currentPage} voor ${gender}...`);
                 
-                // Gebruik de getHonden() methode van de database service met paginatie
-                const result = await this.db.getHonden(currentPage, pageSize);
+                // Gebruik getHonden met geslacht filter
+                let result;
+                if (window.hondenService && window.hondenService.getHonden) {
+                    result = await window.hondenService.getHonden(currentPage, pageSize, { geslacht: gender });
+                } else if (this.db && this.db.getHonden) {
+                    result = await this.db.getHonden(currentPage, pageSize, { geslacht: gender });
+                } else {
+                    throw new Error('getHonden methode niet beschikbaar');
+                }
                 
-                if (result.honden && result.honden.length > 0) {
-                    // Voeg honden toe aan array
-                    this.allDogs = this.allDogs.concat(result.honden);
-                    
-                    console.log(`LitterManager: Pagina ${currentPage} geladen: ${result.honden.length} honden`);
-                    
-                    // Controleer of er nog meer pagina's zijn
+                if (result && result.honden && result.honden.length > 0) {
+                    allDogsOfGender = allDogsOfGender.concat(result.honden);
                     hasMorePages = result.heeftVolgende;
                     currentPage++;
                     
-                    // Veiligheidslimiet voor oneindige lus
-                    if (currentPage > 100) {
+                    // Veiligheidslimiet
+                    if (currentPage > 50) {
                         console.warn('Veiligheidslimiet bereikt: te veel pagina\'s geladen');
                         break;
                     }
                 } else {
                     hasMorePages = false;
                 }
-                
-                // Kleine pauze om de server niet te overbelasten
-                await new Promise(resolve => setTimeout(resolve, 100));
             }
             
-            // Sorteer op naam
-            this.allDogs.sort((a, b) => {
-                const naamA = a.naam || '';
-                const naamB = b.naam || '';
-                return naamA.localeCompare(naamB);
+            console.log(`LitterManager: Totaal ${allDogsOfGender.length} honden van geslacht ${gender} geladen`);
+            
+            // Filter op naam die begint met de zoekterm (case insensitive)
+            const searchTermLower = searchTerm.toLowerCase();
+            const filteredDogs = allDogsOfGender.filter(dog => {
+                const dogName = dog.naam ? dog.naam.toLowerCase() : '';
+                const kennelName = dog.kennelnaam ? dog.kennelnaam.toLowerCase() : '';
+                const combined = `${dogName} ${kennelName}`;
+                
+                // Controleer of de gecombineerde string begint met de zoekterm
+                // We splitsen op spatie en checken of een van de delen begint met de zoekterm
+                const parts = combined.split(' ');
+                for (const part of parts) {
+                    if (part.startsWith(searchTermLower)) {
+                        return true;
+                    }
+                }
+                
+                // Ook checken of de hele string begint met de zoekterm
+                return combined.startsWith(searchTermLower);
             });
             
-            console.log(`LitterManager: TOTAAL ${this.allDogs.length} honden geladen voor autocomplete`);
+            console.log(`LitterManager: ${filteredDogs.length} honden gevonden die beginnen met "${searchTerm}"`);
+            
+            return filteredDogs;
             
         } catch (error) {
-            console.error('LitterManager: Fout bij laden honden voor autocomplete:', error);
-            this.allDogs = []; // Reset op error
+            console.error('LitterManager: Fout bij zoeken honden:', error);
+            return [];
         }
     }
     
     setupParentAutocomplete() {
-        console.log('LitterManager: setupParentAutocomplete aangeroepen');
+        console.log('LitterManager: setupParentAutocomplete aangeroepen (dynamisch zoeken)');
         
         // Verwijder bestaande dropdowns (voor het geval dat)
         document.querySelectorAll('.autocomplete-dropdown').forEach(dropdown => {
-            if (dropdown.parentElement && dropdown.parentElement.classList.contains('parent-input-wrapper')) {
-                // Laat dropdowns staan die al goed zijn opgebouwd
-            } else {
-                dropdown.remove();
-            }
+            dropdown.remove();
         });
         
-        // Maak nieuwe dropdown containers zoals in DogManager
+        // Maak nieuwe dropdown containers
         const fatherInputWrapper = document.querySelector('#father')?.closest('.parent-input-wrapper');
         const motherInputWrapper = document.querySelector('#mother')?.closest('.parent-input-wrapper');
         
         if (fatherInputWrapper) {
-            // Controleer of er al een dropdown is
-            let fatherDropdown = fatherInputWrapper.querySelector('.autocomplete-dropdown');
-            if (!fatherDropdown) {
-                fatherDropdown = document.createElement('div');
-                fatherDropdown.className = 'autocomplete-dropdown';
-                fatherDropdown.id = 'fatherDropdown';
-                fatherDropdown.style.display = 'none';
-                fatherInputWrapper.appendChild(fatherDropdown);
-            }
+            const fatherDropdown = document.createElement('div');
+            fatherDropdown.className = 'autocomplete-dropdown';
+            fatherDropdown.id = 'fatherDropdown';
+            fatherDropdown.style.display = 'none';
+            fatherInputWrapper.appendChild(fatherDropdown);
         }
         
         if (motherInputWrapper) {
-            // Controleer of er al een dropdown is
-            let motherDropdown = motherInputWrapper.querySelector('.autocomplete-dropdown');
-            if (!motherDropdown) {
-                motherDropdown = document.createElement('div');
-                motherDropdown.className = 'autocomplete-dropdown';
-                motherDropdown.id = 'motherDropdown';
-                motherDropdown.style.display = 'none';
-                motherInputWrapper.appendChild(motherDropdown);
-            }
+            const motherDropdown = document.createElement('div');
+            motherDropdown.className = 'autocomplete-dropdown';
+            motherDropdown.id = 'motherDropdown';
+            motherDropdown.style.display = 'none';
+            motherInputWrapper.appendChild(motherDropdown);
         }
         
-        // Event listeners voor vader en moeder velden - GEBRUIK DEZELFDE LOGICA ALS IN SEARCHMANAGER
+        // Event listeners voor vader en moeder velden - DYNAMISCH ZOEKEN
         document.querySelectorAll('.parent-input-wrapper input').forEach(input => {
-            input.addEventListener('focus', () => {
-                this.loadAllDogs(); // Zorg dat honden geladen zijn
-            });
-            
-            input.addEventListener('input', (e) => {
-                const searchTerm = e.target.value.toLowerCase().trim();
+            // Bij focus: toon dropdown als er al tekst staat
+            input.addEventListener('focus', (e) => {
+                const searchTerm = e.target.value.trim();
                 const parentType = input.id === 'father' ? 'father' : 'mother';
-                this.showParentAutocomplete(searchTerm, parentType);
+                
+                if (searchTerm.length >= 1) {
+                    this.showParentAutocomplete(searchTerm, parentType);
+                }
             });
             
+            // Bij input: zoek terwijl je typt met debouncing
+            input.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.trim();
+                const parentType = input.id === 'father' ? 'father' : 'mother';
+                
+                // Debounce: wacht 300ms na laatste typen voordat we zoeken
+                if (this.searchTimeout) {
+                    clearTimeout(this.searchTimeout);
+                }
+                
+                if (searchTerm.length < 1) {
+                    // Verberg dropdown als zoekterm leeg is
+                    const dropdown = document.getElementById(`${parentType}Dropdown`);
+                    if (dropdown) {
+                        dropdown.style.display = 'none';
+                    }
+                    return;
+                }
+                
+                // Toon "Zoeken..." bericht
+                const dropdown = document.getElementById(`${parentType}Dropdown`);
+                if (dropdown) {
+                    dropdown.innerHTML = `<div class="autocomplete-item loading">${this.t('searching')}</div>`;
+                    dropdown.style.display = 'block';
+                }
+                
+                this.searchTimeout = setTimeout(async () => {
+                    await this.showParentAutocomplete(searchTerm, parentType);
+                }, 300);
+            });
+            
+            // Bij blur: verberg dropdown na korte tijd (voor klikken op item)
             input.addEventListener('blur', (e) => {
-                // Wacht even voordat dropdown wordt verborgen (voor klikken op item)
                 setTimeout(() => {
                     const dropdown = document.getElementById(`${input.id}Dropdown`);
                     if (dropdown) {
@@ -1989,7 +2058,7 @@ class LitterManager {
             });
         });
         
-        // Klik buiten dropdown om te verbergen - net zoals in DogManager
+        // Klik buiten dropdown om te verbergen
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.parent-input-wrapper')) {
                 document.querySelectorAll('.autocomplete-dropdown').forEach(dropdown => {
@@ -1999,7 +2068,7 @@ class LitterManager {
         });
     }
     
-    showParentAutocomplete(searchTerm, parentType) {
+    async showParentAutocomplete(searchTerm, parentType) {
         console.log('LitterManager: showParentAutocomplete voor', parentType, 'zoekterm:', searchTerm);
         
         const dropdown = document.getElementById(`${parentType}Dropdown`);
@@ -2013,36 +2082,22 @@ class LitterManager {
             return;
         }
         
-        console.log('LitterManager: Aantal honden beschikbaar voor autocomplete:', this.allDogs.length);
+        // Bepaal geslacht op basis van parentType
+        const gender = parentType === 'father' ? 'reuen' : 'teven';
         
-        // Filter honden voor autocomplete - GEBRUIK DEZELFDE LOGICA ALS IN SEARCHMANAGER
-        const suggestions = this.allDogs.filter(dog => {
-            const dogName = dog.naam ? dog.naam.toLowerCase() : '';
-            const kennelName = dog.kennelnaam ? dog.kennelnaam.toLowerCase() : '';
-            
-            // Creëer een gecombineerde string: "naam kennelnaam" (zoals in SearchManager)
-            const combined = `${dogName} ${kennelName}`;
-            
-            // Controleer of de gecombineerde string begint met de zoekterm
-            const matchesSearch = combined.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "").startsWith(searchTerm.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, ""));
-            
-            // Filter op geslacht
-            if (parentType === 'father') {
-                return matchesSearch && dog.geslacht === 'reuen';
-            } else if (parentType === 'mother') {
-                return matchesSearch && dog.geslacht === 'teven';
-            }
-            return matchesSearch;
-        }).slice(0, 8); // Max 8 suggesties
+        // Zoek honden in database (alleen die beginnen met de zoekterm)
+        const suggestions = await this.searchDogs(searchTerm, gender);
         
         console.log('LitterManager: Aantal suggesties:', suggestions.length);
         
         if (suggestions.length === 0) {
-            dropdown.style.display = 'none';
+            dropdown.innerHTML = `<div class="autocomplete-item no-results">${this.t('noResults')}</div>`;
+            dropdown.style.display = 'block';
             return;
         }
         
         let html = '';
+        // Toon alle gevonden honden, geen limiet
         suggestions.forEach(dog => {
             // Toon zowel naam als kennelnaam in de autocomplete
             const displayName = dog.kennelnaam ? `${dog.naam} ${dog.kennelnaam}` : dog.naam;
@@ -2059,7 +2114,7 @@ class LitterManager {
         dropdown.innerHTML = html;
         dropdown.style.display = 'block';
         
-        // Event listeners voor autocomplete items - net zoals in DogManager
+        // Event listeners voor autocomplete items
         dropdown.querySelectorAll('.autocomplete-item').forEach(item => {
             item.addEventListener('click', (e) => {
                 const dogId = item.getAttribute('data-id');
@@ -2067,7 +2122,7 @@ class LitterManager {
                 const dogKennel = item.getAttribute('data-kennel');
                 const dogPedigree = item.getAttribute('data-pedigree');
                 const input = document.getElementById(parentType);
-                // BELANGRIJK: Gebruik vader_id en moeder_id zoals in DogManager
+                // Gebruik vader_id en moeder_id zoals in DogManager
                 const idInput = parentType === 'father' ? document.getElementById('vader_id') : document.getElementById('moeder_id');
                 
                 // Voeg zowel naam als kennelnaam toe aan het input veld
