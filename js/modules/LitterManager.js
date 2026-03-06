@@ -40,6 +40,7 @@ class LitterManager {
                 recent: "Recent:",
                 father: "Vader *",
                 mother: "Moeder *",
+                motherTooltip: "Alleen teven die op jouw naam staan in de database worden getoond. Neem contact op met een beheerder als je teef nog niet op jouw naam staat.",
                 coatColor: "Vachtkleur (selecteer)",
                 standardCoatColors: " ",
                 birthDate: "Geboortedatum",
@@ -166,6 +167,7 @@ class LitterManager {
                 recent: "Recent:",
                 father: "Father *",
                 mother: "Mother *",
+                motherTooltip: "Only female dogs registered in your name are shown. Contact an administrator if your female dog is not yet registered in your name.",
                 coatColor: "Coat Color (select)",
                 standardCoatColors: " ",
                 birthDate: "Birth date",
@@ -292,6 +294,7 @@ class LitterManager {
                 recent: "Kürzlich:",
                 father: "Vater *",
                 mother: "Mutter *",
+                motherTooltip: "Es werden nur Hündinnen angezeigt, die auf Ihren Namen registriert sind. Kontaktieren Sie einen Administrator, wenn Ihre Hündin noch nicht auf Ihren Namen registriert ist.",
                 coatColor: "Fellfarbe (auswählen)",
                 standardCoatColors: " ",
                 birthDate: "Geburtsdatum",
@@ -1046,7 +1049,15 @@ class LitterManager {
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3 parent-input-wrapper">
-                                <label for="mother" class="form-label">${t('mother')}</label>
+                                <label for="mother" class="form-label">
+                                    ${t('mother')}
+                                    <i class="bi bi-info-circle text-primary ms-1" 
+                                       style="cursor: pointer; font-size: 0.9rem;" 
+                                       data-bs-toggle="tooltip" 
+                                       data-bs-placement="top" 
+                                       title="${t('motherTooltip')}">
+                                    </i>
+                                </label>
                                 <input type="text" class="form-control" id="mother" 
                                        value="${data.moeder || ''}" 
                                        placeholder="Begin met typen om te zoeken..."
@@ -1388,6 +1399,14 @@ class LitterManager {
         
         // Laad honden voor autocomplete
         this.loadAllDogs(false);
+        
+        // Initialiseer Bootstrap tooltips
+        if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        }
         
         // Event listeners voor alle drie opslaan knoppen
         const saveBtn = document.getElementById('saveDogBtn');
