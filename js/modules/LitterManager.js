@@ -16,6 +16,10 @@ class LitterManager {
         this.auth = window.auth;
         this.isInitialized = !!this.db && !!this.auth;
         
+        // NIEUW: Gebruikersgegevens ophalen
+        this.currentUserId = localStorage.getItem('userId');
+        this.currentUserRole = localStorage.getItem('userRole');
+        
         this.translations = {
             nl: {
                 // Modal titels
@@ -1880,7 +1884,10 @@ class LitterManager {
                 console.log(`LitterManager: Laden pagina ${currentPage}...`);
                 
                 // Gebruik de getHonden() methode van de database service met paginatie
-                const result = await this.db.getHonden(currentPage, pageSize);
+                // NIEUW: Voeg profiles toe om eigenaarsinformatie op te halen
+                const result = await this.db.getHonden(currentPage, pageSize, {
+                    select: '*, profiles!honden_toegevoegd_door_fkey (email, user_id, role)'
+                });
                 
                 if (result.honden && result.honden.length > 0) {
                     // Voeg honden toe aan array
@@ -2023,6 +2030,7 @@ class LitterManager {
         console.log('LitterManager: Aantal honden beschikbaar voor autocomplete:', this.allDogs.length);
         
         // VERBETERDE VERSIE: Filter honden voor autocomplete met deduplicatie, behoud originele zoeklogica
+        // NIEUW: Extra filtering op basis van gebruiker voor moeders (teven)
         const suggestions = this.allDogs
             // Eerst dedupliceren op basis van ID
             .filter((dog, index, self) => 
@@ -2042,13 +2050,22 @@ class LitterManager {
                 if (parentType === 'father') {
                     return matchesSearch && dog.geslacht === 'reuen';
                 } else if (parentType === 'mother') {
-                    return matchesSearch && dog.geslacht === 'teven';
+                    // Voor moeders: check geslacht EN (admin mag alle teven zien, gebruiker alleen eigen teven)
+                    const isTeef = dog.geslacht === 'teven';
+                    
+                    // Als admin: alle teven tonen
+                    if (this.currentUserRole === 'admin') {
+                        return matchesSearch && isTeef;
+                    }
+                    
+                    // Als gewone gebruiker: alleen teven die van de gebruiker zijn
+                    return matchesSearch && isTeef && dog.toegevoegd_door === this.currentUserId;
                 }
                 return matchesSearch;
             })
             .slice(0, 8); // Max 8 suggesties
         
-        console.log('LitterManager: Aantal suggesties na deduplicatie:', suggestions.length);
+        console.log('LitterManager: Aantal suggesties na deduplicatie en filtering:', suggestions.length);
         
         if (suggestions.length === 0) {
             dropdown.style.display = 'none';
