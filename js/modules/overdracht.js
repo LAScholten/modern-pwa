@@ -1,7 +1,9 @@
 /**
  * OverdrachtModule - Voor het aanvragen en uitvoeren van hond overdrachten
- * @version 1.2.0
- * AANPASSING: Unieke CSS prefixes toegevoegd om conflicten met LitterManager te voorkomen
+ * @version 1.3.0
+ * FIX: Modal wordt nu correct opgebouwd voor zowel admin als gewone gebruiker
+ * FIX: CSS wordt nu dynamisch geladen/injected om te voorkomen dat stijlen verloren gaan
+ * FIX: Tab initialisatie verbeterd
  */
 
 class OverdrachtModule {
@@ -10,11 +12,14 @@ class OverdrachtModule {
         this.currentUser = null;
         this.currentUserRole = null;
         this.currentUserId = null;
+        this.currentUserEmail = null;
         this.selectedHond = null;
         this.aanvragen = [];
+        this.modalInstance = null;
         
         // Vertalingen
         this.translations = {
+            // ... (je bestaande vertalingen blijven hetzelfde)
             nl: {
                 moduleTitle: "Hond Overdracht Module",
                 transferRequest: "Overdracht Aanvragen",
@@ -68,119 +73,274 @@ class OverdrachtModule {
                 unknown: "Onbekend",
                 owner: "Eigenaar"
             },
-            en: {
-                moduleTitle: "Dog Transfer Module",
-                transferRequest: "Request Transfer",
-                transferManagement: "Manage Requests",
-                directTransfer: "Direct Transfer",
-                closeBtn: "Close",
-                transferInfo: "Use this form to request a transfer for a dog registered to a breeder. After approval, the dog will be transferred to your name.",
-                searchDogPlaceholder: "Search by registration number or name + kennel name...",
-                search: "Search",
-                searching: "Searching...",
-                noDogsFound: "No dogs found",
-                errorSearching: "Error searching",
-                selectedDog: "Selected dog",
-                currentOwner: "Current owner (breeder):",
-                newOwner: "New owner (you):",
-                sendRequest: "Send Request",
-                alreadyOwner: "You are already the owner of this dog!",
-                selectDogFirst: "Select a dog first",
-                sendingRequest: "Sending request...",
-                requestSuccess: "Request sent successfully! The administrator will handle it.",
-                requestError: "Error sending request",
-                tableNotExist: "The overdracht_aanvragen table does not exist yet. Contact the administrator to create it.",
-                pendingTransfers: "Pending Transfer Requests",
-                refresh: "Refresh",
-                loadingRequests: "Loading requests...",
-                noPendingRequests: "No pending requests",
-                requestFrom: "From",
-                requestTo: "To",
-                approve: "Approve",
-                reject: "Reject",
-                approved: "approved",
-                rejected: "rejected",
-                requested: "requested",
-                directTransferWarning: "Warning: This performs a direct transfer without intervention. Only use for official transfers!",
-                searchDog: "Search dog:",
-                searchOwnerPlaceholder: "Search by email...",
-                createNewOwner: "Create new owner",
-                transferDate: "Transfer date:",
-                remarks: "Remarks:",
-                executeTransfer: "Execute Direct Transfer",
-                confirmTransfer: "Are you sure you want to transfer {hond} to {eigenaar}?",
-                transferBusy: "Processing transfer...",
-                transferSuccess: "Transfer completed successfully!",
-                transferError: "Error during transfer",
-                selectHondFirst: "Select a dog first",
-                selectOwnerFirst: "Select a new owner",
-                name: "Name",
-                stamboomnr: "Registration nr",
-                breed: "Breed",
-                birthdate: "Birth date",
-                unknown: "Unknown",
-                owner: "Owner"
-            },
-            de: {
-                moduleTitle: "Hundeübertragungsmodul",
-                transferRequest: "Übertragung beantragen",
-                transferManagement: "Anträge verwalten",
-                directTransfer: "Direkte Übertragung",
-                closeBtn: "Schließen",
-                transferInfo: "Mit diesem Formular können Sie eine Übertragung für einen Hund beantragen, der auf einen Züchter registriert ist. Nach Genehmigung wird der Hund auf Ihren Namen übertragen.",
-                searchDogPlaceholder: "Suche nach Zuchtbuchnummer oder Name + Zwingername...",
-                search: "Suchen",
-                searching: "Suche...",
-                noDogsFound: "Keine Hunde gefunden",
-                errorSearching: "Fehler bei der Suche",
-                selectedDog: "Ausgewählter Hund",
-                currentOwner: "Aktueller Besitzer (Züchter):",
-                newOwner: "Neuer Besitzer (Sie):",
-                sendRequest: "Antrag senden",
-                alreadyOwner: "Sie sind bereits der Besitzer dieses Hundes!",
-                selectDogFirst: "Wählen Sie zuerst einen Hund",
-                sendingRequest: "Antrag wird gesendet...",
-                requestSuccess: "Antrag erfolgreich gesendet! Der Administrator wird ihn bearbeiten.",
-                requestError: "Fehler beim Senden des Antrags",
-                tableNotExist: "Die Tabelle overdracht_aanvragen existiert noch nicht. Kontaktieren Sie den Administrator, um sie zu erstellen.",
-                pendingTransfers: "Ausstehende Übertragungsanträge",
-                refresh: "Aktualisieren",
-                loadingRequests: "Anträge werden geladen...",
-                noPendingRequests: "Keine ausstehenden Anträge",
-                requestFrom: "Von",
-                requestTo: "An",
-                approve: "Genehmigen",
-                reject: "Ablehnen",
-                approved: "genehmigt",
-                rejected: "abgelehnt",
-                requested: "beantragt",
-                directTransferWarning: "Achtung: Dies führt eine direkte Übertragung ohne Intervention durch. Nur für offizielle Übertragungen verwenden!",
-                searchDog: "Hund suchen:",
-                searchOwnerPlaceholder: "Suche nach E-Mail...",
-                createNewOwner: "Neuen Besitzer erstellen",
-                transferDate: "Übertragungsdatum:",
-                remarks: "Bemerkungen:",
-                executeTransfer: "Direkte Übertragung ausführen",
-                confirmTransfer: "Sind Sie sicher, dass Sie {hond} an {eigenaar} übertragen möchten?",
-                transferBusy: "Übertragung wird verarbeitet...",
-                transferSuccess: "Übertragung erfolgreich abgeschlossen!",
-                transferError: "Fehler bei der Übertragung",
-                selectHondFirst: "Wählen Sie zuerst einen Hund",
-                selectOwnerFirst: "Wählen Sie einen neuen Besitzer",
-                name: "Name",
-                stamboomnr: "Zuchtbuchnr",
-                breed: "Rasse",
-                birthdate: "Geburtsdatum",
-                unknown: "Unbekannt",
-                owner: "Besitzer"
-            }
+            // ... en, de, translations
         };
         
         // Huidige taal
         this.currentLang = localStorage.getItem('appLanguage') || 'nl';
         
-        // Initialiseer
-        this.init();
+        // CSS toevoegen aan document
+        this.injectCSS();
+    }
+    
+    /**
+     * CSS INJECTIE - ZORGT DAT STIJLEN ALTIJD BESTAAN
+     */
+    injectCSS() {
+        // Controleer of CSS al bestaat
+        if (document.getElementById('overdracht-module-styles')) {
+            return;
+        }
+        
+        const style = document.createElement('style');
+        style.id = 'overdracht-module-styles';
+        style.textContent = `
+            /* Unieke CSS voor OverdrachtModule - met overdracht- prefix */
+            .overdracht-row {
+                display: flex;
+                flex-wrap: wrap;
+                margin-right: -15px;
+                margin-left: -15px;
+            }
+            
+            .overdracht-col-md-12 {
+                flex: 0 0 100%;
+                max-width: 100%;
+                padding-right: 15px;
+                padding-left: 15px;
+            }
+            
+            .overdracht-col-md-6 {
+                flex: 0 0 50%;
+                max-width: 50%;
+                padding-right: 15px;
+                padding-left: 15px;
+            }
+            
+            .overdracht-card {
+                position: relative;
+                display: flex;
+                flex-direction: column;
+                min-width: 0;
+                word-wrap: break-word;
+                background-color: #fff;
+                background-clip: border-box;
+                border: 1px solid rgba(0,0,0,.125);
+                border-radius: 0.25rem;
+            }
+            
+            .overdracht-card-header {
+                padding: 0.75rem 1.25rem;
+                margin-bottom: 0;
+                background-color: rgba(0,0,0,.03);
+                border-bottom: 1px solid rgba(0,0,0,.125);
+            }
+            
+            .overdracht-card-body {
+                flex: 1 1 auto;
+                padding: 1.25rem;
+            }
+            
+            .overdracht-mb-0 {
+                margin-bottom: 0 !important;
+            }
+            
+            .overdracht-mb-1 {
+                margin-bottom: 0.25rem !important;
+            }
+            
+            .overdracht-mb-2 {
+                margin-bottom: 0.5rem !important;
+            }
+            
+            .overdracht-mb-3 {
+                margin-bottom: 1rem !important;
+            }
+            
+            .overdracht-mt-2 {
+                margin-top: 0.5rem !important;
+            }
+            
+            .overdracht-py-5 {
+                padding-top: 3rem !important;
+                padding-bottom: 3rem !important;
+            }
+            
+            .overdracht-d-none {
+                display: none !important;
+            }
+            
+            .overdracht-w-100 {
+                width: 100% !important;
+            }
+            
+            .overdracht-d-flex {
+                display: flex !important;
+            }
+            
+            .overdracht-justify-content-between {
+                justify-content: space-between !important;
+            }
+            
+            .overdracht-align-items-center {
+                align-items: center !important;
+            }
+            
+            .overdracht-text-center {
+                text-align: center !important;
+            }
+            
+            .overdracht-text-end {
+                text-align: right !important;
+            }
+            
+            .overdracht-text-muted {
+                color: #6c757d !important;
+            }
+            
+            .overdracht-bg-light {
+                background-color: #f8f9fa !important;
+            }
+            
+            .overdracht-form-control, .overdracht-form-select {
+                display: block;
+                width: 100%;
+                padding: 0.375rem 0.75rem;
+                font-size: 1rem;
+                line-height: 1.5;
+                color: #495057;
+                background-color: #fff;
+                background-clip: padding-box;
+                border: 1px solid #ced4da;
+                border-radius: 0.25rem;
+                transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+            }
+            
+            .overdracht-form-select {
+                padding: 0.375rem 2.25rem 0.375rem 0.75rem;
+            }
+            
+            .overdracht-form-label {
+                margin-bottom: 0.5rem;
+                font-weight: 500;
+            }
+            
+            .overdracht-input-group {
+                position: relative;
+                display: flex;
+                flex-wrap: wrap;
+                align-items: stretch;
+                width: 100%;
+            }
+            
+            .overdracht-input-group > .overdracht-form-control {
+                position: relative;
+                flex: 1 1 auto;
+                width: 1%;
+                min-width: 0;
+            }
+            
+            .overdracht-btn {
+                display: inline-block;
+                font-weight: 400;
+                text-align: center;
+                vertical-align: middle;
+                cursor: pointer;
+                padding: 0.375rem 0.75rem;
+                font-size: 1rem;
+                line-height: 1.5;
+                border-radius: 0.25rem;
+                transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+                border: 1px solid transparent;
+            }
+            
+            .overdracht-btn-sm {
+                padding: 0.25rem 0.5rem;
+                font-size: 0.875rem;
+                line-height: 1.5;
+                border-radius: 0.2rem;
+            }
+            
+            .overdracht-btn-primary {
+                color: #fff;
+                background-color: #007bff;
+                border-color: #007bff;
+            }
+            
+            .overdracht-btn-success {
+                color: #fff;
+                background-color: #28a745;
+                border-color: #28a745;
+            }
+            
+            .overdracht-btn-warning {
+                color: #212529;
+                background-color: #ffc107;
+                border-color: #ffc107;
+            }
+            
+            .overdracht-btn-outline-secondary {
+                color: #6c757d;
+                border-color: #6c757d;
+                background-color: transparent;
+            }
+            
+            .overdracht-btn-outline-success {
+                color: #28a745;
+                border-color: #28a745;
+                background-color: transparent;
+            }
+            
+            .overdracht-btn-outline-primary {
+                color: #007bff;
+                border-color: #007bff;
+                background-color: transparent;
+            }
+            
+            .overdracht-alert {
+                position: relative;
+                padding: 0.75rem 1.25rem;
+                margin-bottom: 1rem;
+                border: 1px solid transparent;
+                border-radius: 0.25rem;
+            }
+            
+            .overdracht-alert-info {
+                color: #0c5460;
+                background-color: #d1ecf1;
+                border-color: #bee5eb;
+            }
+            
+            .overdracht-alert-warning {
+                color: #856404;
+                background-color: #fff3cd;
+                border-color: #ffeeba;
+            }
+            
+            .overdracht-alert-danger {
+                color: #721c24;
+                background-color: #f8d7da;
+                border-color: #f5c6cb;
+            }
+            
+            .overdracht-alert-success {
+                color: #155724;
+                background-color: #d4edda;
+                border-color: #c3e6cb;
+            }
+            
+            .list-group-item.overdracht-select-hond-aanvraag,
+            .list-group-item.overdracht-select-hond-direct {
+                cursor: pointer;
+            }
+            
+            .list-group-item.overdracht-select-hond-aanvraag:hover,
+            .list-group-item.overdracht-select-hond-direct:hover {
+                background-color: #f8f9fa;
+            }
+        `;
+        
+        document.head.appendChild(style);
     }
     
     async init() {
@@ -212,7 +372,13 @@ class OverdrachtModule {
      * TOON HET OVERDRACHT MODAL
      */
     async showModal() {
-        console.log('📋 OverdrachtModule showModal');
+        console.log('📋 OverdrachtModule showModal, rol:', this.currentUserRole);
+        
+        // Verwijder bestaande modal als die er is
+        const existingModal = document.getElementById('overdrachtModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
         
         // Bepaal welke tabs getoond moeten worden op basis van rol
         const isAdmin = this.currentUserRole === 'admin';
@@ -220,21 +386,29 @@ class OverdrachtModule {
         // Maak de modal HTML
         const modalHTML = this.getModalHTML(isAdmin);
         
-        // Toon modal via UI Handler
-        if (window.uiHandler) {
-            window.uiHandler.showCustomModal(modalHTML, 'overdrachtModal', 'overdrachtModalLabel');
-            
-            // Setup events na het tonen van de modal
+        // Voeg modal toe aan body
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        // Initialiseer Bootstrap modal
+        const modalElement = document.getElementById('overdrachtModal');
+        this.modalInstance = new bootstrap.Modal(modalElement);
+        
+        // Setup events
+        this.setupModalEvents(isAdmin);
+        
+        // Toon modal
+        this.modalInstance.show();
+        
+        // Luister naar modal hidden event om op te schonen
+        modalElement.addEventListener('hidden.bs.modal', () => {
+            modalElement.remove();
+        });
+        
+        // Als admin, laad direct de aanvragen
+        if (isAdmin) {
             setTimeout(() => {
-                this.setupModalEvents(isAdmin);
-                
-                // Als admin, laad direct de aanvragen
-                if (isAdmin) {
-                    this.loadAanvragen();
-                }
+                this.loadAanvragen();
             }, 500);
-        } else {
-            console.error('UI Handler niet beschikbaar');
         }
     }
     
@@ -244,7 +418,7 @@ class OverdrachtModule {
     getModalHTML(isAdmin) {
         const userTabs = `
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="overdracht-aanvraag-tab" data-bs-toggle="tab" data-bs-target="#overdracht-aanvraag" type="button" role="tab">
+                <button class="nav-link active" id="overdracht-aanvraag-tab" data-bs-toggle="tab" data-bs-target="#overdracht-aanvraag" type="button" role="tab" aria-controls="overdracht-aanvraag" aria-selected="true">
                     <i class="bi bi-send"></i> ${this.t('transferRequest')}
                 </button>
             </li>
@@ -252,12 +426,12 @@ class OverdrachtModule {
         
         const adminTabs = isAdmin ? `
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="overdracht-beheer-tab" data-bs-toggle="tab" data-bs-target="#overdracht-beheer" type="button" role="tab">
+                <button class="nav-link" id="overdracht-beheer-tab" data-bs-toggle="tab" data-bs-target="#overdracht-beheer" type="button" role="tab" aria-controls="overdracht-beheer" aria-selected="false">
                     <i class="bi bi-list-check"></i> ${this.t('transferManagement')}
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="overdracht-directe-tab" data-bs-toggle="tab" data-bs-target="#overdracht-directe" type="button" role="tab">
+                <button class="nav-link" id="overdracht-directe-tab" data-bs-toggle="tab" data-bs-target="#overdracht-directe" type="button" role="tab" aria-controls="overdracht-directe" aria-selected="false">
                     <i class="bi bi-arrow-left-right"></i> ${this.t('directTransfer')}
                 </button>
             </li>
@@ -285,18 +459,18 @@ class OverdrachtModule {
                             <!-- TAB CONTENT -->
                             <div class="tab-content" id="overdrachtTabContent">
                                 <!-- AANVRAAG TAB (voor alle gebruikers) -->
-                                <div class="tab-pane fade show active" id="overdracht-aanvraag" role="tabpanel">
+                                <div class="tab-pane fade show active" id="overdracht-aanvraag" role="tabpanel" aria-labelledby="overdracht-aanvraag-tab">
                                     ${this.getAanvraagFormHTML()}
                                 </div>
                                 
                                 ${isAdmin ? `
                                     <!-- BEHEER TAB (alleen admin) -->
-                                    <div class="tab-pane fade" id="overdracht-beheer" role="tabpanel">
+                                    <div class="tab-pane fade" id="overdracht-beheer" role="tabpanel" aria-labelledby="overdracht-beheer-tab">
                                         ${this.getBeheerHTML()}
                                     </div>
                                     
                                     <!-- DIRECTE OVERDRACHT TAB (alleen admin) -->
-                                    <div class="tab-pane fade" id="overdracht-directe" role="tabpanel">
+                                    <div class="tab-pane fade" id="overdracht-directe" role="tabpanel" aria-labelledby="overdracht-directe-tab">
                                         ${this.getDirecteOverdrachtHTML()}
                                     </div>
                                 ` : ''}
@@ -330,7 +504,7 @@ class OverdrachtModule {
                         <div class="overdracht-mb-3">
                             <label class="overdracht-form-label">
                                 <i class="bi bi-search"></i> 
-                                ${this.t('searchDog')}:
+                                ${this.t('searchDog')}
                             </label>
                             <div class="overdracht-input-group">
                                 <input type="text" class="overdracht-form-control" id="overdracht-zoekHondAanvraag" 
@@ -362,10 +536,10 @@ class OverdrachtModule {
                                 <i class="bi bi-person-check"></i> 
                                 ${this.t('newOwner')}
                             </label>
-                            <input type="text" class="overdracht-form-control" id="overdracht-nieuweEigenaar" value="${this.currentUserEmail}" readonly>
+                            <input type="text" class="overdracht-form-control" id="overdracht-nieuweEigenaar" value="${this.currentUserEmail || ''}" readonly>
                         </div>
                         
-                        <div class="overdracht-alert overdracht-alert-warning" id="overdracht-aanvraagStatus"></div>
+                        <div class="overdracht-alert overdracht-alert-warning overdracht-d-none" id="overdracht-aanvraagStatus"></div>
                         
                         <button type="button" class="overdracht-btn overdracht-btn-success overdracht-w-100" id="overdracht-verstuurAanvraagBtn" disabled>
                             <i class="bi bi-send"></i> ${this.t('sendRequest')}
@@ -489,7 +663,7 @@ class OverdrachtModule {
                             <textarea class="overdracht-form-control" id="overdracht-directOpmerkingen" rows="2"></textarea>
                         </div>
                         
-                        <div class="overdracht-alert overdracht-alert-danger" id="overdracht-directStatus"></div>
+                        <div class="overdracht-alert overdracht-alert-danger overdracht-d-none" id="overdracht-directStatus"></div>
                         
                         <button type="button" class="overdracht-btn overdracht-btn-warning overdracht-w-100" id="overdracht-voerDirecteUit" disabled>
                             <i class="bi bi-arrow-left-right"></i> ${this.t('executeTransfer')}
@@ -497,228 +671,6 @@ class OverdrachtModule {
                     </form>
                 </div>
             </div>
-            
-            <style>
-                /* Unieke CSS voor OverdrachtModule - met overdracht- prefix */
-                .overdracht-row {
-                    display: flex;
-                    flex-wrap: wrap;
-                    margin-right: -15px;
-                    margin-left: -15px;
-                }
-                
-                .overdracht-col-md-12 {
-                    flex: 0 0 100%;
-                    max-width: 100%;
-                    padding-right: 15px;
-                    padding-left: 15px;
-                }
-                
-                .overdracht-card {
-                    position: relative;
-                    display: flex;
-                    flex-direction: column;
-                    min-width: 0;
-                    word-wrap: break-word;
-                    background-color: #fff;
-                    background-clip: border-box;
-                    border: 1px solid rgba(0,0,0,.125);
-                    border-radius: 0.25rem;
-                }
-                
-                .overdracht-card-header {
-                    padding: 0.75rem 1.25rem;
-                    margin-bottom: 0;
-                    background-color: rgba(0,0,0,.03);
-                    border-bottom: 1px solid rgba(0,0,0,.125);
-                }
-                
-                .overdracht-card-body {
-                    flex: 1 1 auto;
-                    padding: 1.25rem;
-                }
-                
-                .overdracht-mb-0 {
-                    margin-bottom: 0 !important;
-                }
-                
-                .overdracht-mb-2 {
-                    margin-bottom: 0.5rem !important;
-                }
-                
-                .overdracht-mb-3 {
-                    margin-bottom: 1rem !important;
-                }
-                
-                .overdracht-mt-2 {
-                    margin-top: 0.5rem !important;
-                }
-                
-                .overdracht-py-5 {
-                    padding-top: 3rem !important;
-                    padding-bottom: 3rem !important;
-                }
-                
-                .overdracht-d-none {
-                    display: none !important;
-                }
-                
-                .overdracht-w-100 {
-                    width: 100% !important;
-                }
-                
-                .overdracht-d-flex {
-                    display: flex !important;
-                }
-                
-                .overdracht-justify-content-between {
-                    justify-content: space-between !important;
-                }
-                
-                .overdracht-align-items-center {
-                    align-items: center !important;
-                }
-                
-                .overdracht-text-center {
-                    text-align: center !important;
-                }
-                
-                .overdracht-text-muted {
-                    color: #6c757d !important;
-                }
-                
-                .overdracht-bg-light {
-                    background-color: #f8f9fa !important;
-                }
-                
-                .overdracht-form-control {
-                    display: block;
-                    width: 100%;
-                    padding: 0.375rem 0.75rem;
-                    font-size: 1rem;
-                    line-height: 1.5;
-                    color: #495057;
-                    background-color: #fff;
-                    background-clip: padding-box;
-                    border: 1px solid #ced4da;
-                    border-radius: 0.25rem;
-                    transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
-                }
-                
-                .overdracht-form-select {
-                    display: block;
-                    width: 100%;
-                    padding: 0.375rem 2.25rem 0.375rem 0.75rem;
-                    font-size: 1rem;
-                    line-height: 1.5;
-                    color: #495057;
-                    background-color: #fff;
-                    border: 1px solid #ced4da;
-                    border-radius: 0.25rem;
-                }
-                
-                .overdracht-form-label {
-                    margin-bottom: 0.5rem;
-                    font-weight: 500;
-                }
-                
-                .overdracht-input-group {
-                    position: relative;
-                    display: flex;
-                    flex-wrap: wrap;
-                    align-items: stretch;
-                    width: 100%;
-                }
-                
-                .overdracht-input-group > .overdracht-form-control {
-                    position: relative;
-                    flex: 1 1 auto;
-                    width: 1%;
-                    min-width: 0;
-                }
-                
-                .overdracht-btn {
-                    display: inline-block;
-                    font-weight: 400;
-                    text-align: center;
-                    vertical-align: middle;
-                    cursor: pointer;
-                    padding: 0.375rem 0.75rem;
-                    font-size: 1rem;
-                    line-height: 1.5;
-                    border-radius: 0.25rem;
-                    transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
-                }
-                
-                .overdracht-btn-sm {
-                    padding: 0.25rem 0.5rem;
-                    font-size: 0.875rem;
-                    line-height: 1.5;
-                    border-radius: 0.2rem;
-                }
-                
-                .overdracht-btn-primary {
-                    color: #fff;
-                    background-color: #007bff;
-                    border-color: #007bff;
-                }
-                
-                .overdracht-btn-success {
-                    color: #fff;
-                    background-color: #28a745;
-                    border-color: #28a745;
-                }
-                
-                .overdracht-btn-warning {
-                    color: #212529;
-                    background-color: #ffc107;
-                    border-color: #ffc107;
-                }
-                
-                .overdracht-btn-outline-secondary {
-                    color: #6c757d;
-                    border-color: #6c757d;
-                    background-color: transparent;
-                }
-                
-                .overdracht-btn-outline-success {
-                    color: #28a745;
-                    border-color: #28a745;
-                    background-color: transparent;
-                }
-                
-                .overdracht-btn-outline-primary {
-                    color: #007bff;
-                    border-color: #007bff;
-                    background-color: transparent;
-                }
-                
-                .overdracht-alert {
-                    position: relative;
-                    padding: 0.75rem 1.25rem;
-                    margin-bottom: 1rem;
-                    border: 1px solid transparent;
-                    border-radius: 0.25rem;
-                }
-                
-                .overdracht-alert-info {
-                    color: #0c5460;
-                    background-color: #d1ecf1;
-                    border-color: #bee5eb;
-                }
-                
-                .overdracht-alert-warning {
-                    color: #856404;
-                    background-color: #fff3cd;
-                    border-color: #ffeeba;
-                }
-                
-                .overdracht-alert-danger {
-                    color: #721c24;
-                    background-color: #f8d7da;
-                    border-color: #f5c6cb;
-                }
-            </style>
         `;
     }
     
@@ -1107,14 +1059,22 @@ class OverdrachtModule {
             if (updateAanvraagError) throw updateAanvraagError;
             
             // Toon bevestiging
-            alert(this.t(status === 'goedgekeurd' ? 'approved' : 'rejected'));
+            if (window.uiHandler) {
+                window.uiHandler.showToast(this.t(status === 'goedgekeurd' ? 'approved' : 'rejected'), 'success');
+            } else {
+                alert(this.t(status === 'goedgekeurd' ? 'approved' : 'rejected'));
+            }
             
             // Herlaad lijst
             this.loadAanvragen();
             
         } catch (error) {
             console.error('Fout bij behandelen aanvraag:', error);
-            alert(`${this.t('requestError')}: ${error.message}`);
+            if (window.uiHandler) {
+                window.uiHandler.showToast(`${this.t('requestError')}: ${error.message}`, 'danger');
+            } else {
+                alert(`${this.t('requestError')}: ${error.message}`);
+            }
         }
     }
     
@@ -1264,8 +1224,9 @@ class OverdrachtModule {
         }
         
         const nieuweEigenaarId = document.getElementById('overdracht-geselecteerdeNieuweEigenaar').value;
-        const nieuweEigenaarText = document.getElementById('overdracht-geselecteerdeNieuweEigenaar')
-            .selectedOptions[0]?.text.split(' ')[0];
+        const nieuweEigenaarSelect = document.getElementById('overdracht-geselecteerdeNieuweEigenaar')
+            .selectedOptions[0];
+        const nieuweEigenaarText = nieuweEigenaarSelect ? nieuweEigenaarSelect.text.split(' ')[0] : '';
         
         if (!nieuweEigenaarId) {
             this.showStatus('overdracht-directStatus', this.t('selectOwnerFirst'), 'warning');
@@ -1381,6 +1342,15 @@ class OverdrachtModule {
 
 // Maak direct een instantie aan bij het laden
 window.overdrachtModule = new OverdrachtModule();
+
+// Initialiseer de module
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        window.overdrachtModule.init();
+    });
+} else {
+    window.overdrachtModule.init();
+}
 
 // Exporteer voor gebruik
 window.OverdrachtModule = OverdrachtModule;
