@@ -1113,7 +1113,7 @@ class LitterManager {
                         </div>
                         <div class="col-md-4">
                             <div class="mb-3">
-                                <label for="gender" class="form-label">${t('gender')}</label>
+                                <label for="gender" class="form-label">${t('gender')} *</label>
                                 <select class="form-select" id="gender">
                                     <option value="">${t('chooseGender')}</option>
                                     <option value="reuen" ${data.geslacht === 'reuen' ? 'selected' : ''}>${t('male')}</option>
@@ -2247,6 +2247,11 @@ class LitterManager {
         
         if (!dogData.ras) {
             this.showError('Ras is verplicht');
+            return;
+        }
+        // 🔥 NIEUW: Voeg deze check toe voor geslacht
+        if (!dogData.geslacht) {
+            this.showError('Geslacht is verplicht');
             return;
         }
         
