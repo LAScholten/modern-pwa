@@ -7,6 +7,8 @@ class PrivateInfoManager extends BaseModule {
         this.currentPriveInfo = null;
         this.searchType = 'name'; // 'name' of 'kennel'
         this.filteredDogs = [];
+        this.dogsWithNotes = []; // Nieuwe array voor honden met notities
+        this.allPriveInfo = []; // Alle prive info records
         
         this.translations = {
             nl: {
@@ -53,7 +55,20 @@ class PrivateInfoManager extends BaseModule {
                 gender: "Geslacht",
                 male: "Reu",
                 female: "Teef",
-                unknown: "Onbekend"
+                unknown: "Onbekend",
+                
+                // Nieuwe vertalingen voor notities overzicht
+                myNotes: "Mijn notities",
+                dogsWithNotes: "Honden met notities",
+                noNotesFound: "Nog geen notities aangemaakt",
+                clickToLoad: "Klik om notities te laden",
+                lastEdited: "Laatst bewerkt",
+                notesCount: "notities",
+                loadNotesList: "Laad notities overzicht",
+                loadingNotes: "Notities laden...",
+                notesLoaded: "notities geladen",
+                searchTab: "Zoeken",
+                notesTab: "Mijn notities"
             },
             en: {
                 privateInfo: "Private Information",
@@ -99,7 +114,20 @@ class PrivateInfoManager extends BaseModule {
                 gender: "Gender",
                 male: "Male",
                 female: "Female",
-                unknown: "Unknown"
+                unknown: "Unknown",
+                
+                // New translations for notes overview
+                myNotes: "My notes",
+                dogsWithNotes: "Dogs with notes",
+                noNotesFound: "No notes created yet",
+                clickToLoad: "Click to load notes",
+                lastEdited: "Last edited",
+                notesCount: "notes",
+                loadNotesList: "Load notes overview",
+                loadingNotes: "Loading notes...",
+                notesLoaded: "notes loaded",
+                searchTab: "Search",
+                notesTab: "My notes"
             },
             de: {
                 privateInfo: "Private Informationen",
@@ -145,7 +173,20 @@ class PrivateInfoManager extends BaseModule {
                 gender: "Geschlecht",
                 male: "Rüde",
                 female: "Hündin",
-                unknown: "Unbekannt"
+                unknown: "Unbekannt",
+                
+                // Neue Übersetzungen für Notizenübersicht
+                myNotes: "Meine Notizen",
+                dogsWithNotes: "Hunde mit Notizen",
+                noNotesFound: "Noch keine Notizen erstellt",
+                clickToLoad: "Klicken um Notizen zu laden",
+                lastEdited: "Zuletzt bearbeitet",
+                notesCount: "Notizen",
+                loadNotesList: "Notizenübersicht laden",
+                loadingNotes: "Notizen werden geladen...",
+                notesLoaded: "Notizen geladen",
+                searchTab: "Suche",
+                notesTab: "Meine Notizen"
             }
         };
     }
@@ -185,82 +226,128 @@ class PrivateInfoManager extends BaseModule {
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
-                            <div class="row mb-4">
-                                <div class="col-md-6">
-                                    <div class="card">
-                                        <div class="card-header"><h6 class="mb-0"><i class="bi bi-search"></i> ${t('selectDog')}</h6></div>
-                                        <div class="card-body">
-                                            <!-- Tab knoppen voor zoektype -->
-                                            <div class="d-flex mb-3">
-                                                <button type="button" class="btn btn-search-type btn-outline-dark active me-2" data-search-type="name">
-                                                    ${t('searchName')}
-                                                </button>
-                                                <button type="button" class="btn btn-search-type btn-outline-dark" data-search-type="kennel">
-                                                    ${t('searchKennel')}
-                                                </button>
-                                            </div>
-                                            
-                                            <!-- Zoekveld voor naam -->
-                                            <div class="mb-3" id="nameSearchField">
-                                                <label for="privateHondSearchName" class="form-label fw-bold small">${t('searchName')}</label>
-                                                <div class="input-group">
-                                                    <span class="input-group-text bg-white border-end-0">
-                                                        <i class="bi bi-person text-muted"></i>
-                                                    </span>
-                                                    <input type="text" class="form-control search-input border-start-0 ps-0" 
-                                                           id="privateHondSearchName" 
-                                                           placeholder="${t('searchPlaceholder')}" 
-                                                           autocomplete="off">
+                            <!-- Tabs voor Zoeken en Mijn notities -->
+                            <ul class="nav nav-tabs mb-3" id="privateInfoTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="search-tab" data-bs-toggle="tab" data-bs-target="#searchTab" type="button" role="tab">
+                                        <i class="bi bi-search"></i> ${t('searchTab')}
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="notes-tab" data-bs-toggle="tab" data-bs-target="#notesTab" type="button" role="tab">
+                                        <i class="bi bi-journal-text"></i> ${t('myNotes')}
+                                    </button>
+                                </li>
+                            </ul>
+                            
+                            <!-- Tab content -->
+                            <div class="tab-content" id="privateInfoTabsContent">
+                                <!-- Zoek tab -->
+                                <div class="tab-pane fade show active" id="searchTab" role="tabpanel">
+                                    <div class="row mb-4">
+                                        <div class="col-md-6">
+                                            <div class="card">
+                                                <div class="card-header"><h6 class="mb-0"><i class="bi bi-search"></i> ${t('selectDog')}</h6></div>
+                                                <div class="card-body">
+                                                    <!-- Tab knoppen voor zoektype -->
+                                                    <div class="d-flex mb-3">
+                                                        <button type="button" class="btn btn-search-type btn-outline-dark active me-2" data-search-type="name">
+                                                            ${t('searchName')}
+                                                        </button>
+                                                        <button type="button" class="btn btn-search-type btn-outline-dark" data-search-type="kennel">
+                                                            ${t('searchKennel')}
+                                                        </button>
+                                                    </div>
+                                                    
+                                                    <!-- Zoekveld voor naam -->
+                                                    <div class="mb-3" id="nameSearchField">
+                                                        <label for="privateHondSearchName" class="form-label fw-bold small">${t('searchName')}</label>
+                                                        <div class="input-group">
+                                                            <span class="input-group-text bg-white border-end-0">
+                                                                <i class="bi bi-person text-muted"></i>
+                                                            </span>
+                                                            <input type="text" class="form-control search-input border-start-0 ps-0" 
+                                                                   id="privateHondSearchName" 
+                                                                   placeholder="${t('searchPlaceholder')}" 
+                                                                   autocomplete="off">
+                                                        </div>
+                                                        <div class="form-text mt-1 small">${t('typeToSearch')}</div>
+                                                    </div>
+                                                    
+                                                    <!-- Zoekveld voor kennelnaam -->
+                                                    <div class="mb-3 d-none" id="kennelSearchField">
+                                                        <label for="privateHondSearchKennel" class="form-label fw-bold small">${t('searchKennel')}</label>
+                                                        <div class="input-group">
+                                                            <span class="input-group-text bg-white border-end-0">
+                                                                <i class="bi bi-house text-muted"></i>
+                                                            </span>
+                                                            <input type="text" class="form-control search-input border-start-0 ps-0" 
+                                                                   id="privateHondSearchKennel" 
+                                                                   placeholder="${t('kennelPlaceholder')}" 
+                                                                   autocomplete="off">
+                                                        </div>
+                                                        <div class="form-text mt-1 small">${t('typeToSearchKennel')}</div>
+                                                    </div>
+                                                    
+                                                    <!-- Zoekresultaten container -->
+                                                    <div id="searchResultsContainer" style="max-height: 300px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 6px; margin-top: 10px; display: none;">
+                                                        <div id="searchResultsList"></div>
+                                                    </div>
+                                                    
+                                                    <div class="mt-3">
+                                                        <div class="small text-muted" id="selectedDogInfo"></div>
+                                                    </div>
+                                                    
+                                                    <button class="btn btn-dark w-100 mt-3" id="loadPrivateInfoBtn">${t('loadInfo')}</button>
                                                 </div>
-                                                <div class="form-text mt-1 small">${t('typeToSearch')}</div>
                                             </div>
-                                            
-                                            <!-- Zoekveld voor kennelnaam -->
-                                            <div class="mb-3 d-none" id="kennelSearchField">
-                                                <label for="privateHondSearchKennel" class="form-label fw-bold small">${t('searchKennel')}</label>
-                                                <div class="input-group">
-                                                    <span class="input-group-text bg-white border-end-0">
-                                                        <i class="bi bi-house text-muted"></i>
-                                                    </span>
-                                                    <input type="text" class="form-control search-input border-start-0 ps-0" 
-                                                           id="privateHondSearchKennel" 
-                                                           placeholder="${t('kennelPlaceholder')}" 
-                                                           autocomplete="off">
+                                        </div>
+                                        
+                                        <div class="col-md-6">
+                                            <div class="card">
+                                                <div class="card-header"><h6 class="mb-0"><i class="bi bi-shield"></i> ${t('securityInfo')}</h6></div>
+                                                <div class="card-body">
+                                                    <div class="small">
+                                                        <p><i class="bi bi-check-circle text-success"></i> ${t('privateStorage')}</p>
+                                                        <p><i class="bi bi-person-check text-info"></i> ${t('privateNote')}</p>
+                                                    </div>
                                                 </div>
-                                                <div class="form-text mt-1 small">${t('typeToSearchKennel')}</div>
                                             </div>
-                                            
-                                            <!-- Zoekresultaten container -->
-                                            <div id="searchResultsContainer" style="max-height: 300px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 6px; margin-top: 10px; display: none;">
-                                                <div id="searchResultsList"></div>
-                                            </div>
-                                            
-                                            <div class="mt-3">
-                                                <div class="small text-muted" id="selectedDogInfo"></div>
-                                            </div>
-                                            
-                                            <button class="btn btn-dark w-100 mt-3" id="loadPrivateInfoBtn">${t('loadInfo')}</button>
                                         </div>
                                     </div>
                                 </div>
                                 
-                                <div class="col-md-6">
-                                    <div class="card">
-                                        <div class="card-header"><h6 class="mb-0"><i class="bi bi-shield"></i> ${t('securityInfo')}</h6></div>
-                                        <div class="card-body">
-                                            <div class="small">
-                                                <p><i class="bi bi-check-circle text-success"></i> ${t('privateStorage')}</p>
-                                                <p><i class="bi bi-person-check text-info"></i> ${t('privateNote')}</p>
+                                <!-- Mijn notities tab -->
+                                <div class="tab-pane fade" id="notesTab" role="tabpanel">
+                                    <div class="row mb-4">
+                                        <div class="col-12">
+                                            <div class="card">
+                                                <div class="card-header d-flex justify-content-between align-items-center">
+                                                    <h6 class="mb-0"><i class="bi bi-journal-text"></i> ${t('dogsWithNotes')}</h6>
+                                                    <button class="btn btn-sm btn-outline-dark" id="refreshNotesListBtn">
+                                                        <i class="bi bi-arrow-repeat"></i> ${t('loadNotesList')}
+                                                    </button>
+                                                </div>
+                                                <div class="card-body">
+                                                    <!-- Notities lijst container -->
+                                                    <div id="notesListContainer" style="max-height: 400px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 6px;">
+                                                        <div id="notesListContent" class="p-3 text-center text-muted">
+                                                            <i class="bi bi-journal-text opacity-50" style="font-size: 2rem;"></i>
+                                                            <p class="mt-2">${t('clickToLoad')}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             
-                            <div class="card">
+                            <!-- Notities gedeelte (altijd zichtbaar) -->
+                            <div class="card mt-3">
                                 <div class="card-header"><h6 class="mb-0"><i class="bi bi-journal-text"></i> ${t('privateNotes')}</h6></div>
                                 <div class="card-body">
-                                    <textarea class="form-control" id="privateNotes" rows="12" placeholder="${t('notesPlaceholder')}"></textarea>
+                                    <textarea class="form-control" id="privateNotes" rows="8" placeholder="${t('notesPlaceholder')}"></textarea>
                                     <div class="d-flex justify-content-between mt-3">
                                         <button class="btn btn-secondary" id="clearPrivateInfoBtn">${t('clear')}</button>
                                         <button class="btn btn-dark" id="savePrivateInfoBtn">${t('save')}</button>
@@ -344,6 +431,51 @@ class PrivateInfoManager extends BaseModule {
                     border-bottom: 1px solid #dee2e6;
                     background-color: #f8f9fa;
                 }
+                
+                /* Styling voor notities lijst */
+                .note-item {
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    border-bottom: 1px solid #f0f0f0;
+                    padding: 12px 15px;
+                    background: white;
+                }
+                
+                .note-item:hover {
+                    background-color: #f8f9fa;
+                }
+                
+                .note-item.selected {
+                    background-color: #e8f4fd;
+                    border-left: 4px solid #212529;
+                }
+                
+                .note-preview {
+                    font-size: 0.9rem;
+                    color: #495057;
+                    margin-top: 5px;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    max-width: 100%;
+                }
+                
+                .note-meta {
+                    font-size: 0.8rem;
+                    color: #6c757d;
+                    margin-top: 5px;
+                }
+                
+                .nav-tabs .nav-link {
+                    color: #495057;
+                    font-weight: 500;
+                }
+                
+                .nav-tabs .nav-link.active {
+                    color: #212529;
+                    font-weight: 600;
+                    border-bottom: 2px solid #212529;
+                }
             </style>
         `;
     }
@@ -405,7 +537,7 @@ class PrivateInfoManager extends BaseModule {
             });
         }
         
-        // Event delegation voor zoekresultaten
+        // Event listeners voor knoppen
         document.addEventListener('click', (e) => {
             if (e.target && (e.target.id === 'loadPrivateInfoBtn' || e.target.closest('#loadPrivateInfoBtn'))) {
                 e.preventDefault();
@@ -420,6 +552,11 @@ class PrivateInfoManager extends BaseModule {
             if (e.target && (e.target.id === 'clearPrivateInfoBtn' || e.target.closest('#clearPrivateInfoBtn'))) {
                 e.preventDefault();
                 this.clearPrivateInfo();
+            }
+            
+            if (e.target && (e.target.id === 'refreshNotesListBtn' || e.target.closest('#refreshNotesListBtn'))) {
+                e.preventDefault();
+                this.loadDogsWithNotes();
             }
         });
         
@@ -437,6 +574,15 @@ class PrivateInfoManager extends BaseModule {
                 }
             }
         });
+        
+        // Event listener voor tab changes
+        const notesTab = document.getElementById('notes-tab');
+        if (notesTab) {
+            notesTab.addEventListener('shown.bs.tab', () => {
+                // Laad notities wanneer de tab wordt getoond
+                this.loadDogsWithNotes();
+            });
+        }
     }
     
     switchSearchType(type) {
@@ -733,6 +879,11 @@ class PrivateInfoManager extends BaseModule {
             this.hideProgress();
             this.showSuccess(this.t('saveSuccess'));
             
+            // Vernieuw de notities lijst als die zichtbaar is
+            if (document.getElementById('notes-tab').classList.contains('active')) {
+                this.loadDogsWithNotes();
+            }
+            
         } catch (error) {
             console.error('Error saving:', error);
             this.hideProgress();
@@ -744,6 +895,191 @@ class PrivateInfoManager extends BaseModule {
         if (confirm(this.t('clearConfirm'))) {
             document.getElementById('privateNotes').value = '';
             this.showSuccess(this.t('notesCleared'));
+        }
+    }
+    
+    // Nieuwe functie: Laad alle honden met notities
+    async loadDogsWithNotes() {
+        this.showProgress(this.t('loadingNotes'));
+        
+        try {
+            if (!window.priveInfoService) throw new Error(this.t('serviceNotAvailable'));
+            
+            // Haal alle prive info op
+            const result = await window.priveInfoService.getPriveInfoMetPaginatie(1, 1000);
+            this.allPriveInfo = result.priveInfo || [];
+            
+            console.log(`Geladen prive info records: ${this.allPriveInfo.length}`);
+            
+            // Filter alleen records met notities
+            const notesWithContent = this.allPriveInfo.filter(info => 
+                info.privatenotes && info.privatenotes.trim() !== ''
+            );
+            
+            // Als we nog geen honden data hebben, laad die dan
+            if (this.allDogs.length === 0) {
+                await this.loadSearchData();
+            }
+            
+            // Koppel hondengegevens aan de notities
+            this.dogsWithNotes = notesWithContent.map(info => {
+                const dog = this.allDogs.find(d => d.stamboomnr === info.stamboomnr);
+                return {
+                    ...info,
+                    dogData: dog || null,
+                    dogName: dog?.naam || 'Onbekende hond',
+                    kennelName: dog?.kennelnaam || '',
+                    heeftHondGegevens: !!dog
+                };
+            }).filter(item => item.heeftHondGegevens); // Alleen tonen als we hondengegevens hebben
+            
+            // Sorteer op hondennaam
+            this.dogsWithNotes.sort((a, b) => a.dogName.localeCompare(b.dogName));
+            
+            this.hideProgress();
+            this.displayNotesList();
+            
+        } catch (error) {
+            console.error('Error loading notes list:', error);
+            this.hideProgress();
+            this.showError(this.t('loadError') + ': ' + error.message);
+        }
+    }
+    
+    // Nieuwe functie: Toon lijst van honden met notities
+    displayNotesList() {
+        const container = document.getElementById('notesListContent');
+        if (!container) return;
+        
+        if (this.dogsWithNotes.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-4">
+                    <i class="bi bi-journal-x opacity-50" style="font-size: 3rem;"></i>
+                    <p class="mt-3 text-muted">${this.t('noNotesFound')}</p>
+                </div>
+            `;
+            return;
+        }
+        
+        let html = '';
+        this.dogsWithNotes.forEach((note, index) => {
+            const preview = note.privatenotes.substring(0, 80) + (note.privatenotes.length > 80 ? '...' : '');
+            const genderText = note.dogData?.geslacht === 'reuen' ? this.t('male') : 
+                             note.dogData?.geslacht === 'teven' ? this.t('female') : this.t('unknown');
+            
+            html += `
+                <div class="note-item" data-stamboomnr="${note.stamboomnr}" data-index="${index}">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="fw-bold">
+                                ${note.dogName}
+                                ${note.kennelName ? `<span class="text-muted ms-2">${note.kennelName}</span>` : ''}
+                            </div>
+                            <div class="small text-muted">
+                                ${note.stamboomnr || ''} • ${note.dogData?.ras || ''} • ${genderText}
+                            </div>
+                        </div>
+                        <span class="badge bg-dark-subtle text-dark">
+                            <i class="bi bi-journal-text"></i>
+                        </span>
+                    </div>
+                    <div class="note-preview">
+                        <i class="bi bi-quote text-muted opacity-50"></i>
+                        ${preview}
+                    </div>
+                    <div class="note-meta">
+                        <i class="bi bi-clock"></i> ${this.formatDate(note.datum_aangepast || note.datum_aangemaakt)}
+                    </div>
+                </div>
+            `;
+        });
+        
+        container.innerHTML = html;
+        
+        // Voeg event listeners toe aan note items
+        document.querySelectorAll('.note-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                const stamboomnr = item.getAttribute('data-stamboomnr');
+                this.loadNoteForDog(stamboomnr);
+                
+                // Highlight geselecteerd item
+                document.querySelectorAll('.note-item').forEach(i => {
+                    i.classList.remove('selected');
+                });
+                item.classList.add('selected');
+            });
+        });
+    }
+    
+    // Nieuwe functie: Laad notitie voor specifieke hond
+    async loadNoteForDog(stamboomnr) {
+        const note = this.allPriveInfo.find(info => info.stamboomnr === stamboomnr);
+        const dog = this.allDogs.find(d => d.stamboomnr === stamboomnr);
+        
+        if (!note || !dog) {
+            this.showError('Hond niet gevonden');
+            return;
+        }
+        
+        // Zet huidige notitie
+        this.currentPriveInfo = {
+            ...note,
+            privateNotes: note.privatenotes || ''
+        };
+        
+        // Toon in tekstveld
+        this.displayPrivateInfo();
+        
+        // Update geselecteerde hond in zoek tab
+        this.updateSelectedDogFromNotes(dog, stamboomnr);
+        
+        // Schakel naar zoek tab om de hond te zien
+        const searchTab = document.getElementById('search-tab');
+        if (searchTab) {
+            const tab = new bootstrap.Tab(searchTab);
+            tab.show();
+        }
+        
+        this.showSuccess(`Notities geladen voor ${dog.naam}`);
+    }
+    
+    // Nieuwe functie: Update geselecteerde hond op basis van notitie
+    updateSelectedDogFromNotes(dog, stamboomnr) {
+        // Update zoekvelden
+        const nameInput = document.getElementById('privateHondSearchName');
+        const kennelInput = document.getElementById('privateHondSearchKennel');
+        
+        if (nameInput) nameInput.value = dog.naam || '';
+        if (kennelInput) kennelInput.value = dog.kennelnaam || '';
+        
+        // Update selected dog info
+        this.updateSelectedDogInfo(dog);
+        
+        // Markeer in zoekresultaten (als die zichtbaar zijn)
+        document.querySelectorAll('.dog-result-item').forEach(item => {
+            if (item.getAttribute('data-stamboomnr') === stamboomnr) {
+                item.classList.add('selected');
+            } else {
+                item.classList.remove('selected');
+            }
+        });
+    }
+    
+    // Helper functie om datum te formatteren
+    formatDate(dateString) {
+        if (!dateString) return '';
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString(this.currentLang === 'nl' ? 'nl-NL' : 
+                                          this.currentLang === 'de' ? 'de-DE' : 'en-US', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch (e) {
+            return dateString;
         }
     }
     
