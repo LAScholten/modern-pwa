@@ -4,6 +4,7 @@ class TopHonden {
         this.supabase = window.supabase;
         this.currentYear = new Date().getFullYear();
         this.levendGrens = this.currentYear - 15; // Honden jonger dan 15 jaar zijn "levend"
+        this.relevantieGrens = 1985; // Alleen honden vanaf 1985 zijn relevant voor actuele genenpoel
         this.modalId = 'topHondenModal';
         this.maxGeneraties = 10;
         this.translations = this.loadTranslations();
@@ -14,7 +15,7 @@ class TopHonden {
             nl: {
                 title: "Meest voorkomende voorouders",
                 totaal: "Totaal overzicht (alle honden)",
-                levend: "Actuele genenpoel (alleen via levende honden)",
+                levend: "Actuele genenpoel (via levende honden, vanaf 1985)",
                 reuen: "Reuen",
                 teven: "Teven",
                 name: "Naam",
@@ -23,18 +24,19 @@ class TopHonden {
                 geboortejaar: "Geb.jr",
                 occurrences: "Aantal keer",
                 explanation: "Hoe hoger het getal, hoe dominanter de hond is in de genenpoel.",
-                levendExplanation: "Dit overzicht telt ALLEEN de voorouders van honden die vandaag de dag leven (<15 jaar) en over 10 generaties.",
+                levendExplanation: "Dit overzicht telt ALLEEN de voorouders van honden die vandaag de dag leven (<15 jaar) over 10 generaties. Voorouders zonder geboortedatum of geboren vóór 1985 worden NIET meegeteld omdat ze niet zo relevant zijn voor de huidige populatie.",
                 close: "Sluiten",
                 noDogs: "Geen honden gevonden",
                 loading: "Bezig met analyseren...",
                 processing: "Verwerken",
                 total: "Totaal",
-                dogs: "honden"
+                dogs: "honden",
+                excluded: "Uitgesloten (geen datum of <1985)"
             },
             en: {
                 title: "Most common ancestors",
                 totaal: "Total overview (all dogs)",
-                levend: "Active gene pool (only via living dogs)",
+                levend: "Active gene pool (via living dogs, from 1985)",
                 reuen: "Stud Dogs",
                 teven: "Brood Bitches",
                 name: "Name",
@@ -43,18 +45,19 @@ class TopHonden {
                 geboortejaar: "Birth year",
                 occurrences: "Occurrences",
                 explanation: "The higher the number, the more dominant the dog is in the gene pool.",
-                levendExplanation: "This overview ONLY counts the ancestors of dogs that are alive today (<15 years) and over 10 generations.",
+                levendExplanation: "This overview ONLY counts the ancestors of dogs that are alive today (<15 years) over 10 generations. Ancestors without a birth date or born before 1985 are NOT counted as they are not that relevant for the current population.",
                 close: "Close",
                 noDogs: "No dogs found",
                 loading: "Analyzing...",
                 processing: "Processing",
                 total: "Total",
-                dogs: "dogs"
+                dogs: "dogs",
+                excluded: "Excluded (no date or <1985)"
             },
             de: {
                 title: "Häufigste Vorfahren",
                 totaal: "Gesamtübersicht (alle Hunde)",
-                levend: "Aktiver Genpool (nur via lebende Hunde)",
+                levend: "Aktiver Genpool (via lebende Hunde, ab 1985)",
                 reuen: "Deckrüden",
                 teven: "Zuchthündinnen",
                 name: "Name",
@@ -63,13 +66,14 @@ class TopHonden {
                 geboortejaar: "Geb.jahr",
                 occurrences: "Vorkommen",
                 explanation: "Je höher die Zahl, desto dominanter ist der Hund im Genpool.",
-                levendExplanation: "Diese Übersicht zählt NUR die Vorfahren von Hunden, die heute leben (<15 Jahre) und uber 10 generationen.",
+                levendExplanation: "Diese Übersicht zählt NUR die Vorfahren von Hunden, die heute leben (<15 Jahre) über 10 Generationen. Vorfahren ohne Geburtsdatum oder geboren vor 1985 werden NICHT gezählt, da sie für die aktuelle Population nicht sehr relevant sind.",
                 close: "Schließen",
                 noDogs: "Keine Hunde gefunden",
                 loading: "Analysiere...",
                 processing: "Verarbeite",
                 total: "Gesamt",
-                dogs: "Hunde"
+                dogs: "Hunde",
+                excluded: "Ausgeschlossen (kein Datum oder <1985)"
             }
         };
     }
@@ -95,6 +99,21 @@ class TopHonden {
             return jaar >= this.levendGrens;
         } catch {
             return false;
+        }
+    }
+
+    /**
+     * Controleert of een hond relevant is voor de actuele genenpoel
+     * Criteria: geboortedatum bestaat EN geboortejaar >= 1985
+     */
+    isRelevantVoorActueleGenenpoel(geboortedatum) {
+        if (!geboortedatum) return false; // Geen datum = niet relevant
+        
+        try {
+            const jaar = new Date(geboortedatum).getFullYear();
+            return jaar >= this.relevantieGrens;
+        } catch {
+            return false; // Ongeldige datum = niet relevant
         }
     }
 
@@ -139,6 +158,22 @@ class TopHonden {
         }
 
         console.log(`✅ Totaal ${alleHonden.length} honden opgehaald`);
+        
+        // Log statistieken over relevantie
+        const metDatum = alleHonden.filter(h => h.geboortedatum).length;
+        const vanaf1985 = alleHonden.filter(h => {
+            if (!h.geboortedatum) return false;
+            try {
+                return new Date(h.geboortedatum).getFullYear() >= this.relevantieGrens;
+            } catch {
+                return false;
+            }
+        }).length;
+        
+        console.log(`📊 Relevantie statistieken:`);
+        console.log(`   - Honden met geboortedatum: ${metDatum}`);
+        console.log(`   - Honden vanaf 1985: ${vanaf1985}`);
+        
         return alleHonden;
     }
 
@@ -199,7 +234,8 @@ class TopHonden {
                 voorouderCounts, 
                 hondMap, 
                 0, 
-                new Set()
+                new Set(),
+                false // geen relevantie filtering voor totaaloverzicht
             );
         }
 
@@ -208,12 +244,13 @@ class TopHonden {
 
     /**
      * TEL ALLEEN VOOROUDERS VAN LEVENDE HONDEN
-     * Dit is de verbeterde versie: start bij levende honden en tel omhoog
+     * Alleen voorouders die relevant zijn (geboren >=1985) worden geteld
      */
     async telLevendeVoorouders(alleHonden, hondMap) {
-        console.log('🔍 Voorouders van levende honden tellen...');
+        console.log('🔍 Voorouders van levende honden tellen (alleen relevant >=1985)...');
         
         const voorouderCounts = new Map();
+        const genegeerd = { geenDatum: 0, voor1985: 0 };
         
         // Vind ALLE levende honden (<15 jaar)
         const levendeHonden = alleHonden.filter(hond => 
@@ -239,18 +276,22 @@ class TopHonden {
                 voorouderCounts, 
                 hondMap, 
                 0, 
-                new Set()
+                new Set(),
+                true, // relevantie filtering AAN voor levend
+                genegeerd
             );
         }
 
-        console.log(`✅ Tellen voltooid: ${voorouderCounts.size} unieke voorouders`);
+        console.log(`✅ Tellen voltooid: ${voorouderCounts.size} unieke relevante voorouders`);
+        console.log(`📊 Genegeerde voorouders: ${genegeerd.geenDatum} zonder datum, ${genegeerd.voor1985} voor 1985`);
+        
         return voorouderCounts;
     }
 
     /**
-     * Recursief voorouders tellen (werkt voor beide methodes)
+     * Recursief voorouders tellen met optionele relevantie filtering
      */
-    async telVooroudersRecursief(hond, countMap, hondMap, diepte, gezien) {
+    async telVooroudersRecursief(hond, countMap, hondMap, diepte, gezien, filterRelevantie = false, genegeerd = null) {
         if (diepte >= this.maxGeneraties) return;
         if (!hond || !hond.stamboomnr) return;
         if (gezien.has(hond.stamboomnr)) return;
@@ -260,16 +301,29 @@ class TopHonden {
         // Tel vader
         if (hond.vader_stamboomnr) {
             const vaderStamboomnr = hond.vader_stamboomnr;
-            countMap.set(vaderStamboomnr, (countMap.get(vaderStamboomnr) || 0) + 1);
-            
             const vaderData = hondMap.get(vaderStamboomnr);
+            
+            // Alleen tellen als vader voldoet aan relevantie criteria (indien filtering aan)
+            if (!filterRelevantie || (vaderData && this.isRelevantVoorActueleGenenpoel(vaderData.geboortedatum))) {
+                countMap.set(vaderStamboomnr, (countMap.get(vaderStamboomnr) || 0) + 1);
+            } else if (filterRelevantie && genegeerd) {
+                // Bijhouden waarom genegeerd
+                if (!vaderData || !vaderData.geboortedatum) {
+                    genegeerd.geenDatum++;
+                } else {
+                    genegeerd.voor1985++;
+                }
+            }
+            
             if (vaderData) {
                 await this.telVooroudersRecursief(
                     vaderData, 
                     countMap, 
                     hondMap, 
                     diepte + 1, 
-                    new Set(gezien)
+                    new Set(gezien),
+                    filterRelevantie,
+                    genegeerd
                 );
             }
         }
@@ -277,16 +331,29 @@ class TopHonden {
         // Tel moeder
         if (hond.moeder_stamboomnr) {
             const moederStamboomnr = hond.moeder_stamboomnr;
-            countMap.set(moederStamboomnr, (countMap.get(moederStamboomnr) || 0) + 1);
-            
             const moederData = hondMap.get(moederStamboomnr);
+            
+            // Alleen tellen als moeder voldoet aan relevantie criteria (indien filtering aan)
+            if (!filterRelevantie || (moederData && this.isRelevantVoorActueleGenenpoel(moederData.geboortedatum))) {
+                countMap.set(moederStamboomnr, (countMap.get(moederStamboomnr) || 0) + 1);
+            } else if (filterRelevantie && genegeerd) {
+                // Bijhouden waarom genegeerd
+                if (!moederData || !moederData.geboortedatum) {
+                    genegeerd.geenDatum++;
+                } else {
+                    genegeerd.voor1985++;
+                }
+            }
+            
             if (moederData) {
                 await this.telVooroudersRecursief(
                     moederData, 
                     countMap, 
                     hondMap, 
                     diepte + 1, 
-                    new Set(gezien)
+                    new Set(gezien),
+                    filterRelevantie,
+                    genegeerd
                 );
             }
         }
@@ -327,8 +394,8 @@ class TopHonden {
         console.log('📊 Totaaloverzicht berekenen...');
         const alleVoorouders = await this.telAlleVoorouders(alleHonden, hondMap);
         
-        // LEVEND: alleen voorouders van levende honden
-        console.log('📊 Levende genenpoel berekenen...');
+        // LEVEND: alleen voorouders van levende honden die relevant zijn (>=1985)
+        console.log('📊 Levende genenpoel berekenen (alleen relevant vanaf 1985)...');
         const levendeVoorouders = await this.telLevendeVoorouders(alleHonden, hondMap);
 
         // Verwerk totalen
@@ -360,7 +427,7 @@ class TopHonden {
             }
         }
 
-        // LEVEND verwerken
+        // LEVEND verwerken - hier zitten al alleen relevante honden in
         for (const [stamboomnr, count] of levendeVoorouders) {
             const details = hondMap.get(stamboomnr);
             if (!details) continue;
@@ -392,6 +459,7 @@ class TopHonden {
         console.log(`📊 RESULTATEN:`);
         if (totaalReuen[0]) console.log(`   Totaal top: ${totaalReuen[0].naam} (${totaalReuen[0].aantal_voorkomens})`);
         if (levendReuen[0]) console.log(`   Levend top: ${levendReuen[0].naam} (${levendReuen[0].aantal_voorkomens})`);
+        console.log(`   Levend totaal unieke voorouders: ${levendReuen.length + levendTeven.length}`);
 
         return {
             totaal: {
