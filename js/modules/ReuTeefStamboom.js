@@ -6,6 +6,7 @@
  * **PRIVEINFO TOEGEVOEGD** - Toont nu ook priveinfo zoals StamboomManager
  * **TITEL FIX** - Werkt nu met zowel reu/teef parameters als directe titel
  * **OPTIMIZED** - Laadt alle foto's voor de hele stamboom in één query
+ * **DNA ANALYSE** - Knop toegevoegd voor voorouder DNA analyse
  */
 
 class ReuTeefStamboom {
@@ -796,6 +797,9 @@ class ReuTeefStamboom {
                                 <i class="bi bi-diagram-3 me-2"></i> ${title}
                             </h5>
                             <div class="d-flex gap-2">
+                                <button class="btn btn-sm btn-light btn-influence" id="rtcBtnInfluenceAnalysis">
+    <i class="bi bi-dna me-1"></i> ${window.influenceAnalyzer ? window.influenceAnalyzer.getButtonTitle() : this.t('influenceAnalysis')}
+                                </button>
                                 <button class="btn btn-sm btn-light btn-print">
                                     <i class="bi bi-printer me-1"></i> ${this.t('print')}
                                 </button>
@@ -2041,7 +2045,9 @@ class ReuTeefStamboom {
         const modal = new bootstrap.Modal(document.getElementById(modalId));
         modal.show();
         
-        this.setupFuturePuppyModalEvents();
+        this.setupFuturePuppyModalEvents(pedigreeTree);
+        // Haal de vertaalde knoptekst uit de InfluenceAnalyzer
+        const influenceButtonText = window.influenceAnalyzer ? window.influenceAnalyzer.getButtonTitle() : this.t('influenceAnalysis');
         
         // Render de stamboom - gebruik de meegegeven pedigreeTree (al geladen)
         await this.renderFuturePuppyPedigree(futurePuppy, selectedTeef, selectedReu, coiResult, healthAnalysis, pedigreeTree);
@@ -2050,7 +2056,7 @@ class ReuTeefStamboom {
         this.setupPhotoEventListeners();
     }
     
-    setupFuturePuppyModalEvents() {
+    setupFuturePuppyModalEvents(pedigreeTree) {
         const modal = document.getElementById('rtc-futurePuppyModal');
         if (!modal) return;
         
@@ -2058,6 +2064,24 @@ class ReuTeefStamboom {
         if (printBtn) {
             printBtn.addEventListener('click', () => {
                 window.print();
+            });
+        }
+        
+        // NIEUW: Event listener voor DNA analyse knop
+        const influenceBtn = modal.querySelector('.btn-influence');
+        if (influenceBtn) {
+            influenceBtn.addEventListener('click', () => {
+                // Zorg dat InfluenceAnalyzer beschikbaar is
+                if (window.influenceAnalyzer) {
+                    // Initialiseer met deze module voor vertalingen
+                    window.influenceAnalyzer.setMainModule(this);
+                    
+                    // Roep de analyse aan met de pedigreeTree
+                    window.influenceAnalyzer.showInfluenceAnalysis(pedigreeTree);
+                } else {
+                    console.error('InfluenceAnalyzer niet beschikbaar');
+                    this.mainModule.showAlert('DNA analyse module niet beschikbaar', 'warning');
+                }
             });
         }
     }

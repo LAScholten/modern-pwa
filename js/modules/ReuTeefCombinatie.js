@@ -1535,14 +1535,14 @@ class ReuTeefCombinatie {
     async getOudersInfo(hond) {
         const result = { vader: null, moeder: null };
         
-        if (hond.vaderId) {
-            result.vader = await this.getHondById(hond.vaderId);
+        if (hond.vader_id) {
+            result.vader = await this.getHondById(hond.vader_id);
         } else if (hond.vader) {
             result.vader = await this.findHondByNameOrPedigree(hond.vader);
         }
         
-        if (hond.moederId) {
-            result.moeder = await this.getHondById(hond.moederId);
+        if (hond.moeder_id) {
+            result.moeder = await this.getHondById(hond.moeder_id);
         } else if (hond.moeder) {
             result.moeder = await this.findHondByNameOrPedigree(hond.moeder);
         }
