@@ -7,13 +7,14 @@ class TopHonden {
         this.relevantieGrens = 1985; // Alleen honden vanaf 1985 zijn relevant voor actuele genenpoel
         this.modalId = 'topHondenModal';
         this.maxGeneraties = 10;
+        this.topAantal = 50; // Top 50 in plaats van 20
         this.translations = this.loadTranslations();
     }
 
     loadTranslations() {
         return {
             nl: {
-                title: "Meest voorkomende voorouders",
+                title: "Meest voorkomende voorouders (Top 50)",
                 totaal: "Totaal overzicht (alle honden)",
                 levend: "Actuele genenpoel (via levende honden, vanaf 1985)",
                 reuen: "Reuen",
@@ -24,17 +25,18 @@ class TopHonden {
                 geboortejaar: "Geb.jr",
                 occurrences: "Aantal keer",
                 explanation: "Hoe hoger het getal, hoe dominanter de hond is in de genenpoel.",
-                levendExplanation: "Dit overzicht telt ALLEEN de voorouders van honden die vandaag de dag leven (<15 jaar) over 10 generaties. Voorouders zonder geboortedatum of geboren vóór 1985 worden NIET meegeteld omdat ze niet zo relevant zijn voor de huidige populatie.",
+                levendExplanation: "Dit overzicht telt ALLEEN de voorouders van honden die vandaag de dag leven (<15 jaar) over 10 generaties. Voorouders zonder geboortedatum of geboren vóór 1985 worden NIET meegeteld omdat ze niet relevant zijn voor de huidige populatie.",
                 close: "Sluiten",
                 noDogs: "Geen honden gevonden",
                 loading: "Bezig met analyseren...",
                 processing: "Verwerken",
                 total: "Totaal",
                 dogs: "honden",
-                excluded: "Uitgesloten (geen datum of <1985)"
+                excluded: "Uitgesloten (geen datum of <1985)",
+                top: "Top 50"
             },
             en: {
-                title: "Most common ancestors",
+                title: "Most common ancestors (Top 50)",
                 totaal: "Total overview (all dogs)",
                 levend: "Active gene pool (via living dogs, from 1985)",
                 reuen: "Stud Dogs",
@@ -45,17 +47,18 @@ class TopHonden {
                 geboortejaar: "Birth year",
                 occurrences: "Occurrences",
                 explanation: "The higher the number, the more dominant the dog is in the gene pool.",
-                levendExplanation: "This overview ONLY counts the ancestors of dogs that are alive today (<15 years) over 10 generations. Ancestors without a birth date or born before 1985 are NOT counted as they are not that relevant for the current population.",
+                levendExplanation: "This overview ONLY counts the ancestors of dogs that are alive today (<15 years) over 10 generations. Ancestors without a birth date or born before 1985 are NOT counted as they are not relevant for the current population.",
                 close: "Close",
                 noDogs: "No dogs found",
                 loading: "Analyzing...",
                 processing: "Processing",
                 total: "Total",
                 dogs: "dogs",
-                excluded: "Excluded (no date or <1985)"
+                excluded: "Excluded (no date or <1985)",
+                top: "Top 50"
             },
             de: {
-                title: "Häufigste Vorfahren",
+                title: "Häufigste Vorfahren (Top 50)",
                 totaal: "Gesamtübersicht (alle Hunde)",
                 levend: "Aktiver Genpool (via lebende Hunde, ab 1985)",
                 reuen: "Deckrüden",
@@ -66,14 +69,15 @@ class TopHonden {
                 geboortejaar: "Geb.jahr",
                 occurrences: "Vorkommen",
                 explanation: "Je höher die Zahl, desto dominanter ist der Hund im Genpool.",
-                levendExplanation: "Diese Übersicht zählt NUR die Vorfahren von Hunden, die heute leben (<15 Jahre) über 10 Generationen. Vorfahren ohne Geburtsdatum oder geboren vor 1985 werden NICHT gezählt, da sie für die aktuelle Population nicht sehr relevant sind.",
+                levendExplanation: "Diese Übersicht zählt NUR die Vorfahren von Hunden, die heute leben (<15 Jahre) über 10 Generationen. Vorfahren ohne Geburtsdatum oder geboren vor 1985 werden NICHT gezählt, da sie für die aktuelle Population nicht relevant sind.",
                 close: "Schließen",
                 noDogs: "Keine Hunde gefunden",
                 loading: "Analysiere...",
                 processing: "Verarbeite",
                 total: "Gesamt",
                 dogs: "Hunde",
-                excluded: "Ausgeschlossen (kein Datum oder <1985)"
+                excluded: "Ausgeschlossen (kein Datum oder <1985)",
+                top: "Top 50"
             }
         };
     }
@@ -202,7 +206,6 @@ class TopHonden {
 
     /**
      * TEL ALLE VOOROUDERS - voor totaaloverzicht
-     * Dit is de bestaande methode die werkt
      */
     async telAlleVoorouders(alleHonden, hondMap) {
         console.log('🔍 Alle voorouders tellen...');
@@ -457,18 +460,21 @@ class TopHonden {
         levendTeven.sort((a, b) => b.aantal_voorkomens - a.aantal_voorkomens);
 
         console.log(`📊 RESULTATEN:`);
-        if (totaalReuen[0]) console.log(`   Totaal top: ${totaalReuen[0].naam} (${totaalReuen[0].aantal_voorkomens})`);
-        if (levendReuen[0]) console.log(`   Levend top: ${levendReuen[0].naam} (${levendReuen[0].aantal_voorkomens})`);
-        console.log(`   Levend totaal unieke voorouders: ${levendReuen.length + levendTeven.length}`);
+        if (totaalReuen[0]) console.log(`   Totaal top reu: ${totaalReuen[0].naam} (${totaalReuen[0].aantal_voorkomens})`);
+        if (totaalTeven[0]) console.log(`   Totaal top teef: ${totaalTeven[0].naam} (${totaalTeven[0].aantal_voorkomens})`);
+        if (levendReuen[0]) console.log(`   Levend top reu: ${levendReuen[0].naam} (${levendReuen[0].aantal_voorkomens})`);
+        if (levendTeven[0]) console.log(`   Levend top teef: ${levendTeven[0].naam} (${levendTeven[0].aantal_voorkomens})`);
+        console.log(`   Totaal unieke voorouders: ${totaalReuen.length + totaalTeven.length}`);
+        console.log(`   Levend unieke relevante voorouders: ${levendReuen.length + levendTeven.length}`);
 
         return {
             totaal: {
-                reuen: totaalReuen.slice(0, 20),
-                teven: totaalTeven.slice(0, 20)
+                reuen: totaalReuen.slice(0, this.topAantal),
+                teven: totaalTeven.slice(0, this.topAantal)
             },
             levend: {
-                reuen: levendReuen.slice(0, 20),
-                teven: levendTeven.slice(0, 20)
+                reuen: levendReuen.slice(0, this.topAantal),
+                teven: levendTeven.slice(0, this.topAantal)
             }
         };
     }
@@ -604,12 +610,12 @@ class TopHonden {
                         <ul class="nav nav-tabs mb-3" id="mainTabs" role="tablist">
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link active" id="totaal-tab" data-bs-toggle="tab" data-bs-target="#totaal" type="button" role="tab">
-                                    <i class="bi bi-database"></i> ${this.getText('totaal')}
+                                    <i class="bi bi-database"></i> ${this.getText('totaal')} (Top ${this.topAantal})
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link" id="levend-tab" data-bs-toggle="tab" data-bs-target="#levend" type="button" role="tab">
-                                    <i class="bi bi-tree-fill"></i> ${this.getText('levend')}
+                                    <i class="bi bi-tree-fill"></i> ${this.getText('levend')} (Top ${this.topAantal})
                                 </button>
                             </li>
                         </ul>
@@ -687,9 +693,9 @@ class TopHonden {
         }
         
         return `
-        <div class="table-responsive">
+        <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
             <table class="table table-striped table-hover">
-                <thead class="table-light">
+                <thead class="table-light sticky-top">
                     <tr>
                         <th>#</th>
                         <th>${this.getText('name')}</th>
@@ -701,10 +707,12 @@ class TopHonden {
                 </thead>
                 <tbody>
                     ${honden.map((hond, index) => {
+                        // Bepaal badge kleur op basis van aantal
                         let badgeClass = 'bg-success';
-                        if (hond.aantal_voorkomens > 100) badgeClass = 'bg-danger';
-                        else if (hond.aantal_voorkomens > 50) badgeClass = 'bg-warning text-dark';
-                        else if (hond.aantal_voorkomens > 20) badgeClass = 'bg-info text-dark';
+                        if (hond.aantal_voorkomens > 500) badgeClass = 'bg-danger';
+                        else if (hond.aantal_voorkomens > 200) badgeClass = 'bg-warning text-dark';
+                        else if (hond.aantal_voorkomens > 100) badgeClass = 'bg-info text-dark';
+                        else if (hond.aantal_voorkomens > 50) badgeClass = 'bg-primary';
                         
                         return `
                         <tr>
