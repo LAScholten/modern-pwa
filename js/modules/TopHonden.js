@@ -25,7 +25,7 @@ class TopHonden {
                 geboortejaar: "Geb.jr",
                 occurrences: "Aantal keer",
                 explanation: "Hoe hoger het getal, hoe dominanter de hond is in de genenpoel.",
-                levendExplanation: "Dit overzicht telt ALLEEN de voorouders van honden die vandaag de dag leven (<15 jaar) over 10 generaties. Voorouders zonder geboortedatum of geboren vóór 1985 worden NIET meegeteld omdat ze niet relevant zijn voor de huidige populatie.",
+                levendExplanation: "Dit overzicht telt ALLEEN de voorouders van honden die vandaag de dag leven (<15 jaar) over 10 generaties. Voorouders zonder geboortedatum of geboren vóór 1985 worden NIET meegeteld omdat ze niet heel relevant zijn voor de huidige populatie.",
                 close: "Sluiten",
                 noDogs: "Geen honden gevonden",
                 loading: "Bezig met analyseren...",
@@ -47,7 +47,7 @@ class TopHonden {
                 geboortejaar: "Birth year",
                 occurrences: "Occurrences",
                 explanation: "The higher the number, the more dominant the dog is in the gene pool.",
-                levendExplanation: "This overview ONLY counts the ancestors of dogs that are alive today (<15 years) over 10 generations. Ancestors without a birth date or born before 1985 are NOT counted as they are not relevant for the current population.",
+                levendExplanation: "This overview ONLY counts the ancestors of dogs that are alive today (<15 years) over 10 generations. Ancestors without a birth date or born before 1985 are NOT counted as they are not very relevant for the current population.",
                 close: "Close",
                 noDogs: "No dogs found",
                 loading: "Analyzing...",
@@ -69,7 +69,7 @@ class TopHonden {
                 geboortejaar: "Geb.jahr",
                 occurrences: "Vorkommen",
                 explanation: "Je höher die Zahl, desto dominanter ist der Hund im Genpool.",
-                levendExplanation: "Diese Übersicht zählt NUR die Vorfahren von Hunden, die heute leben (<15 Jahre) über 10 Generationen. Vorfahren ohne Geburtsdatum oder geboren vor 1985 werden NICHT gezählt, da sie für die aktuelle Population nicht relevant sind.",
+                levendExplanation: "Diese Übersicht zählt NUR die Vorfahren von Hunden, die heute leben (<15 Jahre) über 10 Generationen. Vorfahren ohne Geburtsdatum oder geboren vor 1985 werden NICHT gezählt, da sie für die aktuelle Population nicht sehr relevant sind.",
                 close: "Schließen",
                 noDogs: "Keine Hunde gefunden",
                 loading: "Analysiere...",
@@ -653,8 +653,7 @@ class TopHonden {
             return `
             <div class="alert alert-warning mb-3">
                 <i class="bi bi-exclamation-triangle"></i>
-                <strong>Let op:</strong> Dit totaaloverzicht bevat ALLE honden, ook van dode takken. 
-                Pollo-Pong (1959) scoort hier hoog omdat hij in alle historische lijnen zit.
+                <strong>Let op:</strong> Dit totaaloverzicht bevat ALLE honden. 
             </div>
             `;
         }
