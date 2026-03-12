@@ -15,14 +15,17 @@ class SearchManager extends BaseModule {
         this.isMobileCollapsed = false;
         this.dogPhotosCache = new Map();
         this.dogOffspringCache = new Map();
+        this.dogSiblingsCache = new Map();
         this.dogDetailsCache = new Map();
         this.isLoading = false;
         this.currentOffspringModalDogId = null;
         this.currentOffspringModalDogName = null;
+        this.currentSiblingsModalDogId = null;
+        this.currentSiblingsModalDogName = null;
         this.currentUserId = null;
         this.photoViewerLoaded = false;
         this.searchTimeout = null;
-        this.allDogs = []; // ALLE honden voor lokale filtering zoals in LitterManager
+        this.allDogs = [];
         
         this.translations = {
             nl: {
@@ -142,14 +145,30 @@ class SearchManager extends BaseModule {
                 fatherColumn: "Vader",
                 motherColumn: "Moeder",
                 dogName: "Naam hond",
-                totalOffspring: "Totaal aantal nakomelingen",
+                totalOffspring: "Totaal aantal",
                 birthYear: "Geboortejaar",
                 showAllOffspring: "Toon alle nakomelingen",
+                
+                siblings: "Broers & zussen",
+                siblingsCount: "Broers/zussen",
+                noSiblings: "Geen broers of zussen gevonden",
+                viewSiblings: "Bekijk broers & zussen",
+                siblingsModalTitle: "Broers en zussen van {name}",
+                loadingSiblings: "Broers en zussen laden...",
+                siblingsList: "Lijst van broers en zussen",
+                fullSiblings: "Volle broers/zussen",
+                halfSiblings: "Half broers/zussen",
+                siblingType: "Type",
+                fullSibling: "Volle broer/zus",
+                halfSibling: "Half broer/zus",
+                relationship: "Verwantschap",
+                commonParent: "Gemeenschappelijke ouder",
                 
                 viewDogDetails: "Bekijk hond details",
                 closeDogDetails: "Sluit hond details",
                 dogDetailsModalTitle: "Details van {name}",
                 backToOffspring: "Terug naar nakomelingen",
+                backToSiblings: "Terug naar broers/zussen",
                 
                 privateInfo: "Prive Informatie",
                 privateInfoOwnerOnly: "Geen informatie",
@@ -274,14 +293,30 @@ class SearchManager extends BaseModule {
                 fatherColumn: "Father",
                 motherColumn: "Mother",
                 dogName: "Dog name",
-                totalOffspring: "Total offspring",
+                totalOffspring: "Total",
                 birthYear: "Birth year",
                 showAllOffspring: "Show all offspring",
+                
+                siblings: "Siblings",
+                siblingsCount: "Siblings",
+                noSiblings: "No siblings found",
+                viewSiblings: "View siblings",
+                siblingsModalTitle: "Siblings of {name}",
+                loadingSiblings: "Loading siblings...",
+                siblingsList: "List of siblings",
+                fullSiblings: "Full siblings",
+                halfSiblings: "Half siblings",
+                siblingType: "Type",
+                fullSibling: "Full sibling",
+                halfSibling: "Half sibling",
+                relationship: "Relationship",
+                commonParent: "Common parent",
                 
                 viewDogDetails: "View dog details",
                 closeDogDetails: "Close dog details",
                 dogDetailsModalTitle: "Details of {name}",
                 backToOffspring: "Back to offspring",
+                backToSiblings: "Back to siblings",
                 
                 privateInfo: "Private Information",
                 privateInfoOwnerOnly: "No information",
@@ -365,14 +400,30 @@ class SearchManager extends BaseModule {
                 fatherColumn: "Vater",
                 motherColumn: "Mutter",
                 dogName: "Hundename",
-                totalOffspring: "Gesamtzahl der Nachkommen",
+                totalOffspring: "Gesamtzahl",
                 birthYear: "Geburtsjahr",
                 showAllOffspring: "Alle Nachkommen anzeigen",
+                
+                siblings: "Geschwister",
+                siblingsCount: "Geschwister",
+                noSiblings: "Keine Geschwister gefunden",
+                viewSiblings: "Geschwister anzeigen",
+                siblingsModalTitle: "Geschwister von {name}",
+                loadingSiblings: "Geschwister werden geladen...",
+                siblingsList: "Liste der Geschwister",
+                fullSiblings: "Vollgeschwister",
+                halfSiblings: "Halbgeschwister",
+                siblingType: "Typ",
+                fullSibling: "Vollgeschwister",
+                halfSibling: "Halbgeschwister",
+                relationship: "Verwandtschaft",
+                commonParent: "Gemeinsamer Elternteil",
                 
                 viewDogDetails: "Hunddetails ansehen",
                 closeDogDetails: "Hunddetails schließen",
                 dogDetailsModalTitle: "Details von {name}",
                 backToOffspring: "Zurück zu Nachkommen",
+                backToSiblings: "Zurück zu Geschwistern",
                 
                 privateInfo: "Private Informationen",
                 privateInfoOwnerOnly: "Keine Informationen",
@@ -628,6 +679,16 @@ class SearchManager extends BaseModule {
                 this.showOffspringModal(dogId, dogName);
             }
             
+            const siblingsBtn = e.target.closest('.siblings-button');
+            if (siblingsBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const dogId = parseInt(siblingsBtn.getAttribute('data-dog-id'));
+                const dogName = siblingsBtn.getAttribute('data-dog-name') || '';
+                this.showSiblingsModal(dogId, dogName);
+            }
+            
             const closeOffspringBtn = e.target.closest('.offspring-modal-close');
             if (closeOffspringBtn) {
                 const overlay = document.getElementById('offspringModalOverlay');
@@ -643,6 +704,21 @@ class SearchManager extends BaseModule {
                 }
             }
             
+            const closeSiblingsBtn = e.target.closest('.siblings-modal-close');
+            if (closeSiblingsBtn) {
+                const overlay = document.getElementById('siblingsModalOverlay');
+                if (overlay) {
+                    overlay.style.display = 'none';
+                    setTimeout(() => {
+                        if (overlay.parentNode) {
+                            overlay.parentNode.removeChild(overlay);
+                        }
+                        this.currentSiblingsModalDogId = null;
+                        this.currentSiblingsModalDogName = null;
+                    }, 300);
+                }
+            }
+            
             if (e.target.id === 'offspringModalOverlay') {
                 const overlay = document.getElementById('offspringModalOverlay');
                 if (overlay) {
@@ -653,6 +729,20 @@ class SearchManager extends BaseModule {
                         }
                         this.currentOffspringModalDogId = null;
                         this.currentOffspringModalDogName = null;
+                    }, 300);
+                }
+            }
+            
+            if (e.target.id === 'siblingsModalOverlay') {
+                const overlay = document.getElementById('siblingsModalOverlay');
+                if (overlay) {
+                    overlay.style.display = 'none';
+                    setTimeout(() => {
+                        if (overlay.parentNode) {
+                            overlay.parentNode.removeChild(overlay);
+                        }
+                        this.currentSiblingsModalDogId = null;
+                        this.currentSiblingsModalDogName = null;
                     }, 300);
                 }
             }
@@ -697,10 +787,25 @@ class SearchManager extends BaseModule {
                     }, 300);
                 }
             }
+            
+            const backToSiblingsBtn = e.target.closest('.back-to-siblings-btn');
+            if (backToSiblingsBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const overlay = document.getElementById('dogDetailsModalOverlay');
+                if (overlay) {
+                    overlay.style.display = 'none';
+                    setTimeout(() => {
+                        if (overlay.parentNode) {
+                            overlay.parentNode.removeChild(overlay);
+                        }
+                    }, 300);
+                }
+            }
         });
     }
     
-    // **AANGEPAST: EXACT DEZELFDE METHODE ALS LITTERMANAGER**
     async loadAllDogs(forceReload = false) {
         console.log('SearchManager: loadAllDogs aangeroepen');
         
@@ -765,50 +870,42 @@ class SearchManager extends BaseModule {
         }
     }
     
-    // **AANGEPAST: FILTER LOKAAL MET NORMALIZE - EXACT ZOALS LITTERMANAGER**
+    // ZOEKLOGICA - EXACT HETZELFDE ALS IN LITTERMANAGER
     searchDogs(searchTerm, searchType) {
         if (!searchTerm || searchTerm.length < 1 || !this.allDogs || this.allDogs.length === 0) {
             return [];
         }
         
         const normalizedTerm = this.normalizeText(searchTerm);
-        const parts = searchTerm.split(' ');
-        const isCombinedSearch = parts.length >= 2 && parts[0].length > 0 && parts[1].length > 0;
         
-        // Eerst dedupliceren zoals in LitterManager
+        // Eerst dedupliceren op ID
         const uniqueDogs = this.allDogs.filter((dog, index, self) => 
             index === self.findIndex(d => d.id === dog.id)
         );
         
-        // Filter zoals in LitterManager
-        const suggestions = uniqueDogs.filter(dog => {
-            const dogName = dog.naam ? dog.naam.toLowerCase() : '';
-            const kennelName = dog.kennelnaam ? dog.kennelnaam.toLowerCase() : '';
-            
-            // Creëer gecombineerde string zoals in LitterManager
-            const combined = this.normalizeText(`${dog.naam || ''} ${dog.kennelnaam || ''}`);
-            
-            if (searchType === 'name') {
-                if (isCombinedSearch) {
-                    // Voor combinatiezoekopdracht: naam moet beginnen met eerste deel EN kennelnaam moet tweede deel bevatten
-                    const namePart = this.normalizeText(parts[0]);
-                    const kennelPart = this.normalizeText(parts.slice(1).join(' '));
-                    
-                    const nameMatch = this.normalizeText(dog.naam || '').startsWith(namePart);
-                    const kennelMatch = this.normalizeText(dog.kennelnaam || '').includes(kennelPart);
-                    
-                    return nameMatch && kennelMatch;
-                } else {
-                    // Normale zoekopdracht: gecombineerde string moet beginnen met zoekterm
-                    return combined.startsWith(normalizedTerm);
-                }
-            } else {
-                // Zoeken op kennelnaam (bevat)
-                return this.normalizeText(dog.kennelnaam || '').includes(normalizedTerm);
-            }
-        }).slice(0, 50); // Max 50 resultaten
-        
-        return suggestions;
+        if (searchType === 'name') {
+            // EXACT ZOALS IN LITTERMANAGER: kijken of de gecombineerde string begint met de zoekterm
+            return uniqueDogs.filter(dog => {
+                const dogName = dog.naam ? dog.naam.toLowerCase() : '';
+                const kennelName = dog.kennelnaam ? dog.kennelnaam.toLowerCase() : '';
+                
+                // Creëer gecombineerde string: "naam kennelnaam"
+                const combined = `${dogName} ${kennelName}`.trim();
+                
+                // Normaliseer en check of het begint met de genormaliseerde zoekterm
+                const normalizedCombined = this.normalizeText(combined);
+                
+                return normalizedCombined.startsWith(normalizedTerm);
+            }).slice(0, 50);
+        } else {
+            // Zoeken op kennelnaam (bevat)
+            return uniqueDogs.filter(dog => {
+                const kennelName = dog.kennelnaam ? dog.kennelnaam.toLowerCase() : '';
+                const normalizedKennel = this.normalizeText(kennelName);
+                
+                return normalizedKennel.includes(normalizedTerm);
+            }).slice(0, 50);
+        }
     }
     
     async getDogDetails(dogId) {
@@ -899,13 +996,14 @@ class SearchManager extends BaseModule {
             }
             
             const offspringWithParents = await Promise.all(offspringIds.map(async (puppy) => {
-                let fatherInfo = { naam: this.t('parentsUnknown'), stamboomnr: '', kennelnaam: '' };
-                let motherInfo = { naam: this.t('parentsUnknown'), stamboomnr: '', kennelnaam: '' };
+                let fatherInfo = { id: null, naam: this.t('parentsUnknown'), stamboomnr: '', kennelnaam: '' };
+                let motherInfo = { id: null, naam: this.t('parentsUnknown'), stamboomnr: '', kennelnaam: '' };
                 
                 if (puppy.vader_id) {
                     const father = await this.getDogDetails(puppy.vader_id);
                     if (father) {
                         fatherInfo = {
+                            id: father.id,
                             naam: father.naam || this.t('unknown'),
                             stamboomnr: father.stamboomnr || '',
                             kennelnaam: father.kennelnaam || ''
@@ -917,6 +1015,7 @@ class SearchManager extends BaseModule {
                     const mother = await this.getDogDetails(puppy.moeder_id);
                     if (mother) {
                         motherInfo = {
+                            id: mother.id,
                             naam: mother.naam || this.t('unknown'),
                             stamboomnr: mother.stamboomnr || '',
                             kennelnaam: mother.kennelnaam || ''
@@ -946,9 +1045,194 @@ class SearchManager extends BaseModule {
         }
     }
     
+    async getDogSiblings(dogId) {
+        if (!dogId || dogId === 0) return [];
+        
+        if (this.dogSiblingsCache.has(dogId)) {
+            return this.dogSiblingsCache.get(dogId);
+        }
+        
+        try {
+            const dog = await this.getDogDetails(dogId);
+            if (!dog) return [];
+            
+            const fatherId = dog.vader_id;
+            const motherId = dog.moeder_id;
+            
+            if (!fatherId && !motherId) {
+                this.dogSiblingsCache.set(dogId, []);
+                return [];
+            }
+            
+            let query = window.supabase
+                .from('honden')
+                .select('id, naam, kennelnaam, stamboomnr, ras, geslacht, geboortedatum, vader_id, moeder_id');
+            
+            if (fatherId && motherId) {
+                query = query.or(`vader_id.eq.${fatherId},moeder_id.eq.${motherId}`);
+            } else if (fatherId) {
+                query = query.eq('vader_id', fatherId);
+            } else if (motherId) {
+                query = query.eq('moeder_id', motherId);
+            }
+            
+            const { data: siblings, error } = await query;
+            
+            if (error) {
+                console.error('Fout bij ophalen broers/zussen:', error);
+                return [];
+            }
+            
+            if (!siblings || siblings.length === 0) {
+                this.dogSiblingsCache.set(dogId, []);
+                return [];
+            }
+            
+            const filteredSiblings = siblings.filter(s => s.id !== dogId);
+            
+            const siblingsWithParents = await Promise.all(filteredSiblings.map(async (sibling) => {
+                const sameFather = fatherId && sibling.vader_id === fatherId;
+                const sameMother = motherId && sibling.moeder_id === motherId;
+                
+                let type = 'half';
+                let commonParent = '';
+                
+                if (sameFather && sameMother) {
+                    type = 'full';
+                    commonParent = 'beide';
+                } else if (sameFather) {
+                    type = 'half';
+                    commonParent = 'vader';
+                } else if (sameMother) {
+                    type = 'half';
+                    commonParent = 'moeder';
+                }
+                
+                let fatherInfo = { id: null, naam: this.t('parentsUnknown'), stamboomnr: '', kennelnaam: '' };
+                let motherInfo = { id: null, naam: this.t('parentsUnknown'), stamboomnr: '', kennelnaam: '' };
+                
+                if (sibling.vader_id) {
+                    const father = await this.getDogDetails(sibling.vader_id);
+                    if (father) {
+                        fatherInfo = {
+                            id: father.id,
+                            naam: father.naam || this.t('unknown'),
+                            stamboomnr: father.stamboomnr || '',
+                            kennelnaam: father.kennelnaam || ''
+                        };
+                    }
+                }
+                
+                if (sibling.moeder_id) {
+                    const mother = await this.getDogDetails(sibling.moeder_id);
+                    if (mother) {
+                        motherInfo = {
+                            id: mother.id,
+                            naam: mother.naam || this.t('unknown'),
+                            stamboomnr: mother.stamboomnr || '',
+                            kennelnaam: mother.kennelnaam || ''
+                        };
+                    }
+                }
+                
+                return {
+                    ...sibling,
+                    siblingType: type,
+                    commonParent: commonParent,
+                    fatherInfo,
+                    motherInfo,
+                    sortOrder: type === 'full' ? 0 : 1
+                };
+            }));
+            
+            siblingsWithParents.sort((a, b) => {
+                if (a.sortOrder !== b.sortOrder) {
+                    return a.sortOrder - b.sortOrder;
+                }
+                
+                const dateA = a.geboortedatum ? new Date(a.geboortedatum) : new Date(0);
+                const dateB = b.geboortedatum ? new Date(b.geboortedatum) : new Date(0);
+                return dateA - dateB;
+            });
+            
+            this.dogSiblingsCache.set(dogId, siblingsWithParents);
+            return siblingsWithParents;
+            
+        } catch (error) {
+            console.error('Fout bij ophalen broers/zussen voor hond:', dogId, error);
+            return [];
+        }
+    }
+    
+    async getSiblingsCount(dogId) {
+        if (!dogId || dogId === 0) return 0;
+        
+        if (this.dogSiblingsCache.has(dogId)) {
+            return this.dogSiblingsCache.get(dogId).length;
+        }
+        
+        try {
+            const dog = await this.getDogDetails(dogId);
+            if (!dog) return 0;
+            
+            const fatherId = dog.vader_id;
+            const motherId = dog.moeder_id;
+            
+            if (!fatherId && !motherId) {
+                return 0;
+            }
+            
+            let query = window.supabase
+                .from('honden')
+                .select('*', { count: 'exact', head: true });
+            
+            if (fatherId && motherId) {
+                query = query.or(`vader_id.eq.${fatherId},moeder_id.eq.${motherId}`);
+            } else if (fatherId) {
+                query = query.eq('vader_id', fatherId);
+            } else if (motherId) {
+                query = query.eq('moeder_id', motherId);
+            }
+            
+            const { count, error } = await query;
+            
+            if (error) {
+                console.error('Fout bij tellen broers/zussen:', error);
+                return 0;
+            }
+            
+            return Math.max(0, (count || 0) - 1);
+            
+        } catch (error) {
+            console.error('Fout bij tellen broers/zussen:', error);
+            return 0;
+        }
+    }
+    
     async getOffspringCount(dogId) {
-        const offspring = await this.getDogOffspring(dogId);
-        return offspring.length;
+        if (!dogId || dogId === 0) return 0;
+        
+        if (this.dogOffspringCache.has(dogId)) {
+            return this.dogOffspringCache.get(dogId).length;
+        }
+        
+        try {
+            const { count, error } = await window.supabase
+                .from('honden')
+                .select('*', { count: 'exact', head: true })
+                .or(`vader_id.eq.${dogId},moeder_id.eq.${dogId}`);
+            
+            if (error) {
+                console.error('Fout bij tellen nakomelingen:', error);
+                return 0;
+            }
+            
+            return count || 0;
+            
+        } catch (error) {
+            console.error('Fout bij tellen nakomelingen:', error);
+            return 0;
+        }
     }
     
     async checkDogHasPhotos(dogId) {
@@ -966,15 +1250,15 @@ class SearchManager extends BaseModule {
         this.currentOffspringModalDogName = dogName;
         
         const overlayHTML = `
-            <div class="offspring-modal-overlay" id="offspringModalOverlay" style="display: flex;">
-                <div class="offspring-modal-container">
-                    <div class="offspring-modal-header">
-                        <h5 class="offspring-modal-title">
+            <div class="modal-overlay offspring-modal-overlay" id="offspringModalOverlay" style="display: flex;">
+                <div class="modal-container offspring-modal-container">
+                    <div class="modal-header offspring-modal-header">
+                        <h5 class="modal-title offspring-modal-title">
                             <i class="bi bi-people-fill me-2"></i> ${this.t('offspringModalTitle', '').replace('{name}', dogName)}
                         </h5>
                         <button type="button" class="btn-close btn-close-white offspring-modal-close" aria-label="${this.t('close')}"></button>
                     </div>
-                    <div class="offspring-modal-body" id="offspringModalContent">
+                    <div class="modal-body offspring-modal-body" id="offspringModalContent">
                         <div class="text-center py-4">
                             <div class="spinner-border text-primary" role="status">
                                 <span class="visually-hidden">${this.t('loadingOffspring')}</span>
@@ -982,7 +1266,7 @@ class SearchManager extends BaseModule {
                             <p class="mt-3">${this.t('loadingOffspring')}</p>
                         </div>
                     </div>
-                    <div class="offspring-modal-footer">
+                    <div class="modal-footer offspring-modal-footer">
                         <button type="button" class="btn btn-secondary offspring-modal-close">
                             <i class="bi bi-x-lg me-1"></i> ${this.t('close')}
                         </button>
@@ -1014,6 +1298,72 @@ class SearchManager extends BaseModule {
         document.addEventListener('keydown', closeOnEscape);
         
         const overlay = document.getElementById('offspringModalOverlay');
+        overlay.addEventListener('animationend', function handler() {
+            if (overlay.style.display === 'none') {
+                document.removeEventListener('keydown', closeOnEscape);
+                overlay.removeEventListener('animationend', handler);
+            }
+        });
+    }
+    
+    async showSiblingsModal(dogId, dogName = '') {
+        const existingOverlay = document.getElementById('siblingsModalOverlay');
+        if (existingOverlay) {
+            existingOverlay.remove();
+        }
+        
+        this.currentSiblingsModalDogId = dogId;
+        this.currentSiblingsModalDogName = dogName;
+        
+        const overlayHTML = `
+            <div class="modal-overlay siblings-modal-overlay" id="siblingsModalOverlay" style="display: flex;">
+                <div class="modal-container siblings-modal-container">
+                    <div class="modal-header siblings-modal-header">
+                        <h5 class="modal-title siblings-modal-title">
+                            <i class="bi bi-people me-2"></i> ${this.t('siblingsModalTitle', '').replace('{name}', dogName)}
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white siblings-modal-close" aria-label="${this.t('close')}"></button>
+                    </div>
+                    <div class="modal-body siblings-modal-body" id="siblingsModalContent">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">${this.t('loadingSiblings')}</span>
+                            </div>
+                            <p class="mt-3">${this.t('loadingSiblings')}</p>
+                        </div>
+                    </div>
+                    <div class="modal-footer siblings-modal-footer">
+                        <button type="button" class="btn btn-secondary siblings-modal-close">
+                            <i class="bi bi-x-lg me-1"></i> ${this.t('close')}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', overlayHTML);
+        
+        this.loadAndDisplaySiblings(dogId, dogName);
+        
+        const closeOnEscape = (e) => {
+            if (e.key === 'Escape') {
+                const overlay = document.getElementById('siblingsModalOverlay');
+                if (overlay) {
+                    overlay.style.display = 'none';
+                    setTimeout(() => {
+                        if (overlay.parentNode) {
+                            overlay.parentNode.removeChild(overlay);
+                        }
+                        this.currentSiblingsModalDogId = null;
+                        this.currentSiblingsModalDogName = null;
+                    }, 300);
+                    document.removeEventListener('keydown', closeOnEscape);
+                }
+            }
+        };
+        document.addEventListener('keydown', closeOnEscape);
+        
+        const overlay = document.getElementById('siblingsModalOverlay');
         overlay.addEventListener('animationend', function handler() {
             if (overlay.style.display === 'none') {
                 document.removeEventListener('keydown', closeOnEscape);
@@ -1117,7 +1467,12 @@ class SearchManager extends BaseModule {
                     const puppyId = parseInt(row.getAttribute('data-dog-id'));
                     const puppyName = row.getAttribute('data-dog-name');
                     
-                    this.showDogDetailsModal(puppyId, puppyName);
+                    const overlay = document.getElementById('offspringModalOverlay');
+                    if (overlay) {
+                        overlay.style.display = 'none';
+                    }
+                    
+                    this.showDogDetailsModal(puppyId, puppyName, 'offspring');
                 });
             });
             
@@ -1132,7 +1487,135 @@ class SearchManager extends BaseModule {
         }
     }
     
-    async showDogDetailsModal(dogId, dogName = '') {
+    async loadAndDisplaySiblings(dogId, dogName) {
+        const contentDiv = document.getElementById('siblingsModalContent');
+        if (!contentDiv) return;
+        
+        try {
+            const siblings = await this.getDogSiblings(dogId);
+            const count = siblings.length;
+            
+            if (count === 0) {
+                contentDiv.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="bi bi-people display-1 text-muted opacity-50"></i>
+                        <p class="mt-3 text-muted">${this.t('noSiblings')}</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const fullCount = siblings.filter(s => s.siblingType === 'full').length;
+            const halfCount = siblings.filter(s => s.siblingType === 'half').length;
+            
+            let html = `
+                <div class="siblings-stats mb-4">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        ${this.t('totalOffspring')}: <strong>${count}</strong> 
+                        (${fullCount} ${this.t('fullSiblings')}, ${halfCount} ${this.t('halfSiblings')})
+                    </div>
+                </div>
+                
+                <div class="siblings-list-container">
+                    <h6 class="mb-3">
+                        <i class="bi bi-list-ul me-2"></i> ${this.t('siblingsList')}
+                    </h6>
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th scope="col">#</th>
+                                    <th scope="col">${this.t('dogName')}</th>
+                                    <th scope="col">${this.t('fatherColumn')}</th>
+                                    <th scope="col">${this.t('motherColumn')}</th>
+                                    <th scope="col">${this.t('relationship')}</th>
+                                    <th scope="col">${this.t('pedigreeNumber')}</th>
+                                    <th scope="col">${this.t('breed')}</th>
+                                    <th scope="col">${this.t('birthYear')}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+            
+            siblings.forEach((sibling, index) => {
+                const birthYear = sibling.geboortedatum ? 
+                    new Date(sibling.geboortedatum).getFullYear() : '?';
+                
+                const relationshipText = sibling.siblingType === 'full' ? 
+                    this.t('fullSibling') : this.t('halfSibling');
+                
+                const fatherDisplay = sibling.fatherInfo.kennelnaam ? 
+                    `${sibling.fatherInfo.naam} (${sibling.fatherInfo.kennelnaam})` : 
+                    sibling.fatherInfo.naam;
+                
+                const motherDisplay = sibling.motherInfo.kennelnaam ? 
+                    `${sibling.motherInfo.naam} (${sibling.motherInfo.kennelnaam})` : 
+                    sibling.motherInfo.naam;
+                
+                const rowClass = sibling.siblingType === 'full' ? 'full-sibling-row' : 'half-sibling-row';
+                
+                html += `
+                    <tr class="sibling-row ${rowClass}" data-dog-id="${sibling.id}" data-dog-name="${sibling.naam || ''}">
+                        <td class="text-muted">${index + 1}</td>
+                        <td>
+                            <strong class="${sibling.siblingType === 'full' ? 'text-success' : 'text-primary'}">${sibling.naam || this.t('unknown')}</strong>
+                            ${sibling.kennelnaam ? `<br><small class="text-muted">${sibling.kennelnaam}</small>` : ''}
+                        </td>
+                        <td>${fatherDisplay}</td>
+                        <td>${motherDisplay}</td>
+                        <td>
+                            <span class="badge ${sibling.siblingType === 'full' ? 'bg-success' : 'bg-info'}">${relationshipText}</span>
+                        </td>
+                        <td><code>${sibling.stamboomnr || ''}</code></td>
+                        <td>${sibling.ras || ''}</td>
+                        <td>${birthYear}</td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="mt-4 text-center">
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle me-1"></i>
+                        ${this.t('viewDogDetails')}
+                    </small>
+                </div>
+            `;
+            
+            contentDiv.innerHTML = html;
+            
+            contentDiv.querySelectorAll('.sibling-row').forEach(row => {
+                row.addEventListener('click', (e) => {
+                    const siblingId = parseInt(row.getAttribute('data-dog-id'));
+                    const siblingName = row.getAttribute('data-dog-name');
+                    
+                    const overlay = document.getElementById('siblingsModalOverlay');
+                    if (overlay) {
+                        overlay.style.display = 'none';
+                    }
+                    
+                    this.showDogDetailsModal(siblingId, siblingName, 'siblings');
+                });
+            });
+            
+        } catch (error) {
+            console.error('Fout bij laden broers/zussen:', error);
+            contentDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Fout bij laden broers/zussen: ${error.message}
+                </div>
+            `;
+        }
+    }
+    
+    async showDogDetailsModal(dogId, dogName = '', source = '') {
         const dog = await this.getDogDetails(dogId);
         if (!dog) {
             this.showError(`Hond niet gevonden (ID: ${dogId})`);
@@ -1148,16 +1631,26 @@ class SearchManager extends BaseModule {
             this.currentUserId = await this.getCurrentUserId();
         }
         
+        let backButtonText = this.t('backToSearch');
+        let backButtonClass = 'back-to-search-btn';
+        if (source === 'offspring') {
+            backButtonText = this.t('backToOffspring');
+            backButtonClass = 'back-to-offspring-btn';
+        } else if (source === 'siblings') {
+            backButtonText = this.t('backToSiblings');
+            backButtonClass = 'back-to-siblings-btn';
+        }
+        
         const overlayHTML = `
-            <div class="offspring-modal-overlay" id="dogDetailsModalOverlay" style="display: flex;">
-                <div class="offspring-modal-container" style="max-width: 800px;">
-                    <div class="offspring-modal-header">
-                        <h5 class="offspring-modal-title">
+            <div class="modal-overlay offspring-modal-overlay" id="dogDetailsModalOverlay" style="display: flex;">
+                <div class="modal-container offspring-modal-container" style="max-width: 800px;">
+                    <div class="modal-header offspring-modal-header">
+                        <h5 class="modal-title offspring-modal-title">
                             <i class="bi bi-info-circle me-2"></i> ${this.t('dogDetailsModalTitle', '').replace('{name}', dogName)}
                         </h5>
                         <button type="button" class="btn-close btn-close-white dog-details-modal-close" aria-label="${this.t('closeDogDetails')}"></button>
                     </div>
-                    <div class="offspring-modal-body" id="dogDetailsModalContent">
+                    <div class="modal-body offspring-modal-body" id="dogDetailsModalContent">
                         <div class="text-center py-4">
                             <div class="spinner-border text-primary" role="status">
                                 <span class="visually-hidden">${this.t('loading')}</span>
@@ -1165,10 +1658,10 @@ class SearchManager extends BaseModule {
                             <p class="mt-3">${this.t('loading')}</p>
                         </div>
                     </div>
-                    <div class="offspring-modal-footer">
+                    <div class="modal-footer offspring-modal-footer">
                         <div class="d-flex justify-content-between">
-                            <button type="button" class="btn btn-outline-secondary back-to-offspring-btn">
-                                <i class="bi bi-arrow-left me-1"></i> ${this.t('backToOffspring')}
+                            <button type="button" class="btn btn-outline-secondary ${backButtonClass}">
+                                <i class="bi bi-arrow-left me-1"></i> ${backButtonText}
                             </button>
                             <button type="button" class="btn btn-secondary dog-details-modal-close">
                                 <i class="bi bi-x-lg me-1"></i> ${this.t('closeDogDetails')}
@@ -1181,7 +1674,7 @@ class SearchManager extends BaseModule {
         
         document.body.insertAdjacentHTML('beforeend', overlayHTML);
         
-        await this.loadAndDisplayDogDetails(dog);
+        await this.loadAndDisplayDogDetails(dog, source);
         
         const closeOnEscape = (e) => {
             if (e.key === 'Escape') {
@@ -1208,7 +1701,7 @@ class SearchManager extends BaseModule {
         });
     }
     
-    async loadAndDisplayDogDetails(dog) {
+    async loadAndDisplayDogDetails(dog, source = '') {
         const contentDiv = document.getElementById('dogDetailsModalContent');
         if (!contentDiv) return;
         
@@ -1310,6 +1803,7 @@ class SearchManager extends BaseModule {
         
         const hasPhotos = await this.checkDogHasPhotos(dog.id);
         const offspringCount = await this.getOffspringCount(dog.id);
+        const siblingsCount = await this.getSiblingsCount(dog.id);
         
         let html = `
             <div class="dog-details-content">
@@ -1328,19 +1822,35 @@ class SearchManager extends BaseModule {
                                       `<span class="vachtkleur">${dog.vachtkleur}</span>` : 
                                       `<span class="text-muted fst-italic">geen vachtkleur</span>`}
                                     
-                                    ${offspringCount > 0 ? `
-                                    <a href="#" class="offspring-badge offspring-button" 
-                                       data-dog-id="${dog.id}" 
-                                       data-dog-name="${displayValue(dog.naam)}">
-                                        <i class="bi bi-people-fill"></i>
-                                        ${offspringCount} ${t('offspringCount')}
-                                    </a>
-                                    ` : `
-                                    <span class="offspring-badge" style="background: #6c757d; cursor: default;">
-                                        <i class="bi bi-people"></i>
-                                        0 ${t('offspringCount')}
-                                    </span>
-                                    `}
+                                    <div class="d-flex gap-2 mt-2">
+                                        ${offspringCount > 0 ? `
+                                        <a href="#" class="offspring-badge offspring-button" 
+                                           data-dog-id="${dog.id}" 
+                                           data-dog-name="${displayValue(dog.naam)}">
+                                            <i class="bi bi-people-fill"></i>
+                                            ${offspringCount} ${t('offspringCount')}
+                                        </a>
+                                        ` : `
+                                        <span class="offspring-badge" style="background: #6c757d; cursor: default;">
+                                            <i class="bi bi-people"></i>
+                                            0 ${t('offspringCount')}
+                                        </span>
+                                        `}
+                                        
+                                        ${siblingsCount > 0 ? `
+                                        <a href="#" class="siblings-badge siblings-button" 
+                                           data-dog-id="${dog.id}" 
+                                           data-dog-name="${displayValue(dog.naam)}">
+                                            <i class="bi bi-people"></i>
+                                            ${siblingsCount} ${t('siblingsCount')}
+                                        </a>
+                                        ` : `
+                                        <span class="siblings-badge" style="background: #6c757d; cursor: default;">
+                                            <i class="bi bi-people"></i>
+                                            0 ${t('siblingsCount')}
+                                        </span>
+                                        `}
+                                    </div>
                                 </div>
                             </div>
                             <div class="text-end">
@@ -1377,8 +1887,13 @@ class SearchManager extends BaseModule {
                 ` : ''}
                 
                 <div class="info-group mb-4">
-                    <div class="info-group-title">
-                        <i class="bi bi-people me-1"></i> ${t('parents')}
+                    <div class="info-group-title d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="bi bi-people me-1"></i> ${t('parents')}
+                        </div>
+                        <button class="btn btn-sm btn-outline-primary btn-pedigree" data-dog-id="${dog.id}">
+                            <i class="bi bi-diagram-3 me-1"></i> ${t('pedigreeButton')}
+                        </button>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
@@ -1515,6 +2030,36 @@ class SearchManager extends BaseModule {
             });
         });
         
+        contentDiv.querySelectorAll('.siblings-button').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const newDogId = parseInt(btn.getAttribute('data-dog-id'));
+                const newDogName = btn.getAttribute('data-dog-name') || '';
+                
+                const overlay = document.getElementById('dogDetailsModalOverlay');
+                if (overlay) {
+                    overlay.style.display = 'none';
+                    setTimeout(() => {
+                        if (overlay.parentNode) {
+                            overlay.parentNode.removeChild(overlay);
+                        }
+                    }, 300);
+                }
+                
+                this.showSiblingsModal(newDogId, newDogName);
+            });
+        });
+        
+        contentDiv.querySelectorAll('.btn-pedigree').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const dogId = parseInt(btn.getAttribute('data-dog-id'));
+                await this.openPedigree(dogId);
+            });
+        });
+        
         if (fatherInfo.id) {
             const fatherCard = contentDiv.querySelector('.father-card');
             if (fatherCard) {
@@ -1531,7 +2076,7 @@ class SearchManager extends BaseModule {
                         }, 300);
                     }
                     
-                    this.showDogDetailsModal(parentId, fatherInfo.naam);
+                    this.showDogDetailsModal(parentId, fatherInfo.naam, source);
                 });
             }
         }
@@ -1552,7 +2097,7 @@ class SearchManager extends BaseModule {
                         }, 300);
                     }
                     
-                    this.showDogDetailsModal(parentId, motherInfo.naam);
+                    this.showDogDetailsModal(parentId, motherInfo.naam, source);
                 });
             }
         }
@@ -1978,8 +2523,7 @@ class SearchManager extends BaseModule {
                     color: #495057;
                 }
                 
-                .offspring-badge {
-                    background: linear-gradient(135deg, #6f42c1, #0d6efd);
+                .offspring-badge, .siblings-badge {
                     color: white !important;
                     padding: 4px 10px;
                     border-radius: 20px;
@@ -1994,12 +2538,27 @@ class SearchManager extends BaseModule {
                     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
                 }
                 
-                .offspring-badge:hover {
-                    background: linear-gradient(135deg, #0d6efd, #6f42c1);
+                .offspring-badge {
+                    background: linear-gradient(135deg, #6f42c1, #0d6efd);
+                }
+                
+                .siblings-badge {
+                    background: linear-gradient(135deg, #28a745, #20c997);
+                }
+                
+                .offspring-badge:hover, .siblings-badge:hover {
                     transform: translateY(-2px);
                     box-shadow: 0 4px 8px rgba(0,0,0,0.15);
                     color: white !important;
                     text-decoration: none;
+                }
+                
+                .offspring-badge:hover {
+                    background: linear-gradient(135deg, #0d6efd, #6f42c1);
+                }
+                
+                .siblings-badge:hover {
+                    background: linear-gradient(135deg, #20c997, #28a745);
                 }
                 
                 .photos-section {
@@ -2090,7 +2649,7 @@ class SearchManager extends BaseModule {
                     font-size: 0.8rem;
                 }
                 
-                .offspring-modal-overlay {
+                .modal-overlay {
                     position: fixed;
                     top: 0;
                     left: 0;
@@ -2104,7 +2663,7 @@ class SearchManager extends BaseModule {
                     animation: fadeIn 0.3s;
                 }
                 
-                .offspring-modal-container {
+                .modal-container {
                     background: white;
                     border-radius: 12px;
                     overflow: hidden;
@@ -2117,45 +2676,64 @@ class SearchManager extends BaseModule {
                     animation: slideUp 0.3s;
                 }
                 
-                .offspring-modal-header {
+                .offspring-modal-header, .siblings-modal-header {
                     padding: 16px 20px;
-                    background: linear-gradient(135deg, #6f42c1, #0d6efd);
                     color: white;
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
                 }
                 
-                .offspring-modal-title {
+                .offspring-modal-header {
+                    background: linear-gradient(135deg, #6f42c1, #0d6efd);
+                }
+                
+                .siblings-modal-header {
+                    background: linear-gradient(135deg, #28a745, #20c997);
+                }
+                
+                .offspring-modal-title, .siblings-modal-title {
                     margin: 0;
                     font-size: 1.3rem;
                     font-weight: 600;
                 }
                 
-                .offspring-modal-body {
+                .offspring-modal-body, .siblings-modal-body {
                     padding: 20px;
                     overflow-y: auto;
                     flex: 1;
                     max-height: 60vh;
                 }
                 
-                .offspring-modal-footer {
+                .offspring-modal-footer, .siblings-modal-footer {
                     padding: 15px 20px;
                     background: #f8f9fa;
                     border-top: 1px solid #dee2e6;
                     text-align: right;
                 }
                 
-                .offspring-row {
+                .offspring-row, .sibling-row {
                     cursor: pointer;
                     transition: all 0.2s;
                 }
                 
-                .offspring-row:hover {
+                .offspring-row:hover, .sibling-row:hover {
                     background-color: #e8f4fd;
                 }
                 
-                .offspring-row td {
+                .full-sibling-row {
+                    background-color: rgba(40, 167, 69, 0.05);
+                }
+                
+                .full-sibling-row:hover {
+                    background-color: rgba(40, 167, 69, 0.15);
+                }
+                
+                .half-sibling-row:hover {
+                    background-color: #e8f4fd;
+                }
+                
+                .offspring-row td, .sibling-row td {
                     vertical-align: middle;
                 }
                 
@@ -2181,7 +2759,7 @@ class SearchManager extends BaseModule {
                     z-index: 1055;
                 }
                 
-                #offspringModalOverlay {
+                #offspringModalOverlay, #siblingsModalOverlay {
                     z-index: 1090;
                 }
                 
@@ -2191,27 +2769,31 @@ class SearchManager extends BaseModule {
                 
                 #searchResultsContainer::-webkit-scrollbar,
                 #detailsContainer::-webkit-scrollbar,
-                .offspring-modal-body::-webkit-scrollbar {
+                .offspring-modal-body::-webkit-scrollbar,
+                .siblings-modal-body::-webkit-scrollbar {
                     width: 8px;
                 }
                 
                 #searchResultsContainer::-webkit-scrollbar-track,
                 #detailsContainer::-webkit-scrollbar-track,
-                .offspring-modal-body::-webkit-scrollbar-track {
+                .offspring-modal-body::-webkit-scrollbar-track,
+                .siblings-modal-body::-webkit-scrollbar-track {
                     background: #f1f1f1;
                     border-radius: 4px;
                 }
                 
                 #searchResultsContainer::-webkit-scrollbar-thumb,
                 #detailsContainer::-webkit-scrollbar-thumb,
-                .offspring-modal-body::-webkit-scrollbar-thumb {
+                .offspring-modal-body::-webkit-scrollbar-thumb,
+                .siblings-modal-body::-webkit-scrollbar-thumb {
                     background: #c1c1c1;
                     border-radius: 4px;
                 }
                 
                 #searchResultsContainer::-webkit-scrollbar-thumb:hover,
                 #detailsContainer::-webkit-scrollbar-thumb:hover,
-                .offspring-modal-body::-webkit-scrollbar-thumb:hover {
+                .offspring-modal-body::-webkit-scrollbar-thumb:hover,
+                .siblings-modal-body::-webkit-scrollbar-thumb:hover {
                     background: #a8a8a8;
                 }
                 
@@ -2265,44 +2847,44 @@ class SearchManager extends BaseModule {
                         height: 40px;
                     }
                     
-                    .offspring-modal-container {
+                    .modal-container {
                         width: 95% !important;
                         max-width: 95% !important;
                         margin: 0 10px !important;
                         border-radius: 8px !important;
                     }
                     
-                    .offspring-modal-header {
+                    .offspring-modal-header, .siblings-modal-header {
                         padding: 12px 15px !important;
                     }
                     
-                    .offspring-modal-title {
+                    .offspring-modal-title, .siblings-modal-title {
                         font-size: 1.1rem !important;
                     }
                     
-                    .offspring-modal-body {
+                    .offspring-modal-body, .siblings-modal-body {
                         max-height: 70vh !important;
                         padding: 15px !important;
                     }
                     
-                    .offspring-modal-footer {
+                    .offspring-modal-footer, .siblings-modal-footer {
                         padding: 12px 15px !important;
                     }
                     
-                    .offspring-row {
+                    .offspring-row, .sibling-row {
                         font-size: 0.8rem !important;
                     }
                     
-                    .offspring-row td {
+                    .offspring-row td, .sibling-row td {
                         padding: 6px 4px !important;
                     }
                     
-                    .offspring-badge {
+                    .offspring-badge, .siblings-badge {
                         padding: 3px 8px !important;
                         font-size: 0.8rem !important;
                     }
                     
-                    #dogDetailsModalOverlay .offspring-modal-container {
+                    #dogDetailsModalOverlay .modal-container {
                         max-height: 95vh !important;
                         max-width: 98% !important;
                     }
@@ -2460,7 +3042,6 @@ class SearchManager extends BaseModule {
     }
     
     async performNameSearch(searchTerm) {
-        // Zorg dat alle honden geladen zijn
         await this.loadAllDogs();
         
         const dogs = this.searchDogs(searchTerm, 'name');
@@ -2813,6 +3394,7 @@ class SearchManager extends BaseModule {
         
         const hasPhotos = await this.checkDogHasPhotos(dog.id);
         const offspringCount = await this.getOffspringCount(dog.id);
+        const siblingsCount = await this.getSiblingsCount(dog.id);
         
         const html = `
             <div class="p-3">
@@ -2844,19 +3426,35 @@ class SearchManager extends BaseModule {
                                       `<span class="vachtkleur">${dog.vachtkleur}</span>` : 
                                       `<span class="text-muted fst-italic">geen vachtkleur</span>`}
                                     
-                                    ${offspringCount > 0 ? `
-                                    <a href="#" class="offspring-badge offspring-button" 
-                                       data-dog-id="${dog.id}" 
-                                       data-dog-name="${displayValue(dog.naam)}">
-                                        <i class="bi bi-people-fill"></i>
-                                        ${offspringCount} ${t('offspringCount')}
-                                    </a>
-                                    ` : `
-                                    <span class="offspring-badge" style="background: #6c757d; cursor: default;">
-                                        <i class="bi bi-people"></i>
-                                        0 ${t('offspringCount')}
-                                    </span>
-                                    `}
+                                    <div class="d-flex gap-2 mt-2">
+                                        ${offspringCount > 0 ? `
+                                        <a href="#" class="offspring-badge offspring-button" 
+                                           data-dog-id="${dog.id}" 
+                                           data-dog-name="${displayValue(dog.naam)}">
+                                            <i class="bi bi-people-fill"></i>
+                                            ${offspringCount} ${t('offspringCount')}
+                                        </a>
+                                        ` : `
+                                        <span class="offspring-badge" style="background: #6c757d; cursor: default;">
+                                            <i class="bi bi-people"></i>
+                                            0 ${t('offspringCount')}
+                                        </span>
+                                        `}
+                                        
+                                        ${siblingsCount > 0 ? `
+                                        <a href="#" class="siblings-badge siblings-button" 
+                                           data-dog-id="${dog.id}" 
+                                           data-dog-name="${displayValue(dog.naam)}">
+                                            <i class="bi bi-people"></i>
+                                            ${siblingsCount} ${t('siblingsCount')}
+                                        </a>
+                                        ` : `
+                                        <span class="siblings-badge" style="background: #6c757d; cursor: default;">
+                                            <i class="bi bi-people"></i>
+                                            0 ${t('siblingsCount')}
+                                        </span>
+                                        `}
+                                    </div>
                                 </div>
                             </div>
                             <div class="text-end">
@@ -3050,6 +3648,36 @@ class SearchManager extends BaseModule {
             this.loadAndDisplayPhotos(dog);
         }
         
+        container.querySelectorAll('.offspring-button').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const newDogId = parseInt(btn.getAttribute('data-dog-id'));
+                const newDogName = btn.getAttribute('data-dog-name') || '';
+                this.showOffspringModal(newDogId, newDogName);
+            });
+        });
+        
+        container.querySelectorAll('.siblings-button').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const newDogId = parseInt(btn.getAttribute('data-dog-id'));
+                const newDogName = btn.getAttribute('data-dog-name') || '';
+                this.showSiblingsModal(newDogId, newDogName);
+            });
+        });
+        
+        container.querySelectorAll('.btn-pedigree').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const dogId = parseInt(btn.getAttribute('data-dog-id'));
+                await this.openPedigree(dogId);
+            });
+        });
+        
         if (fatherInfo.id) {
             const fatherCard = container.querySelector('.father-card');
             if (fatherCard) {
@@ -3081,25 +3709,6 @@ class SearchManager extends BaseModule {
                 });
             }
         }
-        
-        container.querySelectorAll('.btn-pedigree').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                const dogId = parseInt(btn.getAttribute('data-dog-id'));
-                await this.openPedigree(dogId);
-            });
-        });
-        
-        container.querySelectorAll('.offspring-button').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                const dogId = parseInt(btn.getAttribute('data-dog-id'));
-                const dogName = btn.getAttribute('data-dog-name') || '';
-                this.showOffspringModal(dogId, dogName);
-            });
-        });
         
         if (isParentView) {
             const backButton = container.querySelector('.back-button');
