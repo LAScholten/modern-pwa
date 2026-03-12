@@ -14,7 +14,7 @@ class TopHonden {
     loadTranslations() {
         return {
             nl: {
-                title: "Meest voorkomende voorouders (Top 50)",
+                title: "Meest voorkomende voorouders (Top 50), 10 generaties diep.",
                 totaal: "Totaal overzicht (alle honden)",
                 levend: "Actuele genenpoel (via levende honden, vanaf 1985)",
                 reuen: "Reuen",
@@ -36,7 +36,7 @@ class TopHonden {
                 top: "Top 50"
             },
             en: {
-                title: "Most common ancestors (Top 50)",
+                title: "Most common ancestors (Top 50), 10 genarations deep.",
                 totaal: "Total overview (all dogs)",
                 levend: "Active gene pool (via living dogs, from 1985)",
                 reuen: "Stud Dogs",
@@ -58,7 +58,7 @@ class TopHonden {
                 top: "Top 50"
             },
             de: {
-                title: "Häufigste Vorfahren (Top 50)",
+                title: "Häufigste Vorfahren (Top 50), 10 generationen tief.",
                 totaal: "Gesamtübersicht (alle Hunde)",
                 levend: "Aktiver Genpool (via lebende Hunde, ab 1985)",
                 reuen: "Deckrüden",
