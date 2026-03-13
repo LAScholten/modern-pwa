@@ -7,14 +7,14 @@ class TopHonden {
         this.relevantieGrens = 1985; // Alleen honden vanaf 1985 zijn relevant voor actuele genenpoel
         this.modalId = 'topHondenModal';
         this.maxGeneraties = 10;
-        this.topAantal = 50; // Top 50 in plaats van 20
+        this.topAantal = 100; // Top 100 in plaats van 20
         this.translations = this.loadTranslations();
     }
 
     loadTranslations() {
         return {
             nl: {
-                title: "Meest voorkomende voorouders (Top 50), 10 generaties diep.",
+                title: "Meest voorkomende voorouders (Top 100), 10 generaties diep.",
                 totaal: "Totaal overzicht (alle honden)",
                 levend: "Actuele genenpoel (via levende honden, vanaf 1985)",
                 reuen: "Reuen",
@@ -33,10 +33,10 @@ class TopHonden {
                 total: "Totaal",
                 dogs: "honden",
                 excluded: "Uitgesloten (geen datum of <1985)",
-                top: "Top 50"
+                top: "Top 100"
             },
             en: {
-                title: "Most common ancestors (Top 50), 10 genarations deep.",
+                title: "Most common ancestors (Top 100), 10 genarations deep.",
                 totaal: "Total overview (all dogs)",
                 levend: "Active gene pool (via living dogs, from 1985)",
                 reuen: "Stud Dogs",
@@ -55,10 +55,10 @@ class TopHonden {
                 total: "Total",
                 dogs: "dogs",
                 excluded: "Excluded (no date or <1985)",
-                top: "Top 50"
+                top: "Top 100"
             },
             de: {
-                title: "Häufigste Vorfahren (Top 50), 10 generationen tief.",
+                title: "Häufigste Vorfahren (Top 100), 10 generationen tief.",
                 totaal: "Gesamtübersicht (alle Hunde)",
                 levend: "Aktiver Genpool (via lebende Hunde, ab 1985)",
                 reuen: "Deckrüden",
@@ -77,7 +77,7 @@ class TopHonden {
                 total: "Gesamt",
                 dogs: "Hunde",
                 excluded: "Ausgeschlossen (kein Datum oder <1985)",
-                top: "Top 50"
+                top: "Top 100"
             }
         };
     }
