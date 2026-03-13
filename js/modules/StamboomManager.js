@@ -1594,7 +1594,7 @@ class StamboomManager extends BaseModule {
     
     createPedigreeModal() {
         const modalHTML = `
-            <div class="modal fade" id="pedigreeModal" tabindex="-1" aria-labelledby="pedigreeModalLabel" aria-hidden="true">
+            <div class="modal fade" id="pedigreeModal" tabindex="-1" aria-labelledby="pedigreeModalLabel" aria-hidden="true" style="z-index: 1150 !important;">
                 <div class="modal-dialog modal-fullscreen">
                     <div class="modal-content">
                         <div class="modal-header bg-primary text-white">
@@ -2495,7 +2495,7 @@ class StamboomManager extends BaseModule {
                     right: 0;
                     bottom: 0;
                     background: rgba(0, 0, 0, 0.7);
-                    z-index: 1060;
+                    z-index: 1260;
                     display: flex;
                     align-items: center;
                     justify-content: center;

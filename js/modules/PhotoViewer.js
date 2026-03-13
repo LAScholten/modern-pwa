@@ -149,11 +149,11 @@ class PhotoViewer {
         styleElement.textContent = `
             /* Photo Viewer Modal */
             #photoViewerModal {
-                z-index: 1060 !important;
+                z-index: 1960 !important;
             }
             
             #photoViewerModal .modal-backdrop {
-                z-index: 1059 !important;
+                z-index: 1959 !important;
             }
             
             .photo-viewer-content {
