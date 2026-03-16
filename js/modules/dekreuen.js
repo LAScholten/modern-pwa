@@ -3,8 +3,9 @@
 /**
  * DekReuen Management Module voor Supabase
  * Beheert dek reuen overzicht en beheer met echte database koppeling
- * MET COMPLETE GEZONDHEIDSINFO IN OVERZICHT en DUIDELIJKE BENAMINGEN
+ * MET COMPLETE GEZONDHEIDSINFO IN OVERZICHT en DUIDELIJKE BENAMENINGEN
  * MET HORIZONTALE SCROLL OP MOBIEL
+ * OPTIMALISATIE: Alleen thumbnails worden geladen in overzicht (geen volledige foto's)
  */
 
 class DekReuenManager extends BaseModule {
@@ -38,6 +39,9 @@ class DekReuenManager extends BaseModule {
         // Bewerken variabelen
         this.editingDekReuId = null;
         this.editingDekReuData = null;
+        
+        // Cache voor foto thumbnails
+        this.thumbnailCache = new Map();
         
         this.translations = {
             nl: {
@@ -100,6 +104,8 @@ class DekReuenManager extends BaseModule {
                 deletePhoto: "Verwijder foto",
                 photoDeleteSuccess: "Foto succesvol verwijderd!",
                 photoDeleteFailed: "Verwijderen foto mislukt: ",
+                clickToViewPhotos: "Klik om foto's te bekijken",
+                hasPhotos: "Heeft foto's",
                 
                 // GEZONDHEIDSITEMS - Invulvelden
                 healthInfo: "Gezondheidsinformatie",
@@ -177,7 +183,10 @@ class DekReuenManager extends BaseModule {
                 
                 // Horizontale scroll instructie
                 swipeHint: "← Veeg om meer te zien →",
-                scrollHorizontally: "Horizontaal scrollen"
+                scrollHorizontally: "Horizontaal scrollen",
+                
+                // Foto indicator
+                photoIndicator: "📸 {count} foto('s)"
             },
             en: {
                 dekReuen: "Stud Dogs",
@@ -239,6 +248,8 @@ class DekReuenManager extends BaseModule {
                 deletePhoto: "Delete photo",
                 photoDeleteSuccess: "Photo deleted successfully!",
                 photoDeleteFailed: "Delete photo failed: ",
+                clickToViewPhotos: "Click to view photos",
+                hasPhotos: "Has photos",
                 
                 // HEALTH ITEMS - Input fields
                 healthInfo: "Health Information",
@@ -316,7 +327,10 @@ class DekReuenManager extends BaseModule {
                 
                 // Horizontal scroll hint
                 swipeHint: "← Swipe to see more →",
-                scrollHorizontally: "Scroll horizontally"
+                scrollHorizontally: "Scroll horizontally",
+                
+                // Photo indicator
+                photoIndicator: "📸 {count} photo(s)"
             },
             de: {
                 dekReuen: "Zuchtrüden",
@@ -378,6 +392,8 @@ class DekReuenManager extends BaseModule {
                 deletePhoto: "Foto löschen",
                 photoDeleteSuccess: "Foto erfolgreich gelöscht!",
                 photoDeleteFailed: "Löschen fehlgeschlagen: ",
+                clickToViewPhotos: "Klicken um Fotos anzuzeigen",
+                hasPhotos: "Hat Fotos",
                 
                 // GESUNDHEITSDATEN - Eingabefelder
                 healthInfo: "Gesundheitsinformationen",
@@ -455,7 +471,10 @@ class DekReuenManager extends BaseModule {
                 
                 // Horizontal scroll hint
                 swipeHint: "← Wischen für mehr →",
-                scrollHorizontally: "Horizontal scrollen"
+                scrollHorizontally: "Horizontal scrollen",
+                
+                // Photo indicator
+                photoIndicator: "📸 {count} Foto(s)"
             }
         };
     }
@@ -588,9 +607,92 @@ class DekReuenManager extends BaseModule {
     }
     
     /**
-     * Haal foto's op voor een specifieke hond
+     * Haal foto's op voor een specifieke hond (alleen de thumbnail data, niet de volledige foto's)
      */
-    async getHondFotos(hondId) {
+    async getHondThumbnails(hondId) {
+        try {
+            if (!hondId) return [];
+            
+            const supabase = this.getSupabase();
+            if (!supabase) return [];
+            
+            const { data: hondData, error: hondError } = await supabase
+                .from('honden')
+                .select('stamboomnr, naam, kennelnaam')
+                .eq('id', hondId)
+                .single();
+                
+            if (hondError || !hondData) {
+                console.error('❌ Kon hond niet vinden:', hondError);
+                return [];
+            }
+            
+            const { data: fotos, error } = await supabase
+                .from('fotos')
+                .select('id, thumbnail, filename, uploaded_at')  // Alleen thumbnail, geen volledige foto data
+                .eq('stamboomnr', hondData.stamboomnr)
+                .order('uploaded_at', { ascending: false });
+            
+            if (error) {
+                console.error('❌ Fout bij ophalen thumbnails:', error);
+                return [];
+            }
+            
+            return fotos || [];
+            
+        } catch (error) {
+            console.error('❌ Fout bij ophalen thumbnails:', error);
+            return [];
+        }
+    }
+    
+    /**
+     * Haal ALLE thumbnails in één keer op voor meerdere honden
+     */
+    async getBulkThumbnails(stamboomnrs) {
+        if (!stamboomnrs || stamboomnrs.length === 0) return {};
+        
+        try {
+            const supabase = this.getSupabase();
+            if (!supabase) return {};
+            
+            const { data, error } = await supabase
+                .from('fotos')
+                .select('id, stamboomnr, thumbnail, filename, uploaded_at')
+                .in('stamboomnr', stamboomnrs)
+                .order('uploaded_at', { ascending: false });
+            
+            if (error) {
+                console.error('❌ Fout bij ophalen bulk thumbnails:', error);
+                return {};
+            }
+            
+            // Groepeer per stamboomnummer
+            const result = {};
+            data.forEach(foto => {
+                if (!result[foto.stamboomnr]) {
+                    result[foto.stamboomnr] = [];
+                }
+                result[foto.stamboomnr].push({
+                    id: foto.id,
+                    thumbnail: foto.thumbnail,
+                    filename: foto.filename,
+                    uploaded_at: foto.uploaded_at
+                });
+            });
+            
+            return result;
+            
+        } catch (error) {
+            console.error('❌ Fout bij ophalen bulk thumbnails:', error);
+            return {};
+        }
+    }
+    
+    /**
+     * Haal volledige foto's op voor een specifieke hond (alleen wanneer nodig)
+     */
+    async getHondFullFotos(hondId) {
         try {
             if (!hondId) return [];
             
@@ -613,7 +715,7 @@ class DekReuenManager extends BaseModule {
             
             const { data: fotos, error } = await supabase
                 .from('fotos')
-                .select('*')
+                .select('*')  // Volledige foto data
                 .eq('stamboomnr', hondData.stamboomnr)
                 .order('uploaded_at', { ascending: false });
             
@@ -741,6 +843,12 @@ class DekReuenManager extends BaseModule {
                 
                 fileInput.value = '';
                 
+                // Cache legen voor deze hond
+                if (this.selectedHondStamboomnr) {
+                    // Verwijder uit thumbnail cache
+                    // (geen aparte cache nodig, we laden gewoon opnieuw)
+                }
+                
                 await this.loadHondFotos(this.selectedHondId);
                 
             } catch (error) {
@@ -770,6 +878,18 @@ class DekReuenManager extends BaseModule {
             const supabase = this.getSupabase();
             if (!supabase) throw new Error('Geen database verbinding');
             
+            // Haal eerst de foto op om het stamboomnummer te weten
+            const { data: foto, error: fetchError } = await supabase
+                .from('fotos')
+                .select('stamboomnr')
+                .eq('id', fotoId)
+                .single();
+            
+            if (!fetchError && foto) {
+                // Cache legen voor deze hond
+                // (geen aparte cache nodig)
+            }
+            
             const { error } = await supabase
                 .from('fotos')
                 .delete()
@@ -794,19 +914,19 @@ class DekReuenManager extends BaseModule {
     }
     
     /**
-     * Laad en toon foto's voor geselecteerde hond
+     * Laad en toon foto's voor geselecteerde hond (volledige foto's voor bewerk modal)
      */
     async loadHondFotos(hondId) {
         if (!hondId) return;
         
         this.selectedHondId = hondId;
-        this.hondFotos = await this.getHondFotos(hondId);
+        this.hondFotos = await this.getHondFullFotos(hondId);
         
         await this.displayHondFotos();
     }
     
     /**
-     * Toon foto's in de container met verwijderknop
+     * Toon foto's in de container met verwijderknop (voor bewerk modal)
      */
     async displayHondFotos() {
         const container = document.getElementById('hondFotosContainer');
@@ -838,7 +958,8 @@ class DekReuenManager extends BaseModule {
                         </button>
                         <div class="card-img-top dek-reu-foto-thumbnail" 
                              style="height: 120px; cursor: pointer; background: #f8f9fa; display: flex; align-items: center; justify-content: center; overflow: hidden;"
-                             data-foto='${JSON.stringify(foto).replace(/'/g, '&apos;')}'
+                             data-foto-id="${foto.id}"
+                             data-foto-data="${foto.data}"
                              data-hond-naam="${this.selectedHondNaam || ''}">
                             <img src="${foto.thumbnail || foto.data}" alt="Foto" 
                                  style="max-width: 100%; max-height: 100%; object-fit: cover;">
@@ -861,23 +982,17 @@ class DekReuenManager extends BaseModule {
             thumb.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 try {
-                    const foto = JSON.parse(thumb.dataset.foto.replace(/&apos;/g, "'"));
+                    const fotoId = thumb.dataset.fotoId;
+                    const fotoData = thumb.dataset.fotoData;
                     const hondNaam = thumb.dataset.hondNaam || this.selectedHondNaam || '';
                     
                     // Laad PhotoViewer dynamisch
                     await this.ensurePhotoViewer();
                     
                     // Toon de foto
-                    window.photoViewer.showPhoto(foto.data, hondNaam);
+                    window.photoViewer.showPhoto(fotoData, hondNaam);
                 } catch (error) {
                     console.error('Fout bij tonen foto:', error);
-                    // Fallback: open direct in nieuw tabblad
-                    try {
-                        const foto = JSON.parse(thumb.dataset.foto.replace(/&apos;/g, "'"));
-                        window.open(foto.data, '_blank');
-                    } catch (fallbackError) {
-                        console.error('Ook fallback mislukt:', fallbackError);
-                    }
                 }
             });
         });
@@ -890,6 +1005,39 @@ class DekReuenManager extends BaseModule {
                 await this.deletePhoto(fotoId, fotoElement);
             });
         });
+    }
+    
+    /**
+     * Haal alle emails in één keer op voor meerdere dek reu IDs
+     */
+    async getBulkEmails(dekreuIds) {
+        if (!dekreuIds || dekreuIds.length === 0) return {};
+        
+        try {
+            const supabase = this.getSupabase();
+            if (!supabase) return {};
+            
+            const { data, error } = await supabase
+                .from('dekreuen')
+                .select('id, email')
+                .in('id', dekreuIds);
+            
+            if (error) {
+                console.error('Fout bij ophalen bulk emails:', error);
+                return {};
+            }
+            
+            const result = {};
+            data.forEach(item => {
+                result[item.id] = item.email;
+            });
+            
+            return result;
+            
+        } catch (error) {
+            console.error('Fout bij ophalen bulk emails:', error);
+            return {};
+        }
     }
     
     /**
@@ -1117,7 +1265,7 @@ class DekReuenManager extends BaseModule {
             const { data, error } = await supabase
                 .from('profiles')
                 .select('email')
-                .eq('user_id', user.id)  // GEWIJZIGD: zoek op user_id in plaats van id
+                .eq('user_id', user.id)
                 .single();
             
             if (error) {
@@ -2021,39 +2169,53 @@ class DekReuenManager extends BaseModule {
     
     /**
      * Render overzichtslijst met COMPLETE gezondheidsgegevens en HORIZONTALE SCROLL OP MOBIEL
+     * OPTIMALISATIE: Alleen thumbnails worden geladen (geen volledige foto's)
      */
     async renderOverviewList(dekreuen, container, total = 0, currentPage = 1) {
         const html = [];
         const t = this.t.bind(this);
         
+        // Haal ALLE emails in één query op
+        const dekreuIds = dekreuen.map(dek => dek.id).filter(id => id);
+        const emailsPerDekreu = await this.getBulkEmails(dekreuIds);
+        
+        // Haal ALLE thumbnails in één query op (alleen thumbnail data, geen volledige foto's)
+        const stamboomnrs = dekreuen
+            .map(dek => dek.hond?.stamboomnr)
+            .filter(nr => nr);
+        const thumbnailsPerHond = await this.getBulkThumbnails(stamboomnrs);
+        
         for (const dek of dekreuen) {
             const h = dek.hond || {};
+            const thumbnails = thumbnailsPerHond[h.stamboomnr] || [];
+            const eersteThumbnails = thumbnails.slice(0, 3); // Max 3 thumbnails tonen
+            const email = emailsPerDekreu[dek.id] || null;
             
-            const fotos = await this.getHondFotos(h.id);
-            const eersteFotos = fotos.slice(0, 3);
-            
-            // Haal email op uit de dekreuen tabel
-            const email = await this.getOwnerEmail(dek.id);
-            
-            let fotosHTML = '';
-            if (fotos.length > 0) {
-                fotosHTML = `
+            // Thumbnails sectie
+            let thumbnailsHTML = '';
+            if (thumbnails.length > 0) {
+                thumbnailsHTML = `
                     <div class="mt-3">
                         <small class="text-muted d-block mb-2">${t('photos')}:</small>
                         <div class="d-flex flex-wrap gap-2">
-                            ${eersteFotos.map(foto => `
+                            ${eersteThumbnails.map(thumb => `
                                 <div class="dek-reu-foto-thumbnail" 
                                      style="width: 60px; height: 60px; cursor: pointer; border-radius: 4px; overflow: hidden; border: 1px solid #dee2e6;"
-                                     data-foto='${JSON.stringify(foto).replace(/'/g, '&apos;')}'
+                                     data-hond-id="${dek.hond_id}"
+                                     data-foto-id="${thumb.id}"
+                                     data-thumbnail="${thumb.thumbnail}"
+                                     data-filename="${thumb.filename || ''}"
                                      data-hond-naam="${h.naam || ''}${h.kennelnaam ? ' (' + h.kennelnaam + ')' : ''}">
-                                    <img src="${foto.thumbnail || foto.data}" alt="Foto" 
+                                    <img src="${thumb.thumbnail}" alt="${thumb.filename || 'Foto'}" 
                                          style="width: 100%; height: 100%; object-fit: cover;">
                                 </div>
                             `).join('')}
-                            ${fotos.length > 3 ? `
-                                <div class="d-flex align-items-center justify-content-center" 
-                                     style="width: 60px; height: 60px; background: #f8f9fa; border-radius: 4px; border: 1px solid #dee2e6;">
-                                    <span class="small text-muted">+${fotos.length - 3}</span>
+                            ${thumbnails.length > 3 ? `
+                                <div class="d-flex align-items-center justify-content-center more-photos-btn" 
+                                     style="width: 60px; height: 60px; background: #f8f9fa; border-radius: 4px; border: 1px solid #dee2e6; cursor: pointer;"
+                                     data-hond-id="${dek.hond_id}"
+                                     data-hond-naam="${h.naam || ''}${h.kennelnaam ? ' (' + h.kennelnaam + ')' : ''}">
+                                    <span class="small text-muted">+${thumbnails.length - 3}</span>
                                 </div>
                             ` : ''}
                         </div>
@@ -2128,10 +2290,10 @@ class DekReuenManager extends BaseModule {
                             
                             ${healthInfo}
                             
-                            ${fotosHTML}
+                            ${thumbnailsHTML}
                             
                             <div class="mt-3">
-                                <button class="btn btn-sm btn-outline-primary view-pedigree" data-hond-id="${dek.hond_id}">
+                                <button class="btn btn-sm btn-outline-primary view-pedigree w-100" data-hond-id="${dek.hond_id}">
                                     <i class="bi bi-diagram-3"></i> ${t('viewPedigree')}
                                 </button>
                             </div>
@@ -2160,27 +2322,33 @@ class DekReuenManager extends BaseModule {
         // Voeg CSS toe voor horizontaal scrollen
         this.addHorizontalScrollStyles();
         
-        // Click handlers voor foto's met dynamisch laden van PhotoViewer
+        // Click handlers voor thumbnails - laad volledige foto bij klik
         container.querySelectorAll('.dek-reu-foto-thumbnail').forEach(thumb => {
             thumb.addEventListener('click', async (e) => {
+                e.preventDefault();
                 e.stopPropagation();
-                try {
-                    const foto = JSON.parse(thumb.dataset.foto.replace(/&apos;/g, "'"));
-                    const hondNaam = thumb.dataset.hondNaam;
-                    
-                    // Laad PhotoViewer dynamisch
-                    await this.ensurePhotoViewer();
-                    
-                    window.photoViewer.showPhoto(foto.data, hondNaam);
-                } catch (error) {
-                    console.error('Fout bij tonen foto:', error);
-                    // Fallback
-                    try {
-                        const foto = JSON.parse(thumb.dataset.foto.replace(/&apos;/g, "'"));
-                        window.open(foto.data, '_blank');
-                    } catch (fallbackError) {
-                        console.error('Ook fallback mislukt:', fallbackError);
-                    }
+                
+                const hondId = thumb.dataset.hondId;
+                const fotoId = thumb.dataset.fotoId;
+                const hondNaam = thumb.dataset.hondNaam;
+                
+                if (hondId && fotoId) {
+                    await this.showFullPhoto(hondId, fotoId, hondNaam);
+                }
+            });
+        });
+        
+        // Click handlers voor "meer foto's" knop
+        container.querySelectorAll('.more-photos-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const hondId = btn.dataset.hondId;
+                const hondNaam = btn.dataset.hondNaam;
+                
+                if (hondId) {
+                    await this.showPhotoGallery(hondId, hondNaam);
                 }
             });
         });
@@ -2193,6 +2361,88 @@ class DekReuenManager extends BaseModule {
         });
         
         this.attachPaginationEvents(false);
+    }
+    
+    /**
+     * Toon een volledige foto bij klik op thumbnail
+     */
+    async showFullPhoto(hondId, fotoId, hondNaam) {
+        try {
+            // Laad PhotoViewer dynamisch
+            await this.ensurePhotoViewer();
+            
+            // Haal de specifieke foto op
+            const supabase = this.getSupabase();
+            const { data: foto, error } = await supabase
+                .from('fotos')
+                .select('data')
+                .eq('id', fotoId)
+                .single();
+            
+            if (error || !foto) {
+                console.error('Fout bij ophalen foto:', error);
+                alert('Kon foto niet laden');
+                return;
+            }
+            
+            // Toon de foto
+            window.photoViewer.showPhoto(foto.data, hondNaam);
+            
+        } catch (error) {
+            console.error('Fout bij tonen foto:', error);
+            alert('Fout bij laden foto: ' + error.message);
+        }
+    }
+    
+    /**
+     * Toon fotogalerij voor een specifieke hond (alle foto's)
+     */
+    async showPhotoGallery(hondId, hondNaam) {
+        try {
+            // Laad PhotoViewer dynamisch
+            await this.ensurePhotoViewer();
+            
+            // Haal alle foto's op voor deze hond
+            const supabase = this.getSupabase();
+            
+            const { data: hondData, error: hondError } = await supabase
+                .from('honden')
+                .select('stamboomnr')
+                .eq('id', hondId)
+                .single();
+                
+            if (hondError || !hondData) {
+                console.error('❌ Kon hond niet vinden:', hondError);
+                return;
+            }
+            
+            const { data: fotos, error } = await supabase
+                .from('fotos')
+                .select('data, filename')
+                .eq('stamboomnr', hondData.stamboomnr)
+                .order('uploaded_at', { ascending: false });
+            
+            if (error) {
+                console.error('Fout bij ophalen fotos:', error);
+                alert('Kon foto\'s niet laden');
+                return;
+            }
+            
+            if (!fotos || fotos.length === 0) {
+                alert(this.t('noPhotos'));
+                return;
+            }
+            
+            // Toon de eerste foto
+            window.photoViewer.showPhoto(fotos[0].data, hondNaam);
+            
+            // TODO: Uitbreiden naar galerij met navigatie
+            // Voor nu toont het alleen de eerste foto
+            
+        } catch (error) {
+            console.error('Fout bij tonen fotogalerij:', error);
+            alert('Fout bij laden foto\'s: ' + error.message);
+        }
     }
     
     /**
@@ -2277,36 +2527,47 @@ class DekReuenManager extends BaseModule {
         const { data: { user } } = await this.getSupabase().auth.getUser();
         const t = this.t.bind(this);
         
+        // Haal ALLE emails in één query op
+        const dekreuIds = dekreuen.map(dek => dek.id).filter(id => id);
+        const emailsPerDekreu = await this.getBulkEmails(dekreuIds);
+        
+        // Haal ALLE thumbnails in één query op (alleen thumbnail data, geen volledige foto's)
+        const stamboomnrs = dekreuen
+            .map(dek => dek.hond?.stamboomnr)
+            .filter(nr => nr);
+        const thumbnailsPerHond = await this.getBulkThumbnails(stamboomnrs);
+        
         const html = [];
         
         for (const dek of dekreuen) {
             const h = dek.hond || {};
+            const thumbnails = thumbnailsPerHond[h.stamboomnr] || [];
+            const eersteThumbnails = thumbnails.slice(0, 3);
+            const email = emailsPerDekreu[dek.id] || null;
             const canEdit = this.isAdmin || dek.toegevoegd_door === user?.id;
             
-            // Haal email op uit de dekreuen tabel
-            const email = await this.getOwnerEmail(dek.id);
-            
-            const fotos = await this.getHondFotos(h.id);
-            const eersteFotos = fotos.slice(0, 3);
-            
-            let fotosHTML = '';
-            if (fotos.length > 0) {
-                fotosHTML = `
+            let thumbnailsHTML = '';
+            if (thumbnails.length > 0) {
+                thumbnailsHTML = `
                     <div class="mt-2">
                         <div class="d-flex flex-wrap gap-1">
-                            ${eersteFotos.map(foto => `
+                            ${eersteThumbnails.map(thumb => `
                                 <div class="dek-reu-foto-thumbnail" 
                                      style="width: 40px; height: 40px; cursor: pointer; border-radius: 3px; overflow: hidden; border: 1px solid #dee2e6;"
-                                     data-foto='${JSON.stringify(foto).replace(/'/g, '&apos;')}'
+                                     data-hond-id="${dek.hond_id}"
+                                     data-foto-id="${thumb.id}"
+                                     data-thumbnail="${thumb.thumbnail}"
                                      data-hond-naam="${h.naam || ''}${h.kennelnaam ? ' (' + h.kennelnaam + ')' : ''}">
-                                    <img src="${foto.thumbnail || foto.data}" alt="Foto" 
+                                    <img src="${thumb.thumbnail}" alt="${thumb.filename || 'Foto'}" 
                                          style="width: 100%; height: 100%; object-fit: cover;">
                                 </div>
                             `).join('')}
-                            ${fotos.length > 3 ? `
-                                <div class="d-flex align-items-center justify-content-center" 
-                                     style="width: 40px; height: 40px; background: #f8f9fa; border-radius: 3px; border: 1px solid #dee2e6;">
-                                    <span class="small text-muted">+${fotos.length - 3}</span>
+                            ${thumbnails.length > 3 ? `
+                                <div class="d-flex align-items-center justify-content-center more-photos-btn" 
+                                     style="width: 40px; height: 40px; background: #f8f9fa; border-radius: 3px; border: 1px solid #dee2e6; cursor: pointer;"
+                                     data-hond-id="${dek.hond_id}"
+                                     data-hond-naam="${h.naam || ''}${h.kennelnaam ? ' (' + h.kennelnaam + ')' : ''}">
+                                    <span class="small text-muted">+${thumbnails.length - 3}</span>
                                 </div>
                             ` : ''}
                         </div>
@@ -2323,7 +2584,7 @@ class DekReuenManager extends BaseModule {
                                     <h6 class="mb-0">${h.naam || 'Onbekend'}</h6>
                                     <small class="text-muted d-block">${h.kennelnaam ? h.kennelnaam : ''}</small>
                                     <small class="text-muted">${h.stamboomnr || '-'}</small>
-                                    ${fotosHTML}
+                                    ${thumbnailsHTML}
                                 </div>
                                 <div class="col-md-1">
                                     <span class="badge ${dek.actief ? 'bg-success' : 'bg-secondary'}">
@@ -2389,27 +2650,33 @@ class DekReuenManager extends BaseModule {
             ${paginationHTML}
         `;
         
-        // Click handlers voor foto's met dynamisch laden van PhotoViewer
+        // Click handlers voor thumbnails
         container.querySelectorAll('.dek-reu-foto-thumbnail').forEach(thumb => {
             thumb.addEventListener('click', async (e) => {
+                e.preventDefault();
                 e.stopPropagation();
-                try {
-                    const foto = JSON.parse(thumb.dataset.foto.replace(/&apos;/g, "'"));
-                    const hondNaam = thumb.dataset.hondNaam;
-                    
-                    // Laad PhotoViewer dynamisch
-                    await this.ensurePhotoViewer();
-                    
-                    window.photoViewer.showPhoto(foto.data, hondNaam);
-                } catch (error) {
-                    console.error('Fout bij tonen foto:', error);
-                    // Fallback
-                    try {
-                        const foto = JSON.parse(thumb.dataset.foto.replace(/&apos;/g, "'"));
-                        window.open(foto.data, '_blank');
-                    } catch (fallbackError) {
-                        console.error('Ook fallback mislukt:', fallbackError);
-                    }
+                
+                const hondId = thumb.dataset.hondId;
+                const fotoId = thumb.dataset.fotoId;
+                const hondNaam = thumb.dataset.hondNaam;
+                
+                if (hondId && fotoId) {
+                    await this.showFullPhoto(hondId, fotoId, hondNaam);
+                }
+            });
+        });
+        
+        // Click handlers voor "meer foto's" knop
+        container.querySelectorAll('.more-photos-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const hondId = btn.dataset.hondId;
+                const hondNaam = btn.dataset.hondNaam;
+                
+                if (hondId) {
+                    await this.showPhotoGallery(hondId, hondNaam);
                 }
             });
         });
@@ -2825,4 +3092,5 @@ const DekReuenManagerInstance = new DekReuenManager();
 window.DekReuenManager = DekReuenManagerInstance;
 window.dekReuenManager = DekReuenManagerInstance;
 
-console.log('📦 DekReuenManager geladen met COMPLETE GEZONDHEIDSINFO in overzicht, DUIDELIJKE BENAMINGEN en HORIZONTALE SCROLL OP MOBIEL');
+console.log('📦 DekReuenManager geladen met COMPLETE GEZONDHEIDSINFO in overzicht, DUIDELIJKE BENAMENINGEN en HORIZONTALE SCROLL OP MOBIEL');
+console.log('⚡ OPTIMALISATIE: Alleen thumbnails worden geladen in overzicht');
