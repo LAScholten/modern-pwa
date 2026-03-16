@@ -1768,6 +1768,7 @@ class NestAankondigingenManager extends BaseModule {
                                         </div>
                                     </div>
                                 </div>
+                                ${this.isAdmin || this.isUserPlus ? `
                                 <div class="col-md-6">
                                     <div class="card h-100 border-success hover-shadow" style="cursor: pointer;" id="manageAnnouncementsBtn">
                                         <div class="card-body p-5">
@@ -1776,6 +1777,7 @@ class NestAankondigingenManager extends BaseModule {
                                         </div>
                                     </div>
                                 </div>
+                                ` : ''}
                             </div>
                         </div>
                         <div class="modal-footer">
@@ -2100,11 +2102,13 @@ class NestAankondigingenManager extends BaseModule {
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
+                            ${this.isAdmin || this.isUserPlus ? `
                             <div class="mb-3">
                                 <button class="btn btn-success" id="addAnnouncementBtn">
                                     <i class="bi bi-plus-circle"></i> ${t('addAnnouncement')}
                                 </button>
                             </div>
+                            ` : ''}
                             <div id="nestAankondigingenBeheerContainer" class="row">
                                 <div class="col-12 text-center py-5">
                                     <div class="spinner-border text-secondary"></div>
@@ -2361,7 +2365,7 @@ class NestAankondigingenManager extends BaseModule {
             });
         }
         
-        if (manageAnnouncementsBtn) {
+        if (manageAnnouncementsBtn && (this.isAdmin || this.isUserPlus)) {
             manageAnnouncementsBtn.addEventListener('click', () => {
                 this.showBeheerView();
             });
@@ -2393,7 +2397,7 @@ class NestAankondigingenManager extends BaseModule {
             });
         }
         
-        if (addBtn) {
+        if (addBtn && (this.isAdmin || this.isUserPlus)) {
             addBtn.addEventListener('click', () => {
                 this.showAddAnnouncementModal();
             });
@@ -3108,7 +3112,7 @@ class NestAankondigingenManager extends BaseModule {
     
     /**
      * Laad nest aankondigingen voor overzicht met paginatie
-     * Toont 1 aankondiging per pagina
+     * Toont 1 aankondiging per pagina - ALLE records voor IEDEREEN
      */
     async loadAnnouncements(page = 1) {
         const container = document.getElementById('nestAankondigingenContainer');
@@ -3167,7 +3171,7 @@ class NestAankondigingenManager extends BaseModule {
     
     /**
      * Laad nest aankondigingen voor beheer met paginatie
-     * Alleen eigen aankondigingen voor niet-admin gebruikers
+     * ALLE records voor admin, ALLEEN EIGEN records voor gebruiker+
      */
     async loadAnnouncementsForBeheer(page = 1) {
         const container = document.getElementById('nestAankondigingenBeheerContainer');
@@ -3196,7 +3200,8 @@ class NestAankondigingenManager extends BaseModule {
                 .select('*', { count: 'exact' })
                 .order('aangemaakt_op', { ascending: false });
             
-            // Alleen filteren op toegevoegd_door voor niet-admin gebruikers
+            // ALLEEN filteren op toegevoegd_door voor NIET-admin gebruikers
+            // Admin ziet ALLES, gebruiker+ ziet ALLEEN EIGEN
             if (user && !isAdmin) {
                 query = query.eq('toegevoegd_door', user.id);
             }
@@ -3217,7 +3222,7 @@ class NestAankondigingenManager extends BaseModule {
                 return;
             }
             
-            await this.renderBeheerList(announcements, container, count, page);
+            await this.renderBeheerList(announcements, container, count, page, user, isAdmin);
             
         } catch (error) {
             console.error('Fout bij laden aankondigingen voor beheer:', error);
@@ -3627,21 +3632,7 @@ class NestAankondigingenManager extends BaseModule {
     /**
      * Render beheer lijst (zelfde opzet als DekReuen beheer)
      */
-    async renderBeheerList(announcements, container, total = 0, currentPage = 1) {
-        const supabase = this.getSupabase();
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        // Controleer of de gebruiker admin is
-        let isAdmin = false;
-        if (user) {
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('is_admin')
-                .eq('user_id', user.id)
-                .single();
-            isAdmin = profile?.is_admin === true;
-        }
-        
+    async renderBeheerList(announcements, container, total = 0, currentPage = 1, user, isAdmin) {
         const t = this.t.bind(this);
         
         let html = '';

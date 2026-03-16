@@ -73,7 +73,7 @@ class LitterManager {
                 eyesFree: "Vrij",
                 eyesDistichiasis: "Distichiasis",
                 eyesOther: "Overig",
-                eyesExplanation: "Verklaring overig",
+                eyesExplanation: "Verklaring ogen overig",
                 dandyWalker: "Dandy Walker Malformation",
                 dandyOptions: "Selecteer status...",
                 dandyFreeDNA: "Vrij op DNA",
@@ -200,7 +200,7 @@ class LitterManager {
                 eyesFree: "Free",
                 eyesDistichiasis: "Distichiasis",
                 eyesOther: "Other",
-                eyesExplanation: "Other explanation",
+                eyesExplanation: "Other eyes explanation",
                 dandyWalker: "Dandy Walker Malformation",
                 dandyOptions: "Select status...",
                 dandyFreeDNA: "Free on DNA",
@@ -327,7 +327,7 @@ class LitterManager {
                 eyesFree: "Frei",
                 eyesDistichiasis: "Distichiasis",
                 eyesOther: "Andere",
-                eyesExplanation: "Erklärung andere",
+                eyesExplanation: "Erklärung augen andere",
                 dandyWalker: "Dandy Walker Malformation",
                 dandyOptions: "Status wählen...",
                 dandyFreeDNA: "Frei op DNA",
@@ -1244,7 +1244,8 @@ class LitterManager {
                                     <option value="Overig" ${data.ogen === 'Overig' ? 'selected' : ''}>${t('eyesOther')}</option>
                                 </select>
                             </div>
-                            <div class="mb-3" id="eyesExplanationContainer" style="${data.ogen === 'Overig' ? '' : 'display: none;'}">
+                            <!-- AANGEPAST: Eyes explanation container altijd zichtbaar -->
+                            <div class="mb-3" id="eyesExplanationContainer" style="display: block;">
                                 <label for="eyesExplanation" class="form-label">${t('eyesExplanation')}</label>
                                 <input type="text" class="form-control" id="eyesExplanation" value="${data.ogenverklaring || ''}">
                             </div>
@@ -1439,14 +1440,12 @@ class LitterManager {
             console.error('LitterManager: Save button 2 (mobile) niet gevonden!');
         }
         
-        // Eyes dropdown handler
+        // Eyes dropdown handler - AANGEPAST: alleen voor het bijwerken van de waarde, niet voor zichtbaarheid
         const eyesSelect = document.getElementById('eyes');
         if (eyesSelect) {
             eyesSelect.addEventListener('change', (e) => {
-                const explanationContainer = document.getElementById('eyesExplanationContainer');
-                if (explanationContainer) {
-                    explanationContainer.style.display = e.target.value === 'Overig' ? 'block' : 'none';
-                }
+                // Geen wijziging in zichtbaarheid meer
+                console.log('LitterManager: Eyes geselecteerd:', e.target.value);
             });
         } else {
             console.log('LitterManager: Eyes select niet gevonden');
@@ -1819,15 +1818,11 @@ class LitterManager {
             if (field) field.value = '';
         });
         
-        // Reset uitleg velden en verberg ze
-        const eyesExplanationContainer = document.getElementById('eyesExplanationContainer');
+        // Reset uitleg velden
         const eyesExplanation = document.getElementById('eyesExplanation');
-        const thyroidExplanationContainer = document.getElementById('thyroidExplanationContainer');
         const thyroidExplanation = document.getElementById('thyroidExplanation');
         
-        if (eyesExplanationContainer) eyesExplanationContainer.style.display = 'none';
         if (eyesExplanation) eyesExplanation.value = '';
-        if (thyroidExplanationContainer) thyroidExplanationContainer.style.display = 'block'; // Altijd zichtbaar
         if (thyroidExplanation) thyroidExplanation.value = '';
         
         // Reset overlijdensdatum
