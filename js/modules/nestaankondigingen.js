@@ -15,7 +15,7 @@ class NestAankondigingenManager extends BaseModule {
         this.pageSize = 1;
         this.totalAnnouncements = 0;
         
-        // Voor autocomplete van honden
+        // Voor autocomplete van honden - alleen laden wanneer nodig
         this.allDogs = [];
         this.db = window.hondenService;
         this.auth = window.auth;
@@ -41,7 +41,7 @@ class NestAankondigingenManager extends BaseModule {
         // Voor stamboom weergave (zelfde als ReuTeefCombinatie)
         this.stamboomModule = null;
         this.hondenCache = new Map();
-        this.allHonden = []; // Wordt later gevuld met this.allDogs
+        this.allHonden = []; // Wordt pas gevuld bij stamboom
         
         // **CSS toevoegen bij instantiatie**
         this.addReuTeefStamboomStyles();
@@ -977,30 +977,79 @@ class NestAankondigingenManager extends BaseModule {
     }
     
     /**
-     * Haal foto's op voor een specifieke hond (ouders)
+     * OPTIMIZED: Haal ALLEEN thumbnails op voor een specifieke hond
+     * Geen volledige foto data!
      */
-    async getHondFotos(hondId) {
+    async getHondFotosThumbnailsOnly(hondId, stamboomnr) {
         try {
-            if (!hondId) return [];
+            if (!hondId || !stamboomnr) return [];
             
             const supabase = this.getSupabase();
             if (!supabase) return [];
             
-            const { data: hondData, error: hondError } = await supabase
-                .from('honden')
-                .select('stamboomnr, naam, kennelnaam')
-                .eq('id', hondId)
-                .single();
-                
-            if (hondError || !hondData) {
-                console.error('❌ Kon hond niet vinden:', hondError);
+            // Alleen id en thumbnail ophalen, geen volledige foto data
+            const { data: fotos, error } = await supabase
+                .from('fotos')
+                .select('id, thumbnail')
+                .eq('stamboomnr', stamboomnr)
+                .order('uploaded_at', { ascending: false });
+            
+            if (error) {
+                console.error('❌ Fout bij ophalen fotos thumbnails:', error);
                 return [];
             }
+            
+            return fotos || [];
+            
+        } catch (error) {
+            console.error('❌ Fout bij ophalen fotos thumbnails:', error);
+            return [];
+        }
+    }
+    
+    /**
+     * OPTIMIZED: Haal ALLEEN het aantal nestfoto's op, geen data
+     */
+    async getNestFotosCount(nestId) {
+        try {
+            if (!nestId) return 0;
+            
+            const supabase = this.getSupabase();
+            if (!supabase) return 0;
+            
+            const { count, error } = await supabase
+                .from('nest_fotos')
+                .select('*', { count: 'exact', head: true })
+                .eq('nest_id', nestId);
+            
+            if (error) {
+                console.error('❌ Fout bij tellen nestfotos:', error);
+                return 0;
+            }
+            
+            return count || 0;
+            
+        } catch (error) {
+            console.error('❌ Fout bij tellen nestfotos:', error);
+            return 0;
+        }
+    }
+    
+    /**
+     * Haal foto's op voor een specifieke hond (ouders) - VOLLEDIGE DATA
+     * Alleen gebruiken wanneer nodig (bij klikken op foto)
+     */
+    async getHondFotosFull(hondId, stamboomnr) {
+        try {
+            if (!hondId || !stamboomnr) return [];
+            
+            const supabase = this.getSupabase();
+            if (!supabase) return [];
             
             const { data: fotos, error } = await supabase
                 .from('fotos')
                 .select('*')
-                .eq('stamboomnr', hondData.stamboomnr)
+                .eq('stamboomnr', stamboomnr)
                 .order('uploaded_at', { ascending: false });
             
             if (error) {
@@ -1017,9 +1066,10 @@ class NestAankondigingenManager extends BaseModule {
     }
     
     /**
-     * Haal nestfoto's op voor een specifiek nest
+     * Haal nestfoto's op voor een specifiek nest - VOLLEDIGE DATA
+     * Alleen gebruiken wanneer nodig (bij klikken op nestfoto knop)
      */
-    async getNestFotos(nestId) {
+    async getNestFotosFull(nestId) {
         try {
             if (!nestId) return [];
             
@@ -1323,7 +1373,7 @@ class NestAankondigingenManager extends BaseModule {
         if (!nestId) return;
         
         this.selectedNestId = nestId;
-        this.nestFotos = await this.getNestFotos(nestId);
+        this.nestFotos = await this.getNestFotosFull(nestId);
         
         await this.displayNestFotos();
     }
@@ -1699,8 +1749,7 @@ class NestAankondigingenManager extends BaseModule {
         this.currentUser = user;
         console.log('Gebruiker:', user?.email);
         
-        // Laad alle honden voor autocomplete en voor weergave
-        await this.loadAllDogs();
+        // NIET ALLE HONDEN LADEN - alleen wanneer nodig
         
         this.currentPage = 1;
         this.currentView = 'overview';
@@ -2413,6 +2462,9 @@ class NestAankondigingenManager extends BaseModule {
         try {
             console.log('Show add announcement modal');
             
+            // LAAD ALLEEN HIER DE HONDEN - voor autocomplete
+            await this.loadAllDogs();
+            
             const modalHTML = this.getAddEditModalHTML('add');
             
             let modalsContainer = document.getElementById('modalsContainer');
@@ -2437,6 +2489,8 @@ class NestAankondigingenManager extends BaseModule {
                 modalElement.remove();
                 this.editingAnnouncementId = null;
                 this.editingAnnouncementData = null;
+                // Leeg de hondenlijst om geheugen vrij te maken
+                this.allDogs = [];
             });
             
         } catch (error) {
@@ -2451,6 +2505,9 @@ class NestAankondigingenManager extends BaseModule {
     async showEditAnnouncementModal(announcement) {
         try {
             console.log('Show edit announcement modal', announcement);
+            
+            // LAAD ALLEEN HIER DE HONDEN - voor autocomplete
+            await this.loadAllDogs();
             
             this.editingAnnouncementId = announcement.id;
             this.editingAnnouncementData = announcement;
@@ -2476,6 +2533,8 @@ class NestAankondigingenManager extends BaseModule {
                 modalElement.remove();
                 this.editingAnnouncementId = null;
                 this.editingAnnouncementData = null;
+                // Leeg de hondenlijst om geheugen vrij te maken
+                this.allDogs = [];
             });
             
         } catch (error) {
@@ -2529,6 +2588,9 @@ class NestAankondigingenManager extends BaseModule {
     async showPuppyPedigree(announcement) {
         try {
             console.log('Show puppy pedigree for announcement', announcement);
+            
+            // LAAD ALLEEN HIER DE HONDEN - voor stamboom
+            await this.loadAllDogs();
             
             // Haal vader en moeder op
             const vader = this.allDogs.find(d => d.id === announcement.vader_id);
@@ -3238,6 +3300,7 @@ class NestAankondigingenManager extends BaseModule {
     /**
      * Render overzichtslijst met exact de gewenste indeling
      * MET COMPACTE NEST INFORMATIE BOVEN HET BESCHRIJVINGSVELD
+     * EN OPTIMIZED FOTO LADEN - ALLEEN THUMBNAILS
      */
     async renderOverviewList(announcements, container, total = 0, currentPage = 1) {
         const t = this.t.bind(this);
@@ -3267,12 +3330,13 @@ class NestAankondigingenManager extends BaseModule {
                 moeder = moederData || {};
             }
             
-            // Haal foto's op voor vader en moeder
-            const vaderFotos = await this.getHondFotos(vader.id);
-            const moederFotos = await this.getHondFotos(moeder.id);
+            // OPTIMIZED: Haal ALLEEN de thumbnail URLs op voor vader en moeder
+            // Geen volledige foto's laden!
+            const vaderFotos = await this.getHondFotosThumbnailsOnly(vader.id, vader.stamboomnr);
+            const moederFotos = await this.getHondFotosThumbnailsOnly(moeder.id, moeder.stamboomnr);
             
-            // Haal nestfoto's op voor teller
-            const nestFotos = await this.getNestFotos(announcement.id);
+            // OPTIMIZED: Haal ALLEEN het aantal nestfoto's op, geen data
+            const nestFotosCount = await this.getNestFotosCount(announcement.id);
             
             // Formatteer datum
             const date = new Date(announcement.aangemaakt_op);
@@ -3293,7 +3357,7 @@ class NestAankondigingenManager extends BaseModule {
             // Moeder display naam
             const moederNaam = moeder.kennelnaam ? `${moeder.naam || 'Onbekend'} ${moeder.kennelnaam}` : (moeder.naam || 'Onbekend');
             
-            // Genereer foto thumbnails voor vader
+            // Genereer foto thumbnails voor vader - ALLEEN THUMBNAILS
             let vaderFotosHTML = '';
             if (vaderFotos.length > 0) {
                 const eersteFotos = vaderFotos.slice(0, 5);
@@ -3303,9 +3367,12 @@ class NestAankondigingenManager extends BaseModule {
                         <div class="d-flex flex-wrap">
                             ${eersteFotos.map(foto => `
                                 <div class="photo-thumbnail" 
-                                     data-foto='${JSON.stringify(foto).replace(/'/g, '&apos;')}'
+                                     data-foto-id="${foto.id}"
+                                     data-stamboomnr="${vader.stamboomnr || ''}"
                                      data-hond-naam="${vaderNaam}">
-                                    <img src="${foto.thumbnail || foto.data}" alt="Foto">
+                                    <img src="${foto.thumbnail || 'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2250%22%20height%3D%2250%22%20viewBox%3D%220%200%2050%2050%22%3E%3Crect%20width%3D%2250%22%20height%3D%2250%22%20fill%3D%22%23f0f0f0%22%2F%3E%3Ctext%20x%3D%225%22%20y%3D%2230%22%20font-family%3D%22Arial%22%20font-size%3D%2212%22%20fill%3D%22%23999%22%3EFoto%3C%2Ftext%3E%3C%2Fsvg%3E'}" 
+                                         alt="Foto"
+                                         style="width: 100%; height: 100%; object-fit: cover;">
                                 </div>
                             `).join('')}
                             ${vaderFotos.length > 3 ? `
@@ -3318,7 +3385,7 @@ class NestAankondigingenManager extends BaseModule {
                 `;
             }
             
-            // Genereer foto thumbnails voor moeder
+            // Genereer foto thumbnails voor moeder - ALLEEN THUMBNAILS
             let moederFotosHTML = '';
             if (moederFotos.length > 0) {
                 const eersteFotos = moederFotos.slice(0, 5);
@@ -3328,9 +3395,12 @@ class NestAankondigingenManager extends BaseModule {
                         <div class="d-flex flex-wrap">
                             ${eersteFotos.map(foto => `
                                 <div class="photo-thumbnail" 
-                                     data-foto='${JSON.stringify(foto).replace(/'/g, '&apos;')}'
+                                     data-foto-id="${foto.id}"
+                                     data-stamboomnr="${moeder.stamboomnr || ''}"
                                      data-hond-naam="${moederNaam}">
-                                    <img src="${foto.thumbnail || foto.data}" alt="Foto">
+                                    <img src="${foto.thumbnail || 'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2250%22%20height%3D%2250%22%20viewBox%3D%220%200%2050%2050%22%3E%3Crect%20width%3D%2250%22%20height%3D%2250%22%20fill%3D%22%23f0f0f0%22%2F%3E%3Ctext%20x%3D%225%22%20y%3D%2230%22%20font-family%3D%22Arial%22%20font-size%3D%2212%22%20fill%3D%22%23999%22%3EFoto%3C%2Ftext%3E%3C%2Fsvg%3E'}" 
+                                         alt="Foto"
+                                         style="width: 100%; height: 100%; object-fit: cover;">
                                 </div>
                             `).join('')}
                             ${moederFotos.length > 3 ? `
@@ -3552,9 +3622,9 @@ class NestAankondigingenManager extends BaseModule {
                                     <button class="btn btn-sm btn-nest-photos view-nest-photos" 
                                             data-nest-id="${announcement.id}"
                                             data-nest-naam="${headerTitle}"
-                                            data-nest-fotos-count="${nestFotos.length}">
+                                            data-nest-fotos-count="${nestFotosCount}">
                                         <i class="bi bi-images me-1"></i> 
-                                        ${t('nestPhotos')} (${nestFotos.length})
+                                        ${t('nestPhotos')} (${nestFotosCount})
                                     </button>
                                 </div>
                             </div>
@@ -3578,28 +3648,40 @@ class NestAankondigingenManager extends BaseModule {
             });
         });
         
-        // Click handlers voor ouderfoto's
+        // Click handlers voor ouderfoto's - LAAD PAS VOLLEDIGE FOTO BIJ KLIK
         container.querySelectorAll('.photo-thumbnail').forEach(thumb => {
             thumb.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 try {
-                    const foto = JSON.parse(thumb.dataset.foto.replace(/&apos;/g, "'"));
+                    const fotoId = thumb.dataset.fotoId;
+                    const stamboomnr = thumb.dataset.stamboomnr;
                     const hondNaam = thumb.dataset.hondNaam || '';
+                    
+                    if (!fotoId || !stamboomnr) {
+                        console.error('Geen foto ID of stamboomnr beschikbaar');
+                        return;
+                    }
+                    
+                    // LAAD PAS NU DE VOLLEDIGE FOTO DATA
+                    const supabase = this.getSupabase();
+                    const { data: fotoData, error } = await supabase
+                        .from('fotos')
+                        .select('data')
+                        .eq('id', fotoId)
+                        .single();
+                    
+                    if (error || !fotoData) {
+                        throw new Error('Kon foto niet laden');
+                    }
                     
                     // Laad PhotoViewer dynamisch
                     await this.ensurePhotoViewer();
                     
                     // Toon de foto
-                    window.photoViewer.showPhoto(foto.data, hondNaam);
+                    window.photoViewer.showPhoto(fotoData.data, hondNaam);
                 } catch (error) {
                     console.error('Fout bij tonen foto:', error);
-                    // Fallback: open direct in nieuw tabblad
-                    try {
-                        const foto = JSON.parse(thumb.dataset.foto.replace(/&apos;/g, "'"));
-                        window.open(foto.data, '_blank');
-                    } catch (fallbackError) {
-                        console.error('Ook fallback mislukt:', fallbackError);
-                    }
+                    alert('Kon foto niet laden: ' + error.message);
                 }
             });
         });
@@ -3619,7 +3701,7 @@ class NestAankondigingenManager extends BaseModule {
             });
         });
         
-        // Click handlers voor nestfoto knoppen
+        // Click handlers voor nestfoto knoppen - LAAD PAS VOLLEDIGE FOTO'S BIJ KLIK
         container.querySelectorAll('.view-nest-photos').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 e.preventDefault();
@@ -3629,8 +3711,8 @@ class NestAankondigingenManager extends BaseModule {
                 const nestNaam = btn.dataset.nestNaam;
                 
                 if (nestId) {
-                    // Haal nestfoto's op
-                    const fotos = await this.getNestFotos(parseInt(nestId));
+                    // LAAD PAS NU DE VOLLEDIGE NESTFOTO'S
+                    const fotos = await this.getNestFotosFull(parseInt(nestId));
                     
                     if (fotos && fotos.length > 0) {
                         // Toon galerij
@@ -3661,11 +3743,11 @@ class NestAankondigingenManager extends BaseModule {
             const canEdit = isAdmin || ann.toegevoegd_door === user?.id;
             
             // Haal foto's op voor vader en moeder
-            const vaderFotos = await this.getHondFotos(vader.id);
-            const moederFotos = await this.getHondFotos(moeder.id);
+            const vaderFotos = await this.getHondFotosFull(vader.id, vader.stamboomnr);
+            const moederFotos = await this.getHondFotosFull(moeder.id, moeder.stamboomnr);
             
             // Haal nestfoto's op voor teller
-            const nestFotos = await this.getNestFotos(ann.id);
+            const nestFotos = await this.getNestFotosFull(ann.id);
             
             // Formatteer datum
             const date = new Date(ann.aangemaakt_op);
@@ -4170,4 +4252,4 @@ if (typeof module !== 'undefined' && module.exports) {
     window.nestAankondigingenManager = NestAankondigingenManagerInstance;
 }
 
-console.log('📦 NestAankondigingenManager geladen met 1 per pagina, paginatie 80%, tekst 70%, nestfoto\'s MET OPMERKINGEN (max 15, 1 per keer met paginatie), STAMBOOMWEERGAVE, COMPACTE NEST INFORMATIE en KOPIEERBARE EMAIL');
+console.log('📦 NestAankondigingenManager geladen met 1 per pagina, paginatie 80%, tekst 70%, nestfoto\'s MET OPMERKINGEN (max 15, 1 per keer met paginatie), STAMBOOMWEERGAVE, COMPACTE NEST INFORMATIE, KOPIEERBARE EMAIL en OPTIMIZED FOTO LADEN (alleen thumbnails)');
