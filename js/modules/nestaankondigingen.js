@@ -1699,7 +1699,7 @@ class NestAankondigingenManager extends BaseModule {
         this.currentUser = user;
         console.log('Gebruiker:', user?.email);
         
-        // Laad alle honden voor autocomplete
+        // Laad alle honden voor autocomplete en voor weergave
         await this.loadAllDogs();
         
         this.currentPage = 1;
@@ -3244,11 +3244,28 @@ class NestAankondigingenManager extends BaseModule {
         let html = '';
         
         for (const announcement of announcements) {
-            // Haal vader gegevens op
-            const vader = this.allDogs.find(d => d.id === announcement.vader_id) || {};
+            // Haal vader gegevens op - direct uit de database via een aparte query om zeker te zijn dat we alle honden kunnen zien
+            const supabase = this.getSupabase();
+            let vader = {};
+            let moeder = {};
             
-            // Haal moeder gegevens op
-            const moeder = this.allDogs.find(d => d.id === announcement.moeder_id) || {};
+            if (announcement.vader_id) {
+                const { data: vaderData } = await supabase
+                    .from('honden')
+                    .select('*')
+                    .eq('id', announcement.vader_id)
+                    .single();
+                vader = vaderData || {};
+            }
+            
+            if (announcement.moeder_id) {
+                const { data: moederData } = await supabase
+                    .from('honden')
+                    .select('*')
+                    .eq('id', announcement.moeder_id)
+                    .single();
+                moeder = moederData || {};
+            }
             
             // Haal foto's op voor vader en moeder
             const vaderFotos = await this.getHondFotos(vader.id);
