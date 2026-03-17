@@ -36,7 +36,7 @@ class TopHonden {
                 top: "Top 100"
             },
             en: {
-                title: "Most common ancestors (Top 100), 10 genarations deep.",
+                title: "Most common ancestors (Top 100), 10 generations deep.",
                 totaal: "Total overview (all dogs)",
                 levend: "Active gene pool (via living dogs, from 1985)",
                 reuen: "Stud Dogs",
@@ -58,7 +58,7 @@ class TopHonden {
                 top: "Top 100"
             },
             de: {
-                title: "Häufigste Vorfahren (Top 100), 10 generationen tief.",
+                title: "Häufigste Vorfahren (Top 100), 10 Generationen tief.",
                 totaal: "Gesamtübersicht (alle Hunde)",
                 levend: "Aktiver Genpool (via lebende Hunde, ab 1985)",
                 reuen: "Deckrüden",
@@ -206,18 +206,12 @@ class TopHonden {
 
     /**
      * TEL ALLE VOOROUDERS - voor totaaloverzicht
+     * Gebruikt ALLE honden als startpunt, ongeacht of ze nakomelingen hebben
      */
     async telAlleVoorouders(alleHonden, hondMap) {
-        console.log('🔍 Alle voorouders tellen...');
+        console.log('🔍 Alle voorouders tellen (uitgaande van ALLE honden)...');
         
         const voorouderCounts = new Map();
-        
-        // Welke honden hebben nakomelingen?
-        const hondenMetNakomelingen = new Set();
-        for (const hond of alleHonden) {
-            if (hond.vader_stamboomnr) hondenMetNakomelingen.add(hond.vader_stamboomnr);
-            if (hond.moeder_stamboomnr) hondenMetNakomelingen.add(hond.moeder_stamboomnr);
-        }
 
         let verwerkt = 0;
         const totaal = alleHonden.length;
@@ -230,8 +224,10 @@ class TopHonden {
                 this.updateProgress(verwerkt, totaal);
             }
 
-            if (!hond.stamboomnr || !hondenMetNakomelingen.has(hond.stamboomnr)) continue;
+            // Alleen honden met een stamboomnummer kunnen startpunt zijn
+            if (!hond.stamboomnr) continue;
 
+            // Tel alle voorouders van deze hond
             await this.telVooroudersRecursief(
                 hond, 
                 voorouderCounts, 
@@ -242,6 +238,7 @@ class TopHonden {
             );
         }
 
+        console.log(`✅ Totaaloverzicht: ${voorouderCounts.size} unieke voorouders geteld`);
         return voorouderCounts;
     }
 
@@ -297,10 +294,11 @@ class TopHonden {
     async telVooroudersRecursief(hond, countMap, hondMap, diepte, gezien, filterRelevantie = false, genegeerd = null) {
         if (diepte >= this.maxGeneraties) return;
         if (!hond || !hond.stamboomnr) return;
-        if (gezien.has(hond.stamboomnr)) return;
         
-        gezien.add(hond.stamboomnr);
-
+        // Deze Set voorkomt dat we oneindig in cirkels gaan, maar telt elke voorouder per pad
+        // Voor historische telling willen we elke verschijning tellen, dus we gebruiken een nieuwe Set per pad
+        // Dit is correct: als een hond 2x in dezelfde stamboom voorkomt, moet hij ook 2x geteld worden
+        
         // Tel vader
         if (hond.vader_stamboomnr) {
             const vaderStamboomnr = hond.vader_stamboomnr;
@@ -318,13 +316,15 @@ class TopHonden {
                 }
             }
             
-            if (vaderData) {
+            if (vaderData && !gezien.has(vaderStamboomnr)) {
+                const nieuweGezien = new Set(gezien);
+                nieuweGezien.add(vaderStamboomnr);
                 await this.telVooroudersRecursief(
                     vaderData, 
                     countMap, 
                     hondMap, 
                     diepte + 1, 
-                    new Set(gezien),
+                    nieuweGezien,
                     filterRelevantie,
                     genegeerd
                 );
@@ -348,13 +348,15 @@ class TopHonden {
                 }
             }
             
-            if (moederData) {
+            if (moederData && !gezien.has(moederStamboomnr)) {
+                const nieuweGezien = new Set(gezien);
+                nieuweGezien.add(moederStamboomnr);
                 await this.telVooroudersRecursief(
                     moederData, 
                     countMap, 
                     hondMap, 
                     diepte + 1, 
-                    new Set(gezien),
+                    nieuweGezien,
                     filterRelevantie,
                     genegeerd
                 );
@@ -393,8 +395,8 @@ class TopHonden {
         const alleHonden = await this.haalAlleHondenOp();
         const hondMap = await this.bouwStamboomMap(alleHonden);
         
-        // TOTAAL: alle voorouders
-        console.log('📊 Totaaloverzicht berekenen...');
+        // TOTAAL: alle voorouders van ALLE honden (geen filtering)
+        console.log('📊 Totaaloverzicht berekenen (ALLE honden als startpunt)...');
         const alleVoorouders = await this.telAlleVoorouders(alleHonden, hondMap);
         
         // LEVEND: alleen voorouders van levende honden die relevant zijn (>=1985)
@@ -460,12 +462,12 @@ class TopHonden {
         levendTeven.sort((a, b) => b.aantal_voorkomens - a.aantal_voorkomens);
 
         console.log(`📊 RESULTATEN:`);
-        if (totaalReuen[0]) console.log(`   Totaal top reu: ${totaalReuen[0].naam} (${totaalReuen[0].aantal_voorkomens})`);
-        if (totaalTeven[0]) console.log(`   Totaal top teef: ${totaalTeven[0].naam} (${totaalTeven[0].aantal_voorkomens})`);
-        if (levendReuen[0]) console.log(`   Levend top reu: ${levendReuen[0].naam} (${levendReuen[0].aantal_voorkomens})`);
-        if (levendTeven[0]) console.log(`   Levend top teef: ${levendTeven[0].naam} (${levendTeven[0].aantal_voorkomens})`);
         console.log(`   Totaal unieke voorouders: ${totaalReuen.length + totaalTeven.length}`);
+        console.log(`   Totaal top reu: ${totaalReuen[0]?.naam} (${totaalReuen[0]?.aantal_voorkomens || 0})`);
+        console.log(`   Totaal top teef: ${totaalTeven[0]?.naam} (${totaalTeven[0]?.aantal_voorkomens || 0})`);
         console.log(`   Levend unieke relevante voorouders: ${levendReuen.length + levendTeven.length}`);
+        console.log(`   Levend top reu: ${levendReuen[0]?.naam} (${levendReuen[0]?.aantal_voorkomens || 0})`);
+        console.log(`   Levend top teef: ${levendTeven[0]?.naam} (${levendTeven[0]?.aantal_voorkomens || 0})`);
 
         return {
             totaal: {
@@ -651,9 +653,11 @@ class TopHonden {
     getUitlegBijTabel(type) {
         if (type === 'totaal') {
             return `
-            <div class="alert alert-warning mb-3">
-                <i class="bi bi-exclamation-triangle"></i>
-                <strong>Let op:</strong> Dit totaaloverzicht bevat ALLE honden. 
+            <div class="alert alert-info mb-3">
+                <i class="bi bi-info-circle"></i>
+                <strong>Totaaloverzicht:</strong> Dit zijn alle voorouders van ALLE honden in de database, 
+                ongeacht of die honden zelf nakomelingen hebben. Elke hond in de database is een startpunt 
+                voor het tellen van zijn/haar voorouders.
             </div>
             `;
         }
