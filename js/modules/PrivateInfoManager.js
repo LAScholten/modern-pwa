@@ -10,6 +10,10 @@ class PrivateInfoManager extends BaseModule {
         this.dogsWithNotes = []; // Nieuwe array voor honden met notities
         this.allPriveInfo = []; // Alle prive info records
         
+        // Zoek variabelen
+        this.searchTimeout = null;
+        this.minSearchLength = 2; // Minimale lengte voor zoeken
+        
         this.translations = {
             nl: {
                 privateInfo: "Privé Informatie",
@@ -32,7 +36,7 @@ class PrivateInfoManager extends BaseModule {
                 clearConfirm: "Weet je zeker dat je alle notities wilt wissen?",
                 loadingDogs: "Honden laden...",
                 noDogsFound: "Geen honden gevonden",
-                typeToSearch: "Begin met typen om te zoeken",
+                typeToSearch: "Typ minimaal 2 tekens om te zoeken...",
                 loaded: "geladen",
                 loadFailed: "Laden mislukt",
                 dogsLoaded: "honden geladen",
@@ -45,9 +49,9 @@ class PrivateInfoManager extends BaseModule {
                 // Zoekfunctionaliteit vertalingen
                 searchName: "Zoek hond op naam (of naam + kennelnaam)",
                 searchKennel: "Zoek hond op kennelnaam",
-                searchPlaceholder: "Typ hondennaam... of 'naam kennelnaam'",
+                searchPlaceholder: "Typ naam of kennelnaam...",
                 kennelPlaceholder: "Typ kennelnaam...",
-                typeToSearchKennel: "Typ een kennelnaam om te zoeken",
+                typeToSearchKennel: "Typ een kennelnaam om te zoeken (min. 2 tekens)",
                 found: "gevonden",
                 name: "Naam",
                 pedigreeNumber: "Stamboomnummer",
@@ -91,7 +95,7 @@ class PrivateInfoManager extends BaseModule {
                 clearConfirm: "Are you sure you want to clear all notes?",
                 loadingDogs: "Loading dogs...",
                 noDogsFound: "No dogs found",
-                typeToSearch: "Start typing to search",
+                typeToSearch: "Type at least 2 characters to search...",
                 loaded: "loaded",
                 loadFailed: "Load failed",
                 dogsLoaded: "dogs loaded",
@@ -104,9 +108,9 @@ class PrivateInfoManager extends BaseModule {
                 // Search functionality translations
                 searchName: "Search dog by name (or name + kennel)",
                 searchKennel: "Search dog by kennel name",
-                searchPlaceholder: "Type dog name... or 'name kennelname'",
+                searchPlaceholder: "Type name or kennel name...",
                 kennelPlaceholder: "Type kennel name...",
-                typeToSearchKennel: "Type a kennel name to search",
+                typeToSearchKennel: "Type a kennel name to search (min. 2 characters)",
                 found: "found",
                 name: "Name",
                 pedigreeNumber: "Pedigree number",
@@ -150,7 +154,7 @@ class PrivateInfoManager extends BaseModule {
                 clearConfirm: "Sind Sie sicher, dass Sie alle Notizen löschen möchten?",
                 loadingDogs: "Hunde werden geladen...",
                 noDogsFound: "Keine Hunde gefunden",
-                typeToSearch: "Beginnen Sie mit der Eingabe, um zu suchen",
+                typeToSearch: "Geben Sie mindestens 2 Zeichen ein...",
                 loaded: "geladen",
                 loadFailed: "Laden fehlgeschlagen",
                 dogsLoaded: "Hunde geladen",
@@ -163,9 +167,9 @@ class PrivateInfoManager extends BaseModule {
                 // Suchfunktion Übersetzungen
                 searchName: "Hund nach Namen suchen (oder Name + Kennel)",
                 searchKennel: "Hund nach Kennelname suchen",
-                searchPlaceholder: "Hundenamen eingeben... oder 'Name Kennelname'",
+                searchPlaceholder: "Name oder Kennelname eingeben...",
                 kennelPlaceholder: "Kennelnamen eingeben...",
-                typeToSearchKennel: "Kennelnamen eingeben um zu suchen",
+                typeToSearchKennel: "Kennelnamen eingeben um zu suchen (min. 2 Zeichen)",
                 found: "gefunden",
                 name: "Name",
                 pedigreeNumber: "Stammbaum-Nummer",
@@ -208,11 +212,6 @@ class PrivateInfoManager extends BaseModule {
         const modalElement = document.getElementById('privateInfoModal');
         const modal = new bootstrap.Modal(modalElement);
         modal.show();
-        
-        // Laad de honden data als nog niet gedaan
-        if (this.allDogs.length === 0) {
-            await this.loadSearchData();
-        }
     }
     
     getModalHTML() {
@@ -259,34 +258,19 @@ class PrivateInfoManager extends BaseModule {
                                                         </button>
                                                     </div>
                                                     
-                                                    <!-- Zoekveld voor naam -->
-                                                    <div class="mb-3" id="nameSearchField">
-                                                        <label for="privateHondSearchName" class="form-label fw-bold small">${t('searchName')}</label>
+                                                    <!-- Zoekveld -->
+                                                    <div class="mb-3" id="searchFieldContainer">
+                                                        <label class="form-label fw-bold small" id="searchLabel">${t('searchName')}</label>
                                                         <div class="input-group">
                                                             <span class="input-group-text bg-white border-end-0">
-                                                                <i class="bi bi-person text-muted"></i>
+                                                                <i class="bi bi-search text-muted"></i>
                                                             </span>
                                                             <input type="text" class="form-control search-input border-start-0 ps-0" 
-                                                                   id="privateHondSearchName" 
+                                                                   id="privateHondSearch" 
                                                                    placeholder="${t('searchPlaceholder')}" 
                                                                    autocomplete="off">
                                                         </div>
                                                         <div class="form-text mt-1 small">${t('typeToSearch')}</div>
-                                                    </div>
-                                                    
-                                                    <!-- Zoekveld voor kennelnaam -->
-                                                    <div class="mb-3 d-none" id="kennelSearchField">
-                                                        <label for="privateHondSearchKennel" class="form-label fw-bold small">${t('searchKennel')}</label>
-                                                        <div class="input-group">
-                                                            <span class="input-group-text bg-white border-end-0">
-                                                                <i class="bi bi-house text-muted"></i>
-                                                            </span>
-                                                            <input type="text" class="form-control search-input border-start-0 ps-0" 
-                                                                   id="privateHondSearchKennel" 
-                                                                   placeholder="${t('kennelPlaceholder')}" 
-                                                                   autocomplete="off">
-                                                        </div>
-                                                        <div class="form-text mt-1 small">${t('typeToSearchKennel')}</div>
                                                     </div>
                                                     
                                                     <!-- Zoekresultaten container -->
@@ -489,50 +473,27 @@ class PrivateInfoManager extends BaseModule {
             });
         });
         
-        // Setup naam zoekveld
-        const nameSearchInput = document.getElementById('privateHondSearchName');
-        if (nameSearchInput) {
-            nameSearchInput.addEventListener('input', (e) => {
-                const searchTerm = e.target.value.toLowerCase().trim();
+        // Setup zoekveld
+        const searchInput = document.getElementById('privateHondSearch');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.trim();
                 
-                if (searchTerm.length >= 1) {
-                    this.filterDogsForNameField(searchTerm);
+                if (searchTerm.length >= this.minSearchLength) {
+                    // Gebruik debounce om te veel zoekopdrachten te voorkomen
+                    if (this.searchTimeout) clearTimeout(this.searchTimeout);
+                    this.searchTimeout = setTimeout(() => {
+                        this.searchDogs(searchTerm);
+                    }, 300);
                 } else {
                     this.hideSearchResults();
                 }
             });
             
-            nameSearchInput.addEventListener('focus', async () => {
-                if (this.allDogs.length === 0) {
-                    await this.loadSearchData();
-                }
-                const searchTerm = nameSearchInput.value.toLowerCase().trim();
-                if (searchTerm.length >= 1) {
-                    this.filterDogsForNameField(searchTerm);
-                }
-            });
-        }
-        
-        // Setup kennel zoekveld
-        const kennelSearchInput = document.getElementById('privateHondSearchKennel');
-        if (kennelSearchInput) {
-            kennelSearchInput.addEventListener('input', (e) => {
-                const searchTerm = e.target.value.toLowerCase().trim();
-                
-                if (searchTerm.length >= 1) {
-                    this.filterDogsByKennel(searchTerm);
-                } else {
-                    this.hideSearchResults();
-                }
-            });
-            
-            kennelSearchInput.addEventListener('focus', async () => {
-                if (this.allDogs.length === 0) {
-                    await this.loadSearchData();
-                }
-                const searchTerm = kennelSearchInput.value.toLowerCase().trim();
-                if (searchTerm.length >= 1) {
-                    this.filterDogsByKennel(searchTerm);
+            searchInput.addEventListener('focus', () => {
+                const searchTerm = searchInput.value.trim();
+                if (searchTerm.length >= this.minSearchLength) {
+                    this.searchDogs(searchTerm);
                 }
             });
         }
@@ -563,13 +524,10 @@ class PrivateInfoManager extends BaseModule {
         // Klik buiten zoekresultaten om ze te verbergen
         document.addEventListener('click', (e) => {
             const searchContainer = document.getElementById('searchResultsContainer');
-            const nameInput = document.getElementById('privateHondSearchName');
-            const kennelInput = document.getElementById('privateHondSearchKennel');
+            const searchInput = document.getElementById('privateHondSearch');
             
             if (searchContainer && searchContainer.style.display !== 'none') {
-                if (!searchContainer.contains(e.target) && 
-                    !(nameInput && nameInput.contains(e.target)) && 
-                    !(kennelInput && kennelInput.contains(e.target))) {
+                if (!searchContainer.contains(e.target) && !(searchInput && searchInput.contains(e.target))) {
                     this.hideSearchResults();
                 }
             }
@@ -579,7 +537,6 @@ class PrivateInfoManager extends BaseModule {
         const notesTab = document.getElementById('notes-tab');
         if (notesTab) {
             notesTab.addEventListener('shown.bs.tab', () => {
-                // Laad notities wanneer de tab wordt getoond
                 this.loadDogsWithNotes();
             });
         }
@@ -597,48 +554,102 @@ class PrivateInfoManager extends BaseModule {
             }
         });
         
-        const nameField = document.getElementById('nameSearchField');
-        const kennelField = document.getElementById('kennelSearchField');
+        // Update label en placeholder
+        const searchLabel = document.getElementById('searchLabel');
+        const searchInput = document.getElementById('privateHondSearch');
         
-        if (type === 'name') {
-            if (nameField) nameField.classList.remove('d-none');
-            if (kennelField) kennelField.classList.add('d-none');
-            this.hideSearchResults();
-        } else {
-            if (nameField) nameField.classList.add('d-none');
-            if (kennelField) kennelField.classList.remove('d-none');
-            this.hideSearchResults();
+        if (searchLabel && searchInput) {
+            if (type === 'name') {
+                searchLabel.textContent = this.t('searchName');
+                searchInput.placeholder = this.t('searchPlaceholder');
+            } else {
+                searchLabel.textContent = this.t('searchKennel');
+                searchInput.placeholder = this.t('kennelPlaceholder');
+            }
         }
+        
+        // Maak zoekveld leeg en verberg resultaten
+        if (searchInput) {
+            searchInput.value = '';
+        }
+        this.hideSearchResults();
+        document.getElementById('selectedDogInfo').innerHTML = '';
+        this.selectedDogId = null;
+        this.selectedDogStamboomnr = null;
+        this.selectedDogNaam = null;
+        this.selectedDogData = null;
     }
     
-    filterDogsForNameField(searchTerm = '') {
-        this.filteredDogs = this.allDogs.filter(dog => {
-            const naam = dog.naam ? dog.naam.toLowerCase() : '';
-            const kennelnaam = dog.kennelnaam ? dog.kennelnaam.toLowerCase() : '';
+    /**
+     * VERBETERDE ZOEKFUNCTIE DIE WERKT MET "NAAM KENNELNAAM"
+     */
+    async searchDogs(searchTerm) {
+        try {
+            console.log(`🔍 Zoeken naar: "${searchTerm}"`);
             
-            // Creëer een gecombineerde string: "naam kennelnaam"
-            const combined = `${naam} ${kennelnaam}`;
+            const supabase = window.supabase;
+            if (!supabase) {
+                console.error('❌ Geen Supabase client');
+                return;
+            }
             
-            // Controleer of de gecombineerde string begint met de zoekterm
-            return combined.startsWith(searchTerm);
-        });
-        
-        this.displaySearchResults();
-    }
-    
-    filterDogsByKennel(searchTerm = '') {
-        this.filteredDogs = this.allDogs.filter(dog => {
-            const kennelnaam = dog.kennelnaam ? dog.kennelnaam.toLowerCase() : '';
-            return kennelnaam.startsWith(searchTerm);
-        });
-        
-        this.filteredDogs.sort((a, b) => {
-            const naamA = a.naam ? a.naam.toLowerCase() : '';
-            const naamB = b.naam ? b.naam.toLowerCase() : '';
-            return naamA.localeCompare(naamB);
-        });
-        
-        this.displaySearchResults();
+            // Splits de zoekterm in losse woorden
+            const words = searchTerm.trim().split(/\s+/).filter(word => word.length > 0);
+            
+            let query = supabase
+                .from('honden')
+                .select('*');
+            
+            if (words.length === 1) {
+                // Eén woord: zoek in alle velden
+                query = query.or(`naam.ilike.%${searchTerm}%,kennelnaam.ilike.%${searchTerm}%,stamboomnr.ilike.%${searchTerm}%`);
+            } else {
+                // Meerdere woorden: maak combinaties voor "naam kennelnaam"
+                const conditions = [];
+                
+                // 1. De hele string in naam
+                conditions.push(`naam.ilike.%${searchTerm}%`);
+                
+                // 2. De hele string in kennelnaam
+                conditions.push(`kennelnaam.ilike.%${searchTerm}%`);
+                
+                // 3. Eerste woord in naam, rest in kennelnaam
+                const firstWord = words[0];
+                const restWords = words.slice(1).join(' ');
+                conditions.push(`and(naam.ilike.%${firstWord}%,kennelnaam.ilike.%${restWords}%)`);
+                
+                // 4. Eerste woord in kennelnaam, rest in naam
+                conditions.push(`and(kennelnaam.ilike.%${firstWord}%,naam.ilike.%${restWords}%)`);
+                
+                // 5. Alle woorden moeten voorkomen in naam (AND)
+                const naamConditions = words.map(w => `naam.ilike.%${w}%`).join(',');
+                conditions.push(`and(${naamConditions})`);
+                
+                // 6. Alle woorden moeten voorkomen in kennelnaam (AND)
+                const kennelConditions = words.map(w => `kennelnaam.ilike.%${w}%`).join(',');
+                conditions.push(`and(${kennelConditions})`);
+                
+                // Combineer alle opties met OR
+                query = query.or(conditions.join(','));
+            }
+            
+            const { data, error } = await query
+                .order('naam')
+                .limit(100);
+            
+            if (error) {
+                console.error('❌ Database error:', error);
+                return;
+            }
+            
+            this.filteredDogs = data || [];
+            console.log(`✅ ${this.filteredDogs.length} honden gevonden`);
+            
+            this.displaySearchResults();
+            
+        } catch (error) {
+            console.error('❌ Fout bij zoeken:', error);
+        }
     }
     
     displaySearchResults() {
@@ -650,7 +661,7 @@ class PrivateInfoManager extends BaseModule {
         if (this.filteredDogs.length === 0) {
             list.innerHTML = `
                 <div class="text-center py-3">
-                    <i class="bi bi-search-x text-muted opacity-50"></i>
+                    <i class="bi bi-search-x text-muted opacity-50" style="font-size: 2rem;"></i>
                     <p class="mt-2 text-muted">${this.t('noDogsFound')}</p>
                 </div>
             `;
@@ -677,7 +688,7 @@ class PrivateInfoManager extends BaseModule {
                         ${dog.kennelnaam ? `<span class="text-muted ms-2">${dog.kennelnaam}</span>` : ''}
                     </div>
                     
-                    <!-- REGEL 2: Stamboomnummer + Ras + Geslacht - ACHTER ELKAAR -->
+                    <!-- REGEL 2: Stamboomnummer + Ras + Geslacht -->
                     <div class="dog-details-line">
                         ${dog.stamboomnr ? `<span class="stamboom">${dog.stamboomnr}</span>` : ''}
                         ${dog.ras ? `<span class="ras">${dog.ras}</span>` : ''}
@@ -707,17 +718,19 @@ class PrivateInfoManager extends BaseModule {
                 // Voeg selected class toe aan geklikt item
                 item.classList.add('selected');
                 
-                // Update de zoekvelden
-                const dog = this.allDogs.find(d => d.id === dogId);
+                // Update het zoekveld met de naam van de geselecteerde hond
+                const dog = this.filteredDogs.find(d => d.id === dogId);
                 if (dog) {
-                    if (this.searchType === 'name') {
-                        document.getElementById('privateHondSearchName').value = dog.naam || '';
-                    } else {
-                        document.getElementById('privateHondSearchKennel').value = dog.kennelnaam || '';
-                    }
+                    document.getElementById('privateHondSearch').value = dog.naam || '';
                     
                     // Update de geselecteerde hond info
                     this.updateSelectedDogInfo(dog);
+                    
+                    // Sla de geselecteerde hond op
+                    this.selectedDogId = dog.id;
+                    this.selectedDogStamboomnr = dog.stamboomnr;
+                    this.selectedDogNaam = dog.naam;
+                    this.selectedDogData = dog;
                 }
                 
                 // Verberg zoekresultaten
@@ -746,80 +759,13 @@ class PrivateInfoManager extends BaseModule {
         `;
     }
     
-    async loadSearchData() {
-        if (this.isLoading) return;
-        
-        try {
-            this.isLoading = true;
-            this.showProgress(this.t('loadingDogs') + " (0 " + this.t('loaded') + ")");
-            
-            this.allDogs = await this.loadAllDogsWithPaginationDogDataManagerStyle();
-            
-            this.allDogs.sort((a, b) => (a.naam || '').localeCompare(b.naam || ''));
-            
-            console.log(`PrivateInfoManager: ${this.allDogs.length} ${this.t('dogsLoaded')}`);
-            
-        } catch (error) {
-            console.error('PrivateInfoManager: Error loading dogs:', error);
-            this.showError(`${this.t('loadFailed')}: ${error.message}`);
-            this.allDogs = [];
-        } finally {
-            this.isLoading = false;
-            this.hideProgress();
-        }
-    }
-    
-    async loadAllDogsWithPaginationDogDataManagerStyle() {
-        try {
-            let allDogs = [];
-            let currentPage = 1;
-            const pageSize = 1000;
-            let hasMorePages = true;
-            let totalLoaded = 0;
-            
-            while (hasMorePages) {
-                const result = await hondenService.getHonden(currentPage, pageSize);
-                
-                if (result.honden && result.honden.length > 0) {
-                    allDogs = allDogs.concat(result.honden);
-                    totalLoaded += result.honden.length;
-                    
-                    this.showProgress(`${this.t('loadingDogs')}... (${totalLoaded} ${this.t('loaded')})`);
-                    
-                    hasMorePages = result.heeftVolgende;
-                    
-                    if (hasMorePages) currentPage++;
-                    if (currentPage > 100) break;
-                } else {
-                    hasMorePages = false;
-                }
-                
-                await new Promise(resolve => setTimeout(resolve, 100));
-            }
-            
-            return allDogs;
-            
-        } catch (error) {
-            console.error('PrivateInfoManager: Error loading dogs:', error);
-            throw error;
-        }
-    }
-    
     async loadPrivateInfoForDog() {
-        // Zoek de geselecteerde hond
-        const selectedItem = document.querySelector('.dog-result-item.selected');
-        if (!selectedItem) {
+        if (!this.selectedDogId || !this.selectedDogStamboomnr) {
             this.showError(this.t('selectDogFirst'));
             return;
         }
         
-        const dogId = parseInt(selectedItem.getAttribute('data-id'));
-        const stamboomnr = selectedItem.getAttribute('data-stamboomnr');
-        
-        if (!dogId || !stamboomnr) {
-            this.showError(this.t('selectDogFirst'));
-            return;
-        }
+        const stamboomnr = this.selectedDogStamboomnr;
         
         this.showProgress(this.t('loadingInfo'));
         
@@ -852,20 +798,13 @@ class PrivateInfoManager extends BaseModule {
     }
     
     async savePrivateInfo() {
-        const selectedItem = document.querySelector('.dog-result-item.selected');
-        if (!selectedItem) {
+        if (!this.selectedDogId || !this.selectedDogStamboomnr) {
             this.showError(this.t('selectDogFirst'));
             return;
         }
         
-        const dogId = parseInt(selectedItem.getAttribute('data-id'));
-        const stamboomnr = selectedItem.getAttribute('data-stamboomnr');
+        const stamboomnr = this.selectedDogStamboomnr;
         const notes = document.getElementById('privateNotes')?.value.trim() || '';
-        
-        if (!dogId || !stamboomnr) {
-            this.showError(this.t('selectDogFirst'));
-            return;
-        }
         
         this.showProgress(this.t('savingInfo'));
         
@@ -879,7 +818,6 @@ class PrivateInfoManager extends BaseModule {
             this.hideProgress();
             this.showSuccess(this.t('saveSuccess'));
             
-            // Vernieuw de notities lijst als die zichtbaar is
             if (document.getElementById('notes-tab').classList.contains('active')) {
                 this.loadDogsWithNotes();
             }
@@ -898,32 +836,35 @@ class PrivateInfoManager extends BaseModule {
         }
     }
     
-    // Nieuwe functie: Laad alle honden met notities
     async loadDogsWithNotes() {
         this.showProgress(this.t('loadingNotes'));
         
         try {
             if (!window.priveInfoService) throw new Error(this.t('serviceNotAvailable'));
             
-            // Haal alle prive info op
             const result = await window.priveInfoService.getPriveInfoMetPaginatie(1, 1000);
             this.allPriveInfo = result.priveInfo || [];
             
             console.log(`Geladen prive info records: ${this.allPriveInfo.length}`);
             
-            // Filter alleen records met notities
             const notesWithContent = this.allPriveInfo.filter(info => 
                 info.privatenotes && info.privatenotes.trim() !== ''
             );
             
-            // Als we nog geen honden data hebben, laad die dan
-            if (this.allDogs.length === 0) {
-                await this.loadSearchData();
+            const stamboomnrs = notesWithContent.map(info => info.stamboomnr).filter(nr => nr);
+            
+            let dogs = [];
+            if (stamboomnrs.length > 0) {
+                const supabase = window.supabase;
+                const { data } = await supabase
+                    .from('honden')
+                    .select('*')
+                    .in('stamboomnr', stamboomnrs);
+                dogs = data || [];
             }
             
-            // Koppel hondengegevens aan de notities
             this.dogsWithNotes = notesWithContent.map(info => {
-                const dog = this.allDogs.find(d => d.stamboomnr === info.stamboomnr);
+                const dog = dogs.find(d => d.stamboomnr === info.stamboomnr);
                 return {
                     ...info,
                     dogData: dog || null,
@@ -931,9 +872,8 @@ class PrivateInfoManager extends BaseModule {
                     kennelName: dog?.kennelnaam || '',
                     heeftHondGegevens: !!dog
                 };
-            }).filter(item => item.heeftHondGegevens); // Alleen tonen als we hondengegevens hebben
+            }).filter(item => item.heeftHondGegevens);
             
-            // Sorteer op hondennaam
             this.dogsWithNotes.sort((a, b) => a.dogName.localeCompare(b.dogName));
             
             this.hideProgress();
@@ -946,7 +886,6 @@ class PrivateInfoManager extends BaseModule {
         }
     }
     
-    // Nieuwe functie: Toon lijst van honden met notities
     displayNotesList() {
         const container = document.getElementById('notesListContent');
         if (!container) return;
@@ -996,13 +935,11 @@ class PrivateInfoManager extends BaseModule {
         
         container.innerHTML = html;
         
-        // Voeg event listeners toe aan note items
         document.querySelectorAll('.note-item').forEach(item => {
             item.addEventListener('click', (e) => {
                 const stamboomnr = item.getAttribute('data-stamboomnr');
                 this.loadNoteForDog(stamboomnr);
                 
-                // Highlight geselecteerd item
                 document.querySelectorAll('.note-item').forEach(i => {
                     i.classList.remove('selected');
                 });
@@ -1011,7 +948,6 @@ class PrivateInfoManager extends BaseModule {
         });
     }
     
-    // Nieuwe functie: Laad notitie voor specifieke hond
     async loadNoteForDog(stamboomnr) {
         const note = this.allPriveInfo.find(info => info.stamboomnr === stamboomnr);
         const dog = this.allDogs.find(d => d.stamboomnr === stamboomnr);
@@ -1021,51 +957,24 @@ class PrivateInfoManager extends BaseModule {
             return;
         }
         
-        // Zet huidige notitie
         this.currentPriveInfo = {
             ...note,
             privateNotes: note.privatenotes || ''
         };
         
-        // Toon in tekstveld
         this.displayPrivateInfo();
         
-        // Update geselecteerde hond in zoek tab
-        this.updateSelectedDogFromNotes(dog, stamboomnr);
+        this.selectedDogId = dog.id;
+        this.selectedDogStamboomnr = dog.stamboomnr;
+        this.selectedDogNaam = dog.naam;
+        this.selectedDogData = dog;
         
-        // Schakel naar zoek tab om de hond te zien
-        const searchTab = document.getElementById('search-tab');
-        if (searchTab) {
-            const tab = new bootstrap.Tab(searchTab);
-            tab.show();
-        }
+        document.getElementById('privateHondSearch').value = dog.naam || '';
+        this.updateSelectedDogInfo(dog);
         
         this.showSuccess(`Notities geladen voor ${dog.naam}`);
     }
     
-    // Nieuwe functie: Update geselecteerde hond op basis van notitie
-    updateSelectedDogFromNotes(dog, stamboomnr) {
-        // Update zoekvelden
-        const nameInput = document.getElementById('privateHondSearchName');
-        const kennelInput = document.getElementById('privateHondSearchKennel');
-        
-        if (nameInput) nameInput.value = dog.naam || '';
-        if (kennelInput) kennelInput.value = dog.kennelnaam || '';
-        
-        // Update selected dog info
-        this.updateSelectedDogInfo(dog);
-        
-        // Markeer in zoekresultaten (als die zichtbaar zijn)
-        document.querySelectorAll('.dog-result-item').forEach(item => {
-            if (item.getAttribute('data-stamboomnr') === stamboomnr) {
-                item.classList.add('selected');
-            } else {
-                item.classList.remove('selected');
-            }
-        });
-    }
-    
-    // Helper functie om datum te formatteren
     formatDate(dateString) {
         if (!dateString) return '';
         try {

@@ -3,7 +3,7 @@
 /**
  * Search Manager Module
  * Beheert het zoeken naar honden met real-time filtering op naam en kennelnaam
- * GEBRUIKT EXACT DEZELFDE ZOEKLOGICA ALS LITTERMANAGER
+ * GEBRUIKT EXACT DEZELFDE ZOEKLOGICA ALS PRIVATEINFOMANAGER
  */
 
 class SearchManager extends BaseModule {
@@ -25,7 +25,8 @@ class SearchManager extends BaseModule {
         this.currentUserId = null;
         this.photoViewerLoaded = false;
         this.searchTimeout = null;
-        this.allDogs = [];
+        this.filteredDogs = [];
+        this.minSearchLength = 2; // Minimale lengte voor zoeken (exact zoals PrivateInfoManager)
         
         this.translations = {
             nl: {
@@ -35,8 +36,8 @@ class SearchManager extends BaseModule {
                 searchPlaceholder: "Typ hondennaam... of 'naam kennelnaam'",
                 kennelPlaceholder: "Typ kennelnaam...",
                 noDogsFound: "Geen honden gevonden",
-                typeToSearch: "Begin met typen om te zoeken",
-                typeToSearchKennel: "Typ een kennelnaam om te zoeken",
+                typeToSearch: "Typ minimaal 2 tekens om te zoeken...",
+                typeToSearchKennel: "Typ een kennelnaam om te zoeken (min. 2 tekens)",
                 searchResults: "Zoekresultaten",
                 found: "gevonden",
                 name: "Naam",
@@ -174,13 +175,7 @@ class SearchManager extends BaseModule {
                 privateInfoOwnerOnly: "Geen informatie",
                 
                 searching: "Zoeken...",
-                typeMore: "Typ minimaal 1 teken",
-                
-                kennelResults: "Honden van kennel {kennel}",
-                noDogsInKennel: "Geen honden gevonden in deze kennel",
-                viewKennelDogs: "Bekijk honden van deze kennel",
-                kennelDogs: "Honden van kennel {kennel}",
-                kennelDogCount: "Totaal aantal honden"
+                typeMore: "Typ minimaal 2 tekens"
             },
             en: {
                 searchDog: "Search Dog",
@@ -189,8 +184,8 @@ class SearchManager extends BaseModule {
                 searchPlaceholder: "Type dog name... or 'name kennelname'",
                 kennelPlaceholder: "Type kennel name...",
                 noDogsFound: "No dogs found",
-                typeToSearch: "Start typing to search",
-                typeToSearchKennel: "Type a kennel name to search",
+                typeToSearch: "Type at least 2 characters to search...",
+                typeToSearchKennel: "Type a kennel name to search (min. 2 characters)",
                 searchResults: "Search Results",
                 found: "found",
                 name: "Name",
@@ -267,11 +262,6 @@ class SearchManager extends BaseModule {
                     "Positief": "Tgaa Positive"
                 },
                 
-                grade: "Grade",
-                status: "Status",
-                notApplicable: "Not applicable",
-                viewMore: "View details",
-                
                 pedigreeButton: "Pedigree",
                 pedigreeTitle: "Pedigree of {name}",
                 generatingPedigree: "Generating pedigree...",
@@ -328,13 +318,7 @@ class SearchManager extends BaseModule {
                 privateInfoOwnerOnly: "No information",
                 
                 searching: "Searching...",
-                typeMore: "Type at least 1 character",
-                
-                kennelResults: "Dogs from kennel {kennel}",
-                noDogsInKennel: "No dogs found in this kennel",
-                viewKennelDogs: "View dogs from this kennel",
-                kennelDogs: "Dogs from kennel {kennel}",
-                kennelDogCount: "Total number of dogs"
+                typeMore: "Type at least 2 characters"
             },
             de: {
                 searchDog: "Hund suchen",
@@ -343,8 +327,8 @@ class SearchManager extends BaseModule {
                 searchPlaceholder: "Hundenamen eingeben... oder 'Name Kennelname'",
                 kennelPlaceholder: "Kennelnamen eingeben...",
                 noDogsFound: "Keine Hunde gefunden",
-                typeToSearch: "Beginnen Sie mit der Eingabe, um zu suchen",
-                typeToSearchKennel: "Kennelnamen eingeben um zu suchen",
+                typeToSearch: "Geben Sie mindestens 2 Zeichen ein...",
+                typeToSearchKennel: "Kennelnamen eingeben um zu suchen (min. 2 Zeichen)",
                 searchResults: "Suchergebnisse",
                 found: "gefunden",
                 name: "Name",
@@ -441,13 +425,7 @@ class SearchManager extends BaseModule {
                 privateInfoOwnerOnly: "Keine Informationen",
                 
                 searching: "Suche...",
-                typeMore: "Geben Sie mindestens 1 Zeichen ein",
-                
-                kennelResults: "Hunde aus Kennel {kennel}",
-                noDogsInKennel: "Keine Hunde in diesem Kennel gefunden",
-                viewKennelDogs: "Hunde aus diesem Kennel anzeigen",
-                kennelDogs: "Hunde aus Kennel {kennel}",
-                kennelDogCount: "Gesamtzahl der Hunde"
+                typeMore: "Geben Sie mindestens 2 Zeichen ein"
             }
         };
         
@@ -642,18 +620,6 @@ class SearchManager extends BaseModule {
         }
     }
     
-    // NORMALIZE TEXT - EXACT ZOALS IN LITTERMANAGER
-    normalizeText(text) {
-        if (!text) return '';
-        
-        return text
-            .toLowerCase()
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .replace(/ß/g, 'ss')
-            .trim();
-    }
-    
     t(key, subKey = null) {
         if (subKey && this.translations[this.currentLang][key] && typeof this.translations[this.currentLang][key] === 'object') {
             return this.translations[this.currentLang][key][subKey] || subKey;
@@ -705,17 +671,6 @@ class SearchManager extends BaseModule {
                 const dogId = parseInt(siblingsBtn.getAttribute('data-dog-id'));
                 const dogName = siblingsBtn.getAttribute('data-dog-name') || '';
                 this.showSiblingsModal(dogId, dogName);
-            }
-            
-            const kennelResultItem = e.target.closest('.kennel-result-item');
-            if (kennelResultItem) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                const kennelName = kennelResultItem.getAttribute('data-kennel-name');
-                if (kennelName) {
-                    this.showKennelDogsModal(kennelName);
-                }
             }
             
             const closeOffspringBtn = e.target.closest('.offspring-modal-close');
@@ -801,28 +756,6 @@ class SearchManager extends BaseModule {
                 }
             }
             
-            const backToSearchBtn = e.target.closest('.back-to-search-btn');
-            if (backToSearchBtn) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                const overlay = document.getElementById('dogDetailsModalOverlay');
-                if (overlay) {
-                    overlay.style.display = 'none';
-                    setTimeout(() => {
-                        if (overlay.parentNode) {
-                            overlay.parentNode.removeChild(overlay);
-                        }
-                    }, 300);
-                }
-                
-                const searchModal = document.getElementById('searchModal');
-                if (searchModal) {
-                    const modal = bootstrap.Modal.getInstance(searchModal) || new bootstrap.Modal(searchModal);
-                    modal.show();
-                }
-            }
-            
             const backToOffspringBtn = e.target.closest('.back-to-offspring-btn');
             if (backToOffspringBtn) {
                 e.preventDefault();
@@ -836,10 +769,6 @@ class SearchManager extends BaseModule {
                             overlay.parentNode.removeChild(overlay);
                         }
                     }, 300);
-                }
-                
-                if (this.currentOffspringModalDogId && this.currentOffspringModalDogName) {
-                    this.showOffspringModal(this.currentOffspringModalDogId, this.currentOffspringModalDogName);
                 }
             }
             
@@ -857,169 +786,92 @@ class SearchManager extends BaseModule {
                         }
                     }, 300);
                 }
-                
-                if (this.currentSiblingsModalDogId && this.currentSiblingsModalDogName) {
-                    this.showSiblingsModal(this.currentSiblingsModalDogId, this.currentSiblingsModalDogName);
-                }
-            }
-            
-            const closeKennelDogsBtn = e.target.closest('.kennel-dogs-modal-close');
-            if (closeKennelDogsBtn) {
-                const overlay = document.getElementById('kennelDogsModalOverlay');
-                if (overlay) {
-                    overlay.style.display = 'none';
-                    setTimeout(() => {
-                        if (overlay.parentNode) {
-                            overlay.parentNode.removeChild(overlay);
-                        }
-                    }, 300);
-                }
-            }
-            
-            if (e.target.id === 'kennelDogsModalOverlay') {
-                const overlay = document.getElementById('kennelDogsModalOverlay');
-                if (overlay) {
-                    overlay.style.display = 'none';
-                    setTimeout(() => {
-                        if (overlay.parentNode) {
-                            overlay.parentNode.removeChild(overlay);
-                        }
-                    }, 300);
-                }
             }
         });
     }
     
-    async loadAllDogs(forceReload = false) {
-        console.log('SearchManager: loadAllDogs aangeroepen');
-        
-        if (!forceReload && this.allDogs && this.allDogs.length > 0) {
-            console.log('SearchManager: Gebruik gecachede honden:', this.allDogs.length);
-            return;
-        }
-        
-        if (!window.supabase) {
-            console.error('SearchManager: Database niet beschikbaar voor loadAllDogs!');
-            return;
-        }
-        
+    /**
+     * VERBETERDE ZOEKFUNCTIE DIE EXACT HETZELFDE WERKT ALS IN PRIVATEINFOMANAGER
+     */
+    async searchDogs(searchTerm, searchType) {
         try {
-            console.log('SearchManager: Laden van alle honden met paginatie...');
+            console.log(`🔍 SearchManager zoeken naar: "${searchTerm}" (type: ${searchType})`);
             
-            this.allDogs = [];
-            
-            let currentPage = 1;
-            const pageSize = 1000;
-            let hasMorePages = true;
-            
-            while (hasMorePages) {
-                console.log(`SearchManager: Laden pagina ${currentPage}...`);
-                
-                const from = (currentPage - 1) * pageSize;
-                const to = from + pageSize - 1;
-                
-                const { data, error, count } = await window.supabase
-                    .from('honden')
-                    .select('*', { count: 'exact' })
-                    .range(from, to)
-                    .order('naam');
-                
-                if (error) {
-                    console.error('Fout bij laden honden:', error);
-                    break;
-                }
-                
-                if (data && data.length > 0) {
-                    this.allDogs = this.allDogs.concat(data);
-                    console.log(`SearchManager: Pagina ${currentPage} geladen: ${data.length} honden`);
-                    
-                    hasMorePages = data.length === pageSize;
-                    currentPage++;
-                } else {
-                    hasMorePages = false;
-                }
+            const supabase = window.supabase;
+            if (!supabase) {
+                console.error('❌ Geen Supabase client');
+                return;
             }
             
-            this.allDogs.sort((a, b) => {
-                const naamA = a.naam || '';
-                const naamB = b.naam || '';
-                return naamA.localeCompare(naamB);
-            });
+            // Minimale zoeklengte check (exact zoals PrivateInfoManager)
+            if (searchTerm.length < this.minSearchLength) {
+                this.filteredDogs = [];
+                this.displaySearchResults();
+                return;
+            }
             
-            console.log(`SearchManager: TOTAAL ${this.allDogs.length} honden geladen`);
+            // Splits de zoekterm in losse woorden (exact zoals PrivateInfoManager)
+            const words = searchTerm.trim().split(/\s+/).filter(word => word.length > 0);
+            
+            let query = supabase
+                .from('honden')
+                .select('*');
+            
+            if (searchType === 'name') {
+                // Zoeken op naam + kennelnaam (exact zoals PrivateInfoManager)
+                if (words.length === 1) {
+                    // Eén woord: zoek in alle velden
+                    query = query.or(`naam.ilike.%${searchTerm}%,kennelnaam.ilike.%${searchTerm}%,stamboomnr.ilike.%${searchTerm}%`);
+                } else {
+                    // Meerdere woorden: maak combinaties voor "naam kennelnaam"
+                    const conditions = [];
+                    
+                    // 1. De hele string in naam
+                    conditions.push(`naam.ilike.%${searchTerm}%`);
+                    
+                    // 2. De hele string in kennelnaam
+                    conditions.push(`kennelnaam.ilike.%${searchTerm}%`);
+                    
+                    // 3. Eerste woord in naam, rest in kennelnaam
+                    const firstWord = words[0];
+                    const restWords = words.slice(1).join(' ');
+                    conditions.push(`and(naam.ilike.%${firstWord}%,kennelnaam.ilike.%${restWords}%)`);
+                    
+                    // 4. Eerste woord in kennelnaam, rest in naam
+                    conditions.push(`and(kennelnaam.ilike.%${firstWord}%,naam.ilike.%${restWords}%)`);
+                    
+                    // 5. Alle woorden moeten voorkomen in naam (AND)
+                    const naamConditions = words.map(w => `naam.ilike.%${w}%`).join(',');
+                    conditions.push(`and(${naamConditions})`);
+                    
+                    // 6. Alle woorden moeten voorkomen in kennelnaam (AND)
+                    const kennelConditions = words.map(w => `kennelnaam.ilike.%${w}%`).join(',');
+                    conditions.push(`and(${kennelConditions})`);
+                    
+                    // Combineer alle opties met OR
+                    query = query.or(conditions.join(','));
+                }
+            } else {
+                // Zoeken op kennelnaam (zoals PrivateInfoManager bij searchType 'kennel')
+                query = query.ilike('kennelnaam', `%${searchTerm}%`);
+            }
+            
+            const { data, error } = await query
+                .order('naam')
+                .limit(100); // Exact zoals PrivateInfoManager: limit 100
+            
+            if (error) {
+                console.error('❌ Database error:', error);
+                return;
+            }
+            
+            this.filteredDogs = data || [];
+            console.log(`✅ ${this.filteredDogs.length} honden gevonden`);
+            
+            this.displaySearchResults(searchTerm);
             
         } catch (error) {
-            console.error('SearchManager: Fout bij laden honden:', error);
-            this.allDogs = [];
-        }
-    }
-    
-    // ZOEKLOGICA - EXACT HETZELFDE ALS IN LITTERMANAGER
-    searchDogs(searchTerm, searchType) {
-        if (!searchTerm || searchTerm.length < 1 || !this.allDogs || this.allDogs.length === 0) {
-            return [];
-        }
-        
-        const normalizedTerm = this.normalizeText(searchTerm);
-        
-        // Eerst dedupliceren op ID
-        const uniqueDogs = this.allDogs.filter((dog, index, self) => 
-            index === self.findIndex(d => d.id === dog.id)
-        );
-        
-        if (searchType === 'name') {
-            // EXACT ZOALS IN LITTERMANAGER: kijken of de gecombineerde string begint met de zoekterm
-            return uniqueDogs.filter(dog => {
-                const dogName = dog.naam ? dog.naam.toLowerCase() : '';
-                const kennelName = dog.kennelnaam ? dog.kennelnaam.toLowerCase() : '';
-                
-                // Creëer gecombineerde string: "naam kennelnaam"
-                const combined = `${dogName} ${kennelName}`.trim();
-                
-                // Normaliseer en check of het begint met de genormaliseerde zoekterm
-                const normalizedCombined = this.normalizeText(combined);
-                
-                return normalizedCombined.startsWith(normalizedTerm);
-            }).slice(0, 50);
-        } else {
-            // Zoeken op kennelnaam - exacte kennels vinden en dan de eerste hond van elke kennel tonen
-            // Groepeer honden op kennelnaam
-            const kennelMap = new Map();
-            
-            uniqueDogs.forEach(dog => {
-                const kennelName = dog.kennelnaam ? dog.kennelnaam.trim() : '';
-                if (kennelName && kennelName !== '') {
-                    const normalizedKennel = this.normalizeText(kennelName);
-                    if (normalizedKennel.includes(normalizedTerm)) {
-                        if (!kennelMap.has(kennelName)) {
-                            kennelMap.set(kennelName, []);
-                        }
-                        kennelMap.get(kennelName).push(dog);
-                    }
-                }
-            });
-            
-            // Maak een array van unieke kennels met een representatieve hond
-            const uniqueKennels = [];
-            kennelMap.forEach((dogs, kennelName) => {
-                // Sorteer honden op geboortedatum (nieuwste eerst) voor de representatieve hond
-                const sortedDogs = dogs.sort((a, b) => {
-                    const dateA = a.geboortedatum ? new Date(a.geboortedatum) : new Date(0);
-                    const dateB = b.geboortedatum ? new Date(b.geboortedatum) : new Date(0);
-                    return dateB - dateA;
-                });
-                
-                uniqueKennels.push({
-                    kennelName: kennelName,
-                    dogCount: dogs.length,
-                    representativeDog: sortedDogs[0]
-                });
-            });
-            
-            // Sorteer kennels op naam
-            uniqueKennels.sort((a, b) => a.kennelName.localeCompare(b.kennelName));
-            
-            return uniqueKennels.slice(0, 50);
+            console.error('❌ Fout bij zoeken:', error);
         }
     }
     
@@ -1487,67 +1339,6 @@ class SearchManager extends BaseModule {
         });
     }
     
-    async showKennelDogsModal(kennelName) {
-        const existingOverlay = document.getElementById('kennelDogsModalOverlay');
-        if (existingOverlay) {
-            existingOverlay.remove();
-        }
-        
-        const overlayHTML = `
-            <div class="modal-overlay kennel-dogs-modal-overlay" id="kennelDogsModalOverlay" style="display: flex;">
-                <div class="modal-container kennel-dogs-modal-container">
-                    <div class="modal-header offspring-modal-header">
-                        <h5 class="modal-title offspring-modal-title">
-                            <i class="bi bi-house me-2"></i> ${this.t('kennelDogs', '').replace('{kennel}', kennelName)}
-                        </h5>
-                        <button type="button" class="btn-close btn-close-white kennel-dogs-modal-close" aria-label="${this.t('close')}"></button>
-                    </div>
-                    <div class="modal-body offspring-modal-body" id="kennelDogsModalContent">
-                        <div class="text-center py-4">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">${this.t('loading')}</span>
-                            </div>
-                            <p class="mt-3">${this.t('loading')}</p>
-                        </div>
-                    </div>
-                    <div class="modal-footer offspring-modal-footer">
-                        <button type="button" class="btn btn-secondary kennel-dogs-modal-close">
-                            <i class="bi bi-x-lg me-1"></i> ${this.t('close')}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        document.body.insertAdjacentHTML('beforeend', overlayHTML);
-        
-        await this.loadAndDisplayKennelDogs(kennelName);
-        
-        const closeOnEscape = (e) => {
-            if (e.key === 'Escape') {
-                const overlay = document.getElementById('kennelDogsModalOverlay');
-                if (overlay) {
-                    overlay.style.display = 'none';
-                    setTimeout(() => {
-                        if (overlay.parentNode) {
-                            overlay.parentNode.removeChild(overlay);
-                        }
-                    }, 300);
-                    document.removeEventListener('keydown', closeOnEscape);
-                }
-            }
-        };
-        document.addEventListener('keydown', closeOnEscape);
-        
-        const overlay = document.getElementById('kennelDogsModalOverlay');
-        overlay.addEventListener('animationend', function handler() {
-            if (overlay.style.display === 'none') {
-                document.removeEventListener('keydown', closeOnEscape);
-                overlay.removeEventListener('animationend', handler);
-            }
-        });
-    }
-    
     async loadAndDisplayOffspring(dogId, dogName) {
         const contentDiv = document.getElementById('offspringModalContent');
         if (!contentDiv) return;
@@ -1791,129 +1582,6 @@ class SearchManager extends BaseModule {
         }
     }
     
-    async loadAndDisplayKennelDogs(kennelName) {
-        const contentDiv = document.getElementById('kennelDogsModalContent');
-        if (!contentDiv) return;
-        
-        try {
-            await this.loadAllDogs();
-            
-            // Gebruik een Set om unieke honden op ID te garanderen
-            const uniqueDogsMap = new Map();
-            this.allDogs.forEach(dog => {
-                if (dog.kennelnaam && dog.kennelnaam.trim().toLowerCase() === kennelName.trim().toLowerCase()) {
-                    uniqueDogsMap.set(dog.id, dog);
-                }
-            });
-            
-            const kennelDogs = Array.from(uniqueDogsMap.values());
-            const count = kennelDogs.length;
-            
-            if (count === 0) {
-                contentDiv.innerHTML = `
-                    <div class="text-center py-5">
-                        <i class="bi bi-house display-1 text-muted opacity-50"></i>
-                        <p class="mt-3 text-muted">${this.t('noDogsInKennel')}</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            const sortedDogs = [...kennelDogs].sort((a, b) => {
-                const dateA = a.geboortedatum ? new Date(a.geboortedatum) : new Date(0);
-                const dateB = b.geboortedatum ? new Date(b.geboortedatum) : new Date(0);
-                return dateB - dateA;
-            });
-            
-            let html = `
-                <div class="kennel-stats mb-4">
-                    <div class="alert alert-info">
-                        <i class="bi bi-info-circle me-2"></i>
-                        ${this.t('kennelDogCount')}: <strong>${count}</strong>
-                    </div>
-                </div>
-                
-                <div class="kennel-list-container">
-                    <h6 class="mb-3">
-                        <i class="bi bi-list-ul me-2"></i> ${this.t('kennelResults', '').replace('{kennel}', kennelName)}
-                    </h6>
-                    <div class="table-responsive">
-                        <table class="table table-hover table-sm">
-                            <thead class="table-light">
-                                <tr>
-                                    <th scope="col">#</th>
-                                    <th scope="col">${this.t('dogName')}</th>
-                                    <th scope="col">${this.t('pedigreeNumber')}</th>
-                                    <th scope="col">${this.t('breed')}</th>
-                                    <th scope="col">${this.t('gender')}</th>
-                                    <th scope="col">${this.t('birthYear')}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-            `;
-            
-            sortedDogs.forEach((dog, index) => {
-                const birthYear = dog.geboortedatum ? 
-                    new Date(dog.geboortedatum).getFullYear() : '?';
-                
-                const genderText = dog.geslacht === 'reuen' ? this.t('male') : 
-                                  dog.geslacht === 'teven' ? this.t('female') : this.t('unknown');
-                
-                html += `
-                    <tr class="kennel-dog-row" data-dog-id="${dog.id}" data-dog-name="${dog.naam || ''}">
-                        <td class="text-muted">${index + 1}</td>
-                        <td>
-                            <strong class="text-primary">${dog.naam || this.t('unknown')}</strong>
-                        </td>
-                        <td><code>${dog.stamboomnr || ''}</code></td>
-                        <td>${dog.ras || ''}</td>
-                        <td>${genderText}</td>
-                        <td>${birthYear}</td>
-                    </tr>
-                `;
-            });
-            
-            html += `
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                
-                <div class="mt-4 text-center">
-                    <small class="text-muted">
-                        <i class="bi bi-info-circle me-1"></i>
-                        ${this.t('viewDogDetails')}
-                    </small>
-                </div>
-            `;
-            
-            contentDiv.innerHTML = html;
-            
-            contentDiv.querySelectorAll('.kennel-dog-row').forEach(row => {
-                row.addEventListener('click', (e) => {
-                    const dogId = parseInt(row.getAttribute('data-dog-id'));
-                    const dogName = row.getAttribute('data-dog-name');
-                    
-                    const overlay = document.getElementById('kennelDogsModalOverlay');
-                    if (overlay) {
-                        overlay.style.display = 'none';
-                    }
-                    
-                    this.showDogDetailsModal(dogId, dogName, 'kennel');
-                });
-            });
-            
-        } catch (error) {
-            console.error('Fout bij laden kennel honden:', error);
-            contentDiv.innerHTML = `
-                <div class="alert alert-danger">
-                    <i class="bi bi-exclamation-triangle me-2"></i>
-                    Fout bij laden kennel honden: ${error.message}
-                </div>
-            `;
-        }
-    }
-    
     async showDogDetailsModal(dogId, dogName = '', source = '') {
         const dog = await this.getDogDetails(dogId);
         if (!dog) {
@@ -1938,9 +1606,6 @@ class SearchManager extends BaseModule {
         } else if (source === 'siblings') {
             backButtonText = this.t('backToSiblings');
             backButtonClass = 'back-to-siblings-btn';
-        } else if (source === 'kennel') {
-            backButtonText = this.t('backToSearch');
-            backButtonClass = 'back-to-search-btn';
         }
         
         const overlayHTML = `
@@ -1961,7 +1626,7 @@ class SearchManager extends BaseModule {
                         </div>
                     </div>
                     <div class="modal-footer offspring-modal-footer">
-                        <div class="d-flex justify-content-between w-100">
+                        <div class="d-flex justify-content-between">
                             <button type="button" class="btn btn-outline-secondary ${backButtonClass}">
                                 <i class="bi bi-arrow-left me-1"></i> ${backButtonText}
                             </button>
@@ -2502,7 +2167,7 @@ class SearchManager extends BaseModule {
                                                                    placeholder="${t('searchPlaceholder')}" 
                                                                    autocomplete="off">
                                                         </div>
-                                                        <div class="form-text mt-1 small" id="searchStatus">${t('typeToSearch')}</div>
+                                                        <div class="form-text mt-1 small" id="searchNameStatus">${t('typeToSearch')}</div>
                                                     </div>
                                                     
                                                     <div class="mb-3 d-none" id="kennelSearchField">
@@ -2516,7 +2181,7 @@ class SearchManager extends BaseModule {
                                                                    placeholder="${t('kennelPlaceholder')}" 
                                                                    autocomplete="off">
                                                         </div>
-                                                        <div class="form-text mt-1 small" id="kennelSearchStatus">${t('typeToSearchKennel')}</div>
+                                                        <div class="form-text mt-1 small" id="searchKennelStatus">${t('typeToSearchKennel')}</div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -2639,22 +2304,6 @@ class SearchManager extends BaseModule {
                     border-left: 4px solid #0d6efd;
                 }
                 
-                .kennel-result-item {
-                    cursor: pointer;
-                    transition: all 0.2s;
-                    border: 1px solid #dee2e6;
-                    border-radius: 8px;
-                    margin-bottom: 8px;
-                    padding: 12px 15px;
-                    background: white;
-                }
-                
-                .kennel-result-item:hover {
-                    background-color: #f8f9fa;
-                    border-color: #0d6efd;
-                    transform: translateX(3px);
-                }
-                
                 .dog-name-line {
                     font-size: 1.1rem;
                     font-weight: 700;
@@ -2669,23 +2318,6 @@ class SearchManager extends BaseModule {
                     flex-wrap: wrap;
                     gap: 12px;
                     align-items: center;
-                }
-                
-                .kennel-name-line {
-                    font-size: 1.1rem;
-                    font-weight: 700;
-                    color: #0d6efd;
-                    margin-bottom: 4px;
-                }
-                
-                .kennel-count-badge {
-                    display: inline-block;
-                    background-color: #6c757d;
-                    color: white;
-                    padding: 2px 8px;
-                    border-radius: 12px;
-                    font-size: 0.75rem;
-                    margin-left: 8px;
                 }
                 
                 .search-stats {
@@ -3047,12 +2679,12 @@ class SearchManager extends BaseModule {
                     text-align: right;
                 }
                 
-                .offspring-row, .sibling-row, .kennel-dog-row {
+                .offspring-row, .sibling-row {
                     cursor: pointer;
                     transition: all 0.2s;
                 }
                 
-                .offspring-row:hover, .sibling-row:hover, .kennel-dog-row:hover {
+                .offspring-row:hover, .sibling-row:hover {
                     background-color: #e8f4fd;
                 }
                 
@@ -3068,7 +2700,7 @@ class SearchManager extends BaseModule {
                     background-color: #e8f4fd;
                 }
                 
-                .offspring-row td, .sibling-row td, .kennel-dog-row td {
+                .offspring-row td, .sibling-row td {
                     vertical-align: middle;
                 }
                 
@@ -3100,10 +2732,6 @@ class SearchManager extends BaseModule {
                 
                 #dogDetailsModalOverlay {
                     z-index: 1100;
-                }
-                
-                #kennelDogsModalOverlay {
-                    z-index: 1085;
                 }
                 
                 #searchResultsContainer::-webkit-scrollbar,
@@ -3309,19 +2937,30 @@ class SearchManager extends BaseModule {
                 clearTimeout(this.searchTimeout);
             }
             
+            const statusEl = document.getElementById('searchNameStatus');
+            
             if (searchTerm.length === 0) {
+                if (statusEl) {
+                    statusEl.innerHTML = `<i class="bi bi-info-circle me-1"></i> ${this.t('typeToSearch')}`;
+                }
                 this.showInitialView();
                 this.clearDetails();
                 return;
             }
             
-            const statusEl = document.getElementById('searchStatus');
+            if (searchTerm.length < this.minSearchLength) {
+                if (statusEl) {
+                    statusEl.innerHTML = `<i class="bi bi-exclamation-circle me-1 text-warning"></i> ${this.t('typeMore')}`;
+                }
+                return;
+            }
+            
             if (statusEl) {
                 statusEl.innerHTML = `<i class="bi bi-hourglass-split me-1"></i> ${this.t('searching')}`;
             }
             
             this.searchTimeout = setTimeout(() => {
-                this.performNameSearch(searchTerm);
+                this.searchDogs(searchTerm, 'name');
             }, 300);
         });
         
@@ -3352,66 +2991,43 @@ class SearchManager extends BaseModule {
                 clearTimeout(this.searchTimeout);
             }
             
+            const statusEl = document.getElementById('searchKennelStatus');
+            
             if (searchTerm.length === 0) {
+                if (statusEl) {
+                    statusEl.innerHTML = `<i class="bi bi-info-circle me-1"></i> ${this.t('typeToSearchKennel')}`;
+                }
                 this.showInitialView();
                 this.clearDetails();
                 return;
             }
             
-            const statusEl = document.getElementById('kennelSearchStatus');
+            if (searchTerm.length < this.minSearchLength) {
+                if (statusEl) {
+                    statusEl.innerHTML = `<i class="bi bi-exclamation-circle me-1 text-warning"></i> ${this.t('typeMore')}`;
+                }
+                return;
+            }
+            
             if (statusEl) {
                 statusEl.innerHTML = `<i class="bi bi-hourglass-split me-1"></i> ${this.t('searching')}`;
             }
             
             this.searchTimeout = setTimeout(() => {
-                this.performKennelSearch(searchTerm);
+                this.searchDogs(searchTerm, 'kennel');
             }, 300);
         });
         
         searchInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
-                const firstResult = document.querySelector('.kennel-result-item');
+                const firstResult = document.querySelector('.dog-result-item');
                 if (firstResult) {
                     e.preventDefault();
-                    const kennelName = firstResult.getAttribute('data-kennel-name');
-                    if (kennelName) {
-                        this.showKennelDogsModal(kennelName);
-                    }
+                    const dogId = parseInt(firstResult.getAttribute('data-id'));
+                    this.selectDogById(dogId);
                 }
             }
         });
-    }
-    
-    async performNameSearch(searchTerm) {
-        await this.loadAllDogs();
-        
-        const dogs = this.searchDogs(searchTerm, 'name');
-        this.displaySearchResults(dogs, searchTerm);
-        
-        const statusEl = document.getElementById('searchStatus');
-        if (statusEl) {
-            if (dogs.length > 0) {
-                statusEl.innerHTML = `<i class="bi bi-check-circle me-1 text-success"></i> ${dogs.length} ${this.t('found')}`;
-            } else {
-                statusEl.innerHTML = `<i class="bi bi-exclamation-circle me-1 text-warning"></i> ${this.t('noDogsFound')}`;
-            }
-        }
-    }
-    
-    async performKennelSearch(searchTerm) {
-        await this.loadAllDogs();
-        
-        const kennels = this.searchDogs(searchTerm, 'kennel');
-        this.displayKennelSearchResults(kennels, searchTerm);
-        
-        const statusEl = document.getElementById('kennelSearchStatus');
-        if (statusEl) {
-            if (kennels.length > 0) {
-                statusEl.innerHTML = `<i class="bi bi-check-circle me-1 text-success"></i> ${kennels.length} ${this.t('found')}`;
-            } else {
-                statusEl.innerHTML = `<i class="bi bi-exclamation-circle me-1 text-warning"></i> ${this.t('noDogsFound')}`;
-            }
-        }
     }
     
     showInitialView() {
@@ -3428,9 +3044,9 @@ class SearchManager extends BaseModule {
         
         if (hasSearchTerm) {
             if (this.searchType === 'name') {
-                this.performNameSearch(searchInput.value.trim());
+                this.searchDogs(searchInput.value.trim(), 'name');
             } else {
-                this.performKennelSearch(searchInput.value.trim());
+                this.searchDogs(searchInput.value.trim(), 'kennel');
             }
         } else {
             const message = this.searchType === 'name' ? t('typeToSearch') : t('typeToSearchKennel');
@@ -3461,32 +3077,33 @@ class SearchManager extends BaseModule {
         `;
     }
     
-    displaySearchResults(dogs, searchTerm = '') {
-        const t = this.t.bind(this);
+    displaySearchResults(searchTerm = '') {
         const container = document.getElementById('searchResultsContainer');
         if (!container) return;
         
-        if (!dogs || dogs.length === 0) {
+        if (this.filteredDogs.length === 0) {
             container.innerHTML = `
                 <div class="p-3">
                     <div class="text-center py-5">
                         <i class="bi bi-search-x display-1 text-muted opacity-50"></i>
-                        <p class="mt-3 text-muted">${t('noDogsFound')}</p>
+                        <p class="mt-3 text-muted">${this.t('noDogsFound')}</p>
                     </div>
                 </div>
             `;
             return;
         }
         
+        const t = this.t.bind(this);
+        
         let html = `
             <div class="p-3">
                 <div class="search-stats">
                     <i class="bi bi-info-circle me-1"></i>
-                    ${dogs.length} ${t('found')} ${searchTerm ? `voor "${searchTerm}"` : ''}
+                    ${this.filteredDogs.length} ${t('found')} ${searchTerm ? `voor "${searchTerm}"` : ''}
                 </div>
         `;
         
-        dogs.forEach(dog => {
+        this.filteredDogs.forEach(dog => {
             const genderText = dog.geslacht === 'reuen' ? t('male') : 
                              dog.geslacht === 'teven' ? t('female') : t('unknown');
             
@@ -3516,77 +3133,6 @@ class SearchManager extends BaseModule {
                 
                 if (window.innerWidth <= 768) {
                     this.collapseSearchResultsOnMobile();
-                }
-            });
-        });
-    }
-    
-    displayKennelSearchResults(kennels, searchTerm = '') {
-        const t = this.t.bind(this);
-        const container = document.getElementById('searchResultsContainer');
-        if (!container) return;
-        
-        if (!kennels || kennels.length === 0) {
-            container.innerHTML = `
-                <div class="p-3">
-                    <div class="text-center py-5">
-                        <i class="bi bi-house-x display-1 text-muted opacity-50"></i>
-                        <p class="mt-3 text-muted">${t('noDogsFound')}</p>
-                    </div>
-                </div>
-            `;
-            return;
-        }
-        
-        let html = `
-            <div class="p-3">
-                <div class="search-stats">
-                    <i class="bi bi-info-circle me-1"></i>
-                    ${kennels.length} kennels gevonden ${searchTerm ? `voor "${searchTerm}"` : ''}
-                </div>
-        `;
-        
-        kennels.forEach(kennel => {
-            const dog = kennel.representativeDog;
-            const genderText = dog.geslacht === 'reuen' ? t('male') : 
-                             dog.geslacht === 'teven' ? t('female') : t('unknown');
-            
-            html += `
-                <div class="kennel-result-item" data-kennel-name="${kennel.kennelName}">
-                    <div class="kennel-name-line">
-                        <i class="bi bi-house me-2"></i>
-                        <span class="kennel-name">${kennel.kennelName}</span>
-                        <span class="kennel-count-badge">${kennel.dogCount} honden</span>
-                    </div>
-                    
-                    <div class="dog-details-line mt-2">
-                        <span class="text-muted me-2"><i class="bi bi-arrow-right"></i> Voorbeeld:</span>
-                        <span class="fw-bold">${dog.naam || t('unknown')}</span>
-                        ${dog.stamboomnr ? `<span class="stamboom">${dog.stamboomnr}</span>` : ''}
-                        ${dog.ras ? `<span class="ras">${dog.ras}</span>` : ''}
-                        <span class="geslacht">${genderText}</span>
-                    </div>
-                    
-                    <div class="mt-2 text-primary small">
-                        <i class="bi bi-info-circle me-1"></i>
-                        Klik om alle honden van deze kennel te bekijken
-                    </div>
-                </div>
-            `;
-        });
-        
-        html += `</div>`;
-        container.innerHTML = html;
-        
-        document.querySelectorAll('.kennel-result-item').forEach(item => {
-            item.addEventListener('click', (e) => {
-                const kennelName = item.getAttribute('data-kennel-name');
-                if (kennelName) {
-                    this.showKennelDogsModal(kennelName);
-                    
-                    if (window.innerWidth <= 768) {
-                        this.collapseSearchResultsOnMobile();
-                    }
                 }
             });
         });
@@ -3657,11 +3203,11 @@ class SearchManager extends BaseModule {
                 document.getElementById('searchKennelInput');
             if (searchInput) {
                 const searchTerm = searchInput.value.trim();
-                if (searchTerm.length >= 1) {
+                if (searchTerm.length >= this.minSearchLength) {
                     if (this.searchType === 'name') {
-                        this.performNameSearch(searchTerm);
+                        this.searchDogs(searchTerm, 'name');
                     } else {
-                        this.performKennelSearch(searchTerm);
+                        this.searchDogs(searchTerm, 'kennel');
                     }
                 } else {
                     this.showInitialView();

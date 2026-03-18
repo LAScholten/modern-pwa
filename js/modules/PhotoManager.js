@@ -28,10 +28,13 @@ class PhotoManager extends BaseModule {
         
         // Zoek variabelen
         this.searchTimeout = null;
-        this.minSearchLength = 1;
+        this.minSearchLength = 2; // Aangepast naar 2 tekens (zoals DekReuen.js)
         
         // PhotoViewer referentie
         this.photoViewer = null;
+        
+        // Tom Select instantie
+        this.tomSelect = null;
         
         this.translations = {
             nl: {
@@ -66,7 +69,7 @@ class PhotoManager extends BaseModule {
                 deleting: "Foto verwijderen...",
                 deleteSuccess: "Foto succesvol verwijderd!",
                 deleteFailed: "Verwijderen mislukt: ",
-                searchToFindDogs: "Typ minimaal 1 teken om te zoeken...",
+                searchToFindDogs: "Typ minimaal 2 tekens om te zoeken...", // Aangepast
                 loadingProgress: "Honden zoeken: ",
                 viewGallery: "Foto's Bekijken",
                 uploadNewPhoto: "Foto Uploaden",
@@ -115,7 +118,7 @@ class PhotoManager extends BaseModule {
                 deleting: "Deleting photo...",
                 deleteSuccess: "Photo successfully deleted!",
                 deleteFailed: "Delete failed: ",
-                searchToFindDogs: "Type at least 1 character to search...",
+                searchToFindDogs: "Type at least 2 characters to search...", // Aangepast
                 loadingProgress: "Searching dogs: ",
                 viewGallery: "View Photos",
                 uploadNewPhoto: "Upload Photo",
@@ -164,7 +167,7 @@ class PhotoManager extends BaseModule {
                 deleting: "Foto wird gelöscht...",
                 deleteSuccess: "Foto erfolgreich gelöscht!",
                 deleteFailed: "Löschen fehlgeschlagen: ",
-                searchToFindDogs: "Geben Sie mindestens 1 Zeichen ein...",
+                searchToFindDogs: "Geben Sie mindestens 2 Zeichen ein...", // Aangepast
                 loadingProgress: "Hunde suchen: ",
                 viewGallery: "Fotos Ansehen",
                 uploadNewPhoto: "Foto Hochladen",
@@ -189,35 +192,165 @@ class PhotoManager extends BaseModule {
     }
     
     /**
-     * Normaliseer een string voor zoeken (verwijder diakritische tekens)
+     * Haal alle mannelijke honden op uit de database (voor Tom Select)
+     * GEBRUIKT DEZELFDE METHODE ALS DekReuen.js
      */
-    normalizeSearchString(str) {
-        if (!str) return '';
-        
-        // Map voor speciale Duitse karakters
-        const specialMap = {
-            'ß': 'ss',
-            'ẞ': 'SS'
-        };
-        
-        // Vervang speciale karakters eerst
-        let normalized = str;
-        for (const [special, replacement] of Object.entries(specialMap)) {
-            normalized = normalized.replace(new RegExp(special, 'g'), replacement);
+    async getAllMaleDogs(searchTerm = '', page = 1, pageSize = 100) {
+        try {
+            console.log(`🔍 Reuen ophalen - Zoekterm: "${searchTerm}", Pagina: ${page}, Size: ${pageSize}`);
+            
+            const supabase = window.supabase;
+            if (!supabase) {
+                console.error('❌ Geen Supabase client');
+                return { data: [], total: 0 };
+            }
+            
+            let query = supabase
+                .from('honden')
+                .select('*', { count: 'exact' });
+            
+            if (searchTerm && searchTerm.length >= 2) {
+                query = query.or(`naam.ilike.%${searchTerm}%,kennelnaam.ilike.%${searchTerm}%,stamboomnr.ilike.%${searchTerm}%`);
+            }
+            
+            const from = (page - 1) * pageSize;
+            const to = from + pageSize - 1;
+            
+            const { data, error, count } = await query
+                .order('naam')
+                .range(from, to);
+            
+            if (error) {
+                console.error('❌ Database error:', error);
+                return { data: [], total: 0 };
+            }
+            
+            console.log(`✅ ${data?.length || 0} honden gevonden (totaal: ${count || 0})`);
+            return { 
+                data: data || [], 
+                total: count || 0 
+            };
+            
+        } catch (error) {
+            console.error('❌ Fout bij ophalen honden:', error);
+            return { data: [], total: 0 };
+        }
+    }
+
+    /**
+     * Laad Tom Select library dynamisch
+     */
+    loadTomSelect() {
+        return new Promise((resolve, reject) => {
+            if (typeof window.TomSelect !== 'undefined') {
+                resolve();
+                return;
+            }
+            
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css';
+            document.head.appendChild(link);
+            
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js';
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+    }
+
+    /**
+     * Maak een searchable dropdown met Tom Select (IDENTIEK AAN DekReuen.js)
+     */
+    async initTomSelect(initialValue = null) {
+        if (typeof window.TomSelect === 'undefined') {
+            console.log('⏳ Tom Select wordt geladen...');
+            await this.loadTomSelect();
         }
         
-        // Verwijder diakritische tekens (ä, ö, ü, etc.) en maak lowercase
-        return normalized.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-    }
-    
-    /**
-     * Controleer of een string begint met de zoekterm (rekening houdend met normalisatie)
-     */
-    startsWithNormalized(text, searchTerm) {
-        if (!text) return false;
-        const normalizedText = this.normalizeSearchString(text);
-        const normalizedSearch = this.normalizeSearchString(searchTerm);
-        return normalizedText.startsWith(normalizedSearch);
+        const selectElement = document.getElementById('photoHondSelect');
+        if (!selectElement) return null;
+        
+        if (selectElement.tomselect) {
+            selectElement.tomselect.destroy();
+        }
+        
+        const tomSelect = new TomSelect(selectElement, {
+            valueField: 'id',
+            labelField: 'displayName',
+            searchField: ['naam', 'kennelnaam', 'stamboomnr'],
+            create: false,
+            maxOptions: 100,
+            maxItems: 1,
+            placeholder: this.t('selectDog'),
+            loadThrottle: 300,
+            preload: false,
+            load: (query, callback) => {
+                if (query.length < 2) {
+                    callback([]);
+                    return;
+                }
+                
+                if (this.searchTimeout) {
+                    clearTimeout(this.searchTimeout);
+                }
+                
+                this.searchTimeout = setTimeout(async () => {
+                    console.log('🔍 Zoeken naar:', query);
+                    const result = await this.getAllMaleDogs(query, 1, 100);
+                    
+                    const items = result.data.map(hond => ({
+                        id: hond.id,
+                        naam: hond.naam || 'Onbekend',
+                        kennelnaam: hond.kennelnaam || '',
+                        stamboomnr: hond.stamboomnr || '-',
+                        displayName: `${hond.naam || 'Onbekend'}${hond.kennelnaam ? ' (' + hond.kennelnaam + ')' : ''}`,
+                        displayWithPedigree: `
+                            <div class="d-flex flex-column">
+                                <span class="fw-bold">${hond.naam || 'Onbekend'}${hond.kennelnaam ? ' (' + hond.kennelnaam + ')' : ''}</span>
+                                <small class="text-muted">Stamboeknr: ${hond.stamboomnr || '-'}</small>
+                            </div>
+                        `
+                    }));
+                    
+                    callback(items);
+                }, 300);
+            },
+            render: {
+                option: function(item, escape) {
+                    return `<div>${item.displayWithPedigree}</div>`;
+                },
+                item: function(item, escape) {
+                    return `<div>${item.naam}${item.kennelnaam ? ' (' + item.kennelnaam + ')' : ''} - ${item.stamboomnr}</div>`;
+                }
+            },
+            onChange: (value) => {
+                if (value) {
+                    const selectedOption = tomSelect.getOption(value);
+                    const stamboomnr = selectedOption ? selectedOption.dataset.stamboomnr : '';
+                    const dogName = selectedOption ? selectedOption.dataset.dogName : '';
+                    
+                    document.getElementById('selectedDogId').value = value;
+                    document.getElementById('selectedDogStamboomnr').value = stamboomnr;
+                    document.getElementById('selectedDogName').value = dogName;
+                } else {
+                    document.getElementById('selectedDogId').value = '';
+                    document.getElementById('selectedDogStamboomnr').value = '';
+                    document.getElementById('selectedDogName').value = '';
+                }
+            },
+            onInitialize: function() {
+                console.log('✅ Tom Select geïnitialiseerd in PhotoManager');
+            }
+        });
+        
+        if (initialValue) {
+            tomSelect.setValue(initialValue);
+        }
+        
+        this.tomSelect = tomSelect;
+        return tomSelect;
     }
     
     /**
@@ -387,15 +520,11 @@ class PhotoManager extends BaseModule {
                                             <div class="row">
                                                 <div class="col-md-6">
                                                     <div class="mb-3">
-                                                        <label for="photoHondSearch" class="form-label">${t('selectDog')}</label>
-                                                        <div class="dropdown">
-                                                            <input type="text" class="form-control" id="photoHondSearch" 
-                                                                   placeholder="${t('searchDog')}" autocomplete="off">
-                                                            <div class="dropdown-menu w-100" id="dogDropdownMenu" style="max-height: 300px; overflow-y: auto;">
-                                                                <div class="dropdown-item text-muted">${t('typeToSearch')}</div>
-                                                            </div>
-                                                        </div>
-                                                        <div id="dogLoadingStatus" class="form-text text-muted small"></div>
+                                                        <label for="photoHondSelect" class="form-label">${t('selectDog')}</label>
+                                                        <select class="form-control" id="photoHondSelect" placeholder="${t('typeToSearch')}">
+                                                            <option value="">${t('typeToSearch')}</option>
+                                                        </select>
+                                                        <small class="text-muted d-block mt-2">${t('searchToFindDogs')}</small>
                                                         <input type="hidden" id="selectedDogId">
                                                         <input type="hidden" id="selectedDogStamboomnr">
                                                         <input type="hidden" id="selectedDogName">
@@ -490,7 +619,7 @@ class PhotoManager extends BaseModule {
             });
         }
         
-        this.setupDogSearch();
+        this.initTomSelect(); // Gebruik TomSelect i.p.v. eigen dropdown
         this.fixPhotoModalClose();
         this.loadRecentUploads();
     }
@@ -578,258 +707,6 @@ class PhotoManager extends BaseModule {
                 }
             }, 50);
         });
-    }
-    
-    setupDogSearch() {
-        const searchInput = document.getElementById('photoHondSearch');
-        const dropdownMenu = document.getElementById('dogDropdownMenu');
-        
-        if (!searchInput || !dropdownMenu) return;
-        
-        // Toon dropdown bij focus
-        searchInput.addEventListener('focus', async () => {
-            if (this.allDogs.length === 0 && !this.isLoadingAllDogs) {
-                await this.loadAllDogs();
-            }
-            this.filterDogs(searchInput.value);
-            dropdownMenu.classList.add('show');
-        });
-        
-        searchInput.addEventListener('input', (e) => {
-            const searchTerm = e.target.value;
-            this.filterDogs(searchTerm);
-            dropdownMenu.classList.add('show');
-        });
-        
-        dropdownMenu.addEventListener('click', (e) => {
-            e.stopPropagation();
-        });
-        
-        document.addEventListener('click', (e) => {
-            if (!searchInput.contains(e.target) && !dropdownMenu.contains(e.target)) {
-                dropdownMenu.classList.remove('show');
-            }
-        });
-        
-        searchInput.addEventListener('click', () => {
-            if (this.allDogs.length > 0) {
-                this.filterDogs(searchInput.value);
-                dropdownMenu.classList.add('show');
-            }
-        });
-    }
-    
-    async loadAllDogs() {
-        const dropdownMenu = document.getElementById('dogDropdownMenu');
-        const loadingStatus = document.getElementById('dogLoadingStatus');
-        const t = this.t.bind(this);
-        
-        if (this.isLoadingAllDogs) return;
-        
-        this.isLoadingAllDogs = true;
-        this.allDogs = [];
-        this.totalDogsLoaded = 0;
-        
-        if (dropdownMenu) {
-            dropdownMenu.innerHTML = `
-                <div class="dropdown-item text-muted">
-                    <i class="bi bi-hourglass-split me-2"></i>${t('loadingAllDogs')}...
-                </div>
-            `;
-        }
-        
-        if (loadingStatus) {
-            loadingStatus.innerHTML = `<i class="bi bi-hourglass-split"></i> ${t('loadingAllDogs')}...`;
-        }
-        
-        try {
-            let page = 1;
-            const pageSize = 1000;
-            let hasMore = true;
-            let totalDogs = 0;
-            
-            const firstResult = await window.hondenService.getHonden(page, pageSize);
-            totalDogs = firstResult.totaal || 0;
-            
-            if (firstResult.honden && firstResult.honden.length > 0) {
-                this.allDogs = [...this.allDogs, ...firstResult.honden];
-                this.totalDogsLoaded += firstResult.honden.length;
-                
-                if (loadingStatus) {
-                    loadingStatus.innerHTML = `${t('loadingProgress')} ${this.totalDogsLoaded} / ${totalDogs}`;
-                }
-            }
-            
-            hasMore = firstResult.heeftVolgende;
-            page++;
-            
-            while (hasMore && page <= 100 && this.totalDogsLoaded < 100000) {
-                if (loadingStatus) {
-                    loadingStatus.innerHTML = `${t('loadingProgress')} ${this.totalDogsLoaded} / ${totalDogs}`;
-                }
-                
-                const result = await window.hondenService.getHonden(page, pageSize);
-                
-                if (result.honden && result.honden.length > 0) {
-                    this.allDogs = [...this.allDogs, ...result.honden];
-                    this.totalDogsLoaded += result.honden.length;
-                }
-                
-                hasMore = result.heeftVolgende;
-                page++;
-                
-                await new Promise(resolve => setTimeout(resolve, 10));
-            }
-            
-            this.allDogs.sort((a, b) => (a.naam || '').localeCompare(b.naam || ''));
-            
-            if (loadingStatus) {
-                loadingStatus.innerHTML = `<i class="bi bi-check-circle text-success"></i> ${this.allDogs.length} ${t('loadedDogs')}`;
-            }
-            
-            this.filterDogs('');
-            
-        } catch (error) {
-            console.error('Fout bij laden alle honden:', error);
-            
-            if (dropdownMenu) {
-                dropdownMenu.innerHTML = `
-                    <div class="dropdown-item text-danger">
-                        <i class="bi bi-exclamation-triangle me-2"></i>Fout bij laden honden
-                    </div>
-                `;
-            }
-            
-            if (loadingStatus) {
-                loadingStatus.innerHTML = `<i class="bi bi-exclamation-triangle text-danger"></i> Fout bij laden`;
-            }
-        } finally {
-            this.isLoadingAllDogs = false;
-        }
-    }
-    
-    filterDogs(searchTerm = '') {
-        const dropdownMenu = document.getElementById('dogDropdownMenu');
-        const t = this.t.bind(this);
-        
-        if (!dropdownMenu) return;
-        
-        if (this.isLoadingAllDogs) {
-            dropdownMenu.innerHTML = `
-                <div class="dropdown-item text-muted">
-                    <i class="bi bi-hourglass-split me-2"></i>${t('loadingAllDogs')}...
-                </div>
-            `;
-            return;
-        }
-        
-        if (this.allDogs.length === 0) {
-            dropdownMenu.innerHTML = `
-                <div class="dropdown-item text-muted">
-                    ${t('searchToFindDogs')}
-                </div>
-            `;
-            return;
-        }
-        
-        const searchLower = searchTerm.toLowerCase().trim();
-        
-        if (searchLower === '') {
-            this.filteredDogs = this.allDogs.slice(0, 100);
-        } else {
-            this.filteredDogs = this.allDogs.filter(dog => {
-                const naam = (dog.naam || '').toLowerCase();
-                const kennelnaam = (dog.kennelnaam || '').toLowerCase();
-                const stamboomnr = (dog.stamboomnr || '').toLowerCase();
-                const ras = (dog.ras || '').toLowerCase();
-                
-                const volledigeNaam = naam + (kennelnaam ? ' ' + kennelnaam : '');
-                const kennelEnNaam = kennelnaam + (naam ? ' ' + naam : '');
-                
-                // Controleren of de zoekterm begint met een van de velden
-                // Gebruik de genormaliseerde versie voor diakritische tekens
-                return this.startsWithNormalized(naam, searchTerm) ||
-                       this.startsWithNormalized(kennelnaam, searchTerm) ||
-                       this.startsWithNormalized(stamboomnr, searchTerm) ||
-                       this.startsWithNormalized(ras, searchTerm) ||
-                       this.startsWithNormalized(volledigeNaam, searchTerm) ||
-                       this.startsWithNormalized(kennelEnNaam, searchTerm);
-            });
-        }
-        
-        this.updateDropdownMenu();
-    }
-    
-    updateDropdownMenu() {
-        const dropdownMenu = document.getElementById('dogDropdownMenu');
-        const t = this.t.bind(this);
-        
-        if (!dropdownMenu) return;
-        
-        if (this.filteredDogs.length === 0) {
-            dropdownMenu.innerHTML = `
-                <div class="dropdown-item text-muted">
-                    ${t('noDogsFound')}
-                </div>
-            `;
-            return;
-        }
-        
-        let html = '';
-        const displayCount = Math.min(this.filteredDogs.length, 100);
-        
-        for (let i = 0; i < displayCount; i++) {
-            const dog = this.filteredDogs[i];
-            const displayName = `${dog.naam || ''}${dog.kennelnaam ? ` (${dog.kennelnaam})` : ''}`;
-            const displayInfo = `${dog.ras || ''}${dog.stamboomnr ? ` • ${dog.stamboomnr}` : ''}`;
-            
-            html += `
-                <a class="dropdown-item" href="#" data-dog-id="${dog.id}" data-stamboomnr="${dog.stamboomnr || ''}" data-dog-name="${displayName}" tabindex="0">
-                    <div>
-                        <strong>${displayName}</strong>
-                        <div class="small text-muted">
-                            ${displayInfo}
-                        </div>
-                    </div>
-                </a>
-            `;
-        }
-        
-        if (this.filteredDogs.length > 100) {
-            html += `
-                <div class="dropdown-item text-center text-muted small">
-                    ... en nog ${this.filteredDogs.length - 100} honden
-                </div>
-            `;
-        }
-        
-        dropdownMenu.innerHTML = html;
-        
-        dropdownMenu.querySelectorAll('.dropdown-item[data-dog-id]').forEach(item => {
-            item.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.selectDog(
-                    item.dataset.dogId,
-                    item.dataset.stamboomnr,
-                    item.dataset.dogName
-                );
-                dropdownMenu.classList.remove('show');
-            });
-        });
-        
-        dropdownMenu.classList.add('show');
-    }
-    
-    selectDog(dogId, stamboomnr, dogName) {
-        const searchInput = document.getElementById('photoHondSearch');
-        const dogIdInput = document.getElementById('selectedDogId');
-        const stamboomnrInput = document.getElementById('selectedDogStamboomnr');
-        const dogNameInput = document.getElementById('selectedDogName');
-        
-        if (searchInput) searchInput.value = dogName;
-        if (dogIdInput) dogIdInput.value = dogId;
-        if (stamboomnrInput) stamboomnrInput.value = stamboomnr;
-        if (dogNameInput) dogNameInput.value = dogName;
     }
     
     async loadPhotosData() {
@@ -1089,7 +966,9 @@ class PhotoManager extends BaseModule {
                 this.hideProgress();
                 this.showSuccess(t('uploadSuccess'), 'recentUploadsContainer');
                 
-                document.getElementById('photoHondSearch').value = '';
+                if (this.tomSelect) {
+                    this.tomSelect.clear();
+                }
                 document.getElementById('selectedDogId').value = '';
                 document.getElementById('selectedDogStamboomnr').value = '';
                 document.getElementById('selectedDogName').value = '';
@@ -1446,3 +1325,12 @@ class PhotoManager extends BaseModule {
         }
     }
 }
+
+// Maak instance aan
+const PhotoManagerInstance = new PhotoManager();
+
+// Zet globaal
+window.PhotoManager = PhotoManagerInstance;
+window.photoManager = PhotoManagerInstance;
+
+console.log('📸 PhotoManager geladen met verbeterd zoeken (Tom Select)');
