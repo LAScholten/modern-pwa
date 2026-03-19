@@ -15,10 +15,10 @@ class NestAankondigingenManager extends BaseModule {
         this.pageSize = 1;
         this.totalAnnouncements = 0;
         
-        // Database connecties
-        this.db = null;
-        this.auth = null;
-        this.currentUser = null;
+        // Voor autocomplete van honden - alleen laden wanneer nodig
+        this.allDogs = [];
+        this.db = window.hondenService;
+        this.auth = window.auth;
         this.supabase = null;
         
         // Bewerken variabelen
@@ -38,7 +38,7 @@ class NestAankondigingenManager extends BaseModule {
         this.editingFotoId = null;
         this.editingFotoData = null;
         
-        // Voor stamboom weergave - ALLEEN hier worden alle honden geladen
+        // Voor stamboom weergave (zelfde als ReuTeefCombinatie)
         this.stamboomModule = null;
         this.hondenCache = new Map();
         this.allHonden = []; // Wordt pas gevuld bij stamboom
@@ -79,8 +79,7 @@ class NestAankondigingenManager extends BaseModule {
                 announcementAddFailed: "Fout bij toevoegen: ",
                 announcementUpdateFailed: "Fout bij bijwerken: ",
                 announcementDeleteFailed: "Fout bij verwijderen: ",
-                searchDogs: "Typ minimaal 2 letters om te zoeken...",
-                typeToSearch: "Typ om te zoeken...",
+                searchDogs: "Begin met typen om te zoeken...",
                 from: "Van",
                 date: "Datum",
                 noDescription: "Geen beschrijving",
@@ -93,7 +92,6 @@ class NestAankondigingenManager extends BaseModule {
                 birthDateLabel: "Geboren op",
                 maleCountLabel: "Reuen",
                 femaleCountLabel: "Teven",
-                noDogsFound: "Geen honden gevonden die voldoen aan je zoekopdracht",
                 
                 // Gezondheidsitems
                 healthData: "Gezondheidsgegevens",
@@ -236,8 +234,7 @@ class NestAankondigingenManager extends BaseModule {
                 announcementAddFailed: "Error adding: ",
                 announcementUpdateFailed: "Error updating: ",
                 announcementDeleteFailed: "Error deleting: ",
-                searchDogs: "Type at least 2 characters to search...",
-                typeToSearch: "Type to search...",
+                searchDogs: "Start typing to search...",
                 from: "From",
                 date: "Date",
                 noDescription: "No description",
@@ -250,7 +247,6 @@ class NestAankondigingenManager extends BaseModule {
                 birthDateLabel: "Born on",
                 maleCountLabel: "Males",
                 femaleCountLabel: "Females",
-                noDogsFound: "No dogs found matching your search",
                 
                 // Health items
                 healthData: "Health Data",
@@ -393,8 +389,7 @@ class NestAankondigingenManager extends BaseModule {
                 announcementAddFailed: "Fehler beim Hinzufügen: ",
                 announcementUpdateFailed: "Fehler beim Aktualisieren: ",
                 announcementDeleteFailed: "Fehler beim Löschen: ",
-                searchDogs: "Geben Sie mindestens 2 Zeichen ein...",
-                typeToSearch: "Tippen Sie zum Suchen...",
+                searchDogs: "Beginnen Sie mit der Eingabe...",
                 from: "Von",
                 date: "Datum",
                 noDescription: "Keine Beschreibung",
@@ -407,7 +402,6 @@ class NestAankondigingenManager extends BaseModule {
                 birthDateLabel: "Geboren am",
                 maleCountLabel: "Rüden",
                 femaleCountLabel: "Hündinnen",
-                noDogsFound: "Keine Hunde gefunden",
                 
                 // Health items
                 healthData: "Gesundheitsdaten",
@@ -980,107 +974,6 @@ class NestAankondigingenManager extends BaseModule {
             return this.supabase;
         }
         return null;
-    }
-    
-    /**
-     * Haal honden op met paginatie en zoekfunctionaliteit - FILTER OP GESLACHT
-     */
-    async getDogsByGender(searchTerm = '', gender = '', page = 1, pageSize = 100) {
-        try {
-            console.log(`🔍 Honden ophalen - Geslacht: "${gender}", Zoekterm: "${searchTerm}", Pagina: ${page}, Size: ${pageSize}`);
-            
-            const supabase = this.getSupabase();
-            if (!supabase) {
-                console.error('❌ Geen Supabase client');
-                return { data: [], total: 0 };
-            }
-            
-            let query = supabase
-                .from('honden')
-                .select('*', { count: 'exact' });
-            
-            // Filter op geslacht indien opgegeven
-            if (gender) {
-                query = query.eq('geslacht', gender);
-            }
-            
-            if (searchTerm && searchTerm.length >= 2) {
-                query = query.or(`naam.ilike.%${searchTerm}%,kennelnaam.ilike.%${searchTerm}%,stamboomnr.ilike.%${searchTerm}%`);
-            }
-            
-            const from = (page - 1) * pageSize;
-            const to = from + pageSize - 1;
-            
-            const { data, error, count } = await query
-                .order('naam')
-                .range(from, to);
-            
-            if (error) {
-                console.error('❌ Database error:', error);
-                return { data: [], total: 0 };
-            }
-            
-            console.log(`✅ ${data?.length || 0} honden gevonden (totaal: ${count || 0})`);
-            return { 
-                data: data || [], 
-                total: count || 0 
-            };
-            
-        } catch (error) {
-            console.error('❌ Fout bij ophalen honden:', error);
-            return { data: [], total: 0 };
-        }
-    }
-    
-    /**
-     * Haal ALLE honden op voor stamboom doeleinden (alleen wanneer nodig)
-     */
-    async getAllDogsForPedigree() {
-        try {
-            console.log('📊 Alle honden laden voor stamboom...');
-            
-            const supabase = this.getSupabase();
-            if (!supabase) return [];
-            
-            let allDogs = [];
-            let page = 1;
-            const pageSize = 1000;
-            let hasMore = true;
-            
-            while (hasMore) {
-                const from = (page - 1) * pageSize;
-                const to = from + pageSize - 1;
-                
-                const { data, error } = await supabase
-                    .from('honden')
-                    .select('*')
-                    .order('naam')
-                    .range(from, to);
-                
-                if (error) {
-                    console.error('❌ Fout bij laden honden:', error);
-                    break;
-                }
-                
-                if (data && data.length > 0) {
-                    allDogs = allDogs.concat(data);
-                    hasMore = data.length === pageSize;
-                    page++;
-                } else {
-                    hasMore = false;
-                }
-                
-                // Kleine pauze om niet te veel requests te doen
-                await new Promise(resolve => setTimeout(resolve, 100));
-            }
-            
-            console.log(`✅ ${allDogs.length} honden geladen voor stamboom`);
-            return allDogs;
-            
-        } catch (error) {
-            console.error('❌ Fout bij ophalen alle honden:', error);
-            return [];
-        }
     }
     
     /**
@@ -1856,7 +1749,7 @@ class NestAankondigingenManager extends BaseModule {
         this.currentUser = user;
         console.log('Gebruiker:', user?.email);
         
-        // NIET ALLE HONDEN LADEN - alleen wanneer nodig via Tom Select
+        // NIET ALLE HONDEN LADEN - alleen wanneer nodig
         
         this.currentPage = 1;
         this.currentView = 'overview';
@@ -2286,15 +2179,12 @@ class NestAankondigingenManager extends BaseModule {
     
     /**
      * Modal voor toevoegen/bewerken - MET DE NIEUWE VELDEN
-     * EN MET TOM SELECT VOOR ZOEKEN
      */
     getAddEditModalHTML(mode = 'add') {
         const title = mode === 'add' ? this.t('addAnnouncement') : this.t('editAnnouncement');
         const icon = mode === 'add' ? 'bi-plus-circle' : 'bi-pencil-square';
         const saveButtonText = mode === 'add' ? this.t('save') : this.t('edit');
         const saveButtonIcon = mode === 'add' ? 'bi-check-circle' : 'bi-pencil-square';
-        const fatherDisabled = mode === 'edit' ? 'disabled' : '';
-        const motherDisabled = mode === 'edit' ? 'disabled' : '';
         
         return `
             <div class="modal fade" id="addEditNestModal" tabindex="-1" data-bs-backdrop="static">
@@ -2314,22 +2204,30 @@ class NestAankondigingenManager extends BaseModule {
                                 
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
-                                        <label for="fatherSelect" class="form-label">${this.t('father')}</label>
-                                        <select class="form-control" id="fatherSelect" placeholder="${this.t('typeToSearch')}" ${fatherDisabled}>
-                                            <option value="">${this.t('typeToSearch')}</option>
-                                        </select>
-                                        ${mode === 'edit' ? '<small class="text-muted d-block mt-2">De vader kan niet worden gewijzigd bij bewerken</small>' : ''}
-                                        <small class="text-muted d-block mt-2">${this.t('searchDogs')}</small>
-                                        <div id="fatherError" class="invalid-feedback" style="display: none;"></div>
+                                        <label for="father" class="form-label">${this.t('father')}</label>
+                                        <div class="parent-input-wrapper" style="position: relative;">
+                                            <input type="text" class="form-control" id="father" 
+                                                   placeholder="${this.t('searchDogs')}"
+                                                   data-parent-type="father"
+                                                   autocomplete="off"
+                                                   data-valid-parent="false"
+                                                   ${mode === 'edit' ? 'readonly' : 'required'}>
+                                            <div id="fatherError" class="error-message" style="display: none; color: #dc3545; font-size: 0.875em;"></div>
+                                            ${mode === 'edit' ? '<small class="text-muted d-block mt-2">De ouders kunnen niet worden gewijzigd bij bewerken</small>' : ''}
+                                        </div>
                                     </div>
                                     <div class="col-md-6 mb-3">
-                                        <label for="motherSelect" class="form-label">${this.t('mother')}</label>
-                                        <select class="form-control" id="motherSelect" placeholder="${this.t('typeToSearch')}" ${motherDisabled}>
-                                            <option value="">${this.t('typeToSearch')}</option>
-                                        </select>
-                                        ${mode === 'edit' ? '<small class="text-muted d-block mt-2">De moeder kan niet worden gewijzigd bij bewerken</small>' : ''}
-                                        <small class="text-muted d-block mt-2">${this.t('searchDogs')}</small>
-                                        <div id="motherError" class="invalid-feedback" style="display: none;"></div>
+                                        <label for="mother" class="form-label">${this.t('mother')}</label>
+                                        <div class="parent-input-wrapper" style="position: relative;">
+                                            <input type="text" class="form-control" id="mother" 
+                                                   placeholder="${this.t('searchDogs')}"
+                                                   data-parent-type="mother"
+                                                   autocomplete="off"
+                                                   data-valid-parent="false"
+                                                   ${mode === 'edit' ? 'readonly' : 'required'}>
+                                            <div id="motherError" class="error-message" style="display: none; color: #dc3545; font-size: 0.875em;"></div>
+                                            ${mode === 'edit' ? '<small class="text-muted d-block mt-2">De ouders kunnen niet worden gewijzigd bij bewerken</small>' : ''}
+                                        </div>
                                     </div>
                                 </div>
                                 
@@ -2379,6 +2277,43 @@ class NestAankondigingenManager extends BaseModule {
                     </div>
                 </div>
             </div>
+            
+            <style>
+                .autocomplete-dropdown {
+                    position: absolute;
+                    background: white;
+                    border: 1px solid #ddd;
+                    border-radius: 4px;
+                    max-height: 200px;
+                    overflow-y: auto;
+                    z-index: 9999;
+                    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+                    width: 100%;
+                }
+                
+                .autocomplete-item {
+                    padding: 10px;
+                    cursor: pointer;
+                    border-bottom: 1px solid #f0f0f0;
+                }
+                
+                .autocomplete-item:hover {
+                    background-color: #f8f9fa;
+                }
+                
+                .autocomplete-item .dog-name {
+                    font-weight: bold;
+                }
+                
+                .autocomplete-item .dog-info {
+                    font-size: 0.85em;
+                    color: #666;
+                }
+                
+                .parent-validation-error {
+                    border-color: #dc3545 !important;
+                }
+            </style>
         `;
     }
     
@@ -2421,207 +2356,52 @@ class NestAankondigingenManager extends BaseModule {
         `;
     }
     
-    /**
-     * Laad Tom Select library dynamisch
-     */
-    loadTomSelect() {
-        return new Promise((resolve, reject) => {
-            if (typeof window.TomSelect !== 'undefined') {
-                resolve();
-                return;
+    async loadAllDogs() {
+        console.log('NestAankondigingenManager: loadAllDogs aangeroepen');
+        
+        if (!this.db) {
+            console.error('Database niet beschikbaar!');
+            return;
+        }
+        
+        try {
+            this.allDogs = [];
+            
+            let currentPage = 1;
+            const pageSize = 1000;
+            let hasMorePages = true;
+            
+            while (hasMorePages) {
+                const result = await this.db.getHonden(currentPage, pageSize);
+                
+                if (result.honden && result.honden.length > 0) {
+                    this.allDogs = this.allDogs.concat(result.honden);
+                    hasMorePages = result.heeftVolgende;
+                    currentPage++;
+                    
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                } else {
+                    hasMorePages = false;
+                }
             }
             
-            const link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = 'https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css';
-            document.head.appendChild(link);
+            // Sorteer op naam
+            this.allDogs.sort((a, b) => {
+                const naamA = a.naam || '';
+                const naamB = b.naam || '';
+                return naamA.localeCompare(naamB);
+            });
             
-            const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js';
-            script.onload = resolve;
-            script.onerror = reject;
-            document.head.appendChild(script);
-        });
-    }
-    
-    /**
-     * Maak Tom Select voor vader selectie (alleen reuen)
-     */
-    async initFatherTomSelect(initialValue = null) {
-        if (typeof window.TomSelect === 'undefined') {
-            console.log('⏳ Tom Select wordt geladen...');
-            await this.loadTomSelect();
+            // Vul ook allHonden voor stamboom module
+            this.allHonden = this.allDogs;
+            
+            console.log(`${this.allDogs.length} honden geladen voor autocomplete`);
+            
+        } catch (error) {
+            console.error('Fout bij laden honden:', error);
+            this.allDogs = [];
+            this.allHonden = [];
         }
-        
-        const selectElement = document.getElementById('fatherSelect');
-        if (!selectElement) return null;
-        
-        if (selectElement.tomselect) {
-            selectElement.tomselect.destroy();
-        }
-        
-        const tomSelect = new TomSelect(selectElement, {
-            valueField: 'id',
-            labelField: 'displayName',
-            searchField: ['naam', 'kennelnaam', 'stamboomnr'],
-            create: false,
-            maxOptions: 100,
-            maxItems: 1,
-            placeholder: this.t('selectHond'),
-            loadThrottle: 300,
-            preload: false,
-            load: (query, callback) => {
-                if (query.length < 2) {
-                    callback([]);
-                    return;
-                }
-                
-                if (this.searchTimeout) {
-                    clearTimeout(this.searchTimeout);
-                }
-                
-                this.searchTimeout = setTimeout(async () => {
-                    console.log('🔍 Zoeken naar vader (reuen):', query);
-                    const result = await this.getDogsByGender(query, 'reuen', 1, 100);
-                    
-                    const items = result.data.map(hond => ({
-                        id: hond.id,
-                        naam: hond.naam || 'Onbekend',
-                        kennelnaam: hond.kennelnaam || '',
-                        stamboomnr: hond.stamboomnr || '-',
-                        displayName: `${hond.naam || 'Onbekend'}${hond.kennelnaam ? ' (' + hond.kennelnaam + ')' : ''}`,
-                        displayWithPedigree: `
-                            <div class="d-flex flex-column">
-                                <span class="fw-bold">${hond.naam || 'Onbekend'}${hond.kennelnaam ? ' (' + hond.kennelnaam + ')' : ''}</span>
-                                <small class="text-muted">Stamboeknr: ${hond.stamboomnr || '-'}</small>
-                            </div>
-                        `
-                    }));
-                    
-                    callback(items);
-                }, 300);
-            },
-            render: {
-                option: function(item, escape) {
-                    return `<div>${item.displayWithPedigree}</div>`;
-                },
-                item: function(item, escape) {
-                    return `<div>${item.naam}${item.kennelnaam ? ' (' + item.kennelnaam + ')' : ''} - ${item.stamboomnr}</div>`;
-                }
-            },
-            onChange: (value) => {
-                const vaderIdInput = document.getElementById('vader_id');
-                if (vaderIdInput) {
-                    vaderIdInput.value = value ? parseInt(value) : '';
-                }
-                
-                // Verberg error indien aanwezig
-                const fatherError = document.getElementById('fatherError');
-                if (fatherError) {
-                    fatherError.style.display = 'none';
-                }
-                selectElement.classList.remove('is-invalid');
-            },
-            onInitialize: function() {
-                console.log('✅ Father Tom Select geïnitialiseerd');
-            }
-        });
-        
-        if (initialValue) {
-            tomSelect.setValue(initialValue);
-        }
-        
-        return tomSelect;
-    }
-    
-    /**
-     * Maak Tom Select voor moeder selectie (alleen teven)
-     */
-    async initMotherTomSelect(initialValue = null) {
-        if (typeof window.TomSelect === 'undefined') {
-            console.log('⏳ Tom Select wordt geladen...');
-            await this.loadTomSelect();
-        }
-        
-        const selectElement = document.getElementById('motherSelect');
-        if (!selectElement) return null;
-        
-        if (selectElement.tomselect) {
-            selectElement.tomselect.destroy();
-        }
-        
-        const tomSelect = new TomSelect(selectElement, {
-            valueField: 'id',
-            labelField: 'displayName',
-            searchField: ['naam', 'kennelnaam', 'stamboomnr'],
-            create: false,
-            maxOptions: 100,
-            maxItems: 1,
-            placeholder: this.t('selectHond'),
-            loadThrottle: 300,
-            preload: false,
-            load: (query, callback) => {
-                if (query.length < 2) {
-                    callback([]);
-                    return;
-                }
-                
-                if (this.searchTimeout) {
-                    clearTimeout(this.searchTimeout);
-                }
-                
-                this.searchTimeout = setTimeout(async () => {
-                    console.log('🔍 Zoeken naar moeder (teven):', query);
-                    const result = await this.getDogsByGender(query, 'teven', 1, 100);
-                    
-                    const items = result.data.map(hond => ({
-                        id: hond.id,
-                        naam: hond.naam || 'Onbekend',
-                        kennelnaam: hond.kennelnaam || '',
-                        stamboomnr: hond.stamboomnr || '-',
-                        displayName: `${hond.naam || 'Onbekend'}${hond.kennelnaam ? ' (' + hond.kennelnaam + ')' : ''}`,
-                        displayWithPedigree: `
-                            <div class="d-flex flex-column">
-                                <span class="fw-bold">${hond.naam || 'Onbekend'}${hond.kennelnaam ? ' (' + hond.kennelnaam + ')' : ''}</span>
-                                <small class="text-muted">Stamboeknr: ${hond.stamboomnr || '-'}</small>
-                            </div>
-                        `
-                    }));
-                    
-                    callback(items);
-                }, 300);
-            },
-            render: {
-                option: function(item, escape) {
-                    return `<div>${item.displayWithPedigree}</div>`;
-                },
-                item: function(item, escape) {
-                    return `<div>${item.naam}${item.kennelnaam ? ' (' + item.kennelnaam + ')' : ''} - ${item.stamboomnr}</div>`;
-                }
-            },
-            onChange: (value) => {
-                const moederIdInput = document.getElementById('moeder_id');
-                if (moederIdInput) {
-                    moederIdInput.value = value ? parseInt(value) : '';
-                }
-                
-                // Verberg error indien aanwezig
-                const motherError = document.getElementById('motherError');
-                if (motherError) {
-                    motherError.style.display = 'none';
-                }
-                selectElement.classList.remove('is-invalid');
-            },
-            onInitialize: function() {
-                console.log('✅ Mother Tom Select geïnitialiseerd');
-            }
-        });
-        
-        if (initialValue) {
-            tomSelect.setValue(initialValue);
-        }
-        
-        return tomSelect;
     }
     
     setupChoiceEvents() {
@@ -2682,6 +2462,9 @@ class NestAankondigingenManager extends BaseModule {
         try {
             console.log('Show add announcement modal');
             
+            // LAAD ALLEEN HIER DE HONDEN - voor autocomplete
+            await this.loadAllDogs();
+            
             const modalHTML = this.getAddEditModalHTML('add');
             
             let modalsContainer = document.getElementById('modalsContainer');
@@ -2696,9 +2479,7 @@ class NestAankondigingenManager extends BaseModule {
             this.editingAnnouncementId = null;
             this.editingAnnouncementData = null;
             
-            // Initialiseer Tom Select voor vader en moeder
-            await this.initFatherTomSelect();
-            await this.initMotherTomSelect();
+            this.setupParentAutocomplete();
             
             document.getElementById('saveNestAnnouncementBtn')?.addEventListener('click', () => this.saveAnnouncement());
             
@@ -2708,6 +2489,8 @@ class NestAankondigingenManager extends BaseModule {
                 modalElement.remove();
                 this.editingAnnouncementId = null;
                 this.editingAnnouncementData = null;
+                // Leeg de hondenlijst om geheugen vrij te maken
+                this.allDogs = [];
             });
             
         } catch (error) {
@@ -2722,6 +2505,9 @@ class NestAankondigingenManager extends BaseModule {
     async showEditAnnouncementModal(announcement) {
         try {
             console.log('Show edit announcement modal', announcement);
+            
+            // LAAD ALLEEN HIER DE HONDEN - voor autocomplete
+            await this.loadAllDogs();
             
             this.editingAnnouncementId = announcement.id;
             this.editingAnnouncementData = announcement;
@@ -2747,6 +2533,8 @@ class NestAankondigingenManager extends BaseModule {
                 modalElement.remove();
                 this.editingAnnouncementId = null;
                 this.editingAnnouncementData = null;
+                // Leeg de hondenlijst om geheugen vrij te maken
+                this.allDogs = [];
             });
             
         } catch (error) {
@@ -2801,12 +2589,12 @@ class NestAankondigingenManager extends BaseModule {
         try {
             console.log('Show puppy pedigree for announcement', announcement);
             
-            // LAAD ALLEEN HIER ALLE HONDEN - voor stamboom en COI calculator
-            const allDogs = await this.getAllDogsForPedigree();
+            // LAAD ALLEEN HIER DE HONDEN - voor stamboom
+            await this.loadAllDogs();
             
             // Haal vader en moeder op
-            const vader = allDogs.find(d => d.id === announcement.vader_id);
-            const moeder = allDogs.find(d => d.id === announcement.moeder_id);
+            const vader = this.allDogs.find(d => d.id === announcement.vader_id);
+            const moeder = this.allDogs.find(d => d.id === announcement.moeder_id);
             
             if (!vader || !moeder) {
                 alert('Kan vader of moeder niet vinden');
@@ -2814,18 +2602,18 @@ class NestAankondigingenManager extends BaseModule {
             }
             
             // Zorg dat allHonden gevuld is
-            this.allHonden = allDogs;
+            this.allHonden = this.allDogs;
             
             // Maak een mainModule voor de stamboom
             const stamboomMainModule = {
                 t: (key, params) => this.t(key, params),
                 currentLang: this.currentLang,
                 db: this.db,
-                allHonden: allDogs,
+                allHonden: this.allDogs,
                 hondenCache: new Map(),
                 getDogById: (id) => {
                     if (!id || id === 0) return null;
-                    const dog = allDogs.find(d => d.id === id);
+                    const dog = this.allDogs.find(d => d.id === id);
                     if (dog) {
                         return {
                             ...dog,
@@ -2836,7 +2624,7 @@ class NestAankondigingenManager extends BaseModule {
                     return null;
                 },
                 checkDogHasPhotos: async (dogId) => {
-                    const dog = allDogs.find(d => d.id === dogId);
+                    const dog = this.allDogs.find(d => d.id === dogId);
                     if (!dog || !dog.stamboomnr) return false;
                     try {
                         const { data: fotos } = await this.getSupabase()
@@ -2853,7 +2641,7 @@ class NestAankondigingenManager extends BaseModule {
             };
             
             // Vul cache
-            allDogs.forEach(dog => {
+            this.allDogs.forEach(dog => {
                 stamboomMainModule.hondenCache.set(dog.id, dog);
                 if (dog.stamboomnr) {
                     stamboomMainModule.hondenCache.set(dog.stamboomnr, dog);
@@ -2864,7 +2652,7 @@ class NestAankondigingenManager extends BaseModule {
             const stamboomModule = new ReuTeefStamboom(stamboomMainModule);
             
             // Bereid data voor
-            stamboomModule.allDogs = [...allDogs];
+            stamboomModule.allDogs = [...this.allDogs];
             
             // Maak virtuele toekomstige pup
             const futurePuppy = {
@@ -2882,7 +2670,7 @@ class NestAankondigingenManager extends BaseModule {
             };
             stamboomModule.allDogs.push(futurePuppy);
             
-            // Initialiseer COI calculator met ALLE honden
+            // Initialiseer COI calculator
             if (typeof COICalculator !== 'undefined') {
                 stamboomModule.coiCalculator = new COICalculator(stamboomModule.allDogs);
             }
@@ -2917,6 +2705,13 @@ class NestAankondigingenManager extends BaseModule {
             return dog;
         }
         
+        // Als niet gevonden, probeer in allDogs
+        const dog2 = this.allDogs.find(dog => dog.id === id);
+        if (dog2) {
+            this.hondenCache.set(id, dog2);
+            return dog2;
+        }
+        
         return null;
     }
     
@@ -2929,42 +2724,34 @@ class NestAankondigingenManager extends BaseModule {
             
             // Vader gegevens ophalen
             if (announcement.vader_id) {
-                const vaderId = announcement.vader_id;
-                const fatherSelect = await this.initFatherTomSelect(vaderId);
-                
-                // Als we de hond gegevens al hebben, voeg optie toe
-                if (announcement.vader) {
-                    const optionData = {
-                        id: vaderId,
-                        naam: announcement.vader.naam || 'Onbekend',
-                        kennelnaam: announcement.vader.kennelnaam || '',
-                        stamboomnr: announcement.vader.stamboomnr || '-',
-                        displayName: `${announcement.vader.naam || 'Onbekend'}${announcement.vader.kennelnaam ? ' (' + announcement.vader.kennelnaam + ')' : ''}`
-                    };
+                const vader = this.allDogs.find(d => d.id === announcement.vader_id);
+                if (vader) {
+                    const fatherInput = document.getElementById('father');
+                    const vaderIdInput = document.getElementById('vader_id');
                     
-                    if (fatherSelect) {
-                        fatherSelect.addOption(optionData);
+                    if (fatherInput) {
+                        const displayName = vader.kennelnaam ? `${vader.naam} ${vader.kennelnaam}` : vader.naam;
+                        fatherInput.value = displayName;
+                    }
+                    if (vaderIdInput) {
+                        vaderIdInput.value = vader.id;
                     }
                 }
             }
             
             // Moeder gegevens ophalen
             if (announcement.moeder_id) {
-                const moederId = announcement.moeder_id;
-                const motherSelect = await this.initMotherTomSelect(moederId);
-                
-                // Als we de hond gegevens al hebben, voeg optie toe
-                if (announcement.moeder) {
-                    const optionData = {
-                        id: moederId,
-                        naam: announcement.moeder.naam || 'Onbekend',
-                        kennelnaam: announcement.moeder.kennelnaam || '',
-                        stamboomnr: announcement.moeder.stamboomnr || '-',
-                        displayName: `${announcement.moeder.naam || 'Onbekend'}${announcement.moeder.kennelnaam ? ' (' + announcement.moeder.kennelnaam + ')' : ''}`
-                    };
+                const moeder = this.allDogs.find(d => d.id === announcement.moeder_id);
+                if (moeder) {
+                    const motherInput = document.getElementById('mother');
+                    const moederIdInput = document.getElementById('moeder_id');
                     
-                    if (motherSelect) {
-                        motherSelect.addOption(optionData);
+                    if (motherInput) {
+                        const displayName = moeder.kennelnaam ? `${moeder.naam} ${moeder.kennelnaam}` : moeder.naam;
+                        motherInput.value = displayName;
+                    }
+                    if (moederIdInput) {
+                        moederIdInput.value = moeder.id;
                     }
                 }
             }
@@ -3013,60 +2800,203 @@ class NestAankondigingenManager extends BaseModule {
         }
     }
     
-    /**
-     * Valideer of ouders zijn geselecteerd
-     */
+    setupParentAutocomplete() {
+        console.log('Setup autocomplete voor ouders');
+        
+        // Verwijder bestaande dropdowns
+        document.querySelectorAll('.autocomplete-dropdown').forEach(dropdown => {
+            dropdown.remove();
+        });
+        
+        // Maak dropdown containers
+        const fatherInputWrapper = document.querySelector('#father')?.closest('.parent-input-wrapper');
+        const motherInputWrapper = document.querySelector('#mother')?.closest('.parent-input-wrapper');
+        
+        if (fatherInputWrapper) {
+            const fatherDropdown = document.createElement('div');
+            fatherDropdown.className = 'autocomplete-dropdown';
+            fatherDropdown.id = 'fatherDropdown';
+            fatherDropdown.style.display = 'none';
+            fatherInputWrapper.appendChild(fatherDropdown);
+        }
+        
+        if (motherInputWrapper) {
+            const motherDropdown = document.createElement('div');
+            motherDropdown.className = 'autocomplete-dropdown';
+            motherDropdown.id = 'motherDropdown';
+            motherDropdown.style.display = 'none';
+            motherInputWrapper.appendChild(motherDropdown);
+        }
+        
+        // Event listeners alleen voor niet-readonly inputs
+        document.querySelectorAll('.parent-input-wrapper input:not([readonly])').forEach(input => {
+            input.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase().trim();
+                const parentType = input.id === 'father' ? 'father' : 'mother';
+                this.showParentAutocomplete(searchTerm, parentType);
+            });
+            
+            input.addEventListener('blur', (e) => {
+                setTimeout(() => {
+                    const dropdown = document.getElementById(`${input.id}Dropdown`);
+                    if (dropdown) {
+                        dropdown.style.display = 'none';
+                    }
+                    this.validateParents();
+                }, 200);
+            });
+            
+            input.addEventListener('focus', () => {
+                input.classList.remove('parent-validation-error');
+                const errorElement = document.getElementById(`${input.id}Error`);
+                if (errorElement) {
+                    errorElement.style.display = 'none';
+                }
+            });
+        });
+        
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.parent-input-wrapper')) {
+                document.querySelectorAll('.autocomplete-dropdown').forEach(dropdown => {
+                    dropdown.style.display = 'none';
+                });
+            }
+        });
+    }
+    
+    showParentAutocomplete(searchTerm, parentType) {
+        const dropdown = document.getElementById(`${parentType}Dropdown`);
+        if (!dropdown) return;
+        
+        if (!searchTerm || searchTerm.length < 1) {
+            dropdown.style.display = 'none';
+            return;
+        }
+        
+        const suggestions = this.allDogs.filter(dog => {
+            const dogName = dog.naam ? dog.naam.toLowerCase() : '';
+            const kennelName = dog.kennelnaam ? dog.kennelnaam.toLowerCase() : '';
+            const combined = `${dogName} ${kennelName}`;
+            const matchesSearch = combined.includes(searchTerm.toLowerCase()) || combined.startsWith(searchTerm.toLowerCase());
+            
+            if (parentType === 'father') {
+                return matchesSearch && dog.geslacht === 'reuen';
+            } else {
+                return matchesSearch && dog.geslacht === 'teven';
+            }
+        }).slice(0, 8);
+        
+        if (suggestions.length === 0) {
+            dropdown.style.display = 'none';
+            return;
+        }
+        
+        let html = '';
+        suggestions.forEach(dog => {
+            const displayName = dog.kennelnaam ? `${dog.naam} ${dog.kennelnaam}` : dog.naam;
+            html += `
+                <div class="autocomplete-item" data-id="${dog.id}" data-name="${dog.naam}" data-kennel="${dog.kennelnaam || ''}" data-pedigree="${dog.stamboomnr || ''}" data-ras="${dog.ras || ''}">
+                    <div class="dog-name">${displayName}</div>
+                    <div class="dog-info">
+                        ${dog.ras || 'Onbekend ras'} | ${dog.stamboomnr || 'Geen stamboom'}
+                    </div>
+                </div>
+            `;
+        });
+        
+        dropdown.innerHTML = html;
+        dropdown.style.display = 'block';
+        
+        dropdown.querySelectorAll('.autocomplete-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const dogId = item.getAttribute('data-id');
+                const dogName = item.getAttribute('data-name');
+                const dogKennel = item.getAttribute('data-kennel');
+                const input = document.getElementById(parentType);
+                const idInput = parentType === 'father' ? document.getElementById('vader_id') : document.getElementById('moeder_id');
+                
+                const displayName = dogKennel ? `${dogName} ${dogKennel}` : dogName;
+                
+                console.log(`Selected ${parentType}:`, dogId, displayName);
+                
+                if (input) {
+                    input.value = displayName;
+                    input.setAttribute('data-valid-parent', 'true');
+                    input.classList.remove('parent-validation-error');
+                    
+                    const errorElement = document.getElementById(`${parentType}Error`);
+                    if (errorElement) {
+                        errorElement.style.display = 'none';
+                    }
+                }
+                if (idInput) {
+                    idInput.value = dogId;
+                }
+                
+                dropdown.style.display = 'none';
+            });
+        });
+    }
+    
     validateParents() {
         const t = this.t.bind(this);
-        const fatherSelect = document.getElementById('fatherSelect');
-        const motherSelect = document.getElementById('motherSelect');
+        const fatherInput = document.getElementById('father');
+        const motherInput = document.getElementById('mother');
         const fatherError = document.getElementById('fatherError');
         const motherError = document.getElementById('motherError');
         const vaderIdInput = document.getElementById('vader_id');
         const moederIdInput = document.getElementById('moeder_id');
         
         // Als inputs readonly zijn (bij bewerken), altijd valide
-        if (fatherSelect?.hasAttribute('disabled') && motherSelect?.hasAttribute('disabled')) {
+        if (fatherInput?.hasAttribute('readonly') && motherInput?.hasAttribute('readonly')) {
             return true;
         }
         
         let isValid = true;
         
-        // Reset styling
-        if (fatherSelect && !fatherSelect.hasAttribute('disabled')) {
-            fatherSelect.classList.remove('is-invalid');
+        if (fatherInput && !fatherInput.hasAttribute('readonly')) {
+            fatherInput.classList.remove('parent-validation-error');
+            fatherInput.setAttribute('data-valid-parent', 'false');
         }
-        if (motherSelect && !motherSelect.hasAttribute('disabled')) {
-            motherSelect.classList.remove('is-invalid');
+        if (motherInput && !motherInput.hasAttribute('readonly')) {
+            motherInput.classList.remove('parent-validation-error');
+            motherInput.setAttribute('data-valid-parent', 'false');
         }
         if (fatherError) fatherError.style.display = 'none';
         if (motherError) motherError.style.display = 'none';
         
         // Check vader
-        if (fatherSelect && !fatherSelect.hasAttribute('disabled')) {
-            const vaderId = vaderIdInput?.value;
+        if (fatherInput && !fatherInput.hasAttribute('readonly') && fatherInput.value.trim()) {
+            const hasValidId = vaderIdInput && vaderIdInput.value && !isNaN(parseInt(vaderIdInput.value));
             
-            if (!vaderId) {
-                fatherSelect.classList.add('is-invalid');
+            if (!hasValidId) {
+                fatherInput.classList.add('parent-validation-error');
                 if (fatherError) {
                     fatherError.textContent = t('parentNotSelected');
                     fatherError.style.display = 'block';
                 }
                 isValid = false;
+            } else {
+                fatherInput.setAttribute('data-valid-parent', 'true');
             }
         }
         
         // Check moeder
-        if (motherSelect && !motherSelect.hasAttribute('disabled')) {
-            const moederId = moederIdInput?.value;
+        if (motherInput && !motherInput.hasAttribute('readonly') && motherInput.value.trim()) {
+            const hasValidId = moederIdInput && moederIdInput.value && !isNaN(parseInt(moederIdInput.value));
             
-            if (!moederId) {
-                motherSelect.classList.add('is-invalid');
+            if (!hasValidId) {
+                motherInput.classList.add('parent-validation-error');
                 if (motherError) {
                     motherError.textContent = t('parentNotSelected');
                     motherError.style.display = 'block';
                 }
                 isValid = false;
+            } else {
+                motherInput.setAttribute('data-valid-parent', 'true');
             }
         }
         
@@ -3079,11 +3009,6 @@ class NestAankondigingenManager extends BaseModule {
         const supabase = this.getSupabase();
         if (!supabase) {
             this.showStatus('Geen database verbinding', 'danger');
-            return;
-        }
-        
-        if (!this.validateParents()) {
-            this.showStatus('Selecteer geldige ouders uit de lijst', 'danger');
             return;
         }
         
@@ -3359,28 +3284,7 @@ class NestAankondigingenManager extends BaseModule {
                 return;
             }
             
-            // Haal vader en moeder gegevens op voor alle aankondigingen
-            const vaderIds = announcements.map(a => a.vader_id).filter(id => id);
-            const moederIds = announcements.map(a => a.moeder_id).filter(id => id);
-            const allDogIds = [...new Set([...vaderIds, ...moederIds])];
-            
-            let dogs = [];
-            if (allDogIds.length > 0) {
-                const { data: dogsData } = await supabase
-                    .from('honden')
-                    .select('*')
-                    .in('id', allDogIds);
-                dogs = dogsData || [];
-            }
-            
-            // Voeg hond gegevens toe aan announcements
-            const announcementsWithDogs = announcements.map(a => ({
-                ...a,
-                vader: dogs.find(d => d.id === a.vader_id) || {},
-                moeder: dogs.find(d => d.id === a.moeder_id) || {}
-            }));
-            
-            await this.renderBeheerList(announcementsWithDogs, container, count, page, user, isAdmin);
+            await this.renderBeheerList(announcements, container, count, page, user, isAdmin);
             
         } catch (error) {
             console.error('Fout bij laden aankondigingen voor beheer:', error);
@@ -3833,8 +3737,9 @@ class NestAankondigingenManager extends BaseModule {
         let html = '';
         
         for (const ann of announcements) {
-            const vader = ann.vader || {};
-            const moeder = ann.moeder || {};
+            // Haal vader en moeder gegevens op
+            const vader = this.allDogs.find(d => d.id === ann.vader_id) || {};
+            const moeder = this.allDogs.find(d => d.id === ann.moeder_id) || {};
             const canEdit = isAdmin || ann.toegevoegd_door === user?.id;
             
             // Haal foto's op voor vader en moeder
@@ -4347,5 +4252,4 @@ if (typeof module !== 'undefined' && module.exports) {
     window.nestAankondigingenManager = NestAankondigingenManagerInstance;
 }
 
-console.log('📦 NestAankondigingenManager geladen met Tom Select zoekfunctionaliteit (zelfde als DekReuen)');
-console.log('📊 Stamboom functionaliteit laadt ALLE honden voor COI calculator');
+console.log('📦 NestAankondigingenManager geladen met 1 per pagina, paginatie 80%, tekst 70%, nestfoto\'s MET OPMERKINGEN (max 15, 1 per keer met paginatie), STAMBOOMWEERGAVE, COMPACTE NEST INFORMATIE, KOPIEERBARE EMAIL en OPTIMIZED FOTO LADEN (alleen thumbnails)');
