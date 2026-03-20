@@ -8,6 +8,7 @@
  * **OPTIMIZED** - Laadt alle foto's voor de hele stamboom in één query
  * **DNA ANALYSE** - Knop toegevoegd voor voorouder DNA analyse
  * **FIXED** - Gebruikt nu dezelfde data-loading strategie als StamboomManager (eigen dataset)
+ * **GEN4 HEADER FIX** - 4e generatie cards hebben nu dezelfde header als StamboomManager
  */
 
 class ReuTeefStamboom {
@@ -912,7 +913,7 @@ class ReuTeefStamboom {
                             </h5>
                             <div class="d-flex gap-2">
                                 <button class="btn btn-sm btn-light btn-influence" id="rtcBtnInfluenceAnalysis">
-    <i class="bi bi-dna me-1"></i> ${window.influenceAnalyzer ? window.influenceAnalyzer.getButtonTitle() : this.t('influenceAnalysis')}
+                                    <i class="bi bi-dna me-1"></i> ${window.influenceAnalyzer ? window.influenceAnalyzer.getButtonTitle() : this.t('influenceAnalysis')}
                                 </button>
                                 <button class="btn btn-sm btn-light btn-print">
                                     <i class="bi bi-printer me-1"></i> ${this.t('print')}
@@ -1028,7 +1029,7 @@ class ReuTeefStamboom {
                     height: 70px !important;
                 }
                 
-                /* OVER-OVERGROOTOUDERS: 34px HOOGTE */
+                /* OVER-OVERGROOTOUDERS: 34px HOOGTE (verhoogd om header te kunnen tonen) */
                 .rtc-pedigree-card-compact.horizontal.gen4 {
                     width: 160px !important;
                     height: 34px !important;
@@ -1096,13 +1097,12 @@ class ReuTeefStamboom {
                     min-height: 16px;
                 }
                 
-                /* Header voor gen4 (over-overgrootouders) - KLEINER */
+                /* Header voor gen4 (over-overgrootouders) - ZELFDE ALS STAMBOOMMANAGER */
                 .rtc-pedigree-card-compact.horizontal.gen4 .rtc-pedigree-card-header-compact.horizontal {
-                    padding: 1px 4px !important;
-                    font-size: 0.48rem !important;
-                    min-height: 10px !important;
-                    max-height: 10px !important;
-                    overflow: hidden !important;
+                    padding: 2px 4px !important;
+                    font-size: 0.52rem !important;
+                    min-height: 14px !important;
+                    max-height: 14px !important;
                 }
                 
                 .rtc-pedigree-card-header-compact.horizontal.bg-success {
@@ -1164,7 +1164,7 @@ class ReuTeefStamboom {
                     padding: 4px 6px;
                 }
                 
-                /* Body voor gen4 (over-overgrootouders) - ALLEEN NAAM EN KENNEL */
+                /* Body voor gen4 (over-overgrootouders) - ZELFDE ALS STAMBOOMMANAGER */
                 .rtc-pedigree-card-compact.horizontal.gen4 .rtc-pedigree-card-body-compact.horizontal {
                     padding: 2px 4px !important;
                     display: flex !important;
@@ -1193,7 +1193,15 @@ class ReuTeefStamboom {
                     margin-top: auto;
                 }
                 
-                /* NAAM + KENNEL COMBINATIE STYLING - VOOR GEN4 ALLEEN NAAM */
+                .rtc-card-row-1-only {
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    height: 100% !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                }
+                
+                /* NAAM + KENNEL COMBINATIE STYLING */
                 .rtc-dog-name-kennel-compact {
                     font-weight: 600;
                     color: #0d6efd;
@@ -1204,7 +1212,7 @@ class ReuTeefStamboom {
                     width: 100%;
                 }
                 
-                /* STYLE VOOR GEN4 - ALLEEN NAAM MET KLEINE LETTERGROOTTE */
+                /* STYLE VOOR GEN4 - ALLEEN NAAM MET KLEINE LETTERGROOTTE - ZELFDE ALS STAMBOOMMANAGER */
                 .rtc-dog-name-kennel-only {
                     font-weight: 600;
                     color: #0d6efd;
@@ -2238,7 +2246,7 @@ class ReuTeefStamboom {
         
         document.addEventListener('keydown', escapeKeyHandler);
     }
-        
+    
     async renderFuturePuppyPedigree(futurePuppy, selectedTeef, selectedReu, coiResult, healthAnalysis, pedigreeTree) {
         const container = document.getElementById('rtcFuturePuppyContainer');
         if (!container) return;
@@ -2247,40 +2255,40 @@ class ReuTeefStamboom {
         
         // Maak alle cards asynchroon - foto's zijn al gecached door loadAllPhotosForPedigree
         const mainDogCard = await this.generateDogCard(futurePuppy, this.t('mainDog'), true, 0);
-        const fatherCard = await this.generateDogCard(selectedReu, this.t('fatherLabel'), false, 1);
-        const motherCard = await this.generateDogCard(selectedTeef, this.t('motherLabel'), false, 1);
+        const fatherCard = await this.generateDogCard(selectedReu, this.t('father'), false, 1);
+        const motherCard = await this.generateDogCard(selectedTeef, this.t('mother'), false, 1);
         
-        const paternalGrandfatherCard = await this.generateDogCard(pedigreeTree.paternalGrandfather, this.t('grandfatherLabel'), false, 2);
-        const paternalGrandmotherCard = await this.generateDogCard(pedigreeTree.paternalGrandmother, this.t('grandmotherLabel'), false, 2);
-        const maternalGrandfatherCard = await this.generateDogCard(pedigreeTree.maternalGrandfather, this.t('grandfatherLabel'), false, 2);
-        const maternalGrandmotherCard = await this.generateDogCard(pedigreeTree.maternalGrandmother, this.t('grandmotherLabel'), false, 2);
+        const paternalGrandfatherCard = await this.generateDogCard(pedigreeTree.paternalGrandfather, this.t('grandfather'), false, 2);
+        const paternalGrandmotherCard = await this.generateDogCard(pedigreeTree.paternalGrandmother, this.t('grandmother'), false, 2);
+        const maternalGrandfatherCard = await this.generateDogCard(pedigreeTree.maternalGrandfather, this.t('grandfather'), false, 2);
+        const maternalGrandmotherCard = await this.generateDogCard(pedigreeTree.maternalGrandmother, this.t('grandmother'), false, 2);
         
-        const paternalGreatGrandfather1Card = await this.generateDogCard(pedigreeTree.paternalGreatGrandfather1, this.t('greatGrandfatherLabel'), false, 3);
-        const paternalGreatGrandmother1Card = await this.generateDogCard(pedigreeTree.paternalGreatGrandmother1, this.t('greatGrandmotherLabel'), false, 3);
-        const paternalGreatGrandfather2Card = await this.generateDogCard(pedigreeTree.paternalGreatGrandfather2, this.t('greatGrandfatherLabel'), false, 3);
-        const paternalGreatGrandmother2Card = await this.generateDogCard(pedigreeTree.paternalGreatGrandmother2, this.t('greatGrandmotherLabel'), false, 3);
-        const maternalGreatGrandfather1Card = await this.generateDogCard(pedigreeTree.maternalGreatGrandfather1, this.t('greatGrandfatherLabel'), false, 3);
-        const maternalGreatGrandmother1Card = await this.generateDogCard(pedigreeTree.maternalGreatGrandmother1, this.t('greatGrandmotherLabel'), false, 3);
-        const maternalGreatGrandfather2Card = await this.generateDogCard(pedigreeTree.maternalGreatGrandfather2, this.t('greatGrandfatherLabel'), false, 3);
-        const maternalGreatGrandmother2Card = await this.generateDogCard(pedigreeTree.maternalGreatGrandmother2, this.t('greatGrandmotherLabel'), false, 3);
+        const paternalGreatGrandfather1Card = await this.generateDogCard(pedigreeTree.paternalGreatGrandfather1, this.t('greatGrandfather'), false, 3);
+        const paternalGreatGrandmother1Card = await this.generateDogCard(pedigreeTree.paternalGreatGrandmother1, this.t('greatGrandmother'), false, 3);
+        const paternalGreatGrandfather2Card = await this.generateDogCard(pedigreeTree.paternalGreatGrandfather2, this.t('greatGrandfather'), false, 3);
+        const paternalGreatGrandmother2Card = await this.generateDogCard(pedigreeTree.paternalGreatGrandmother2, this.t('greatGrandmother'), false, 3);
+        const maternalGreatGrandfather1Card = await this.generateDogCard(pedigreeTree.maternalGreatGrandfather1, this.t('greatGrandfather'), false, 3);
+        const maternalGreatGrandmother1Card = await this.generateDogCard(pedigreeTree.maternalGreatGrandmother1, this.t('greatGrandmother'), false, 3);
+        const maternalGreatGrandfather2Card = await this.generateDogCard(pedigreeTree.maternalGreatGrandfather2, this.t('greatGrandfather'), false, 3);
+        const maternalGreatGrandmother2Card = await this.generateDogCard(pedigreeTree.maternalGreatGrandmother2, this.t('greatGrandmother'), false, 3);
         
-        // Over-overgrootouders (generatie 4)
-        const paternalGreatGreatGrandfather1Card = await this.generateDogCard(pedigreeTree.paternalGreatGreatGrandfather1, this.t('greatGreatGrandfatherLabel'), false, 4);
-        const paternalGreatGreatGrandmother1Card = await this.generateDogCard(pedigreeTree.paternalGreatGreatGrandmother1, this.t('greatGreatGrandmotherLabel'), false, 4);
-        const paternalGreatGreatGrandfather2Card = await this.generateDogCard(pedigreeTree.paternalGreatGreatGrandfather2, this.t('greatGreatGrandfatherLabel'), false, 4);
-        const paternalGreatGreatGrandmother2Card = await this.generateDogCard(pedigreeTree.paternalGreatGreatGrandmother2, this.t('greatGreatGrandmotherLabel'), false, 4);
-        const paternalGreatGreatGrandfather3Card = await this.generateDogCard(pedigreeTree.paternalGreatGreatGrandfather3, this.t('greatGreatGrandfatherLabel'), false, 4);
-        const paternalGreatGreatGrandmother3Card = await this.generateDogCard(pedigreeTree.paternalGreatGreatGrandmother3, this.t('greatGreatGrandmotherLabel'), false, 4);
-        const paternalGreatGreatGrandfather4Card = await this.generateDogCard(pedigreeTree.paternalGreatGreatGrandfather4, this.t('greatGreatGrandfatherLabel'), false, 4);
-        const paternalGreatGreatGrandmother4Card = await this.generateDogCard(pedigreeTree.paternalGreatGreatGrandmother4, this.t('greatGreatGrandmotherLabel'), false, 4);
-        const maternalGreatGreatGrandfather1Card = await this.generateDogCard(pedigreeTree.maternalGreatGreatGrandfather1, this.t('greatGreatGrandfatherLabel'), false, 4);
-        const maternalGreatGreatGrandmother1Card = await this.generateDogCard(pedigreeTree.maternalGreatGreatGrandmother1, this.t('greatGreatGrandmotherLabel'), false, 4);
-        const maternalGreatGreatGrandfather2Card = await this.generateDogCard(pedigreeTree.maternalGreatGreatGrandfather2, this.t('greatGreatGrandfatherLabel'), false, 4);
-        const maternalGreatGreatGrandmother2Card = await this.generateDogCard(pedigreeTree.maternalGreatGreatGrandmother2, this.t('greatGreatGrandmotherLabel'), false, 4);
-        const maternalGreatGreatGrandfather3Card = await this.generateDogCard(pedigreeTree.maternalGreatGreatGrandfather3, this.t('greatGreatGrandfatherLabel'), false, 4);
-        const maternalGreatGreatGrandmother3Card = await this.generateDogCard(pedigreeTree.maternalGreatGreatGrandmother3, this.t('greatGreatGrandmotherLabel'), false, 4);
-        const maternalGreatGreatGrandfather4Card = await this.generateDogCard(pedigreeTree.maternalGreatGreatGrandfather4, this.t('greatGreatGrandfatherLabel'), false, 4);
-        const maternalGreatGreatGrandmother4Card = await this.generateDogCard(pedigreeTree.maternalGreatGreatGrandmother4, this.t('greatGreatGrandmotherLabel'), false, 4);
+        // Over-overgrootouders (generatie 4) - MET VERTAALDE TEKSTEN
+        const paternalGreatGreatGrandfather1Card = await this.generateDogCard(pedigreeTree.paternalGreatGreatGrandfather1, this.t('greatGreatGrandfather'), false, 4);
+        const paternalGreatGreatGrandmother1Card = await this.generateDogCard(pedigreeTree.paternalGreatGreatGrandmother1, this.t('greatGreatGrandmother'), false, 4);
+        const paternalGreatGreatGrandfather2Card = await this.generateDogCard(pedigreeTree.paternalGreatGreatGrandfather2, this.t('greatGreatGrandfather'), false, 4);
+        const paternalGreatGreatGrandmother2Card = await this.generateDogCard(pedigreeTree.paternalGreatGreatGrandmother2, this.t('greatGreatGrandmother'), false, 4);
+        const paternalGreatGreatGrandfather3Card = await this.generateDogCard(pedigreeTree.paternalGreatGreatGrandfather3, this.t('greatGreatGrandfather'), false, 4);
+        const paternalGreatGreatGrandmother3Card = await this.generateDogCard(pedigreeTree.paternalGreatGreatGrandmother3, this.t('greatGreatGrandmother'), false, 4);
+        const paternalGreatGreatGrandfather4Card = await this.generateDogCard(pedigreeTree.paternalGreatGreatGrandfather4, this.t('greatGreatGrandfather'), false, 4);
+        const paternalGreatGreatGrandmother4Card = await this.generateDogCard(pedigreeTree.paternalGreatGreatGrandmother4, this.t('greatGreatGrandmother'), false, 4);
+        const maternalGreatGreatGrandfather1Card = await this.generateDogCard(pedigreeTree.maternalGreatGreatGrandfather1, this.t('greatGreatGrandfather'), false, 4);
+        const maternalGreatGreatGrandmother1Card = await this.generateDogCard(pedigreeTree.maternalGreatGreatGrandmother1, this.t('greatGreatGrandmother'), false, 4);
+        const maternalGreatGreatGrandfather2Card = await this.generateDogCard(pedigreeTree.maternalGreatGreatGrandfather2, this.t('greatGreatGrandfather'), false, 4);
+        const maternalGreatGreatGrandmother2Card = await this.generateDogCard(pedigreeTree.maternalGreatGreatGrandmother2, this.t('greatGreatGrandmother'), false, 4);
+        const maternalGreatGreatGrandfather3Card = await this.generateDogCard(pedigreeTree.maternalGreatGreatGrandfather3, this.t('greatGreatGrandfather'), false, 4);
+        const maternalGreatGreatGrandmother3Card = await this.generateDogCard(pedigreeTree.maternalGreatGreatGrandmother3, this.t('greatGreatGrandmother'), false, 4);
+        const maternalGreatGreatGrandfather4Card = await this.generateDogCard(pedigreeTree.maternalGreatGreatGrandfather4, this.t('greatGreatGrandfather'), false, 4);
+        const maternalGreatGreatGrandmother4Card = await this.generateDogCard(pedigreeTree.maternalGreatGreatGrandmother4, this.t('greatGreatGrandmother'), false, 4);
         
         const gridHTML = `
             <div class="rtc-pedigree-grid-compact">
@@ -2315,7 +2323,7 @@ class ReuTeefStamboom {
                     ${maternalGreatGrandmother2Card}
                 </div>
                 
-                <!-- Generatie 4: Over-overgrootouders -->
+                <!-- Generatie 4: Over-overgrootouders - MET HEADER! -->
                 <div class="rtc-pedigree-generation-col gen4">
                     ${paternalGreatGreatGrandfather1Card}
                     ${paternalGreatGreatGrandmother1Card}
@@ -2346,6 +2354,112 @@ class ReuTeefStamboom {
         setTimeout(() => {
             this.addFuturePuppyClickHandler(futurePuppy, coiResult, healthAnalysis);
         }, 100);
+    }
+    
+    // **GECORRIGEERDE generateDogCard methode - GEN4 HEEFT NU HEADER!**
+    async generateDogCard(dog, relation, isMainDog = false, generation = 0) {
+        if (!dog) {
+            return `
+                <div class="rtc-pedigree-card-compact horizontal empty gen${generation}" data-dog-id="0">
+                    <div class="rtc-pedigree-card-header-compact horizontal bg-secondary">
+                        <div class="rtc-relation-compact">${relation}</div>
+                    </div>
+                    <div class="rtc-pedigree-card-body-compact horizontal text-center py-3">
+                        <div class="rtc-no-data-text">${this.t('noData')}</div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        const genderIcon = dog.geslacht === 'reuen' ? 'bi-gender-male text-primary' : 
+                          dog.geslacht === 'teven' ? 'bi-gender-female text-danger' : 'bi-question-circle text-secondary';
+        
+        const mainDogClass = isMainDog ? 'main-dog-compact' : '';
+        const headerColor = isMainDog ? 'bg-success' : 'bg-secondary';
+        
+        const hasPhotos = dog.id > 0 ? await this.checkDogHasPhotos(dog.id) : false;
+        const cameraIcon = hasPhotos ? '<i class="bi bi-camera text-danger ms-1"></i>' : '';
+        
+        const combinedName = dog.naam || this.t('unknown');
+        const showKennel = dog.kennelnaam && dog.kennelnaam.trim() !== '';
+        const fullDisplayText = combinedName + (showKennel ? ` ${dog.kennelnaam}` : '');
+        
+        // **GEN4 - ZELFDE ALS STAMBOOMMANAGER: MET HEADER!**
+        if (generation === 4) {
+            return `
+                <div class="rtc-pedigree-card-compact horizontal ${dog.geslacht === 'reuen' ? 'male' : 'female'} ${mainDogClass} gen${generation}" 
+                     data-dog-id="${dog.id}" 
+                     data-dog-name="${dog.naam || ''}"
+                     data-relation="${relation}"
+                     data-generation="${generation}"
+                     data-has-photos="${hasPhotos}">
+                    <!-- HEADER TOEGEVOEGD - ZELFDE ALS STAMBOOMMANAGER -->
+                    <div class="rtc-pedigree-card-header-compact horizontal ${headerColor}">
+                        <div class="rtc-relation-compact">
+                            <span class="rtc-relation-text">${relation}</span>
+                            ${isMainDog ? '<span class="rtc-main-dot">★</span>' : ''}
+                        </div>
+                        <div class="rtc-gender-icon-compact">
+                            <i class="bi ${genderIcon}"></i>
+                        </div>
+                    </div>
+                    <div class="rtc-pedigree-card-body-compact horizontal">
+                        <div class="rtc-card-row rtc-card-row-1-only">
+                            <div class="rtc-dog-name-kennel-only" title="${fullDisplayText}">
+                                ${fullDisplayText}
+                                ${cameraIcon}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Voor andere generaties (0-3): originele layout
+        const breedText = dog.ras && dog.id !== -999999 ? 
+                         `<div class="rtc-dog-breed-compact" title="${dog.ras}">${dog.ras}</div>` : '';
+        
+        return `
+            <div class="rtc-pedigree-card-compact horizontal ${dog.geslacht === 'reuen' ? 'male' : 'female'} ${mainDogClass} gen${generation}" 
+                 data-dog-id="${dog.id}" 
+                 data-dog-name="${dog.naam || ''}"
+                 data-relation="${relation}"
+                 data-generation="${generation}"
+                 data-has-photos="${hasPhotos}">
+                <div class="rtc-pedigree-card-header-compact horizontal ${headerColor}">
+                    <div class="rtc-relation-compact">
+                        <span class="rtc-relation-text">${relation}</span>
+                        ${isMainDog ? '<span class="rtc-main-dot">★</span>' : ''}
+                    </div>
+                    <div class="rtc-gender-icon-compact">
+                        <i class="bi ${genderIcon}"></i>
+                    </div>
+                </div>
+                <div class="rtc-pedigree-card-body-compact horizontal">
+                    <div class="rtc-card-row rtc-card-row-1">
+                        <div class="rtc-dog-name-kennel-compact" title="${fullDisplayText}">
+                            ${fullDisplayText}
+                        </div>
+                    </div>
+                    
+                    <div class="rtc-card-row rtc-card-row-2">
+                        ${dog.stamboomnr ? `
+                        <div class="rtc-dog-pedigree-compact" title="${dog.stamboomnr}">
+                            ${dog.stamboomnr}
+                        </div>
+                        ` : ''}
+                        
+                        ${breedText}
+                    </div>
+                    
+                    <div class="rtc-card-row rtc-card-row-3">
+                        <div class="rtc-click-hint-compact">
+                            <i class="bi bi-info-circle"></i> ${this.t('clickForDetails')}${cameraIcon}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
     }
     
     buildFuturePuppyPedigreeTree(futurePuppy, selectedTeef, selectedReu) {
@@ -2585,106 +2699,6 @@ class ReuTeefStamboom {
         }
         
         return pedigreeTree;
-    }
-    
-    async generateDogCard(dog, relation, isMainDog = false, generation = 0) {
-        if (!dog) {
-            return `
-                <div class="rtc-pedigree-card-compact horizontal empty gen${generation}" data-dog-id="0">
-                    <div class="rtc-pedigree-card-header-compact horizontal">
-                        <div class="rtc-relation-compact">${relation}</div>
-                    </div>
-                    <div class="rtc-pedigree-card-body-compact horizontal text-center py-3">
-                        <div class="rtc-no-data-text">${this.t('noData')}</div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        const genderIcon = dog.geslacht === 'reuen' ? 'bi-gender-male text-primary' : 
-                          dog.geslacht === 'teven' ? 'bi-gender-female text-danger' : 'bi-question-circle text-secondary';
-        
-        const mainDogClass = isMainDog ? 'main-dog-compact' : '';
-        const headerColor = isMainDog ? 'bg-success' : 'bg-secondary';
-        
-        // **EXACT DEZELFDE LOGICA ALS STAMBOOMMANAGER: Check of hond foto's heeft**
-        // Gebruik de cache, geen nieuwe query
-        const hasPhotos = dog.id > 0 ? await this.checkDogHasPhotos(dog.id) : false;
-        const cameraIcon = hasPhotos ? '<i class="bi bi-camera text-danger ms-1"></i>' : '';
-        
-        const combinedName = dog.naam || this.t('unknown');
-        const showKennel = dog.kennelnaam && dog.kennelnaam.trim() !== '';
-        const fullDisplayText = combinedName + (showKennel ? ` ${dog.kennelnaam}` : '');
-        
-        // Voor overovergrootouders (gen4): alleen naam en kennelnaam - IDENTIEK AAN STAMBOOMMANAGER
-        if (generation === 4) {
-            return `
-                <div class="rtc-pedigree-card-compact horizontal ${dog.geslacht === 'reuen' ? 'male' : 'female'} ${mainDogClass} gen${generation}" 
-                     data-dog-id="${dog.id}" 
-                     data-dog-name="${dog.naam || ''}"
-                     data-relation="${relation}"
-                     data-generation="${generation}"
-                     data-has-photos="${hasPhotos}">
-                    <div class="rtc-pedigree-card-body-compact horizontal">
-                        <div class="rtc-card-row rtc-card-row-1-only">
-                            <div class="rtc-dog-name-kennel-only" title="${fullDisplayText}">
-                                ${fullDisplayText}
-                                ${cameraIcon}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        // Voor andere generaties (0-3): originele layout - IDENTIEK AAN STAMBOOMMANAGER
-        const breedText = dog.ras && dog.id !== -999999 ? 
-                         `<div class="rtc-dog-breed-compact" title="${dog.ras}">${dog.ras}</div>` : '';
-        
-        return `
-            <div class="rtc-pedigree-card-compact horizontal ${dog.geslacht === 'reuen' ? 'male' : 'female'} ${mainDogClass} gen${generation}" 
-                 data-dog-id="${dog.id}" 
-                 data-dog-name="${dog.naam || ''}"
-                 data-relation="${relation}"
-                 data-generation="${generation}"
-                 data-has-photos="${hasPhotos}">
-                <div class="rtc-pedigree-card-header-compact horizontal ${headerColor}">
-                    <div class="rtc-relation-compact">
-                        <span class="rtc-relation-text">${relation}</span>
-                        ${isMainDog ? '<span class="rtc-main-dot">★</span>' : ''}
-                    </div>
-                    <div class="rtc-gender-icon-compact">
-                        <i class="bi ${genderIcon}"></i>
-                    </div>
-                </div>
-                <div class="rtc-pedigree-card-body-compact horizontal">
-                    <!-- Regel 1: Naam en kennelnaam in één regel -->
-                    <div class="rtc-card-row rtc-card-row-1">
-                        <div class="rtc-dog-name-kennel-compact" title="${fullDisplayText}">
-                            ${fullDisplayText}
-                        </div>
-                    </div>
-                    
-                    <!-- Regel 2: Stamboomnummer en ras -->
-                    <div class="rtc-card-row rtc-card-row-2">
-                        ${dog.stamboomnr ? `
-                        <div class="rtc-dog-pedigree-compact" title="${dog.stamboomnr}">
-                            ${dog.stamboomnr}
-                        </div>
-                        ` : ''}
-                        
-                        ${breedText}
-                    </div>
-                    
-                    <!-- Regel 3: Klik hint met fototoestelicoon - IDENTIEK AAN STAMBOOMMANAGER -->
-                    <div class="rtc-card-row rtc-card-row-3">
-                        <div class="rtc-click-hint-compact">
-                            <i class="bi bi-info-circle"></i> ${this.t('clickForDetails')}${cameraIcon}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
     }
     
     setupCardClickEvents() {
