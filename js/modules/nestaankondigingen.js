@@ -1,17 +1,5 @@
 // js/modules/NestAankondigingen.js
 
-/**
- * NestAankondigingen Management Module voor Supabase
- * Beheert nest aankondigingen overzicht en beheer
- * MET GEZONDHEIDSINFO VAN BEIDE OUDERS IN OVERZICHT (zelfde als DekReuen)
- * Ouders naast elkaar met gezondheidsinfo in exact de gewenste indeling
- * 
- * UPDATE: Toont 1 aankondiging per pagina met paginatie bovenaan
- * UPDATE 2: Tekst in cards kleiner gemaakt (70% van origineel)
- * UPDATE 3: Paginatiebalkje 80% van originele grootte
- * UPDATE 4: Foto thumbnails van beide ouders toegevoegd (zelfde functionaliteit als DekReuen)
- */
-
 class NestAankondigingenManager extends BaseModule {
     constructor() {
         super();
@@ -27,7 +15,7 @@ class NestAankondigingenManager extends BaseModule {
         this.pageSize = 1;
         this.totalAnnouncements = 0;
         
-        // Voor autocomplete van honden
+        // Voor autocomplete van honden - alleen laden wanneer nodig
         this.allDogs = [];
         this.db = window.hondenService;
         this.auth = window.auth;
@@ -37,11 +25,26 @@ class NestAankondigingenManager extends BaseModule {
         this.editingAnnouncementId = null;
         this.editingAnnouncementData = null;
         
-        // Foto gerelateerde variabelen
-        this.selectedHondId = null;
-        this.selectedHondStamboomnr = null;
-        this.selectedHondNaam = null;
-        this.hondFotos = [];
+        // Foto gerelateerde variabelen - voor nestfoto's
+        this.selectedNestId = null;
+        this.selectedNestKennelnaam = null;
+        this.nestFotos = [];
+        
+        // Voor de fotogalerij modal
+        this.currentFotoIndex = 0;
+        this.currentNestFotos = [];
+        
+        // Voor het bewerken van een specifieke foto
+        this.editingFotoId = null;
+        this.editingFotoData = null;
+        
+        // Voor stamboom weergave (zelfde als ReuTeefCombinatie)
+        this.stamboomModule = null;
+        this.hondenCache = new Map();
+        this.allHonden = []; // Wordt pas gevuld bij stamboom
+        
+        // **CSS toevoegen bij instantiatie**
+        this.addReuTeefStamboomStyles();
         
         this.translations = {
             nl: {
@@ -61,6 +64,9 @@ class NestAankondigingenManager extends BaseModule {
                 mother: "Moeder (Teef) *",
                 kennelName: "Kennelnaam *",
                 kennelNamePlaceholder: "Naam van uw kennel",
+                birthDate: "Geboortedatum *",
+                maleCount: "Aantal reuen *",
+                femaleCount: "Aantal teven *",
                 description: "Beschrijving",
                 email: "Email (voor contact)",
                 save: "Opslaan",
@@ -82,6 +88,10 @@ class NestAankondigingenManager extends BaseModule {
                 back: "Terug",
                 noPermission: "Je hebt geen rechten om deze actie uit te voeren",
                 announcementFrom: "Aankondiging van",
+                birthInfo: "Nest informatie",
+                birthDateLabel: "Geboren op",
+                maleCountLabel: "Reuen",
+                femaleCountLabel: "Teven",
                 
                 // Gezondheidsitems
                 healthData: "Gezondheidsgegevens",
@@ -97,16 +107,100 @@ class NestAankondigingenManager extends BaseModule {
                 country: "Land",
                 free: "Vrij",
                 
-                // Foto's
+                // Foto's - ouders
                 photos: "Foto's",
                 noPhotos: "Geen foto's beschikbaar",
                 viewPhoto: "Bekijk foto",
+                
+                // Nestfoto's - nieuw
+                nestPhotos: "Nestfoto's",
+                viewNestPhotos: "Bekijk nestfoto's",
+                noNestPhotos: "Geen nestfoto's beschikbaar",
+                uploadNestPhoto: "Nestfoto uploaden",
+                selectNestPhoto: "Selecteer nestfoto",
+                nestPhotoUploaded: "Nestfoto geüpload op",
+                selectNestPhotoToUpload: "Selecteer een nestfoto om te uploaden",
+                maxSize: "Maximale grootte: 5MB. Ondersteunde formaten: JPG, PNG, GIF, WebP",
+                fileTooLarge: "Bestand is te groot (maximaal 5MB)",
+                invalidType: "Ongeldig bestandstype. Alleen JPG, PNG, GIF en WebP zijn toegestaan",
+                uploading: "Nestfoto uploaden...",
+                uploadSuccess: "Nestfoto succesvol geüpload!",
+                uploadFailed: "Upload mislukt: ",
+                fileReadError: "Fout bij lezen bestand",
+                deleteNestPhoto: "Verwijder nestfoto",
+                confirmDeleteNestPhoto: "Weet je zeker dat je deze nestfoto wilt verwijderen?",
+                nestPhotoDeleteSuccess: "Nestfoto succesvol verwijderd!",
+                nestPhotoDeleteFailed: "Verwijderen nestfoto mislukt: ",
+                maxPhotosReached: "Maximum aantal foto's (15) bereikt. Verwijder eerst een foto om een nieuwe toe te voegen.",
+                photoCounter: "Foto {current} van {total}",
+                previous: "Vorige",
+                next: "Volgende",
+                
+                // Opmerkingen bij nestfoto's
+                remark: "Opmerking",
+                addRemark: "Opmerking toevoegen",
+                editRemark: "Opmerking bewerken",
+                saveRemark: "Opmerking opslaan",
+                noRemark: "Geen opmerking",
+                clickToAddRemark: "Klik om opmerking toe te voegen",
+                remarkSaved: "Opmerking succesvol opgeslagen!",
+                remarkSaveFailed: "Fout bij opslaan opmerking: ",
                 
                 // Paginatie
                 prevPage: "Vorige",
                 nextPage: "Volgende",
                 pageInfo: "Pagina {page} van {totalPages}",
-                showingResults: "Aankondiging {start} van {total}"
+                showingResults: "Aankondiging {start} van {total}",
+                
+                // Stamboom voor pups
+                viewPuppyPedigree: "Bekijk stamboom pups",
+                puppyPedigree: "Stamboom pups",
+                futurePuppy: "Toekomstige pup",
+                father: "Vader",
+                mother: "Moeder",
+                combinedParents: "Combinatie ouders",
+                futurePuppyTitle: "Nest van: {kennelnaam_nest}",
+                
+                // COI labels
+                coi6Gen: "COI 6 Gen",
+                homozygosity6Gen: "Homozygotie 6 Gen",
+                kinship6Gen: "Kinship 6 Gen",
+                predictedCoi: "Voorspelde Inteeltcoëfficiënt",
+                healthInLine: "Gezondheid in de lijn 6 generaties",
+                healthCategory: "Gezondheidscategorie",
+                motherLine: "Moederlijn",
+                fatherLine: "Vaderlijn",
+                hdA: "HD A",
+                hdB: "HD B",
+                hdC: "HD C",
+                hdD: "HD D",
+                hdE: "HD E",
+                hdUnknown: "HD niet bekend",
+                ed0: "ED 0",
+                ed1: "ED 1",
+                ed2: "ED 2",
+                ed3: "ED 3",
+                edUnknown: "ED niet bekend",
+                pl0: "PL 0",
+                pl1: "PL 1",
+                pl2: "PL 2",
+                pl3: "PL 3",
+                plUnknown: "PL niet bekend",
+                eyesFree: "Ogen vrij",
+                eyesDist: "Ogen Dist",
+                eyesOther: "Ogen overig",
+                eyesUnknown: "Ogen niet bekend",
+                dwlmDnaFree: "Dandy Walker (DNA) vrij",
+                dwlmParentsFree: "Dandy Walker (ouders) vrij",
+                dwlmUnknown: "Dandy Walker niet bekend",
+                thyroidTested: "Schildklier getest",
+                thyroidUnknown: "Schildklier niet bekend",
+                clickForDetails: "Klik voor details",
+                closePopup: "Sluiten",
+                
+                // Kopieer functionaliteit
+                copyEmail: "Kopieer e-mailadres",
+                emailCopied: "E-mailadres gekopieerd!"
             },
             en: {
                 nestAnnouncements: "Nest Announcements",
@@ -125,6 +219,9 @@ class NestAankondigingenManager extends BaseModule {
                 mother: "Mother (Female) *",
                 kennelName: "Kennel name *",
                 kennelNamePlaceholder: "Your kennel name",
+                birthDate: "Birth date *",
+                maleCount: "Number of males *",
+                femaleCount: "Number of females *",
                 description: "Description",
                 email: "Email (for contact)",
                 save: "Save",
@@ -146,6 +243,10 @@ class NestAankondigingenManager extends BaseModule {
                 back: "Back",
                 noPermission: "You don't have permission to perform this action",
                 announcementFrom: "Announcement from",
+                birthInfo: "Nest information",
+                birthDateLabel: "Born on",
+                maleCountLabel: "Males",
+                femaleCountLabel: "Females",
                 
                 // Health items
                 healthData: "Health Data",
@@ -161,16 +262,100 @@ class NestAankondigingenManager extends BaseModule {
                 country: "Country",
                 free: "Free",
                 
-                // Photos
+                // Photos - parents
                 photos: "Photos",
                 noPhotos: "No photos available",
                 viewPhoto: "View photo",
+                
+                // Nest photos
+                nestPhotos: "Nest Photos",
+                viewNestPhotos: "View nest photos",
+                noNestPhotos: "No nest photos available",
+                uploadNestPhoto: "Upload nest photo",
+                selectNestPhoto: "Select nest photo",
+                nestPhotoUploaded: "Nest photo uploaded on",
+                selectNestPhotoToUpload: "Select a nest photo to upload",
+                maxSize: "Maximum size: 5MB. Supported formats: JPG, PNG, GIF, WebP",
+                fileTooLarge: "File is too large (maximum 5MB)",
+                invalidType: "Invalid file type. Only JPG, PNG, GIF and WebP are allowed",
+                uploading: "Uploading nest photo...",
+                uploadSuccess: "Nest photo uploaded successfully!",
+                uploadFailed: "Upload failed: ",
+                fileReadError: "Error reading file",
+                deleteNestPhoto: "Delete nest photo",
+                confirmDeleteNestPhoto: "Are you sure you want to delete this nest photo?",
+                nestPhotoDeleteSuccess: "Nest photo deleted successfully!",
+                nestPhotoDeleteFailed: "Delete nest photo failed: ",
+                maxPhotosReached: "Maximum number of photos (15) reached. Delete a photo first to add a new one.",
+                photoCounter: "Photo {current} of {total}",
+                previous: "Previous",
+                next: "Next",
+                
+                // Remarks for nest photos
+                remark: "Remark",
+                addRemark: "Add remark",
+                editRemark: "Edit remark",
+                saveRemark: "Save remark",
+                noRemark: "No remark",
+                clickToAddRemark: "Click to add remark",
+                remarkSaved: "Remark saved successfully!",
+                remarkSaveFailed: "Failed to save remark: ",
                 
                 // Pagination
                 prevPage: "Previous",
                 nextPage: "Next",
                 pageInfo: "Page {page} of {totalPages}",
-                showingResults: "Announcement {start} of {total}"
+                showingResults: "Announcement {start} of {total}",
+                
+                // Pedigree for puppies
+                viewPuppyPedigree: "View puppy pedigree",
+                puppyPedigree: "Puppy pedigree",
+                futurePuppy: "Future puppy",
+                father: "Father",
+                mother: "Mother",
+                combinedParents: "Combination parents",
+                futurePuppyTitle: "Nest from: {kennelnaam_nest}",
+                
+                // COI labels
+                coi6Gen: "COI 6 Gen",
+                homozygosity6Gen: "Homozygotie 6 Gen",
+                kinship6Gen: "Kinship 6 Gen",
+                predictedCoi: "Predicted Inbreeding Coefficient",
+                healthInLine: "Health in the line 6 generations",
+                healthCategory: "Health category",
+                motherLine: "Mother line",
+                fatherLine: "Father line",
+                hdA: "HD A",
+                hdB: "HD B",
+                hdC: "HD C",
+                hdD: "HD D",
+                hdE: "HD E",
+                hdUnknown: "HD unknown",
+                ed0: "ED 0",
+                ed1: "ED 1",
+                ed2: "ED 2",
+                ed3: "ED 3",
+                edUnknown: "ED unknown",
+                pl0: "PL 0",
+                pl1: "PL 1",
+                pl2: "PL 2",
+                pl3: "PL 3",
+                plUnknown: "PL unknown",
+                eyesFree: "Eyes free",
+                eyesDist: "Eyes Dist",
+                eyesOther: "Eyes other",
+                eyesUnknown: "Eyes unknown",
+                dwlmDnaFree: "Dandy Walker (DNA) free",
+                dwlmParentsFree: "Dandy Walker (parents) free",
+                dwlmUnknown: "Dandy Walker unknown",
+                thyroidTested: "Thyroid tested",
+                thyroidUnknown: "Thyroid unknown",
+                clickForDetails: "Click for details",
+                closePopup: "Close",
+                
+                // Copy functionality
+                copyEmail: "Copy email address",
+                emailCopied: "Email address copied!"
             },
             de: {
                 nestAnnouncements: "Wurfankündigungen",
@@ -189,6 +374,9 @@ class NestAankondigingenManager extends BaseModule {
                 mother: "Mutter (Hündin) *",
                 kennelName: "Zwinger name *",
                 kennelNamePlaceholder: "Ihr Zwinger name",
+                birthDate: "Geburtsdatum *",
+                maleCount: "Anzahl Rüden *",
+                femaleCount: "Anzahl Hündinnen *",
                 description: "Beschreibung",
                 email: "Email (für Kontakt)",
                 save: "Speichern",
@@ -210,6 +398,10 @@ class NestAankondigingenManager extends BaseModule {
                 back: "Zurück",
                 noPermission: "Sie haben keine Berechtigung für diese Aktion",
                 announcementFrom: "Ankündigung von",
+                birthInfo: "Wurfinformationen",
+                birthDateLabel: "Geboren am",
+                maleCountLabel: "Rüden",
+                femaleCountLabel: "Hündinnen",
                 
                 // Health items
                 healthData: "Gesundheitsdaten",
@@ -225,22 +417,509 @@ class NestAankondigingenManager extends BaseModule {
                 country: "Land",
                 free: "Frei",
                 
-                // Photos
+                // Photos - parents
                 photos: "Fotos",
                 noPhotos: "Keine Fotos verfügbar",
                 viewPhoto: "Foto ansehen",
+                
+                // Nest photos
+                nestPhotos: "Wurffotos",
+                viewNestPhotos: "Wurffotos ansehen",
+                noNestPhotos: "Keine Wurffotos verfügbar",
+                uploadNestPhoto: "Wurffoto hochladen",
+                selectNestPhoto: "Wurffoto auswählen",
+                nestPhotoUploaded: "Wurffoto hochgeladen am",
+                selectNestPhotoToUpload: "Wählen Sie ein Wurffoto zum Hochladen",
+                maxSize: "Maximale Größe: 5MB. Unterstützte Formate: JPG, PNG, GIF, WebP",
+                fileTooLarge: "Datei ist zu groß (maximal 5MB)",
+                invalidType: "Ungültiger Dateityp. Nur JPG, PNG, GIF und WebP sind erlaubt",
+                uploading: "Wurffoto wird hochgeladen...",
+                uploadSuccess: "Wurffoto erfolgreich hochgeladen!",
+                uploadFailed: "Upload fehlgeschlagen: ",
+                fileReadError: "Fehler beim Lesen der Datei",
+                deleteNestPhoto: "Wurffoto löschen",
+                confirmDeleteNestPhoto: "Sind Sie sicher, dass Sie dieses Wurffoto löschen möchten?",
+                nestPhotoDeleteSuccess: "Wurffoto erfolgreich gelöscht!",
+                nestPhotoDeleteFailed: "Löschen fehlgeschlagen: ",
+                maxPhotosReached: "Maximale Anzahl Fotos (15) erreicht. Löschen Sie zuerst ein Foto, um ein neues hinzuzufügen.",
+                photoCounter: "Foto {current} von {total}",
+                previous: "Vorherige",
+                next: "Nächste",
+                
+                // Bemerkungen für Wurffotos
+                remark: "Bemerkung",
+                addRemark: "Bemerkung hinzufügen",
+                editRemark: "Bemerkung bearbeiten",
+                saveRemark: "Bemerkung speichern",
+                noRemark: "Keine Bemerkung",
+                clickToAddRemark: "Klicken um Bemerkung hinzuzufügen",
+                remarkSaved: "Bemerkung erfolgreich gespeichert!",
+                remarkSaveFailed: "Fehler beim Speichern: ",
                 
                 // Pagination
                 prevPage: "Vorherige",
                 nextPage: "Nächste",
                 pageInfo: "Seite {page} von {totalPages}",
-                showingResults: "Ankündigung {start} von {total}"
+                showingResults: "Ankündigung {start} von {total}",
+                
+                // Pedigree for puppies
+                viewPuppyPedigree: "Stammbaum der Welpen ansehen",
+                puppyPedigree: "Stammbaum der Welpen",
+                futurePuppy: "Zukünftiger Welpe",
+                father: "Vater",
+                mother: "Mutter",
+                combinedParents: "Kombination Eltern",
+                futurePuppyTitle: "Wurf von: {kennelnaam_nest}",
+                
+                // COI labels
+                coi6Gen: "COI 6 Gen",
+                homozygosity6Gen: "Homozygotie 6 Gen",
+                kinship6Gen: "Kinship 6 Gen",
+                predictedCoi: "Vorhergesagter Inzuchtkoeffizient",
+                healthInLine: "Gesundheit in der Linie 6 Generationen",
+                healthCategory: "Gesundheitskategorie",
+                motherLine: "Mutterlinie",
+                fatherLine: "Vaterlinie",
+                hdA: "HD A",
+                hdB: "HD B",
+                hdC: "HD C",
+                hdD: "HD D",
+                hdE: "HD E",
+                hdUnknown: "HD unbekannt",
+                ed0: "ED 0",
+                ed1: "ED 1",
+                ed2: "ED 2",
+                ed3: "ED 3",
+                edUnknown: "ED unbekannt",
+                pl0: "PL 0",
+                pl1: "PL 1",
+                pl2: "PL 2",
+                pl3: "PL 3",
+                plUnknown: "PL unbekannt",
+                eyesFree: "Augen frei",
+                eyesDist: "Augen Dist",
+                eyesOther: "Augen sonstige",
+                eyesUnknown: "Augen unbekannt",
+                dwlmDnaFree: "Dandy Walker (DNA) frei",
+                dwlmParentsFree: "Dandy Walker (Eltern) frei",
+                dwlmUnknown: "Dandy Walker unbekannt",
+                thyroidTested: "Schilddrüse getestet",
+                thyroidUnknown: "Schilddrüse unbekannt",
+                clickForDetails: "Klicken für Details",
+                closePopup: "Schließen",
+                
+                // Copy functionality
+                copyEmail: "E-Mail-Adresse kopieren",
+                emailCopied: "E-Mail-Adresse kopiert!"
             }
         };
     }
     
-    t(key) {
-        return this.translations[this.currentLang][key] || key;
+    t(key, params = {}) {
+        let text = this.translations[this.currentLang][key] || key;
+        
+        // Vervang parameters in tekst
+        Object.keys(params).forEach(param => {
+            text = text.replace(`{${param}}`, params[param]);
+        });
+        
+        return text;
+    }
+    
+    /**
+     * SQL voor het toevoegen van de nieuwe kolommen aan de litters tabel
+     * Voer dit uit in de Supabase SQL editor:
+     * 
+     * ALTER TABLE litters 
+     * ADD COLUMN IF NOT EXISTS geboortedatum DATE,
+     * ADD COLUMN IF NOT EXISTS aantal_reuen INTEGER,
+     * ADD COLUMN IF NOT EXISTS aantal_teven INTEGER;
+     */
+    
+    /**
+     * Voeg de CSS toe voor de popup layout (zelfde als in ReuTeefCombinatie)
+     */
+    addReuTeefStamboomStyles() {
+        if (document.querySelector('#reuteef-stamboom-nest-styles')) {
+            return;
+        }
+        
+        const style = document.createElement('style');
+        style.id = 'reuteef-stamboom-nest-styles';
+        style.textContent = `
+            /* GEÏSOLEERDE DETAIL POPUP STYLES */
+            .rtc-pedigree-popup-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.7);
+                z-index: 1060;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                animation: rtc-fadeIn 0.3s;
+                overflow-y: auto;
+            }
+            
+            @keyframes rtc-fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            
+            .rtc-pedigree-popup-container {
+                background: white;
+                border-radius: 12px;
+                max-width: 400px;
+                max-height: 80vh;
+                overflow-y: auto;
+                animation: rtc-slideUp 0.3s;
+                box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+                width: calc(100% - 20px);
+                margin: 10px;
+            }
+            
+            @keyframes rtc-slideUp {
+                from { 
+                    opacity: 0;
+                    transform: translateY(30px);
+                }
+                to { 
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+            
+            .rtc-dog-detail-popup {
+                display: flex;
+                flex-direction: column;
+                height: 100%;
+            }
+            
+            .rtc-popup-header {
+                background: #0d6efd;
+                color: white;
+                padding: 12px 16px;
+                border-radius: 12px 12px 0 0;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                position: sticky;
+                top: 0;
+                z-index: 1;
+            }
+            
+            .rtc-popup-title {
+                margin: 0;
+                font-size: 1.1rem;
+                display: flex;
+                align-items: center;
+                flex: 1;
+            }
+            
+            .rtc-popup-header .rtc-btn-close {
+                display: inline-block;
+                width: 24px;
+                height: 24px;
+                background: transparent;
+                border: none;
+                position: relative;
+                cursor: pointer;
+                opacity: 0.8;
+                z-index: 2;
+                filter: invert(1) grayscale(100%) brightness(200%) !important;
+            }
+            
+            .rtc-popup-header .rtc-btn-close::before,
+            .rtc-popup-header .rtc-btn-close::after {
+                content: '';
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                width: 18px;
+                height: 2px;
+                background: #000 !important;
+                transform-origin: center;
+            }
+            
+            .rtc-popup-header .rtc-btn-close::before {
+                transform: translate(-50%, -50%) rotate(45deg);
+            }
+            
+            .rtc-popup-header .rtc-btn-close::after {
+                transform: translate(-50%, -50%) rotate(-45deg);
+            }
+            
+            .rtc-popup-header .rtc-btn-close:hover {
+                opacity: 1;
+            }
+            
+            .rtc-popup-body {
+                padding: 15px;
+                flex: 1;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            .rtc-info-section {
+                margin-bottom: 20px;
+            }
+            
+            .rtc-info-section h6 {
+                color: #495057;
+                margin-bottom: 10px;
+                padding-bottom: 6px;
+                border-bottom: 2px solid #e9ecef;
+                display: flex;
+                align-items: center;
+                font-size: 1rem;
+            }
+            
+            /* DRIE WAARDES NAAST ELKAAR */
+            .rtc-three-values-row {
+                display: flex !important;
+                flex-direction: row !important;
+                justify-content: space-between !important;
+                align-items: stretch !important;
+                gap: 8px !important;
+                margin: 10px 0 !important;
+                width: 100% !important;
+            }
+            
+            .rtc-value-box {
+                flex: 1 !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: center !important;
+                text-align: center !important;
+                padding: 8px 4px !important;
+                background: #f8f9fa !important;
+                border-radius: 6px !important;
+                border: 1px solid #dee2e6 !important;
+                min-height: 60px !important;
+                min-width: 0 !important;
+            }
+            
+            .rtc-value-label {
+                font-size: 0.68rem !important;
+                font-weight: 600 !important;
+                color: #495057 !important;
+                margin-bottom: 4px !important;
+                line-height: 1.2 !important;
+                white-space: normal !important;
+                word-break: break-word !important;
+                width: 100% !important;
+                display: block !important;
+            }
+            
+            .rtc-value-number {
+                font-size: 0.85rem !important;
+                font-weight: bold !important;
+                line-height: 1.2 !important;
+                color: #212529 !important;
+            }
+            
+            .rtc-coi-value {
+                font-weight: bold !important;
+            }
+            
+            /* Gezondheidstabel */
+            .health-analysis-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 15px;
+                font-size: 0.85rem;
+            }
+            
+            .health-analysis-table th {
+                background-color: #f8f9fa;
+                padding: 10px 8px;
+                text-align: center;
+                border: 1px solid #dee2e6;
+                font-weight: 600;
+                color: #495057;
+            }
+            
+            .health-analysis-table td {
+                padding: 8px;
+                border: 1px solid #dee2e6;
+                text-align: center;
+                vertical-align: middle;
+            }
+            
+            .health-category {
+                text-align: left !important;
+                font-weight: 500;
+                padding-left: 12px;
+                background-color: #f8f9fa;
+            }
+            
+            .mother-count {
+                background-color: #fff3cd;
+                color: #856404;
+            }
+            
+            .father-count {
+                background-color: #d1ecf1;
+                color: #0c5460;
+            }
+            
+            .count-high {
+                font-weight: bold;
+                background-color: #f8d7da !important;
+                color: #721c24 !important;
+            }
+            
+            .count-good {
+                font-weight: bold;
+                background-color: #d4edda !important;
+                color: #155724 !important;
+            }
+            
+            .rtc-popup-footer {
+                padding: 16px 20px;
+                border-top: 1px solid #dee2e6;
+                display: flex;
+                justify-content: center;
+                background: #f8f9fa;
+                border-radius: 0 0 12px 12px;
+            }
+            
+            .rtc-popup-close-btn {
+                min-width: 130px;
+                padding: 10px 25px;
+                font-size: 1rem;
+            }
+            
+            @media (max-width: 767px) {
+                .rtc-three-values-row {
+                    gap: 4px !important;
+                    margin: 8px 0 !important;
+                }
+                
+                .rtc-value-box {
+                    padding: 6px 3px !important;
+                    min-height: 55px !important;
+                }
+                
+                .rtc-value-label {
+                    font-size: 0.61rem !important;
+                }
+                
+                .rtc-value-number {
+                    font-size: 0.8rem !important;
+                }
+                
+                .health-analysis-table {
+                    font-size: 0.75rem;
+                }
+            }
+            
+            @media (max-width: 480px) {
+                .rtc-three-values-row {
+                    gap: 3px !important;
+                }
+                
+                .rtc-value-box {
+                    padding: 5px 2px !important;
+                    min-height: 50px !important;
+                }
+                
+                .rtc-value-label {
+                    font-size: 0.58rem !important;
+                }
+                
+                .rtc-value-number {
+                    font-size: 0.75rem !important;
+                }
+            }
+            
+            /* COMPACTE NEST INFORMATIE STYLING */
+            .nest-info-compact {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border-radius: 8px;
+                padding: 8px 15px;
+                margin-bottom: 15px;
+                font-size: 0.75rem;
+            }
+            
+            .nest-info-compact .row {
+                align-items: center;
+            }
+            
+            .nest-info-compact .col {
+                padding: 0 5px;
+            }
+            
+            .nest-info-compact .label {
+                font-size: 0.65rem;
+                opacity: 0.9;
+                margin-bottom: 2px;
+            }
+            
+            .nest-info-compact .value {
+                font-weight: 600;
+                font-size: 0.85rem;
+            }
+            
+            .nest-info-compact .divider {
+                color: rgba(255,255,255,0.3);
+                font-size: 1.2rem;
+                line-height: 1;
+            }
+            
+            @media (max-width: 768px) {
+                .nest-info-compact {
+                    padding: 6px 10px;
+                }
+                
+                .nest-info-compact .value {
+                    font-size: 0.8rem;
+                }
+            }
+            
+            /* Kopieerknop styling */
+            .copy-email-btn {
+                background: transparent;
+                border: none;
+                color: #6c757d;
+                padding: 2px 8px;
+                font-size: 0.8rem;
+                cursor: pointer;
+                transition: all 0.2s;
+                border-radius: 4px;
+            }
+            
+            .copy-email-btn:hover {
+                background-color: #e9ecef;
+                color: #0d6efd;
+            }
+            
+            .copy-email-btn.copied {
+                background-color: #198754;
+                color: white;
+            }
+            
+            .email-container {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            
+            .email-address {
+                font-family: monospace;
+                background-color: #f8f9fa;
+                padding: 2px 8px;
+                border-radius: 4px;
+                font-size: 0.8rem;
+            }
+        `;
+        
+        document.head.appendChild(style);
+        console.log('✅ ReuTeefStamboom styles toegevoegd aan NestAankondigingen');
     }
     
     /**
@@ -298,30 +977,79 @@ class NestAankondigingenManager extends BaseModule {
     }
     
     /**
-     * Haal foto's op voor een specifieke hond
+     * OPTIMIZED: Haal ALLEEN thumbnails op voor een specifieke hond
+     * Geen volledige foto data!
      */
-    async getHondFotos(hondId) {
+    async getHondFotosThumbnailsOnly(hondId, stamboomnr) {
         try {
-            if (!hondId) return [];
+            if (!hondId || !stamboomnr) return [];
             
             const supabase = this.getSupabase();
             if (!supabase) return [];
             
-            const { data: hondData, error: hondError } = await supabase
-                .from('honden')
-                .select('stamboomnr, naam, kennelnaam')
-                .eq('id', hondId)
-                .single();
-                
-            if (hondError || !hondData) {
-                console.error('❌ Kon hond niet vinden:', hondError);
+            // Alleen id en thumbnail ophalen, geen volledige foto data
+            const { data: fotos, error } = await supabase
+                .from('fotos')
+                .select('id, thumbnail')
+                .eq('stamboomnr', stamboomnr)
+                .order('uploaded_at', { ascending: false });
+            
+            if (error) {
+                console.error('❌ Fout bij ophalen fotos thumbnails:', error);
                 return [];
             }
+            
+            return fotos || [];
+            
+        } catch (error) {
+            console.error('❌ Fout bij ophalen fotos thumbnails:', error);
+            return [];
+        }
+    }
+    
+    /**
+     * OPTIMIZED: Haal ALLEEN het aantal nestfoto's op, geen data
+     */
+    async getNestFotosCount(nestId) {
+        try {
+            if (!nestId) return 0;
+            
+            const supabase = this.getSupabase();
+            if (!supabase) return 0;
+            
+            const { count, error } = await supabase
+                .from('nest_fotos')
+                .select('*', { count: 'exact', head: true })
+                .eq('nest_id', nestId);
+            
+            if (error) {
+                console.error('❌ Fout bij tellen nestfotos:', error);
+                return 0;
+            }
+            
+            return count || 0;
+            
+        } catch (error) {
+            console.error('❌ Fout bij tellen nestfotos:', error);
+            return 0;
+        }
+    }
+    
+    /**
+     * Haal foto's op voor een specifieke hond (ouders) - VOLLEDIGE DATA
+     * Alleen gebruiken wanneer nodig (bij klikken op foto)
+     */
+    async getHondFotosFull(hondId, stamboomnr) {
+        try {
+            if (!hondId || !stamboomnr) return [];
+            
+            const supabase = this.getSupabase();
+            if (!supabase) return [];
             
             const { data: fotos, error } = await supabase
                 .from('fotos')
                 .select('*')
-                .eq('stamboomnr', hondData.stamboomnr)
+                .eq('stamboomnr', stamboomnr)
                 .order('uploaded_at', { ascending: false });
             
             if (error) {
@@ -334,6 +1062,665 @@ class NestAankondigingenManager extends BaseModule {
         } catch (error) {
             console.error('❌ Fout bij ophalen foto\'s:', error);
             return [];
+        }
+    }
+    
+    /**
+     * Haal nestfoto's op voor een specifiek nest - VOLLEDIGE DATA
+     * Alleen gebruiken wanneer nodig (bij klikken op nestfoto knop)
+     */
+    async getNestFotosFull(nestId) {
+        try {
+            if (!nestId) return [];
+            
+            const supabase = this.getSupabase();
+            if (!supabase) return [];
+            
+            const { data: fotos, error } = await supabase
+                .from('nest_fotos')
+                .select('*')
+                .eq('nest_id', nestId)
+                .order('uploaded_at', { ascending: true });
+            
+            if (error) {
+                console.error('❌ Fout bij ophalen nestfoto\'s:', error);
+                return [];
+            }
+            
+            return fotos || [];
+            
+        } catch (error) {
+            console.error('❌ Fout bij ophalen nestfoto\'s:', error);
+            return [];
+        }
+    }
+    
+    /**
+     * Upload nestfoto voor geselecteerd nest
+     */
+    async uploadNestPhoto(remark = '') {
+        const t = this.t.bind(this);
+        
+        if (!this.selectedNestId) {
+            this.showError('Selecteer eerst een nest', 'nestFotosContainer');
+            return;
+        }
+        
+        // Controleer of er al 15 foto's zijn
+        if (this.nestFotos.length >= 15) {
+            this.showError(t('maxPhotosReached'), 'nestFotosContainer');
+            return;
+        }
+        
+        const fileInput = document.getElementById('nestPhotoFile');
+        if (!fileInput || !fileInput.files.length) {
+            this.showError(t('selectNestPhoto'), 'nestFotosContainer');
+            return;
+        }
+        
+        const file = fileInput.files[0];
+        
+        if (file.size > 5 * 1024 * 1024) {
+            this.showError(t('fileTooLarge'), 'nestFotosContainer');
+            return;
+        }
+        
+        const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!validTypes.includes(file.type)) {
+            this.showError(t('invalidType'), 'nestFotosContainer');
+            return;
+        }
+        
+        this.showProgress(t('uploading'), 'nestFotosContainer');
+        
+        const reader = new FileReader();
+        
+        reader.onload = async (e) => {
+            try {
+                const user = this.currentUser || (await this.getSupabase().auth.getUser()).data.user;
+                if (!user || !user.id) {
+                    throw new Error('Niet ingelogd of geen gebruikers-ID beschikbaar');
+                }
+                
+                const base64Data = e.target.result;
+                
+                // Maak thumbnail (optioneel, voor overzicht)
+                let thumbnail = null;
+                try {
+                    const img = new Image();
+                    img.src = base64Data;
+                    
+                    await new Promise((resolve) => {
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            const ctx = canvas.getContext('2d');
+                            
+                            const maxSize = 100;
+                            let width = img.width;
+                            let height = img.height;
+                            
+                            if (width > height) {
+                                if (width > maxSize) {
+                                    height = (height * maxSize) / width;
+                                    width = maxSize;
+                                }
+                            } else {
+                                if (height > maxSize) {
+                                    width = (width * maxSize) / height;
+                                    height = maxSize;
+                                }
+                            }
+                            
+                            canvas.width = width;
+                            canvas.height = height;
+                            ctx.drawImage(img, 0, 0, width, height);
+                            
+                            thumbnail = canvas.toDataURL('image/jpeg', 0.6);
+                            resolve();
+                        };
+                    });
+                } catch (thumbError) {
+                    console.warn('Thumbnail maken mislukt:', thumbError);
+                    thumbnail = base64Data;
+                }
+                
+                const fotoData = {
+                    nest_id: this.selectedNestId,
+                    data: base64Data,
+                    thumbnail: thumbnail,
+                    filename: file.name,
+                    size: file.size,
+                    type: file.type,
+                    uploaded_at: new Date().toISOString(),
+                    geupload_door: user.id,
+                    opmerking: remark || null
+                };
+                
+                const { data: dbData, error: dbError } = await this.getSupabase()
+                    .from('nest_fotos')
+                    .insert(fotoData)
+                    .select()
+                    .single();
+                
+                if (dbError) {
+                    console.error('Database insert error:', dbError);
+                    throw dbError;
+                }
+                
+                this.hideProgress();
+                this.showSuccess(t('uploadSuccess'), 'nestFotosContainer');
+                
+                fileInput.value = '';
+                
+                // Herlaad de nestfoto's
+                await this.loadNestFotos(this.selectedNestId);
+                
+            } catch (error) {
+                console.error('Upload error:', error);
+                this.hideProgress();
+                this.showError(`${t('uploadFailed')}${error.message}`, 'nestFotosContainer');
+            }
+        };
+        
+        reader.onerror = () => {
+            this.hideProgress();
+            this.showError(t('fileReadError'), 'nestFotosContainer');
+        };
+        
+        reader.readAsDataURL(file);
+    }
+    
+    /**
+     * Update opmerking bij een nestfoto
+     */
+    async updateNestPhotoRemark(fotoId, remark) {
+        const t = this.t.bind(this);
+        
+        try {
+            const supabase = this.getSupabase();
+            if (!supabase) throw new Error('Geen database verbinding');
+            
+            const { error } = await supabase
+                .from('nest_fotos')
+                .update({ opmerking: remark || null })
+                .eq('id', fotoId);
+            
+            if (error) throw error;
+            
+            this.showSuccess(t('remarkSaved'), 'nestFotosContainer');
+            
+            // Herlaad de nestfoto's om de bijgewerkte opmerking te tonen
+            if (this.selectedNestId) {
+                await this.loadNestFotos(this.selectedNestId);
+            }
+            
+            return true;
+            
+        } catch (error) {
+            console.error('❌ Fout bij bijwerken opmerking:', error);
+            this.showError(`${t('remarkSaveFailed')}${error.message}`, 'nestFotosContainer');
+            return false;
+        }
+    }
+    
+    /**
+     * Verwijder een nestfoto
+     */
+    async deleteNestPhoto(fotoId, fotoElement) {
+        const t = this.t.bind(this);
+        
+        if (!confirm(t('confirmDeleteNestPhoto'))) return;
+        
+        try {
+            const supabase = this.getSupabase();
+            if (!supabase) throw new Error('Geen database verbinding');
+            
+            const { error } = await supabase
+                .from('nest_fotos')
+                .delete()
+                .eq('id', fotoId);
+            
+            if (error) throw error;
+            
+            if (fotoElement) {
+                fotoElement.remove();
+            }
+            
+            this.showSuccess(t('nestPhotoDeleteSuccess'), 'nestFotosContainer');
+            
+            if (this.selectedNestId) {
+                await this.loadNestFotos(this.selectedNestId);
+            }
+            
+        } catch (error) {
+            console.error('❌ Fout bij verwijderen nestfoto:', error);
+            this.showError(`${t('nestPhotoDeleteFailed')}${error.message}`, 'nestFotosContainer');
+        }
+    }
+    
+    /**
+     * Toon modal voor het bewerken van een opmerking
+     */
+    showRemarkModal(fotoId, currentRemark) {
+        const t = this.t.bind(this);
+        
+        // Modal HTML
+        const modalHTML = `
+            <div class="modal fade" id="editRemarkModal" tabindex="-1" data-bs-backdrop="static">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header bg-info text-white">
+                            <h5 class="modal-title">
+                                <i class="bi bi-chat-dots"></i> ${t('editRemark')}
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label for="remarkText" class="form-label">${t('remark')}</label>
+                                <textarea class="form-control" id="remarkText" rows="4">${currentRemark || ''}</textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">${t('cancel')}</button>
+                            <button type="button" class="btn btn-info text-white" id="saveRemarkBtn">
+                                <i class="bi bi-check-circle"></i> ${t('saveRemark')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Voeg modal toe aan DOM
+        let modalsContainer = document.getElementById('modalsContainer');
+        if (!modalsContainer) {
+            modalsContainer = document.createElement('div');
+            modalsContainer.id = 'modalsContainer';
+            document.body.appendChild(modalsContainer);
+        }
+        
+        // Verwijder bestaande remark modal
+        const existingModal = document.getElementById('editRemarkModal');
+        if (existingModal) existingModal.remove();
+        
+        modalsContainer.insertAdjacentHTML('beforeend', modalHTML);
+        
+        // Event listener voor opslaan
+        document.getElementById('saveRemarkBtn')?.addEventListener('click', async () => {
+            const newRemark = document.getElementById('remarkText')?.value;
+            await this.updateNestPhotoRemark(fotoId, newRemark);
+            
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editRemarkModal'));
+            if (modal) modal.hide();
+        });
+        
+        // Toon modal
+        const modalElement = document.getElementById('editRemarkModal');
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+        
+        // Cleanup bij sluiten
+        modalElement.addEventListener('hidden.bs.modal', () => {
+            modalElement.remove();
+        });
+    }
+    
+    /**
+     * Laad en toon nestfoto's voor geselecteerd nest
+     */
+    async loadNestFotos(nestId) {
+        if (!nestId) return;
+        
+        this.selectedNestId = nestId;
+        this.nestFotos = await this.getNestFotosFull(nestId);
+        
+        await this.displayNestFotos();
+    }
+    
+    /**
+     * Toon nestfoto's in de container met verwijderknop, opmerking en uploadmogelijkheid
+     */
+    async displayNestFotos() {
+        const container = document.getElementById('nestFotosContainer');
+        if (!container) return;
+        
+        const t = this.t.bind(this);
+        
+        // Upload sectie bovenaan
+        let html = `
+            <div class="mb-3">
+                <label for="nestPhotoFile" class="form-label">${t('selectNestPhotoToUpload')} (max 15)</label>
+                <input class="form-control" type="file" id="nestPhotoFile" accept="image/*">
+                <div class="form-text">${t('maxSize')}</div>
+            </div>
+            <div class="mb-3">
+                <label for="uploadRemark" class="form-label">${t('remark')} (optioneel)</label>
+                <textarea class="form-control" id="uploadRemark" rows="2" placeholder="${t('clickToAddRemark')}"></textarea>
+            </div>
+            <button class="btn btn-info w-100 mb-3" id="uploadNestPhotoBtn">
+                <i class="bi bi-cloud-upload"></i> ${t('uploadNestPhoto')}
+            </button>
+            <hr>
+        `;
+        
+        // Foto teller
+        html += `<p class="text-muted">${this.nestFotos.length}/15 ${t('nestPhotos')}</p>`;
+        
+        if (!this.nestFotos || this.nestFotos.length === 0) {
+            html += `
+                <div class="text-center py-4">
+                    <i class="bi bi-images text-muted" style="font-size: 2rem;"></i>
+                    <p class="mt-2 text-muted">${t('noNestPhotos')}</p>
+                </div>
+            `;
+        } else {
+            html += '<div class="row">';
+            
+            for (const foto of this.nestFotos) {
+                // Formatteer datum
+                const uploadDate = foto.uploaded_at ? new Date(foto.uploaded_at).toLocaleDateString() : 'Onbekend';
+                
+                html += `
+                    <div class="col-md-6 col-lg-4 mb-3" id="nest-foto-${foto.id}">
+                        <div class="card h-100">
+                            <div class="position-relative">
+                                <button class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 delete-nest-photo-btn" 
+                                        data-foto-id="${foto.id}"
+                                        style="z-index: 10; border-radius: 50%; width: 32px; height: 32px; padding: 0;"
+                                        title="${t('deleteNestPhoto')}">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                                <div class="card-img-top nest-foto-thumbnail" 
+                                     style="height: 150px; cursor: pointer; background: #f8f9fa; display: flex; align-items: center; justify-content: center; overflow: hidden;"
+                                     data-foto='${JSON.stringify(foto).replace(/'/g, '&apos;')}'
+                                     data-nest-naam="${this.selectedNestKennelnaam || ''}">
+                                    <img src="${foto.thumbnail || foto.data}" alt="Nestfoto" 
+                                         style="max-width: 100%; max-height: 100%; object-fit: cover;">
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <small class="text-muted d-block text-truncate">
+                                    ${foto.filename || 'Nestfoto'}
+                                </small>
+                                <small class="text-muted d-block">
+                                    ${uploadDate}
+                                </small>
+                                
+                                <!-- Opmerking sectie -->
+                                <div class="mt-2 p-2 bg-light rounded" style="min-height: 50px;">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <small class="fw-semibold">${t('remark')}:</small>
+                                        <button class="btn btn-sm btn-outline-info py-0 px-1 edit-remark-btn" 
+                                                data-foto-id="${foto.id}"
+                                                data-current-remark='${(foto.opmerking || "").replace(/'/g, "\\'")}'
+                                                title="${t('editRemark')}">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </button>
+                                    </div>
+                                    <small class="d-block mt-1 remark-text" style="word-break: break-word;">
+                                        ${foto.opmerking ? foto.opmerking : `<span class="text-muted fst-italic">${t('noRemark')}</span>`}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            html += '</div>';
+        }
+        
+        container.innerHTML = html;
+        
+        // Event listener voor upload knop
+        document.getElementById('uploadNestPhotoBtn')?.addEventListener('click', () => {
+            const remark = document.getElementById('uploadRemark')?.value || '';
+            this.uploadNestPhoto(remark);
+        });
+        
+        // Click handlers voor foto's
+        container.querySelectorAll('.nest-foto-thumbnail').forEach(thumb => {
+            thumb.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                try {
+                    const foto = JSON.parse(thumb.dataset.foto.replace(/&apos;/g, "'"));
+                    const nestNaam = thumb.dataset.nestNaam || this.selectedNestKennelnaam || '';
+                    
+                    // Laad PhotoViewer dynamisch
+                    await this.ensurePhotoViewer();
+                    
+                    // Toon de foto
+                    window.photoViewer.showPhoto(foto.data, nestNaam);
+                } catch (error) {
+                    console.error('Fout bij tonen foto:', error);
+                    // Fallback: open direct in nieuw tabblad
+                    try {
+                        const foto = JSON.parse(thumb.dataset.foto.replace(/&apos;/g, "'"));
+                        window.open(foto.data, '_blank');
+                    } catch (fallbackError) {
+                        console.error('Ook fallback mislukt:', fallbackError);
+                    }
+                }
+            });
+        });
+        
+        // Click handlers voor verwijder knoppen
+        container.querySelectorAll('.delete-nest-photo-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const fotoId = btn.dataset.fotoId;
+                const fotoElement = document.getElementById(`nest-foto-${fotoId}`);
+                await this.deleteNestPhoto(fotoId, fotoElement);
+            });
+        });
+        
+        // Click handlers voor bewerk opmerking knoppen
+        container.querySelectorAll('.edit-remark-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const fotoId = btn.dataset.fotoId;
+                const currentRemark = btn.dataset.currentRemark || '';
+                this.showRemarkModal(fotoId, currentRemark);
+            });
+        });
+    }
+    
+    /**
+     * Toon de nestfoto galerij modal
+     */
+    async showNestPhotoGallery(nestId, nestNaam, fotos) {
+        this.currentNestFotos = fotos;
+        this.currentFotoIndex = 0;
+        
+        const t = this.t.bind(this);
+        
+        // Modal HTML
+        const modalHTML = `
+            <div class="modal fade" id="nestPhotoGalleryModal" tabindex="-1" data-bs-backdrop="static">
+                <div class="modal-dialog modal-lg modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header bg-primary text-white">
+                            <h5 class="modal-title">
+                                <i class="bi bi-images"></i> ${t('nestPhotos')} - ${nestNaam}
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div id="galleryFotoContainer" class="text-center mb-3">
+                                <img id="currentGalleryFoto" src="" alt="Nestfoto" class="img-fluid" style="max-height: 500px;">
+                            </div>
+                            
+                            <!-- Toon opmerking bij huidige foto -->
+                            <div id="currentFotoRemark" class="alert alert-info mb-3" style="display: none;">
+                                <i class="bi bi-chat-dots me-2"></i>
+                                <span id="remarkText"></span>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <button class="btn btn-outline-primary" id="prevFotoBtn" ${fotos.length <= 1 ? 'disabled' : ''}>
+                                    <i class="bi bi-arrow-left"></i> ${t('previous')}
+                                </button>
+                                <span id="fotoCounter" class="fw-bold">${t('photoCounter').replace('{current}', '1').replace('{total}', fotos.length)}</span>
+                                <button class="btn btn-outline-primary" id="nextFotoBtn" ${fotos.length <= 1 ? 'disabled' : ''}>
+                                    ${t('next')} <i class="bi bi-arrow-right"></i>
+                                </button>
+                            </div>
+                            
+                            <!-- Miniaturen onderaan -->
+                            <div class="row mt-3" id="thumbnailRow">
+                                ${fotos.map((foto, index) => `
+                                    <div class="col-2 col-md-1 mb-2">
+                                        <div class="gallery-thumbnail ${index === 0 ? 'border border-primary' : ''}" 
+                                             style="width: 100%; height: 50px; cursor: pointer; overflow: hidden; border-radius: 4px;"
+                                             data-index="${index}"
+                                             data-foto='${JSON.stringify(foto).replace(/'/g, '&apos;')}'>
+                                            <img src="${foto.thumbnail || foto.data}" alt="Thumb" style="width: 100%; height: 100%; object-fit: cover;">
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">${t('close')}</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <style>
+                .gallery-thumbnail {
+                    transition: all 0.2s;
+                }
+                .gallery-thumbnail:hover {
+                    transform: scale(1.1);
+                    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+                }
+            </style>
+        `;
+        
+        // Voeg modal toe aan DOM
+        let modalsContainer = document.getElementById('modalsContainer');
+        if (!modalsContainer) {
+            modalsContainer = document.createElement('div');
+            modalsContainer.id = 'modalsContainer';
+            document.body.appendChild(modalsContainer);
+        }
+        
+        // Verwijder bestaande gallery modal
+        const existingModal = document.getElementById('nestPhotoGalleryModal');
+        if (existingModal) existingModal.remove();
+        
+        modalsContainer.insertAdjacentHTML('beforeend', modalHTML);
+        
+        // Toon eerste foto
+        const currentImg = document.getElementById('currentGalleryFoto');
+        if (currentImg && fotos.length > 0) {
+            currentImg.src = fotos[0].data;
+            this.updateGalleryRemark(fotos[0]);
+        }
+        
+        // Event listeners voor navigatie
+        document.getElementById('prevFotoBtn')?.addEventListener('click', () => {
+            if (this.currentFotoIndex > 0) {
+                this.currentFotoIndex--;
+                this.updateGalleryDisplay();
+            }
+        });
+        
+        document.getElementById('nextFotoBtn')?.addEventListener('click', () => {
+            if (this.currentFotoIndex < this.currentNestFotos.length - 1) {
+                this.currentFotoIndex++;
+                this.updateGalleryDisplay();
+            }
+        });
+        
+        // Event listeners voor miniaturen
+        document.querySelectorAll('.gallery-thumbnail').forEach(thumb => {
+            thumb.addEventListener('click', () => {
+                const index = parseInt(thumb.dataset.index);
+                if (!isNaN(index)) {
+                    this.currentFotoIndex = index;
+                    this.updateGalleryDisplay();
+                }
+            });
+        });
+        
+        // Toon modal
+        const modalElement = document.getElementById('nestPhotoGalleryModal');
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+        
+        // Cleanup bij sluiten
+        modalElement.addEventListener('hidden.bs.modal', () => {
+            modalElement.remove();
+        });
+    }
+    
+    /**
+     * Update galerij weergave na navigatie
+     */
+    updateGalleryDisplay() {
+        if (!this.currentNestFotos || this.currentNestFotos.length === 0) return;
+        
+        const currentFoto = this.currentNestFotos[this.currentFotoIndex];
+        const currentImg = document.getElementById('currentGalleryFoto');
+        const counter = document.getElementById('fotoCounter');
+        const t = this.t.bind(this);
+        
+        if (currentImg) {
+            currentImg.src = currentFoto.data;
+        }
+        
+        if (counter) {
+            counter.textContent = t('photoCounter')
+                .replace('{current}', (this.currentFotoIndex + 1).toString())
+                .replace('{total}', this.currentNestFotos.length.toString());
+        }
+        
+        // Update opmerking
+        this.updateGalleryRemark(currentFoto);
+        
+        // Update miniaturen highlight
+        document.querySelectorAll('.gallery-thumbnail').forEach((thumb, index) => {
+            if (index === this.currentFotoIndex) {
+                thumb.classList.add('border', 'border-primary');
+            } else {
+                thumb.classList.remove('border', 'border-primary');
+            }
+        });
+        
+        // Update vorige/volgende knoppen
+        const prevBtn = document.getElementById('prevFotoBtn');
+        const nextBtn = document.getElementById('nextFotoBtn');
+        
+        if (prevBtn) {
+            prevBtn.disabled = this.currentFotoIndex === 0;
+        }
+        if (nextBtn) {
+            nextBtn.disabled = this.currentFotoIndex === this.currentNestFotos.length - 1;
+        }
+    }
+    
+    /**
+     * Update de opmerking in de galerij
+     */
+    updateGalleryRemark(foto) {
+        const remarkContainer = document.getElementById('currentFotoRemark');
+        const remarkText = document.getElementById('remarkText');
+        const t = this.t.bind(this);
+        
+        if (foto.opmerking) {
+            if (remarkContainer) {
+                remarkContainer.style.display = 'block';
+            }
+            if (remarkText) {
+                remarkText.textContent = foto.opmerking;
+            }
+        } else {
+            if (remarkContainer) {
+                remarkContainer.style.display = 'none';
+            }
         }
     }
     
@@ -362,8 +1749,7 @@ class NestAankondigingenManager extends BaseModule {
         this.currentUser = user;
         console.log('Gebruiker:', user?.email);
         
-        // Laad alle honden voor autocomplete
-        await this.loadAllDogs();
+        // NIET ALLE HONDEN LADEN - alleen wanneer nodig
         
         this.currentPage = 1;
         this.currentView = 'overview';
@@ -431,6 +1817,7 @@ class NestAankondigingenManager extends BaseModule {
                                         </div>
                                     </div>
                                 </div>
+                                ${this.isAdmin || this.isUserPlus ? `
                                 <div class="col-md-6">
                                     <div class="card h-100 border-success hover-shadow" style="cursor: pointer;" id="manageAnnouncementsBtn">
                                         <div class="card-body p-5">
@@ -439,6 +1826,7 @@ class NestAankondigingenManager extends BaseModule {
                                         </div>
                                     </div>
                                 </div>
+                                ` : ''}
                             </div>
                         </div>
                         <div class="modal-footer">
@@ -570,7 +1958,7 @@ class NestAankondigingenManager extends BaseModule {
                     font-size: 0.8rem;
                 }
                 
-                /* Foto thumbnails styling */
+                /* Foto thumbnails styling voor ouders */
                 .photo-thumbnails {
                     margin-top: 12px;
                     padding-top: 8px;
@@ -619,6 +2007,19 @@ class NestAankondigingenManager extends BaseModule {
                     justify-content: center;
                 }
                 
+                /* Nestfoto knop styling */
+                .btn-nest-photos {
+                    background-color: #6f42c1;
+                    color: white;
+                    transition: all 0.2s;
+                }
+                
+                .btn-nest-photos:hover {
+                    background-color: #5a32a3;
+                    color: white;
+                    transform: scale(1.05);
+                }
+                
                 /* Card header ook verkleind */
                 .announcement-card .card-header {
                     padding: 0.5rem 1rem;
@@ -639,9 +2040,54 @@ class NestAankondigingenManager extends BaseModule {
                     font-size: 0.7rem;
                 }
                 
-                /* Email en datum */
+                /* Email en datum - aangepast voor kopieerknop */
                 .announcement-card .text-muted.small {
                     font-size: 0.65rem !important;
+                }
+                
+                .email-display {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    margin-bottom: 4px;
+                }
+                
+                .email-address {
+                    font-family: monospace;
+                    background-color: #f8f9fa;
+                    padding: 2px 8px;
+                    border-radius: 4px;
+                    font-size: 0.8rem;
+                }
+                
+                .copy-email-btn {
+                    background: transparent;
+                    border: 1px solid #dee2e6;
+                    color: #6c757d;
+                    padding: 2px 8px;
+                    font-size: 0.7rem;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    border-radius: 4px;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 4px;
+                }
+                
+                .copy-email-btn:hover {
+                    background-color: #e9ecef;
+                    color: #0d6efd;
+                    border-color: #0d6efd;
+                }
+                
+                .copy-email-btn.copied {
+                    background-color: #198754;
+                    color: white;
+                    border-color: #198754;
+                }
+                
+                .copy-email-btn i {
+                    font-size: 0.8rem;
                 }
                 
                 /* PAGINATIE - 80% van normale grootte */
@@ -660,6 +2106,19 @@ class NestAankondigingenManager extends BaseModule {
                     font-size: 0.8rem;
                 }
                 
+                /* Stamboom knop styling */
+                .btn-pedigree {
+                    background-color: #17a2b8;
+                    color: white;
+                    transition: all 0.2s;
+                }
+                
+                .btn-pedigree:hover {
+                    background-color: #138496;
+                    color: white;
+                    transform: scale(1.05);
+                }
+                
                 @media (max-width: 768px) {
                     .health-row-2col {
                         flex-direction: column;
@@ -668,6 +2127,10 @@ class NestAankondigingenManager extends BaseModule {
                     
                     .announcement-card .dog-name {
                         font-size: 0.9rem;
+                    }
+                    
+                    .email-display {
+                        flex-wrap: wrap;
                     }
                 }
             </style>
@@ -688,11 +2151,13 @@ class NestAankondigingenManager extends BaseModule {
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
+                            ${this.isAdmin || this.isUserPlus ? `
                             <div class="mb-3">
                                 <button class="btn btn-success" id="addAnnouncementBtn">
                                     <i class="bi bi-plus-circle"></i> ${t('addAnnouncement')}
                                 </button>
                             </div>
+                            ` : ''}
                             <div id="nestAankondigingenBeheerContainer" class="row">
                                 <div class="col-12 text-center py-5">
                                     <div class="spinner-border text-secondary"></div>
@@ -713,7 +2178,7 @@ class NestAankondigingenManager extends BaseModule {
     }
     
     /**
-     * Modal voor toevoegen/bewerken
+     * Modal voor toevoegen/bewerken - MET DE NIEUWE VELDEN
      */
     getAddEditModalHTML(mode = 'add') {
         const title = mode === 'add' ? this.t('addAnnouncement') : this.t('editAnnouncement');
@@ -766,11 +2231,28 @@ class NestAankondigingenManager extends BaseModule {
                                     </div>
                                 </div>
                                 
-                                <div class="mb-3">
-                                    <label for="kennelName" class="form-label">${this.t('kennelName')}</label>
-                                    <input type="text" class="form-control" id="kennelName" 
-                                           placeholder="${this.t('kennelNamePlaceholder')}" 
-                                           maxlength="100" required>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="kennelName" class="form-label">${this.t('kennelName')}</label>
+                                        <input type="text" class="form-control" id="kennelName" 
+                                               placeholder="${this.t('kennelNamePlaceholder')}" 
+                                               maxlength="100" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="birthDate" class="form-label">${this.t('birthDate')}</label>
+                                        <input type="date" class="form-control" id="birthDate" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="maleCount" class="form-label">${this.t('maleCount')}</label>
+                                        <input type="number" class="form-control" id="maleCount" min="0" max="20" step="1" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="femaleCount" class="form-label">${this.t('femaleCount')}</label>
+                                        <input type="number" class="form-control" id="femaleCount" min="0" max="20" step="1" required>
+                                    </div>
                                 </div>
                                 
                                 <div class="mb-3">
@@ -835,6 +2317,45 @@ class NestAankondigingenManager extends BaseModule {
         `;
     }
     
+    /**
+     * Modal voor nestfoto beheer (vanuit beheer view)
+     */
+    getNestFotoBeheerModalHTML() {
+        const t = this.t.bind(this);
+        
+        return `
+            <div class="modal fade" id="nestFotoBeheerModal" tabindex="-1" data-bs-backdrop="static">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header bg-purple text-white" style="background-color: #6f42c1;">
+                            <h5 class="modal-title">
+                                <i class="bi bi-images"></i> ${t('nestPhotos')}
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div id="nestFotosContainer" class="row">
+                                <div class="col-12 text-center py-5">
+                                    <div class="spinner-border text-secondary"></div>
+                                    <p class="mt-3 text-muted">${t('loading')}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">${t('close')}</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <style>
+                .bg-purple {
+                    background-color: #6f42c1 !important;
+                }
+            </style>
+        `;
+    }
+    
     async loadAllDogs() {
         console.log('NestAankondigingenManager: loadAllDogs aangeroepen');
         
@@ -871,11 +2392,15 @@ class NestAankondigingenManager extends BaseModule {
                 return naamA.localeCompare(naamB);
             });
             
+            // Vul ook allHonden voor stamboom module
+            this.allHonden = this.allDogs;
+            
             console.log(`${this.allDogs.length} honden geladen voor autocomplete`);
             
         } catch (error) {
             console.error('Fout bij laden honden:', error);
             this.allDogs = [];
+            this.allHonden = [];
         }
     }
     
@@ -889,7 +2414,7 @@ class NestAankondigingenManager extends BaseModule {
             });
         }
         
-        if (manageAnnouncementsBtn) {
+        if (manageAnnouncementsBtn && (this.isAdmin || this.isUserPlus)) {
             manageAnnouncementsBtn.addEventListener('click', () => {
                 this.showBeheerView();
             });
@@ -921,7 +2446,7 @@ class NestAankondigingenManager extends BaseModule {
             });
         }
         
-        if (addBtn) {
+        if (addBtn && (this.isAdmin || this.isUserPlus)) {
             addBtn.addEventListener('click', () => {
                 this.showAddAnnouncementModal();
             });
@@ -936,6 +2461,9 @@ class NestAankondigingenManager extends BaseModule {
     async showAddAnnouncementModal() {
         try {
             console.log('Show add announcement modal');
+            
+            // LAAD ALLEEN HIER DE HONDEN - voor autocomplete
+            await this.loadAllDogs();
             
             const modalHTML = this.getAddEditModalHTML('add');
             
@@ -961,6 +2489,8 @@ class NestAankondigingenManager extends BaseModule {
                 modalElement.remove();
                 this.editingAnnouncementId = null;
                 this.editingAnnouncementData = null;
+                // Leeg de hondenlijst om geheugen vrij te maken
+                this.allDogs = [];
             });
             
         } catch (error) {
@@ -975,6 +2505,9 @@ class NestAankondigingenManager extends BaseModule {
     async showEditAnnouncementModal(announcement) {
         try {
             console.log('Show edit announcement modal', announcement);
+            
+            // LAAD ALLEEN HIER DE HONDEN - voor autocomplete
+            await this.loadAllDogs();
             
             this.editingAnnouncementId = announcement.id;
             this.editingAnnouncementData = announcement;
@@ -1000,6 +2533,8 @@ class NestAankondigingenManager extends BaseModule {
                 modalElement.remove();
                 this.editingAnnouncementId = null;
                 this.editingAnnouncementData = null;
+                // Leeg de hondenlijst om geheugen vrij te maken
+                this.allDogs = [];
             });
             
         } catch (error) {
@@ -1009,7 +2544,179 @@ class NestAankondigingenManager extends BaseModule {
     }
     
     /**
-     * Vul bewerk formulier met bestaande data
+     * Toon modal voor nestfoto beheer
+     */
+    async showNestFotoBeheerModal(announcement) {
+        try {
+            console.log('Show nest foto beheer modal', announcement);
+            
+            this.selectedNestId = announcement.id;
+            this.selectedNestKennelnaam = announcement.kennelnaam_nest || `Nest #${announcement.id}`;
+            
+            const modalHTML = this.getNestFotoBeheerModalHTML();
+            
+            let modalsContainer = document.getElementById('modalsContainer');
+            const existingModal = document.getElementById('nestFotoBeheerModal');
+            if (existingModal) existingModal.remove();
+            
+            modalsContainer.insertAdjacentHTML('beforeend', modalHTML);
+            
+            const modalElement = document.getElementById('nestFotoBeheerModal');
+            const modal = new bootstrap.Modal(modalElement);
+            
+            // Laad nestfoto's
+            await this.loadNestFotos(announcement.id);
+            
+            modal.show();
+            
+            modalElement.addEventListener('hidden.bs.modal', () => {
+                modalElement.remove();
+                this.selectedNestId = null;
+                this.selectedNestKennelnaam = null;
+                this.nestFotos = [];
+            });
+            
+        } catch (error) {
+            console.error('Fout bij tonen nestfoto beheer modal:', error);
+            alert('Fout bij laden nestfoto\'s: ' + error.message);
+        }
+    }
+    
+    /**
+     * Toon stamboom van pups (fictieve pup)
+     */
+    async showPuppyPedigree(announcement) {
+        try {
+            console.log('Show puppy pedigree for announcement', announcement);
+            
+            // LAAD ALLEEN HIER DE HONDEN - voor stamboom
+            await this.loadAllDogs();
+            
+            // Haal vader en moeder op
+            const vader = this.allDogs.find(d => d.id === announcement.vader_id);
+            const moeder = this.allDogs.find(d => d.id === announcement.moeder_id);
+            
+            if (!vader || !moeder) {
+                alert('Kan vader of moeder niet vinden');
+                return;
+            }
+            
+            // Zorg dat allHonden gevuld is
+            this.allHonden = this.allDogs;
+            
+            // Maak een mainModule voor de stamboom
+            const stamboomMainModule = {
+                t: (key, params) => this.t(key, params),
+                currentLang: this.currentLang,
+                db: this.db,
+                allHonden: this.allDogs,
+                hondenCache: new Map(),
+                getDogById: (id) => {
+                    if (!id || id === 0) return null;
+                    const dog = this.allDogs.find(d => d.id === id);
+                    if (dog) {
+                        return {
+                            ...dog,
+                            vader_id: dog.vader_id || dog.vaderId,
+                            moeder_id: dog.moeder_id || dog.moederId
+                        };
+                    }
+                    return null;
+                },
+                checkDogHasPhotos: async (dogId) => {
+                    const dog = this.allDogs.find(d => d.id === dogId);
+                    if (!dog || !dog.stamboomnr) return false;
+                    try {
+                        const { data: fotos } = await this.getSupabase()
+                            .from('fotos')
+                            .select('id')
+                            .eq('stamboomnr', dog.stamboomnr)
+                            .limit(1);
+                        return fotos && fotos.length > 0;
+                    } catch {
+                        return false;
+                    }
+                },
+                showAlert: (message, type) => console.log(`Alert: ${message} (${type}`)
+            };
+            
+            // Vul cache
+            this.allDogs.forEach(dog => {
+                stamboomMainModule.hondenCache.set(dog.id, dog);
+                if (dog.stamboomnr) {
+                    stamboomMainModule.hondenCache.set(dog.stamboomnr, dog);
+                }
+            });
+            
+            // Maak stamboom module
+            const stamboomModule = new ReuTeefStamboom(stamboomMainModule);
+            
+            // Bereid data voor
+            stamboomModule.allDogs = [...this.allDogs];
+            
+            // Maak virtuele toekomstige pup
+            const futurePuppy = {
+                id: -999999,
+                naam: this.t('futurePuppy'),
+                geslacht: 'onbekend',
+                vader_id: vader.id,
+                moeder_id: moeder.id,
+                vader: vader.naam,
+                moeder: moeder.naam,
+                kennelnaam: this.t('kennelnaam_nest'),
+                stamboomnr: 'VOORSPELD',
+                geboortedatum: new Date().toISOString().split('T')[0],
+                vachtkleur: `${vader.vachtkleur || ''}/${moeder.vachtkleur || ''}`.trim()
+            };
+            stamboomModule.allDogs.push(futurePuppy);
+            
+            // Initialiseer COI calculator
+            if (typeof COICalculator !== 'undefined') {
+                stamboomModule.coiCalculator = new COICalculator(stamboomModule.allDogs);
+            }
+            
+            if (stamboomModule.initialize) {
+                await stamboomModule.initialize();
+            }
+            
+            await stamboomModule.showFuturePuppyPedigree(moeder, vader, this.t('futurePuppyTitle', { kennelnaam_nest: announcement.kennelnaam_nest }));
+            
+        } catch (error) {
+            console.error('Fout bij tonen stamboom pups:', error);
+            alert('Fout bij laden stamboom: ' + error.message);
+        }
+    }
+    
+    /**
+     * getDogById voor ReuTeefStamboom (wordt gebruikt door de stamboom module)
+     */
+    getDogById(id) {
+        if (!id || id === 0) return null;
+        
+        // Eerst in cache zoeken
+        if (this.hondenCache.has(id)) {
+            return this.hondenCache.get(id);
+        }
+        
+        // Dan in allHonden array zoeken
+        const dog = this.allHonden.find(dog => dog.id === id);
+        if (dog) {
+            this.hondenCache.set(id, dog);
+            return dog;
+        }
+        
+        // Als niet gevonden, probeer in allDogs
+        const dog2 = this.allDogs.find(dog => dog.id === id);
+        if (dog2) {
+            this.hondenCache.set(id, dog2);
+            return dog2;
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Vul bewerk formulier met bestaande data - MET NIEUWE VELDEN
      */
     async populateEditForm(announcement) {
         try {
@@ -1053,6 +2760,29 @@ class NestAankondigingenManager extends BaseModule {
             const kennelNameField = document.getElementById('kennelName');
             if (kennelNameField) {
                 kennelNameField.value = announcement.kennelnaam_nest || '';
+            }
+            
+            // NIEUW: Geboortedatum invullen
+            const birthDateField = document.getElementById('birthDate');
+            if (birthDateField && announcement.geboortedatum) {
+                // Formatteer datum naar YYYY-MM-DD voor input type="date"
+                const date = new Date(announcement.geboortedatum);
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                birthDateField.value = `${year}-${month}-${day}`;
+            }
+            
+            // NIEUW: Aantal reuen invullen
+            const maleCountField = document.getElementById('maleCount');
+            if (maleCountField) {
+                maleCountField.value = announcement.aantal_reuen || '';
+            }
+            
+            // NIEUW: Aantal teven invullen
+            const femaleCountField = document.getElementById('femaleCount');
+            if (femaleCountField) {
+                femaleCountField.value = announcement.aantal_teven || '';
             }
             
             const emailField = document.getElementById('email');
@@ -1285,10 +3015,16 @@ class NestAankondigingenManager extends BaseModule {
         const vaderIdInput = document.getElementById('vader_id');
         const moederIdInput = document.getElementById('moeder_id');
         const kennelNameInput = document.getElementById('kennelName');
+        const birthDateInput = document.getElementById('birthDate');
+        const maleCountInput = document.getElementById('maleCount');
+        const femaleCountInput = document.getElementById('femaleCount');
         
         const vaderId = vaderIdInput?.value;
         const moederId = moederIdInput?.value;
         const kennelnaam_nest = kennelNameInput?.value.trim();
+        const geboortedatum = birthDateInput?.value;
+        const aantal_reuen = parseInt(maleCountInput?.value);
+        const aantal_teven = parseInt(femaleCountInput?.value);
         
         if (!vaderId || !moederId) {
             this.showStatus('Vader en moeder zijn verplicht', 'danger');
@@ -1297,6 +3033,16 @@ class NestAankondigingenManager extends BaseModule {
         
         if (!kennelnaam_nest) {
             this.showStatus('Kennelnaam is verplicht', 'danger');
+            return;
+        }
+        
+        if (!geboortedatum) {
+            this.showStatus('Geboortedatum is verplicht', 'danger');
+            return;
+        }
+        
+        if (isNaN(aantal_reuen) || isNaN(aantal_teven)) {
+            this.showStatus('Aantal reuen en teven zijn verplicht', 'danger');
             return;
         }
         
@@ -1321,12 +3067,15 @@ class NestAankondigingenManager extends BaseModule {
             return;
         }
         
-        // Data voor opslag
+        // Data voor opslag - MET NIEUWE VELDEN
         const data = {
             vader_id: vaderIdInt,
             moeder_id: moederIdInt,
             toegevoegd_door: userId,
             kennelnaam_nest: kennelnaam_nest,
+            geboortedatum: geboortedatum,
+            aantal_reuen: aantal_reuen,
+            aantal_teven: aantal_teven,
             email: email || null,
             beschrijving: beschrijving || null
         };
@@ -1397,8 +3146,35 @@ class NestAankondigingenManager extends BaseModule {
     }
     
     /**
+     * Kopieer e-mailadres naar klembord
+     */
+    async copyEmailToClipboard(email, buttonElement) {
+        const t = this.t.bind(this);
+        
+        try {
+            await navigator.clipboard.writeText(email);
+            
+            // Toon feedback op de knop
+            const originalText = buttonElement.innerHTML;
+            buttonElement.innerHTML = '<i class="bi bi-check-lg"></i> ' + t('emailCopied');
+            buttonElement.classList.add('copied');
+            
+            // Reset na 2 seconden
+            setTimeout(() => {
+                buttonElement.innerHTML = '<i class="bi bi-files"></i> ' + t('copyEmail');
+                buttonElement.classList.remove('copied');
+            }, 2000);
+            
+        } catch (error) {
+            console.error('Kopieerfout:', error);
+            // Fallback voor oudere browsers
+            alert('Druk op Ctrl+C om het e-mailadres te kopiëren: ' + email);
+        }
+    }
+    
+    /**
      * Laad nest aankondigingen voor overzicht met paginatie
-     * Toont 1 aankondiging per pagina
+     * Toont 1 aankondiging per pagina - ALLE records voor IEDEREEN
      */
     async loadAnnouncements(page = 1) {
         const container = document.getElementById('nestAankondigingenContainer');
@@ -1457,7 +3233,7 @@ class NestAankondigingenManager extends BaseModule {
     
     /**
      * Laad nest aankondigingen voor beheer met paginatie
-     * Alleen eigen aankondigingen voor niet-admin gebruikers
+     * ALLE records voor admin, ALLEEN EIGEN records voor gebruiker+
      */
     async loadAnnouncementsForBeheer(page = 1) {
         const container = document.getElementById('nestAankondigingenBeheerContainer');
@@ -1486,7 +3262,8 @@ class NestAankondigingenManager extends BaseModule {
                 .select('*', { count: 'exact' })
                 .order('aangemaakt_op', { ascending: false });
             
-            // Alleen filteren op toegevoegd_door voor niet-admin gebruikers
+            // ALLEEN filteren op toegevoegd_door voor NIET-admin gebruikers
+            // Admin ziet ALLES, gebruiker+ ziet ALLEEN EIGEN
             if (user && !isAdmin) {
                 query = query.eq('toegevoegd_door', user.id);
             }
@@ -1507,7 +3284,7 @@ class NestAankondigingenManager extends BaseModule {
                 return;
             }
             
-            await this.renderBeheerList(announcements, container, count, page);
+            await this.renderBeheerList(announcements, container, count, page, user, isAdmin);
             
         } catch (error) {
             console.error('Fout bij laden aankondigingen voor beheer:', error);
@@ -1522,32 +3299,57 @@ class NestAankondigingenManager extends BaseModule {
     
     /**
      * Render overzichtslijst met exact de gewenste indeling
-     * Eerste rij: HD en ED naast elkaar
-     * Tweede rij: Patella en Ogen naast elkaar
-     * Derde rij: Dandy Walker op eigen regel
-     * Vierde rij: Schildklier op eigen regel
-     * Vijfde rij: Land op eigen regel
-     * Met foto thumbnails van beide ouders
+     * MET COMPACTE NEST INFORMATIE BOVEN HET BESCHRIJVINGSVELD
+     * EN OPTIMIZED FOTO LADEN - ALLEEN THUMBNAILS
      */
     async renderOverviewList(announcements, container, total = 0, currentPage = 1) {
         const t = this.t.bind(this);
         let html = '';
         
         for (const announcement of announcements) {
-            // Haal vader gegevens op
-            const vader = this.allDogs.find(d => d.id === announcement.vader_id) || {};
+            // Haal vader gegevens op - direct uit de database via een aparte query om zeker te zijn dat we alle honden kunnen zien
+            const supabase = this.getSupabase();
+            let vader = {};
+            let moeder = {};
             
-            // Haal moeder gegevens op
-            const moeder = this.allDogs.find(d => d.id === announcement.moeder_id) || {};
+            if (announcement.vader_id) {
+                const { data: vaderData } = await supabase
+                    .from('honden')
+                    .select('*')
+                    .eq('id', announcement.vader_id)
+                    .single();
+                vader = vaderData || {};
+            }
             
-            // Haal foto's op voor vader en moeder
-            const vaderFotos = await this.getHondFotos(vader.id);
-            const moederFotos = await this.getHondFotos(moeder.id);
+            if (announcement.moeder_id) {
+                const { data: moederData } = await supabase
+                    .from('honden')
+                    .select('*')
+                    .eq('id', announcement.moeder_id)
+                    .single();
+                moeder = moederData || {};
+            }
+            
+            // OPTIMIZED: Haal ALLEEN de thumbnail URLs op voor vader en moeder
+            // Geen volledige foto's laden!
+            const vaderFotos = await this.getHondFotosThumbnailsOnly(vader.id, vader.stamboomnr);
+            const moederFotos = await this.getHondFotosThumbnailsOnly(moeder.id, moeder.stamboomnr);
+            
+            // OPTIMIZED: Haal ALLEEN het aantal nestfoto's op, geen data
+            const nestFotosCount = await this.getNestFotosCount(announcement.id);
             
             // Formatteer datum
             const date = new Date(announcement.aangemaakt_op);
             const formattedDate = date.toLocaleDateString(this.currentLang === 'nl' ? 'nl-NL' : 
                                                            this.currentLang === 'de' ? 'de-DE' : 'en-US');
+            
+            // Formatteer geboortedatum
+            let geboortedatumFormatted = '';
+            if (announcement.geboortedatum) {
+                const birthDate = new Date(announcement.geboortedatum);
+                geboortedatumFormatted = birthDate.toLocaleDateString(this.currentLang === 'nl' ? 'nl-NL' : 
+                                                                      this.currentLang === 'de' ? 'de-DE' : 'en-US');
+            }
             
             // Vader display naam
             const vaderNaam = vader.kennelnaam ? `${vader.naam || 'Onbekend'} ${vader.kennelnaam}` : (vader.naam || 'Onbekend');
@@ -1555,19 +3357,22 @@ class NestAankondigingenManager extends BaseModule {
             // Moeder display naam
             const moederNaam = moeder.kennelnaam ? `${moeder.naam || 'Onbekend'} ${moeder.kennelnaam}` : (moeder.naam || 'Onbekend');
             
-            // Genereer foto thumbnails voor vader
+            // Genereer foto thumbnails voor vader - ALLEEN THUMBNAILS
             let vaderFotosHTML = '';
             if (vaderFotos.length > 0) {
-                const eersteFotos = vaderFotos.slice(0, 3);
+                const eersteFotos = vaderFotos.slice(0, 5);
                 vaderFotosHTML = `
                     <div class="photo-thumbnails">
                         <small class="text-muted d-block mb-1">${t('photos')}:</small>
                         <div class="d-flex flex-wrap">
                             ${eersteFotos.map(foto => `
                                 <div class="photo-thumbnail" 
-                                     data-foto='${JSON.stringify(foto).replace(/'/g, '&apos;')}'
+                                     data-foto-id="${foto.id}"
+                                     data-stamboomnr="${vader.stamboomnr || ''}"
                                      data-hond-naam="${vaderNaam}">
-                                    <img src="${foto.thumbnail || foto.data}" alt="Foto">
+                                    <img src="${foto.thumbnail || 'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2250%22%20height%3D%2250%22%20viewBox%3D%220%200%2050%2050%22%3E%3Crect%20width%3D%2250%22%20height%3D%2250%22%20fill%3D%22%23f0f0f0%22%2F%3E%3Ctext%20x%3D%225%22%20y%3D%2230%22%20font-family%3D%22Arial%22%20font-size%3D%2212%22%20fill%3D%22%23999%22%3EFoto%3C%2Ftext%3E%3C%2Fsvg%3E'}" 
+                                         alt="Foto"
+                                         style="width: 100%; height: 100%; object-fit: cover;">
                                 </div>
                             `).join('')}
                             ${vaderFotos.length > 3 ? `
@@ -1580,19 +3385,22 @@ class NestAankondigingenManager extends BaseModule {
                 `;
             }
             
-            // Genereer foto thumbnails voor moeder
+            // Genereer foto thumbnails voor moeder - ALLEEN THUMBNAILS
             let moederFotosHTML = '';
             if (moederFotos.length > 0) {
-                const eersteFotos = moederFotos.slice(0, 3);
+                const eersteFotos = moederFotos.slice(0, 5);
                 moederFotosHTML = `
                     <div class="photo-thumbnails">
                         <small class="text-muted d-block mb-1">${t('photos')}:</small>
                         <div class="d-flex flex-wrap">
                             ${eersteFotos.map(foto => `
                                 <div class="photo-thumbnail" 
-                                     data-foto='${JSON.stringify(foto).replace(/'/g, '&apos;')}'
+                                     data-foto-id="${foto.id}"
+                                     data-stamboomnr="${moeder.stamboomnr || ''}"
                                      data-hond-naam="${moederNaam}">
-                                    <img src="${foto.thumbnail || foto.data}" alt="Foto">
+                                    <img src="${foto.thumbnail || 'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2250%22%20height%3D%2250%22%20viewBox%3D%220%200%2050%2050%22%3E%3Crect%20width%3D%2250%22%20height%3D%2250%22%20fill%3D%22%23f0f0f0%22%2F%3E%3Ctext%20x%3D%225%22%20y%3D%2230%22%20font-family%3D%22Arial%22%20font-size%3D%2212%22%20fill%3D%22%23999%22%3EFoto%3C%2Ftext%3E%3C%2Fsvg%3E'}" 
+                                         alt="Foto"
+                                         style="width: 100%; height: 100%; object-fit: cover;">
                                 </div>
                             `).join('')}
                             ${moederFotos.length > 3 ? `
@@ -1762,17 +3570,63 @@ class NestAankondigingenManager extends BaseModule {
                                 </div>
                             </div>
                             
+                            <!-- COMPACTE NEST INFORMATIE - BOVEN HET BESCHRIJVINGSVELD -->
+                            <div class="nest-info-compact mt-3 mb-3">
+                                <div class="row align-items-center">
+                                    <div class="col text-center">
+                                        <div class="label">${t('birthDateLabel')}</div>
+                                        <div class="value">${geboortedatumFormatted || '-'}</div>
+                                    </div>
+                                    <div class="col-auto divider">|</div>
+                                    <div class="col text-center">
+                                        <div class="label">${t('maleCountLabel')}</div>
+                                        <div class="value">${announcement.aantal_reuen || '0'}</div>
+                                    </div>
+                                    <div class="col-auto divider">|</div>
+                                    <div class="col text-center">
+                                        <div class="label">${t('femaleCountLabel')}</div>
+                                        <div class="value">${announcement.aantal_teven || '0'}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
                             ${announcement.beschrijving ? `
-                                <div class="mt-4 p-3 bg-light rounded">
+                                <div class="mt-2 p-3 bg-light rounded">
                                     <p class="card-text mb-0">${announcement.beschrijving}</p>
                                 </div>
                             ` : ''}
                             
-                            <div class="mt-3 text-muted small d-flex justify-content-between align-items-center">
-                                ${announcement.email ? `
-                                    <div><i class="bi bi-envelope me-2"></i> ${announcement.email}</div>
-                                ` : '<div></div>'}
-                                <div><i class="bi bi-calendar me-2"></i> ${formattedDate}</div>
+                            <div class="mt-3 d-flex justify-content-between align-items-center">
+                                <div class="text-muted small">
+                                    ${announcement.email ? `
+                                        <div class="email-display">
+                                            <span class="email-address">${announcement.email}</span>
+                                            <button class="copy-email-btn" data-email="${announcement.email}">
+                                                <i class="bi bi-files"></i> ${t('copyEmail')}
+                                            </button>
+                                        </div>
+                                    ` : ''}
+                                    <div><i class="bi bi-calendar me-2"></i> ${formattedDate}</div>
+                                </div>
+                                
+                                <div class="d-flex gap-2">
+                                    <!-- Stamboom knop -->
+                                    <button class="btn btn-sm btn-pedigree view-pedigree" 
+                                            data-announcement='${JSON.stringify(announcement).replace(/'/g, '&apos;')}'
+                                            title="${t('viewPuppyPedigree')}">
+                                        <i class="bi bi-diagram-3 me-1"></i> 
+                                        ${t('viewPuppyPedigree')}
+                                    </button>
+                                    
+                                    <!-- Nestfoto knop -->
+                                    <button class="btn btn-sm btn-nest-photos view-nest-photos" 
+                                            data-nest-id="${announcement.id}"
+                                            data-nest-naam="${headerTitle}"
+                                            data-nest-fotos-count="${nestFotosCount}">
+                                        <i class="bi bi-images me-1"></i> 
+                                        ${t('nestPhotos')} (${nestFotosCount})
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1782,27 +3636,90 @@ class NestAankondigingenManager extends BaseModule {
         
         container.innerHTML = `<div class="row">${html}</div>`;
         
-        // Click handlers voor foto's met dynamisch laden van PhotoViewer
+        // Click handlers voor kopieerknoppen
+        container.querySelectorAll('.copy-email-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const email = btn.dataset.email;
+                if (email) {
+                    this.copyEmailToClipboard(email, btn);
+                }
+            });
+        });
+        
+        // Click handlers voor ouderfoto's - LAAD PAS VOLLEDIGE FOTO BIJ KLIK
         container.querySelectorAll('.photo-thumbnail').forEach(thumb => {
             thumb.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 try {
-                    const foto = JSON.parse(thumb.dataset.foto.replace(/&apos;/g, "'"));
+                    const fotoId = thumb.dataset.fotoId;
+                    const stamboomnr = thumb.dataset.stamboomnr;
                     const hondNaam = thumb.dataset.hondNaam || '';
+                    
+                    if (!fotoId || !stamboomnr) {
+                        console.error('Geen foto ID of stamboomnr beschikbaar');
+                        return;
+                    }
+                    
+                    // LAAD PAS NU DE VOLLEDIGE FOTO DATA
+                    const supabase = this.getSupabase();
+                    const { data: fotoData, error } = await supabase
+                        .from('fotos')
+                        .select('data')
+                        .eq('id', fotoId)
+                        .single();
+                    
+                    if (error || !fotoData) {
+                        throw new Error('Kon foto niet laden');
+                    }
                     
                     // Laad PhotoViewer dynamisch
                     await this.ensurePhotoViewer();
                     
                     // Toon de foto
-                    window.photoViewer.showPhoto(foto.data, hondNaam);
+                    window.photoViewer.showPhoto(fotoData.data, hondNaam);
                 } catch (error) {
                     console.error('Fout bij tonen foto:', error);
-                    // Fallback: open direct in nieuw tabblad
-                    try {
-                        const foto = JSON.parse(thumb.dataset.foto.replace(/&apos;/g, "'"));
-                        window.open(foto.data, '_blank');
-                    } catch (fallbackError) {
-                        console.error('Ook fallback mislukt:', fallbackError);
+                    alert('Kon foto niet laden: ' + error.message);
+                }
+            });
+        });
+        
+        // Click handlers voor stamboom knoppen
+        container.querySelectorAll('.view-pedigree').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                try {
+                    const announcement = JSON.parse(btn.dataset.announcement.replace(/&apos;/g, "'"));
+                    this.showPuppyPedigree(announcement);
+                } catch (error) {
+                    console.error('Fout bij tonen stamboom:', error);
+                }
+            });
+        });
+        
+        // Click handlers voor nestfoto knoppen - LAAD PAS VOLLEDIGE FOTO'S BIJ KLIK
+        container.querySelectorAll('.view-nest-photos').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const nestId = btn.dataset.nestId;
+                const nestNaam = btn.dataset.nestNaam;
+                
+                if (nestId) {
+                    // LAAD PAS NU DE VOLLEDIGE NESTFOTO'S
+                    const fotos = await this.getNestFotosFull(parseInt(nestId));
+                    
+                    if (fotos && fotos.length > 0) {
+                        // Toon galerij
+                        await this.showNestPhotoGallery(parseInt(nestId), nestNaam, fotos);
+                    } else {
+                        // Geen foto's, toon melding
+                        alert(this.t('noNestPhotos'));
                     }
                 }
             });
@@ -1814,21 +3731,7 @@ class NestAankondigingenManager extends BaseModule {
     /**
      * Render beheer lijst (zelfde opzet als DekReuen beheer)
      */
-    async renderBeheerList(announcements, container, total = 0, currentPage = 1) {
-        const supabase = this.getSupabase();
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        // Controleer of de gebruiker admin is
-        let isAdmin = false;
-        if (user) {
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('is_admin')
-                .eq('user_id', user.id)
-                .single();
-            isAdmin = profile?.is_admin === true;
-        }
-        
+    async renderBeheerList(announcements, container, total = 0, currentPage = 1, user, isAdmin) {
         const t = this.t.bind(this);
         
         let html = '';
@@ -1840,13 +3743,24 @@ class NestAankondigingenManager extends BaseModule {
             const canEdit = isAdmin || ann.toegevoegd_door === user?.id;
             
             // Haal foto's op voor vader en moeder
-            const vaderFotos = await this.getHondFotos(vader.id);
-            const moederFotos = await this.getHondFotos(moeder.id);
+            const vaderFotos = await this.getHondFotosFull(vader.id, vader.stamboomnr);
+            const moederFotos = await this.getHondFotosFull(moeder.id, moeder.stamboomnr);
+            
+            // Haal nestfoto's op voor teller
+            const nestFotos = await this.getNestFotosFull(ann.id);
             
             // Formatteer datum
             const date = new Date(ann.aangemaakt_op);
             const formattedDate = date.toLocaleDateString(this.currentLang === 'nl' ? 'nl-NL' : 
                                                            this.currentLang === 'de' ? 'de-DE' : 'en-US');
+            
+            // Formatteer geboortedatum
+            let geboortedatumFormatted = '';
+            if (ann.geboortedatum) {
+                const birthDate = new Date(ann.geboortedatum);
+                geboortedatumFormatted = birthDate.toLocaleDateString(this.currentLang === 'nl' ? 'nl-NL' : 
+                                                                      this.currentLang === 'de' ? 'de-DE' : 'en-US');
+            }
             
             // Vader display naam
             const vaderNaam = vader.kennelnaam ? `${vader.naam || 'Onbekend'} ${vader.kennelnaam}` : (vader.naam || 'Onbekend');
@@ -1857,7 +3771,7 @@ class NestAankondigingenManager extends BaseModule {
             // Genereer foto thumbnails voor vader
             let vaderFotosHTML = '';
             if (vaderFotos.length > 0) {
-                const eersteFotos = vaderFotos.slice(0, 2);
+                const eersteFotos = vaderFotos.slice(0, 5);
                 vaderFotosHTML = `
                     <div class="mt-2">
                         <div class="d-flex flex-wrap gap-1">
@@ -1883,7 +3797,7 @@ class NestAankondigingenManager extends BaseModule {
             // Genereer foto thumbnails voor moeder
             let moederFotosHTML = '';
             if (moederFotos.length > 0) {
-                const eersteFotos = moederFotos.slice(0, 2);
+                const eersteFotos = moederFotos.slice(0, 5);
                 moederFotosHTML = `
                     <div class="mt-2">
                         <div class="d-flex flex-wrap gap-1">
@@ -1914,6 +3828,13 @@ class NestAankondigingenManager extends BaseModule {
                                 <div class="col-md-3">
                                     <h6 class="mb-1">${ann.kennelnaam_nest || `Nest #${ann.id}`}</h6>
                                     <small class="text-muted d-block">${formattedDate}</small>
+                                    <small class="text-muted d-block">${t('birthDateLabel')}: ${geboortedatumFormatted || '-'}</small>
+                                    <small class="text-muted d-block">${t('maleCountLabel')}/${t('femaleCountLabel')}: ${ann.aantal_reuen || 0}/${ann.aantal_teven || 0}</small>
+                                    ${ann.email ? `
+                                        <small class="text-muted d-block">
+                                            <i class="bi bi-envelope me-1"></i> ${ann.email}
+                                        </small>
+                                    ` : ''}
                                 </div>
                                 <div class="col-md-3 small">
                                     <strong>${t('fatherInfo')}:</strong><br>
@@ -1928,6 +3849,13 @@ class NestAankondigingenManager extends BaseModule {
                                     ${moederFotosHTML}
                                 </div>
                                 <div class="col-md-3 text-end">
+                                    <!-- Nestfoto knop in beheer -->
+                                    <button class="btn btn-sm btn-outline-info manage-nest-photos mb-1 w-100" 
+                                            data-announcement='${JSON.stringify(ann).replace(/'/g, '&apos;')}'>
+                                        <i class="bi bi-images me-1"></i> 
+                                        ${t('nestPhotos')} (${nestFotos.length})
+                                    </button>
+                                    
                                     ${canEdit ? `
                                         <button class="btn btn-sm btn-outline-primary edit-announcement mb-1 w-100" 
                                             data-announcement='${JSON.stringify(ann).replace(/'/g, '&apos;')}'>
@@ -1960,7 +3888,7 @@ class NestAankondigingenManager extends BaseModule {
             ${paginationHTML}
         `;
         
-        // Click handlers voor foto's in beheer lijst
+        // Click handlers voor ouderfoto's in beheer lijst
         container.querySelectorAll('.photo-thumbnail').forEach(thumb => {
             thumb.addEventListener('click', async (e) => {
                 e.stopPropagation();
@@ -1981,6 +3909,18 @@ class NestAankondigingenManager extends BaseModule {
                     } catch (fallbackError) {
                         console.error('Ook fallback mislukt:', fallbackError);
                     }
+                }
+            });
+        });
+        
+        // Click handlers voor nestfoto beheer
+        container.querySelectorAll('.manage-nest-photos').forEach(btn => {
+            btn.addEventListener('click', () => {
+                try {
+                    const announcement = JSON.parse(btn.dataset.announcement.replace(/&apos;/g, "'"));
+                    this.showNestFotoBeheerModal(announcement);
+                } catch (e) {
+                    console.error(e);
                 }
             });
         });
@@ -2235,6 +4175,71 @@ class NestAankondigingenManager extends BaseModule {
             }
         });
     }
+    
+    // Helper functies voor UI feedback
+    showProgress(message, containerId) {
+        const container = document.getElementById(containerId);
+        if (container) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-info';
+            alertDiv.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                    ${message}
+                </div>
+            `;
+            container.prepend(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 10000);
+        }
+    }
+    
+    hideProgress() {
+        document.querySelectorAll('.alert-info .spinner-border').forEach(spinner => {
+            const alert = spinner.closest('.alert');
+            if (alert) alert.remove();
+        });
+    }
+    
+    showError(message, containerId = null) {
+        if (containerId) {
+            const container = document.getElementById(containerId);
+            if (container) {
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+                alertDiv.innerHTML = `
+                    <i class="bi bi-exclamation-triangle"></i> ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                container.prepend(alertDiv);
+                
+                setTimeout(() => {
+                    alertDiv.remove();
+                }, 5000);
+            }
+        }
+    }
+    
+    showSuccess(message, containerId = null) {
+        if (containerId) {
+            const container = document.getElementById(containerId);
+            if (container) {
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                alertDiv.innerHTML = `
+                    <i class="bi bi-check-circle"></i> ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                container.prepend(alertDiv);
+                
+                setTimeout(() => {
+                    alertDiv.remove();
+                }, 5000);
+            }
+        }
+    }
 }
 
 // Maak een globale instantie aan
@@ -2247,4 +4252,4 @@ if (typeof module !== 'undefined' && module.exports) {
     window.nestAankondigingenManager = NestAankondigingenManagerInstance;
 }
 
-console.log('📦 NestAankondigingenManager geladen met 1 per pagina, paginatie 80%, tekst 70%, en foto thumbnails van beide ouders');
+console.log('📦 NestAankondigingenManager geladen met 1 per pagina, paginatie 80%, tekst 70%, nestfoto\'s MET OPMERKINGEN (max 15, 1 per keer met paginatie), STAMBOOMWEERGAVE, COMPACTE NEST INFORMATIE, KOPIEERBARE EMAIL en OPTIMIZED FOTO LADEN (alleen thumbnails)');
