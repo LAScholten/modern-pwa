@@ -8,6 +8,8 @@
  * **OPTIMIZED** - Laadt alle foto's voor de hele stamboom in één query
  * **AANGEPAST** - Gebruikt live queries i.p.v. cache voor honden data (zelfde als SearchManager)
  * **AANGEPAST** - Wacht met COI berekeningen totdat alle honden geladen zijn
+ * **NIEUW** - Vanuit detailpopup kan stamboom van geselecteerde hond worden geopend in nieuwe modal
+ * **NIEUW** - Stamboom stack: bij openen nieuwe stamboom vanuit popup, kan je met sluiten terug naar vorige
  */
 
 class StamboomManager extends BaseModule {
@@ -22,9 +24,13 @@ class StamboomManager extends BaseModule {
         this.photoViewerLoaded = false;
         this.initialized = false;
         this.initializePromise = null;
+        this.modalCounter = 0;
         
         this.dogPhotosCache = new Map();
         this.dogDetailsCache = new Map();
+        
+        // Stack voor stamboom navigatie
+        this.pedigreeStack = [];
         
         this.translations = {
             nl: {
@@ -87,7 +93,9 @@ class StamboomManager extends BaseModule {
                 loadFailed: "Fout bij laden: ",
                 privateInfo: "Prive Informatie",
                 privateInfoOwnerOnly: "Geen informatie",
-                loadingPhotoViewer: "Fotoviewer laden..."
+                loadingPhotoViewer: "Fotoviewer laden...",
+                showPedigree: "Toon stamboom",
+                back: "Terug"
             },
             en: {
                 pedigreeTitle: "Pedigree of {name}",
@@ -149,7 +157,9 @@ class StamboomManager extends BaseModule {
                 loadFailed: "Loading failed: ",
                 privateInfo: "Private Information",
                 privateInfoOwnerOnly: "No information",
-                loadingPhotoViewer: "Loading photo viewer..."
+                loadingPhotoViewer: "Loading photo viewer...",
+                showPedigree: "Show pedigree",
+                back: "Back"
             },
             de: {
                 pedigreeTitle: "Ahnentafel von {name}",
@@ -211,7 +221,9 @@ class StamboomManager extends BaseModule {
                 loadFailed: "Fehler beim Laden: ",
                 privateInfo: "Private Informationen",
                 privateInfoOwnerOnly: "Kein information",
-                loadingPhotoViewer: "Fotobetrachter laden..."
+                loadingPhotoViewer: "Fotobetrachter laden...",
+                showPedigree: "Stammbaum anzeigen",
+                back: "Zurück"
             }
         };
         
@@ -224,7 +236,6 @@ class StamboomManager extends BaseModule {
     }
     
     async initialize() {
-        // Als we al aan het initialiseren zijn, wacht dan op de bestaande promise
         if (this.initializePromise) {
             return this.initializePromise;
         }
@@ -237,15 +248,12 @@ class StamboomManager extends BaseModule {
         try {
             console.log('StamboomManager: Initialiseren...');
             
-            // Haal huidige gebruiker ID op
             this.currentUserId = await this.getCurrentUserId();
             console.log('StamboomManager: Huidige gebruiker ID:', this.currentUserId);
             
-            // Laad ALLE honden in één keer voor de COI calculator
             this.showProgress(this.t('loadingAllDogs').replace('{loaded}', '0'));
             await this.loadAllDogsForCalculator();
             
-            // Initialiseer COI calculator met alle geladen honden
             if (typeof COICalculator !== 'undefined') {
                 this.coiCalculator = new COICalculator(this.allDogs);
                 console.log('COI Calculator geïnitialiseerd met', this.allDogs.length, 'honden');
@@ -258,7 +266,6 @@ class StamboomManager extends BaseModule {
             this.setupGlobalEventListeners();
             this.initialized = true;
             
-            // Verberg het laadscherm
             console.log('StamboomManager: Initialisatie voltooid, verberg voortgangsindicator...');
             this.forceHideProgress();
             
@@ -325,7 +332,6 @@ class StamboomManager extends BaseModule {
             
             this.allDogs = allDogs;
             
-            // Vul ook de dogDetailsCache
             allDogs.forEach(dog => {
                 if (dog && dog.id) {
                     this.dogDetailsCache.set(dog.id, dog);
@@ -1218,6 +1224,12 @@ class StamboomManager extends BaseModule {
                     <button type="button" class="btn-close btn-close-white" aria-label="Sluiten"></button>
                 </div>
                 <div class="popup-body">
+                    <div class="info-section mt-0 mb-3">
+                        <button type="button" class="btn btn-primary w-100 show-pedigree-btn" data-dog-id="${dog.id}" data-dog-name="${dog.naam || ''}">
+                            <i class="bi bi-diagram-3 me-2"></i> ${this.t('showPedigree')}
+                        </button>
+                    </div>
+                    
                     ${photosHTML}
                     
                     <div class="info-section mb-2">
@@ -1434,19 +1446,81 @@ class StamboomManager extends BaseModule {
         
         await this.loadAllPhotosForPedigree(pedigreeTree);
         
+        // Sla de huidige stamboom op de stack voordat we een nieuwe renderen
+        const currentPedigreeState = {
+            dogId: dog.id,
+            dogName: dog.naam || this.t('unknown'),
+            pedigreeTree: pedigreeTree
+        };
+        
+        // Als de stack leeg is of de laatste is anders, push de nieuwe
+        if (this.pedigreeStack.length === 0 || 
+            this.pedigreeStack[this.pedigreeStack.length - 1].dogId !== dog.id) {
+            this.pedigreeStack.push(currentPedigreeState);
+        }
+        
         await this.renderCompactPedigree(pedigreeTree);
+        
+        // Update de back button zichtbaarheid
+        this.updateBackButtonVisibility();
         
         const modal = new bootstrap.Modal(document.getElementById('pedigreeModal'));
         modal.show();
         
         const modalElement = document.getElementById('pedigreeModal');
         if (modalElement) {
-            modalElement.addEventListener('hidden.bs.modal', () => {
+            // Verwijder bestaande event listeners om duplicates te voorkomen
+            modalElement.removeEventListener('hidden.bs.modal', this.handleModalHidden);
+            this.handleModalHidden = () => {
                 const popupOverlay = document.getElementById('pedigreePopupOverlay');
                 if (popupOverlay) {
                     popupOverlay.style.display = 'none';
                 }
-            });
+                // Reset de stack bij volledig sluiten van de modal
+                this.resetPedigreeStack();
+                this.updateBackButtonVisibility();
+            };
+            modalElement.addEventListener('hidden.bs.modal', this.handleModalHidden);
+        }
+    }
+    
+    updateBackButtonVisibility() {
+        const backButton = document.getElementById('pedigreeBackButton');
+        if (backButton) {
+            if (this.pedigreeStack.length > 1) {
+                backButton.style.display = 'inline-block';
+            } else {
+                backButton.style.display = 'none';
+            }
+        }
+    }
+    
+    resetPedigreeStack() {
+        this.pedigreeStack = [];
+    }
+    
+    async goBackInPedigree() {
+        if (this.pedigreeStack.length <= 1) {
+            // Geen vorige stamboom, sluit de popup als die open is
+            const popupOverlay = document.getElementById('pedigreePopupOverlay');
+            if (popupOverlay && popupOverlay.style.display !== 'none') {
+                popupOverlay.style.display = 'none';
+            }
+            return;
+        }
+        
+        // Verwijder de huidige van de stack
+        this.pedigreeStack.pop();
+        
+        // Haal de vorige op
+        const previousState = this.pedigreeStack[this.pedigreeStack.length - 1];
+        
+        if (previousState && previousState.pedigreeTree) {
+            const title = this.t('pedigreeTitle').replace('{name}', previousState.dogName);
+            document.getElementById('pedigreeModalLabel').textContent = title;
+            
+            await this.renderCompactPedigree(previousState.pedigreeTree);
+            this.updateBackButtonVisibility();
         }
     }
     
@@ -1460,6 +1534,9 @@ class StamboomManager extends BaseModule {
                                 <i class="bi bi-diagram-3 me-2"></i> ${this.t('pedigree4Gen')}
                             </h5>
                             <div class="d-flex gap-2">
+                                <button class="btn btn-sm btn-light btn-back" id="pedigreeBackButton" style="display: none;">
+                                    <i class="bi bi-arrow-left me-1"></i> ${this.t('back')}
+                                </button>
                                 <button class="btn btn-sm btn-light btn-print">
                                     <i class="bi bi-printer me-1"></i> ${this.t('print')}
                                 </button>
@@ -2704,6 +2781,13 @@ class StamboomManager extends BaseModule {
             });
         }
         
+        const backBtn = modal.querySelector('.btn-back');
+        if (backBtn) {
+            backBtn.addEventListener('click', () => {
+                this.goBackInPedigree();
+            });
+        }
+        
         modal.addEventListener('hidden.bs.modal', () => {
             if (!this._isActive) return;
             
@@ -2892,10 +2976,21 @@ class StamboomManager extends BaseModule {
     async showDogDetailPopup(dog, relation) {
         if (!this._isActive) return;
         
-        const overlay = document.getElementById('pedigreePopupOverlay');
-        const container = document.getElementById('pedigreePopupContainer');
+        let overlay = document.getElementById('pedigreePopupOverlay');
+        let container = document.getElementById('pedigreePopupContainer');
         
-        if (!overlay || !container) return;
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'pedigreePopupOverlay';
+            overlay.className = 'pedigree-popup-overlay';
+            overlay.style.display = 'none';
+            document.body.appendChild(overlay);
+            
+            container = document.createElement('div');
+            container.id = 'pedigreePopupContainer';
+            container.className = 'pedigree-popup-container';
+            overlay.appendChild(container);
+        }
         
         const popupHTML = await this.getDogDetailPopupHTML(dog, relation);
         container.innerHTML = popupHTML;
@@ -2909,15 +3004,25 @@ class StamboomManager extends BaseModule {
             });
         });
         
+        const showPedigreeBtn = container.querySelector('.show-pedigree-btn');
+        if (showPedigreeBtn) {
+            showPedigreeBtn.addEventListener('click', async () => {
+                const dogId = parseInt(showPedigreeBtn.getAttribute('data-dog-id'));
+                if (dogId) {
+                    const selectedDog = await this.getDogById(dogId);
+                    if (selectedDog) {
+                        // Sluit de popup
+                        overlay.style.display = 'none';
+                        // Toon de nieuwe stamboom - deze wordt automatisch op de stack gezet
+                        this.showPedigree(selectedDog);
+                    }
+                }
+            });
+        }
+        
         overlay.addEventListener('click', (e) => {
             if (e.target === overlay) {
                 overlay.style.display = 'none';
-            }
-        });
-        
-        overlay.addEventListener('animationend', function handler() {
-            if (overlay.style.display === 'none') {
-                overlay.removeEventListener('animationend', handler);
             }
         });
     }
@@ -2961,6 +3066,7 @@ class StamboomManager extends BaseModule {
         
         this.dogPhotosCache.clear();
         this.dogDetailsCache.clear();
+        this.resetPedigreeStack();
     }
 }
 
