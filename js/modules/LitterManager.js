@@ -1677,7 +1677,15 @@ class LitterManager {
                 
                 this.searchTimeout = setTimeout(async () => {
                     console.log('🔍 Zoeken naar teef:', query);
-                    const result = await this.getDogsByGender('teven', query, 1, 100);
+                    
+                    // Check of gebruiker admin is
+                    let result;
+                    if (this.currentUserRole === 'admin') {
+                        result = await this.getDogsByGender('teven', query, 1, 100);
+                    } else {
+                        // Voor niet-admin: alleen teven van de ingelogde gebruiker
+                        result = await this.getDogsByGenderAndOwner('teven', query, this.currentUserId, 1, 100);
+                    }
                     
                     result.data.forEach(hond => {
                         if (!this.allDogs.find(d => d.id === hond.id)) {
@@ -1775,6 +1783,50 @@ class LitterManager {
             
         } catch (error) {
             console.error(`❌ Fout bij ophalen ${gender}:`, error);
+            return { data: [], total: 0 };
+        }
+    }
+    
+    async getDogsByGenderAndOwner(gender, searchTerm = '', ownerId, page = 1, pageSize = 100) {
+        try {
+            console.log(`🔍 ${gender} ophalen voor eigenaar ${ownerId} - Zoekterm: "${searchTerm}"`);
+            
+            const supabase = this.getSupabase();
+            if (!supabase) {
+                console.error('❌ Geen Supabase client');
+                return { data: [], total: 0 };
+            }
+            
+            let query = supabase
+                .from('honden')
+                .select('*', { count: 'exact' })
+                .eq('geslacht', gender)
+                .eq('toegevoegd_door', ownerId);
+            
+            if (searchTerm && searchTerm.length >= 2) {
+                query = query.or(`naam.ilike.%${searchTerm}%,kennelnaam.ilike.%${searchTerm}%,stamboomnr.ilike.%${searchTerm}%`);
+            }
+            
+            const from = (page - 1) * pageSize;
+            const to = from + pageSize - 1;
+            
+            const { data, error, count } = await query
+                .order('naam')
+                .range(from, to);
+            
+            if (error) {
+                console.error('❌ Database error:', error);
+                return { data: [], total: 0 };
+            }
+            
+            console.log(`✅ ${data?.length || 0} ${gender} gevonden voor eigenaar (totaal: ${count || 0})`);
+            return { 
+                data: data || [], 
+                total: count || 0 
+            };
+            
+        } catch (error) {
+            console.error(`❌ Fout bij ophalen ${gender} voor eigenaar:`, error);
             return { data: [], total: 0 };
         }
     }
