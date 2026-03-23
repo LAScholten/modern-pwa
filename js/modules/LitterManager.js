@@ -526,7 +526,7 @@ class LitterManager {
                     }
                     
                     .standard-coat-color-btn {
-                        font-size: 0.5em !important; /* 80% van normaal */
+                        font-size: 0.5em !important;
                         padding: 3px 6px !important;
                     }
                     
@@ -798,7 +798,7 @@ class LitterManager {
                 
                 .standard-coat-color-btn {
                     white-space: nowrap;
-                    font-size: 0.7em; /* 80% van normaal */
+                    font-size: 0.7em;
                     padding: 4px 8px;
                 }
                 
@@ -1565,6 +1565,16 @@ class LitterManager {
             this.fatherTomSelect.destroy();
         }
         
+        // Maak een hidden input voor de vader naam
+        let fatherNameInput = document.getElementById('father');
+        if (!fatherNameInput) {
+            fatherNameInput = document.createElement('input');
+            fatherNameInput.type = 'hidden';
+            fatherNameInput.id = 'father';
+            fatherNameInput.name = 'father';
+            selectElement.parentElement.appendChild(fatherNameInput);
+        }
+        
         this.fatherTomSelect = new TomSelect(selectElement, {
             valueField: 'id',
             labelField: 'displayName',
@@ -1592,9 +1602,6 @@ class LitterManager {
                     result.data.forEach(hond => {
                         if (!this.allDogs.find(d => d.id === hond.id)) {
                             this.allDogs.push(hond);
-                        }
-                        if (hond.stamboomnr) {
-                            // Cache op ID en stamboomnr
                         }
                     });
                     
@@ -1624,23 +1631,25 @@ class LitterManager {
                 }
             },
             onChange: (value) => {
-                const fatherInput = document.getElementById('father');
+                const fatherNameInput = document.getElementById('father');
                 if (value) {
                     const hond = this.allDogs.find(d => d.id === parseInt(value));
                     if (hond) {
                         document.getElementById('vader_id').value = hond.id;
-                        // Update the text input for visual consistency, though we use the select now
-                        if (fatherInput) fatherInput.value = hond.naam + (hond.kennelnaam ? ' ' + hond.kennelnaam : '');
-                        fatherInput?.setAttribute('data-pedigree', hond.stamboomnr || '');
-                        fatherInput?.classList.remove('parent-validation-error');
-                        const errorElement = document.getElementById(`fatherError`);
+                        if (fatherNameInput) {
+                            fatherNameInput.value = hond.naam + (hond.kennelnaam ? ' ' + hond.kennelnaam : '');
+                            fatherNameInput.setAttribute('data-pedigree', hond.stamboomnr || '');
+                        }
+                        const errorElement = document.getElementById('fatherError');
                         if (errorElement) errorElement.style.display = 'none';
                         console.log(`[LitterManager] Vader geselecteerd: ID=${hond.id}, Naam=${hond.naam}`);
                     }
                 } else {
                     document.getElementById('vader_id').value = '';
-                    if (fatherInput) fatherInput.value = '';
-                    fatherInput?.setAttribute('data-pedigree', '');
+                    if (fatherNameInput) {
+                        fatherNameInput.value = '';
+                        fatherNameInput.setAttribute('data-pedigree', '');
+                    }
                 }
                 this.validateParents();
             }
@@ -1653,6 +1662,16 @@ class LitterManager {
         
         if (this.motherTomSelect) {
             this.motherTomSelect.destroy();
+        }
+        
+        // Maak een hidden input voor de moeder naam
+        let motherNameInput = document.getElementById('mother');
+        if (!motherNameInput) {
+            motherNameInput = document.createElement('input');
+            motherNameInput.type = 'hidden';
+            motherNameInput.id = 'mother';
+            motherNameInput.name = 'mother';
+            selectElement.parentElement.appendChild(motherNameInput);
         }
         
         this.motherTomSelect = new TomSelect(selectElement, {
@@ -1691,9 +1710,6 @@ class LitterManager {
                         if (!this.allDogs.find(d => d.id === hond.id)) {
                             this.allDogs.push(hond);
                         }
-                        if (hond.stamboomnr) {
-                            // Cache op ID en stamboomnr
-                        }
                     });
                     
                     const items = result.data.map(hond => ({
@@ -1722,22 +1738,25 @@ class LitterManager {
                 }
             },
             onChange: (value) => {
-                const motherInput = document.getElementById('mother');
+                const motherNameInput = document.getElementById('mother');
                 if (value) {
                     const hond = this.allDogs.find(d => d.id === parseInt(value));
                     if (hond) {
                         document.getElementById('moeder_id').value = hond.id;
-                        if (motherInput) motherInput.value = hond.naam + (hond.kennelnaam ? ' ' + hond.kennelnaam : '');
-                        motherInput?.setAttribute('data-pedigree', hond.stamboomnr || '');
-                        motherInput?.classList.remove('parent-validation-error');
-                        const errorElement = document.getElementById(`motherError`);
+                        if (motherNameInput) {
+                            motherNameInput.value = hond.naam + (hond.kennelnaam ? ' ' + hond.kennelnaam : '');
+                            motherNameInput.setAttribute('data-pedigree', hond.stamboomnr || '');
+                        }
+                        const errorElement = document.getElementById('motherError');
                         if (errorElement) errorElement.style.display = 'none';
                         console.log(`[LitterManager] Moeder geselecteerd: ID=${hond.id}, Naam=${hond.naam}`);
                     }
                 } else {
                     document.getElementById('moeder_id').value = '';
-                    if (motherInput) motherInput.value = '';
-                    motherInput?.setAttribute('data-pedigree', '');
+                    if (motherNameInput) {
+                        motherNameInput.value = '';
+                        motherNameInput.setAttribute('data-pedigree', '');
+                    }
                 }
                 this.validateParents();
             }
@@ -2288,7 +2307,7 @@ class LitterManager {
             return;
         }
         
-        // Valideer ouders - NIEUWE VALIDATIE
+        // Valideer ouders
         if (!this.validateParents()) {
             this.showError(this.t('parentNotSelected'));
             return;
@@ -2314,18 +2333,24 @@ class LitterManager {
             }
         };
         
-        // Haal de vader en moeder ID's op uit de TomSelect instances
-        const vaderIdValue = this.fatherTomSelect ? this.fatherTomSelect.getValue() : null;
-        const moederIdValue = this.motherTomSelect ? this.motherTomSelect.getValue() : null;
+        // Haal de vader en moeder ID's op uit de hidden inputs
+        const vaderIdValue = document.getElementById('vader_id')?.value;
+        const moederIdValue = document.getElementById('moeder_id')?.value;
         
-        // Haal stamboomnummers van ouders op uit de input velden
-        const fatherInput = document.getElementById('father');
-        const motherInput = document.getElementById('mother');
-        const vaderStamboomnr = fatherInput ? fatherInput.getAttribute('data-pedigree') || '' : '';
-        const moederStamboomnr = motherInput ? motherInput.getAttribute('data-pedigree') || '' : '';
+        // Haal de vader en moeder namen op uit de hidden inputs
+        const fatherNameInput = document.getElementById('father');
+        const motherNameInput = document.getElementById('mother');
+        const vaderNaam = fatherNameInput ? fatherNameInput.value : '';
+        const moederNaam = motherNameInput ? motherNameInput.value : '';
         
-        console.log('LitterManager: vader_id uit TomSelect:', vaderIdValue);
-        console.log('LitterManager: moeder_id uit TomSelect:', moederIdValue);
+        // Haal stamboomnummers van ouders op
+        const vaderStamboomnr = fatherNameInput ? fatherNameInput.getAttribute('data-pedigree') || '' : '';
+        const moederStamboomnr = motherNameInput ? motherNameInput.getAttribute('data-pedigree') || '' : '';
+        
+        console.log('LitterManager: vader_id:', vaderIdValue);
+        console.log('LitterManager: moeder_id:', moederIdValue);
+        console.log('LitterManager: vader_naam:', vaderNaam);
+        console.log('LitterManager: moeder_naam:', moederNaam);
         console.log('LitterManager: vader_stamboomnr:', vaderStamboomnr);
         console.log('LitterManager: moeder_stamboomnr:', moederStamboomnr);
         
@@ -2340,12 +2365,12 @@ class LitterManager {
             geslacht: document.getElementById('gender')?.value || '',
             
             // OUDERS - EXACT DEZELFDE VELDNAMEN ALS DogManager
-            vader: fatherInput ? fatherInput.value.trim() || '' : '',
+            vader: vaderNaam,
             vader_id: vaderIdValue && vaderIdValue.trim() !== '' && !isNaN(parseInt(vaderIdValue)) 
                 ? parseInt(vaderIdValue) 
                 : null,
             vader_stamboomnr: vaderStamboomnr || null,
-            moeder: motherInput ? motherInput.value.trim() || '' : '',
+            moeder: moederNaam,
             moeder_id: moederIdValue && moederIdValue.trim() !== '' && !isNaN(parseInt(moederIdValue)) 
                 ? parseInt(moederIdValue) 
                 : null,
@@ -2355,7 +2380,7 @@ class LitterManager {
             geboortedatum: formatDateForStorage(birthDateValue),
             overlijdensdatum: formatDateForStorage(deathDateValue) || null,
             
-            // GEZONDHEIDSINFORMATIE - EXACT DEZELFDE VELDNAMEN ALS DogManager
+            // GEZONDHEIDSINFORMATIE
             heupdysplasie: document.getElementById('hipDysplasia')?.value || null,
             elleboogdysplasie: document.getElementById('elbowDysplasia')?.value || null,
             patella: document.getElementById('patellaLuxation')?.value || null,
@@ -2378,15 +2403,10 @@ class LitterManager {
         };
         
         console.log('[LitterManager] === DOG DATA VOOR OPSLAG ===');
-        console.log('Aantal velden:', Object.keys(dogData).length);
-        console.log('Vader:', dogData.vader, 'vader_id:', dogData.vader_id, 'vader_stamboomnr:', dogData.vader_stamboomnr);
-        console.log('Moeder:', dogData.moeder, 'moeder_id:', dogData.moeder_id, 'moeder_stamboomnr:', dogData.moeder_stamboomnr);
-        console.log('Ogenverklaring:', dogData.ogenverklaring);
-        console.log('Schildklierverklaring:', dogData.schildklierverklaring);
-        console.log('Volledige data:', JSON.stringify(dogData, null, 2));
-        console.log('[LitterManager] === EINDE DOG DATA ===');
+        console.log('Vader:', dogData.vader, 'vader_id:', dogData.vader_id);
+        console.log('Moeder:', dogData.moeder, 'moeder_id:', dogData.moeder_id);
         
-        // Validatie - OUDERS NU OOK VERPLICHT
+        // Validatie
         if (!dogData.naam) {
             this.showError('Naam is verplicht');
             return;
@@ -2401,7 +2421,7 @@ class LitterManager {
             this.showError('Ras is verplicht');
             return;
         }
-        // 🔥 NIEUW: Voeg deze check toe voor geslacht
+        
         if (!dogData.geslacht) {
             this.showError('Geslacht is verplicht');
             return;
@@ -2417,7 +2437,6 @@ class LitterManager {
             return;
         }
         
-        // NIEUWE VALIDATIE: controleer of ouders correct zijn geselecteerd
         if (!dogData.vader_id) {
             this.showError(this.t('parentNotSelected'));
             return;
@@ -2436,7 +2455,6 @@ class LitterManager {
         try {
             console.log('LitterManager: Probeer hond op te slaan via database service...');
             
-            // GEBRUIK EXACT DEZELFDE LOGICA ALS DogManager
             let result;
             
             if (window.hondenService && window.hondenService.voegHondToe) {
@@ -2451,10 +2469,10 @@ class LitterManager {
             
             console.log('LitterManager: Hond opgeslagen met resultaat:', result);
             
-            // Foto uploaden zoals PhotoManager - EXACT DEZELFDE LOGICA
+            // Foto uploaden
             const photoInput = document.getElementById('photo');
             if (photoInput && photoInput.files.length > 0) {
-                console.log('LitterManager: Foto uploaden zoals PhotoManager...');
+                console.log('LitterManager: Foto uploaden...');
                 const file = photoInput.files[0];
                 
                 if (file.size > 5 * 1024 * 1024) {
@@ -2471,7 +2489,7 @@ class LitterManager {
                 await this.uploadPhoto(dogData.stamboomnr, file);
             }
             
-            // Voeg toe aan de lijst met huidige nest honden met ALLE gezondheidsinformatie
+            // Voeg toe aan de lijst met huidige nest honden
             this.currentLitterDogs.push({
                 naam: dogData.naam,
                 stamboomnr: dogData.stamboomnr,
@@ -2495,12 +2513,11 @@ class LitterManager {
             this.hideProgress();
             this.showSuccess(this.t('dogAdded'));
             
-            // Reset alleen de nestdetails velden (niet de ouderdetails)
+            // Reset alleen de nestdetails velden
             this.resetLitterDetails();
             
         } catch (error) {
             console.error('LitterManager: Fout bij opslaan hond:', error);
-            console.error('LitterManager: Error stack:', error.stack);
             this.hideProgress();
             this.showError(`${this.t('addFailed')}${error.message}`);
         }
@@ -2513,19 +2530,15 @@ class LitterManager {
             return new Promise((resolve, reject) => {
                 reader.onload = async (e) => {
                     try {
-                        // Haal gebruiker op zoals PhotoManager
                         const user = window.auth ? window.auth.getCurrentUser() : null;
                         if (!user || !user.id) {
                             throw new Error('Niet ingelogd of geen gebruikers-ID beschikbaar');
                         }
                         
-                        // Converteer naar Base64 (volledige data met data: prefix) zoals PhotoManager
                         const base64Data = e.target.result;
                         
-                        // Maak thumbnail (gereduceerde versie) zoals PhotoManager
                         let thumbnail = null;
                         try {
-                            // Maak een kleine thumbnail (max 200px)
                             const img = new Image();
                             img.src = base64Data;
                             
@@ -2534,7 +2547,6 @@ class LitterManager {
                                     const canvas = document.createElement('canvas');
                                     const ctx = canvas.getContext('2d');
                                     
-                                    // Bereken nieuwe afmetingen
                                     const maxSize = 200;
                                     let width = img.width;
                                     let height = img.height;
@@ -2561,15 +2573,13 @@ class LitterManager {
                             });
                         } catch (thumbError) {
                             console.warn('Thumbnail maken mislukt:', thumbError);
-                            // Gebruik de originele data als fallback zoals PhotoManager
                             thumbnail = base64Data;
                         }
                         
-                        // Maak foto object voor database (VOLGENS FOTOS TABEL STRUCTUUR) zoals PhotoManager
                         const fotoData = {
                             stamboomnr: pedigreeNumber,
-                            data: base64Data, // volledige Base64 data met data: prefix
-                            thumbnail: thumbnail,   // thumbnail als Base64
+                            data: base64Data,
+                            thumbnail: thumbnail,
                             filename: file.name,
                             size: file.size,
                             type: file.type,
@@ -2577,16 +2587,6 @@ class LitterManager {
                             geupload_door: user.id
                         };
                         
-                        console.log('Foto data voor database:', {
-                            stamboomnr: fotoData.stamboomnr,
-                            filename: fotoData.filename,
-                            size: fotoData.size,
-                            hasData: !!fotoData.data,
-                            hasThumbnail: !!fotoData.thumbnail,
-                            geupload_door: fotoData.geupload_door
-                        });
-                        
-                        // Voeg toe aan database via Supabase zoals PhotoManager
                         const { data: dbData, error: dbError } = await window.supabase
                             .from('fotos')
                             .insert(fotoData)
@@ -2630,6 +2630,18 @@ class LitterManager {
         const moederIdInput = document.getElementById('moeder_id');
         if (vaderIdInput) vaderIdInput.value = '';
         if (moederIdInput) moederIdInput.value = '';
+        
+        // Reset parent name inputs
+        const fatherNameInput = document.getElementById('father');
+        const motherNameInput = document.getElementById('mother');
+        if (fatherNameInput) {
+            fatherNameInput.value = '';
+            fatherNameInput.setAttribute('data-pedigree', '');
+        }
+        if (motherNameInput) {
+            motherNameInput.value = '';
+            motherNameInput.setAttribute('data-pedigree', '');
+        }
         
         // Reset dropdowns
         const dropdowns = document.querySelectorAll('.autocomplete-dropdown');
@@ -2679,7 +2691,6 @@ class LitterManager {
         if (window.uiHandler && window.uiHandler.showProgress) {
             window.uiHandler.showProgress(message);
         } else {
-            // Fallback
             alert(message);
         }
     }

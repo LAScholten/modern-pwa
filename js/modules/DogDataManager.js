@@ -1317,6 +1317,10 @@ class DogDataManager extends BaseModule {
             
             this.selectedDog = dog;
             this.currentDogId = dogId;
+            
+            // Haal de volledige data op voor vader en moeder voordat we het formulier vullen
+            await this.loadParentNames(dog);
+            
             this.fillFormWithDogData(dog);
             this.showEditSection();
             this.showSuccess(`${this.t('dogSelected')}: ${dog.naam}`);
@@ -1324,6 +1328,36 @@ class DogDataManager extends BaseModule {
         } catch (error) {
             console.error('Fout bij selecteren hond:', error);
             this.showError(`${this.t('searchFailed')}${error.message}`);
+        }
+    }
+    
+    async loadParentNames(dog) {
+        // Laad vader data als vader_id bestaat
+        if (dog.vader_id) {
+            try {
+                const vaderData = await hondenService.getHondById(dog.vader_id);
+                if (vaderData) {
+                    dog.vader_naam = vaderData.naam;
+                    dog.vader_kennelnaam = vaderData.kennelnaam;
+                    dog.vader_stamboomnr = vaderData.stamboomnr;
+                }
+            } catch (e) {
+                console.warn('Kon vader data niet laden:', e);
+            }
+        }
+        
+        // Laad moeder data als moeder_id bestaat
+        if (dog.moeder_id) {
+            try {
+                const moederData = await hondenService.getHondById(dog.moeder_id);
+                if (moederData) {
+                    dog.moeder_naam = moederData.naam;
+                    dog.moeder_kennelnaam = moederData.kennelnaam;
+                    dog.moeder_stamboomnr = moederData.stamboomnr;
+                }
+            } catch (e) {
+                console.warn('Kon moeder data niet laden:', e);
+            }
         }
     }
     
@@ -1361,24 +1395,42 @@ class DogDataManager extends BaseModule {
             document.getElementById('vader_id').value = vaderId;
             document.getElementById('vader_stamboomnr').value = dog.vader_stamboomnr || '';
             document.getElementById('father').setAttribute('data-valid-parent', 'true');
+            
+            // VUL DE VOLLEDIGE NAAM IN VOOR VADER (naam + kennelnaam)
+            const fatherName = dog.vader_naam || dog.vader || '';
+            const fatherKennel = dog.vader_kennelnaam || '';
+            let fullFatherName = fatherName;
+            if (fatherKennel && fatherKennel.trim()) {
+                fullFatherName = `${fatherName} ${fatherKennel}`.trim();
+            }
+            document.getElementById('father').value = fullFatherName;
         } else {
             document.getElementById('vader_id').value = '';
             document.getElementById('vader_stamboomnr').value = '';
             document.getElementById('father').setAttribute('data-valid-parent', 'false');
+            document.getElementById('father').value = dog.vader || '';
         }
-        document.getElementById('father').value = dog.vader || '';
         
         const moederId = dog.moeder_id || null;
         if (moederId) {
             document.getElementById('moeder_id').value = moederId;
             document.getElementById('moeder_stamboomnr').value = dog.moeder_stamboomnr || '';
             document.getElementById('mother').setAttribute('data-valid-parent', 'true');
+            
+            // VUL DE VOLLEDIGE NAAM IN VOOR MOEDER (naam + kennelnaam)
+            const motherName = dog.moeder_naam || dog.moeder || '';
+            const motherKennel = dog.moeder_kennelnaam || '';
+            let fullMotherName = motherName;
+            if (motherKennel && motherKennel.trim()) {
+                fullMotherName = `${motherName} ${motherKennel}`.trim();
+            }
+            document.getElementById('mother').value = fullMotherName;
         } else {
             document.getElementById('moeder_id').value = '';
             document.getElementById('moeder_stamboomnr').value = '';
             document.getElementById('mother').setAttribute('data-valid-parent', 'false');
+            document.getElementById('mother').value = dog.moeder || '';
         }
-        document.getElementById('mother').value = dog.moeder || '';
         
         const formatDateForDisplay = (dateString) => {
             if (!dateString) return '';
@@ -1705,6 +1757,36 @@ class DogDataManager extends BaseModule {
         const vader_stamboomnr = vaderStamboomnrInput && vaderStamboomnrInput.value.trim() ? vaderStamboomnrInput.value.trim() : null;
         const moeder_stamboomnr = moederStamboomnrInput && moederStamboomnrInput.value.trim() ? moederStamboomnrInput.value.trim() : null;
         
+        // Haal de volledige namen op voor vader en moeder
+        let vaderNaam = '';
+        let vaderKennelnaam = '';
+        let moederNaam = '';
+        let moederKennelnaam = '';
+        
+        if (vader_id) {
+            try {
+                const vaderData = await hondenService.getHondById(vader_id);
+                if (vaderData) {
+                    vaderNaam = vaderData.naam || '';
+                    vaderKennelnaam = vaderData.kennelnaam || '';
+                }
+            } catch (e) {
+                console.warn('Kon vader data niet ophalen:', e);
+            }
+        }
+        
+        if (moeder_id) {
+            try {
+                const moederData = await hondenService.getHondById(moeder_id);
+                if (moederData) {
+                    moederNaam = moederData.naam || '';
+                    moederKennelnaam = moederData.kennelnaam || '';
+                }
+            } catch (e) {
+                console.warn('Kon moeder data niet ophalen:', e);
+            }
+        }
+        
         const dogData = {
             id: parsedId,
             naam: document.getElementById('dogName').value.trim(),
@@ -1713,10 +1795,12 @@ class DogDataManager extends BaseModule {
             ras: document.getElementById('breed').value.trim(),
             vachtkleur: document.getElementById('coatColor').value || null,
             geslacht: document.getElementById('gender').value,
-            vader: document.getElementById('father').value.split(' ')[0] || '',
+            vader: vaderNaam,
+            vader_kennelnaam: vaderKennelnaam,
             vader_id: vader_id,
             vader_stamboomnr: vader_stamboomnr,
-            moeder: document.getElementById('mother').value.split(' ')[0] || '',
+            moeder: moederNaam,
+            moeder_kennelnaam: moederKennelnaam,
             moeder_id: moeder_id,
             moeder_stamboomnr: moeder_stamboomnr,
             geboortedatum: formatDateForStorage(birthDateValue),
