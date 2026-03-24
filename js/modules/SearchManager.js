@@ -71,6 +71,7 @@ class SearchManager extends BaseModule {
                 eyes: "Ogen",
                 eyesExplanation: "Verklaring ogen",
                 dandyWalker: "Dandy Walker Malformation",
+                luw: "LÜW/LTV",  // NIEUW: LUW/LTV veld
                 thyroid: "Schildklier",
                 thyroidExplanation: "Toelichting schildklier",
                 country: "Land",
@@ -109,6 +110,12 @@ class SearchManager extends BaseModule {
                     "Vrij op ouders": "Vrij op ouders", 
                     "Drager": "Drager",
                     "Lijder": "Lijder"
+                },
+                luwGrades: {  // NIEUW: LUW/LTV waardes
+                    "0": "0 - Vrij",
+                    "1": "1 - Licht",
+                    "2": "2 - Matig",
+                    "3": "3 - Ernstig"
                 },
                 thyroidStatus: {
                     "Negatief": "Tgaa Negatief",
@@ -225,6 +232,7 @@ class SearchManager extends BaseModule {
                 eyes: "Eyes",
                 eyesExplanation: "Eye explanation",
                 dandyWalker: "Dandy Walker Malformation",
+                luw: "LÜW/LTV",  // NIEUW: LUW/LTV field
                 thyroid: "Thyroid",
                 thyroidExplanation: "Thyroid explanation",
                 country: "Country",
@@ -263,6 +271,12 @@ class SearchManager extends BaseModule {
                     "Vrij op ouders": "Free on parents",
                     "Drager": "Carrier",
                     "Lijder": "Affected"
+                },
+                luwGrades: {  // NIEUW: LUW/LTV values
+                    "0": "0 - Free",
+                    "1": "1 - Mild",
+                    "2": "2 - Moderate",
+                    "3": "3 - Severe"
                 },
                 thyroidStatus: {
                     "Negatief": "Tgaa Negative",
@@ -374,6 +388,7 @@ class SearchManager extends BaseModule {
                 eyes: "Augen",
                 eyesExplanation: "Augenerklärung",
                 dandyWalker: "Dandy Walker Malformation",
+                luw: "LÜW/LTV",  // NIEUW: LUW/LTV Feld
                 thyroid: "Schilddrüse",
                 thyroidExplanation: "Schilddrüse Erklärung",
                 country: "Land",
@@ -1168,7 +1183,7 @@ class SearchManager extends BaseModule {
                                     <th scope="col">${this.t('breed')}</th>
                                     <th scope="col">${this.t('gender')}</th>
                                     <th scope="col">${this.t('birthYear')}</th>
-                                 </tr>
+                                  </tr>
                             </thead>
                             <tbody>
             `;
@@ -1196,7 +1211,7 @@ class SearchManager extends BaseModule {
             
             html += `
                             </tbody>
-                         </table>
+                          </table>
                     </div>
                 </div>
                 
@@ -1732,7 +1747,7 @@ class SearchManager extends BaseModule {
                     <div class="table-responsive">
                         <table class="table table-hover table-sm">
                             <thead class="table-light">
-                                <tr>
+                                 <tr>
                                     <th scope="col">#</th>
                                     <th scope="col">${this.t('dogName')}</th>
                                     <th scope="col">${this.t('fatherColumn')}</th>
@@ -1740,7 +1755,7 @@ class SearchManager extends BaseModule {
                                     <th scope="col">${this.t('pedigreeNumber')}</th>
                                     <th scope="col">${this.t('breed')}</th>
                                     <th scope="col">${this.t('birthYear')}</th>
-                                </tr>
+                                 </tr>
                             </thead>
                             <tbody>
             `;
@@ -1775,7 +1790,7 @@ class SearchManager extends BaseModule {
             
             html += `
                             </tbody>
-                        </table>
+                         </table>
                     </div>
                 </div>
                 
@@ -1860,7 +1875,7 @@ class SearchManager extends BaseModule {
                                     <th scope="col">${this.t('pedigreeNumber')}</th>
                                     <th scope="col">${this.t('breed')}</th>
                                     <th scope="col">${this.t('birthYear')}</th>
-                                </tr>
+                                 </tr>
                             </thead>
                             <tbody>
             `;
@@ -2113,6 +2128,10 @@ class SearchManager extends BaseModule {
                     badgeClass = 'badge-dandy';
                     badgeText = t('dandyStatus', value) || value;
                     break;
+                case 'luw':  // NIEUW: LUW/LTV case
+                    badgeClass = 'badge-luw';
+                    badgeText = t('luwGrades', value) || value;
+                    break;
                 case 'thyroid':
                     badgeClass = 'badge-thyroid';
                     badgeText = t('thyroidStatus', value) || value;
@@ -2279,6 +2298,12 @@ class SearchManager extends BaseModule {
                         <div class="col-md-6 mb-3">
                             <div class="fw-bold mb-1">${t('dandyWalker')}</div>
                             <div>${getHealthBadge(dog.dandyWalker, 'dandy')}</div>
+                        </div>
+                        
+                        <!-- NIEUW: LUW/LTV veld - komt onder Dandy Walker -->
+                        <div class="col-md-6 mb-3">
+                            <div class="fw-bold mb-1">${t('luw')}</div>
+                            <div>${getHealthBadge(dog.LUW, 'luw')}</div>
                         </div>
                         
                         <div class="col-md-6 mb-3">
@@ -2781,6 +2806,12 @@ class SearchManager extends BaseModule {
                 
                 .badge-dandy {
                     background-color: #e83e8c;
+                    color: white;
+                }
+                
+                /* NIEUW: LUW/LTV badge styling */
+                .badge-luw {
+                    background-color: #fd7e14;
                     color: white;
                 }
                 
@@ -3736,6 +3767,10 @@ class SearchManager extends BaseModule {
                     badgeClass = 'badge-dandy';
                     badgeText = t('dandyStatus', value) || value;
                     break;
+                case 'luw':  // NIEUW: LUW/LTV case voor main view
+                    badgeClass = 'badge-luw';
+                    badgeText = t('luwGrades', value) || value;
+                    break;
                 case 'thyroid':
                     badgeClass = 'badge-thyroid';
                     badgeText = t('thyroidStatus', value) || value;
@@ -3927,6 +3962,12 @@ class SearchManager extends BaseModule {
                                 <div class="col-md-6 mb-3">
                                     <div class="fw-bold mb-1">${t('dandyWalker')}</div>
                                     <div>${getHealthBadge(dog.dandyWalker, 'dandy')}</div>
+                                </div>
+                                
+                                <!-- NIEUW: LUW/LTV veld - komt onder Dandy Walker -->
+                                <div class="col-md-6 mb-3">
+                                    <div class="fw-bold mb-1">${t('luw')}</div>
+                                    <div>${getHealthBadge(dog.LUW, 'luw')}</div>
                                 </div>
                                 
                                 <div class="col-md-6 mb-3">

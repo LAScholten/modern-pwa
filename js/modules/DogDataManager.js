@@ -4,6 +4,7 @@
  * DogDataManager - Module voor het bewerken en verwijderen van honden
  * MET CORRECTE OPSLAG VAN OUDER ID's volgens database structuur
  * EN met autorisatie: admin ziet alle honden, gebruiker+ alleen eigen honden
+ * MET LUW/LTV veld (alleen cijfers, optioneel)
  */
 class DogDataManager extends BaseModule {
     constructor() {
@@ -93,13 +94,16 @@ class DogDataManager extends BaseModule {
                 eyesFree: "Vrij",
                 eyesDistichiasis: "Distichiasis",
                 eyesOther: "Overig",
-                eyesExplanation: "Verklaring overig",
+                eyesExplanation: "Verklaring ogen",
                 dandyWalker: "Dandy Walker Malformation",
                 dandyOptions: "Selecteer status...",
                 dandyFreeDNA: "Vrij op DNA",
                 dandyFreeParents: "Vrij op ouders",
                 dandyCarrier: "Drager",
                 dandyAffected: "Lijder",
+                luw: "LÜW/LTV",
+                luwPlaceholder: "Alleen een getal",
+                luwHelp: "Voer alleen een getal in",
                 thyroid: "Schildklier",
                 thyroidNegative: "Tgaa Negatief",
                 thyroidPositive: "Tgaa Positief",
@@ -162,7 +166,8 @@ class DogDataManager extends BaseModule {
                 dateFormatError: "Datum moet in DD-MM-JJJJ formaat zijn",
                 deathBeforeBirthError: "Overlijdensdatum kan niet voor geboortedatum zijn",
                 searchParent: "Zoek ouder...",
-                searchingParent: "Zoeken..."
+                searchingParent: "Zoeken...",
+                invalidLuw: "LÜW/LTV mag alleen een getal bevatten"
             },
             en: {
                 editDogData: "Edit Dog Data",
@@ -224,13 +229,16 @@ class DogDataManager extends BaseModule {
                 eyesFree: "Free",
                 eyesDistichiasis: "Distichiasis",
                 eyesOther: "Other",
-                eyesExplanation: "Other explanation",
+                eyesExplanation: "Eye explanation",
                 dandyWalker: "Dandy Walker Malformation",
                 dandyOptions: "Select status...",
                 dandyFreeDNA: "Free on DNA",
                 dandyFreeParents: "Free on parents",
                 dandyCarrier: "Carrier",
                 dandyAffected: "Affected",
+                luw: "LÜW/LTV",
+                luwPlaceholder: "Number only",
+                luwHelp: "Enter only a number",
                 thyroid: "Thyroid",
                 thyroidNegative: "Tgaa Negative",
                 thyroidPositive: "Tgaa Positive",
@@ -293,7 +301,8 @@ class DogDataManager extends BaseModule {
                 dateFormatError: "Date must be in DD-MM-YYYY format",
                 deathBeforeBirthError: "Death date cannot be before birth date",
                 searchParent: "Search parent...",
-                searchingParent: "Searching..."
+                searchingParent: "Searching...",
+                invalidLuw: "LÜW/LTV can only contain a number"
             },
             de: {
                 editDogData: "Hundedaten bearbeiten",
@@ -362,6 +371,9 @@ class DogDataManager extends BaseModule {
                 dandyFreeParents: "Frei op ouders",
                 dandyCarrier: "Träger",
                 dandyAffected: "Betroffen",
+                luw: "LÜW/LTV",
+                luwPlaceholder: "Nur ein Zahl",
+                luwHelp: "Nur ein Zah eingeben",
                 thyroid: "Schilddrüse",
                 thyroidNegative: "Tgaa Negativ",
                 thyroidPositive: "Tgaa Positief",
@@ -424,7 +436,8 @@ class DogDataManager extends BaseModule {
                 dateFormatError: "Datum moet im Format TT-MM-JJJJ sein",
                 deathBeforeBirthError: "Sterbedatum kan nicht vor dem Geburtsdatum liegen",
                 searchParent: "Elternteil suchen...",
-                searchingParent: "Suche..."
+                searchingParent: "Suche...",
+                invalidLuw: "LÜW/LTV darf nur ein Zahl enthalten"
             }
         };
     }
@@ -688,11 +701,16 @@ class DogDataManager extends BaseModule {
                                                     <option value="Overig">${t('eyesOther')}</option>
                                                 </select>
                                             </div>
-                                            <div class="mb-3" id="eyesExplanationContainer" style="display: none;">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
                                                 <label for="eyesExplanation" class="form-label fw-semibold">${t('eyesExplanation')}</label>
                                                 <input type="text" class="form-control" id="eyesExplanation">
                                             </div>
                                         </div>
+                                    </div>
+                                    
+                                    <div class="row">
                                         <div class="col-md-6">
                                             <div class="mb-3">
                                                 <label for="dandyWalker" class="form-label fw-semibold">${t('dandyWalker')}</label>
@@ -703,6 +721,18 @@ class DogDataManager extends BaseModule {
                                                     <option value="Drager">${t('dandyCarrier')}</option>
                                                     <option value="Lijder">${t('dandyAffected')}</option>
                                                 </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="luw" class="form-label fw-semibold">${t('luw')}</label>
+                                                <input type="text" class="form-control" id="luw" 
+                                                       placeholder="${t('luwPlaceholder')}"
+                                                       maxlength="1"
+                                                       pattern="[0-9]"
+                                                       title="${t('luwHelp')}">
+                                                <small class="form-text text-muted">${t('luwHelp')}</small>
+                                                <div id="luwError" class="error-message" style="display: none;"></div>
                                             </div>
                                         </div>
                                     </div>
@@ -717,25 +747,26 @@ class DogDataManager extends BaseModule {
                                                     <option value="Positief">${t('thyroidPositive')}</option>
                                                 </select>
                                             </div>
+                                        </div>
+                                        <div class="col-md-6">
                                             <div class="mb-3" id="thyroidExplanationContainer" style="display: block;">
                                                 <label for="thyroidExplanation" class="form-label fw-semibold">${t('thyroidExplanation')}</label>
                                                 <input type="text" class="form-control" id="thyroidExplanation">
                                             </div>
                                         </div>
+                                    </div>
+                                    
+                                    <div class="row">
                                         <div class="col-md-6">
-                                            <div class="row">
-                                                <div class="col-md-6">
-                                                    <div class="mb-3">
-                                                        <label for="country" class="form-label fw-semibold">${t('country')}</label>
-                                                        <input type="text" class="form-control" id="country">
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <div class="mb-3">
-                                                        <label for="zipCode" class="form-label fw-semibold">${t('zipCode')}</label>
-                                                        <input type="text" class="form-control" id="zipCode">
-                                                    </div>
-                                                </div>
+                                            <div class="mb-3">
+                                                <label for="country" class="form-label fw-semibold">${t('country')}</label>
+                                                <input type="text" class="form-control" id="country">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="zipCode" class="form-label fw-semibold">${t('zipCode')}</label>
+                                                <input type="text" class="form-control" id="zipCode">
                                             </div>
                                         </div>
                                     </div>
@@ -853,6 +884,7 @@ class DogDataManager extends BaseModule {
                 #userInfoBanner { padding: 8px 12px; margin-bottom: 15px; }
                 #modeIndicator { font-weight: 600; }
                 #fileStatus.file-selected { color: #198754; font-weight: 600; }
+                .luw-error { border-color: #dc3545 !important; }
             </style>
         `;
     }
@@ -906,14 +938,6 @@ class DogDataManager extends BaseModule {
         const deleteBtn = document.getElementById('deleteDogBtn');
         if (deleteBtn) deleteBtn.addEventListener('click', () => this.deleteDog());
         
-        const eyesSelect = document.getElementById('eyes');
-        if (eyesSelect) {
-            eyesSelect.addEventListener('change', (e) => {
-                const container = document.getElementById('eyesExplanationContainer');
-                if (container) container.style.display = e.target.value === 'Overig' ? 'block' : 'none';
-            });
-        }
-        
         document.addEventListener('click', (e) => {
             if (e.target.classList.contains('recent-breed-btn')) {
                 const breed = e.target.dataset.breed;
@@ -926,6 +950,7 @@ class DogDataManager extends BaseModule {
         this.setupDateFields();
         this.setupDateValidation();
         this.setupFileInputStatus();
+        this.setupLuwValidation();
         
         setTimeout(() => this.translateModal(), 100);
     }
@@ -1170,6 +1195,54 @@ class DogDataManager extends BaseModule {
         }
         
         return isValid;
+    }
+    
+    validateLuw() {
+        const luwInput = document.getElementById('luw');
+        const luwError = document.getElementById('luwError');
+        
+        if (!luwInput) return true;
+        
+        const value = luwInput.value.trim();
+        
+        if (value === '') {
+            if (luwError) luwError.style.display = 'none';
+            luwInput.classList.remove('luw-error');
+            return true;
+        }
+        
+        const isValid = /^[0-9]$/.test(value);
+        
+        if (!isValid) {
+            luwInput.classList.add('luw-error');
+            if (luwError) {
+                luwError.textContent = this.t('invalidLuw');
+                luwError.style.display = 'block';
+            }
+        } else {
+            luwInput.classList.remove('luw-error');
+            if (luwError) luwError.style.display = 'none';
+        }
+        
+        return isValid;
+    }
+    
+    setupLuwValidation() {
+        const luwInput = document.getElementById('luw');
+        if (luwInput) {
+            luwInput.addEventListener('input', (e) => {
+                let value = e.target.value;
+                // Alleen cijfers toestaan
+                value = value.replace(/[^0-9]/g, '');
+                if (value.length > 1) value = value.charAt(0);
+                e.target.value = value;
+                this.validateLuw();
+            });
+            
+            luwInput.addEventListener('blur', () => {
+                this.validateLuw();
+            });
+        }
     }
     
     validateParents() {
@@ -1452,6 +1525,7 @@ class DogDataManager extends BaseModule {
         document.getElementById('eyes').value = dog.ogen || '';
         document.getElementById('eyesExplanation').value = dog.ogenverklaring || '';
         document.getElementById('dandyWalker').value = dog.dandyWalker || '';
+        document.getElementById('luw').value = dog.luw || '';
         document.getElementById('thyroid').value = dog.schildklier || '';
         document.getElementById('thyroidExplanation').value = dog.schildklierverklaring || '';
         document.getElementById('country').value = dog.land || '';
@@ -1460,9 +1534,6 @@ class DogDataManager extends BaseModule {
         
         const dogNameElement = document.getElementById('editingDogName');
         if (dogNameElement) dogNameElement.textContent = dog.naam || this.t('unknown');
-        
-        const eyesExplanationContainer = document.getElementById('eyesExplanationContainer');
-        if (eyesExplanationContainer) eyesExplanationContainer.style.display = (dog.ogen === 'Overig') ? 'block' : 'none';
         
         const fileStatus = document.getElementById('fileStatus');
         if (fileStatus) {
@@ -1476,6 +1547,12 @@ class DogDataManager extends BaseModule {
         if (motherError) motherError.style.display = 'none';
         document.getElementById('father').classList.remove('parent-validation-error');
         document.getElementById('mother').classList.remove('parent-validation-error');
+        
+        // Reset LUW error state
+        const luwError = document.getElementById('luwError');
+        if (luwError) luwError.style.display = 'none';
+        const luwInput = document.getElementById('luw');
+        if (luwInput) luwInput.classList.remove('luw-error');
     }
     
     showEditSection() {
@@ -1493,6 +1570,7 @@ class DogDataManager extends BaseModule {
         
         this.setupParentAutocomplete();
         this.setupDateFields();
+        this.setupLuwValidation();
         
         const fileStatus = document.getElementById('fileStatus');
         if (fileStatus) {
@@ -1549,6 +1627,15 @@ class DogDataManager extends BaseModule {
         if (motherInput) {
             motherInput.setAttribute('data-valid-parent', 'false');
             motherInput.classList.remove('parent-validation-error');
+        }
+        
+        // Reset LUW error state
+        const luwError = document.getElementById('luwError');
+        if (luwError) luwError.style.display = 'none';
+        const luwInput = document.getElementById('luw');
+        if (luwInput) {
+            luwInput.classList.remove('luw-error');
+            luwInput.value = '';
         }
         
         this.selectedDog = null;
@@ -1704,6 +1791,11 @@ class DogDataManager extends BaseModule {
             return;
         }
         
+        if (!this.validateLuw()) {
+            this.showError(this.t('invalidLuw'));
+            return;
+        }
+        
         const dogId = document.getElementById('dogId');
         if (!dogId || !dogId.value) {
             this.showError(this.t('dogNotFound'));
@@ -1787,6 +1879,9 @@ class DogDataManager extends BaseModule {
             }
         }
         
+        const luwInput = document.getElementById('luw');
+        const luwValue = luwInput && luwInput.value.trim() ? luwInput.value.trim() : null;
+        
         const dogData = {
             id: parsedId,
             naam: document.getElementById('dogName').value.trim(),
@@ -1811,6 +1906,7 @@ class DogDataManager extends BaseModule {
             ogen: document.getElementById('eyes').value || null,
             ogenverklaring: document.getElementById('eyesExplanation')?.value.trim() || null,
             dandyWalker: document.getElementById('dandyWalker').value || null,
+            luw: luwValue,
             schildklier: document.getElementById('thyroid').value || null,
             schildklierverklaring: document.getElementById('thyroidExplanation')?.value.trim() || null,
             land: document.getElementById('country').value.trim() || null,

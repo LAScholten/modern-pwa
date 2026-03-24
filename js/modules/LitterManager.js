@@ -84,6 +84,8 @@ class LitterManager {
                 dandyFreeParents: "Vrij op ouders",
                 dandyCarrier: "Drager",
                 dandyAffected: "Lijder",
+                luw: "LÜW / LTV",
+                luwPlaceholder: "Alleen een getal",
                 thyroid: "Schildklier (Tgaa)",
                 thyroidNegative: "Tgaa Negatief",
                 thyroidPositive: "Tgaa Positief",
@@ -108,6 +110,7 @@ class LitterManager {
                 // Validatie
                 dateFormatError: "Datum moet in DD-MM-JJJJ formaat zijn",
                 deathBeforeBirthError: "Overlijdensdatum kan niet voor geboortedatum zijn",
+                luwInvalid: "LÜW/LTV mag alleen cijfers bevatten",
                 
                 // Toegangscontrole popup teksten
                 insufficientPermissions: "Onvoldoende rechten",
@@ -148,6 +151,7 @@ class LitterManager {
                 healthPL: "PL",
                 healthEyes: "Ogen",
                 healthDandy: "Dandy",
+                healthLUW: "LÜW/LTV",
                 healthThyroid: "Tgaa",
                 healthCoat: "Vachtkleur",
                 healthGender: "Geslacht",
@@ -212,6 +216,8 @@ class LitterManager {
                 dandyFreeParents: "Free on parents",
                 dandyCarrier: "Carrier",
                 dandyAffected: "Affected",
+                luw: "LÜW / LTV",
+                luwPlaceholder: "Number only",
                 thyroid: "Thyroid (Tgaa)",
                 thyroidNegative: "Tgaa Negative",
                 thyroidPositive: "Tgaa Positive",
@@ -236,6 +242,7 @@ class LitterManager {
                 // Validation
                 dateFormatError: "Date must be in DD-MM-YYYY format",
                 deathBeforeBirthError: "Death date cannot be before birth date",
+                luwInvalid: "LÜW/LTV can only contain numbers",
                 
                 // Access control popup texts
                 insufficientPermissions: "Insufficient permissions",
@@ -276,6 +283,7 @@ class LitterManager {
                 healthPL: "PL",
                 healthEyes: "Eyes",
                 healthDandy: "Dandy",
+                healthLUW: "LÜW/LTV",
                 healthThyroid: "Tgaa",
                 healthCoat: "Coat Color",
                 healthGender: "Gender",
@@ -340,6 +348,8 @@ class LitterManager {
                 dandyFreeParents: "Frei op ouders",
                 dandyCarrier: "Träger",
                 dandyAffected: "Betroffen",
+                luw: "LÜW / LTV",
+                luwPlaceholder: "Nur ein Zahl",
                 thyroid: "Schilddrüse (Tgaa)",
                 thyroidNegative: "Tgaa Negativ",
                 thyroidPositive: "Tgaa Positief",
@@ -364,6 +374,7 @@ class LitterManager {
                 // Validierung
                 dateFormatError: "Datum moet im Format TT-MM-JJJJ sein",
                 deathBeforeBirthError: "Sterbedatum kan nicht vor dem Geburtsdatum liegen",
+                luwInvalid: "LÜW/LTV darf nur Zahlen enthalten",
                 
                 // Zugangskontrolle Popup Texte
                 insufficientPermissions: "Unzureichende Berechtigungen",
@@ -404,6 +415,7 @@ class LitterManager {
                 healthPL: "PL",
                 healthEyes: "Augen",
                 healthDandy: "Dandy",
+                healthLUW: "LÜW/LTV",
                 healthThyroid: "Tgaa",
                 healthCoat: "Fellfarbe",
                 healthGender: "Geschlecht",
@@ -902,6 +914,7 @@ class LitterManager {
                 .health-badge.pl { background-color: #fff3e0; color: #f39c12; border: 1px solid #f39c12; }
                 .health-badge.eyes { background-color: #f4ecf7; color: #8e44ad; border: 1px solid #9b59b6; }
                 .health-badge.dandy { background-color: #fef9e7; color: #d68910; border: 1px solid #f1c40f; }
+                .health-badge.luw { background-color: #e8f0fe; color: #1e3a8a; border: 1px solid #3b82f6; }
                 .health-badge.thyroid { background-color: #fbeee6; color: #e74c3c; border: 1px solid #e74c3c; }
                 .health-badge.coat { background-color: #e8f6f3; color: #16a085; border: 1px solid #1abc9c; }
                 .health-badge.gender { background-color: #f4ecf7; color: #8e44ad; border: 1px solid #9b59b6; }
@@ -1256,7 +1269,7 @@ class LitterManager {
                         </div>
                     </div>
                     
-                    <!-- Ogen en Dandy Walker -->
+                    <!-- Ogen en Dandy Walker + LUW (NIEUW) -->
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
@@ -1268,7 +1281,7 @@ class LitterManager {
                                     <option value="Overig" ${data.ogen === 'Overig' ? 'selected' : ''}>${t('eyesOther')}</option>
                                 </select>
                             </div>
-                            <!-- AANGEPAST: Eyes explanation container altijd zichtbaar -->
+                            <!-- Eyes explanation container altijd zichtbaar -->
                             <div class="mb-3" id="eyesExplanationContainer" style="display: block;">
                                 <label for="eyesExplanation" class="form-label">${t('eyesExplanation')}</label>
                                 <input type="text" class="form-control" id="eyesExplanation" value="${data.ogenverklaring || ''}">
@@ -1284,6 +1297,12 @@ class LitterManager {
                                     <option value="Drager" ${data.dandyWalker === 'Drager' ? 'selected' : ''}>${t('dandyCarrier')}</option>
                                     <option value="Lijder" ${data.dandyWalker === 'Lijder' ? 'selected' : ''}>${t('dandyAffected')}</option>
                                 </select>
+                            </div>
+                            <!-- NIEUW: LUW Veld -->
+                            <div class="mb-3">
+                                <label for="luw" class="form-label">${t('luw')}</label>
+                                <input type="text" class="form-control" id="luw" value="${data.LUW || ''}" placeholder="${t('luwPlaceholder')}" maxlength="20">
+                                <div id="luwError" class="error-message" style="display: none;"></div>
                             </div>
                         </div>
                     </div>
@@ -1464,11 +1483,10 @@ class LitterManager {
             console.error('LitterManager: Save button 2 (mobile) niet gevonden!');
         }
         
-        // Eyes dropdown handler - AANGEPAST: alleen voor het bijwerken van de waarde, niet voor zichtbaarheid
+        // Eyes dropdown handler
         const eyesSelect = document.getElementById('eyes');
         if (eyesSelect) {
             eyesSelect.addEventListener('change', (e) => {
-                // Geen wijziging in zichtbaarheid meer
                 console.log('LitterManager: Eyes geselecteerd:', e.target.value);
             });
         } else {
@@ -1481,12 +1499,32 @@ class LitterManager {
             thyroidSelect.addEventListener('change', (e) => {
                 const explanationContainer = document.getElementById('thyroidExplanationContainer');
                 if (explanationContainer) {
-                    // AANGEPAST: Verwijder de conditionele logica zodat het vak altijd zichtbaar blijft
-                    explanationContainer.style.display = 'block'; // Altijd tonen
+                    explanationContainer.style.display = 'block';
                 }
             });
         } else {
             console.log('LitterManager: Thyroid select niet gevonden');
+        }
+        
+        // LUW veld validatie (alleen cijfers)
+        const luwInput = document.getElementById('luw');
+        if (luwInput) {
+            luwInput.addEventListener('input', (e) => {
+                const luwError = document.getElementById('luwError');
+                const value = e.target.value;
+                const numericRegex = /^[0-9]*$/;
+                
+                if (value && !numericRegex.test(value)) {
+                    if (luwError) {
+                        luwError.textContent = this.t('luwInvalid');
+                        luwError.style.display = 'block';
+                    }
+                    // Verwijder niet-numerieke karakters
+                    e.target.value = value.replace(/[^0-9]/g, '');
+                } else if (luwError) {
+                    luwError.style.display = 'none';
+                }
+            });
         }
         
         // Recente rassen knoppen - Delegatie gebruiken
@@ -1933,6 +1971,9 @@ class LitterManager {
             if (dog.dandyWalker) {
                 healthBadges.push(`<span class="health-badge dandy"><span class="health-badge-label">${this.t('healthDandy')}:</span>${dog.dandyWalker}</span>`);
             }
+            if (dog.luw) {
+                healthBadges.push(`<span class="health-badge luw"><span class="health-badge-label">${this.t('healthLUW')}:</span>${dog.luw}</span>`);
+            }
             if (dog.schildklier) {
                 healthBadges.push(`<span class="health-badge thyroid"><span class="health-badge-label">${this.t('healthThyroid')}:</span>${dog.schildklier}</span>`);
             }
@@ -2155,6 +2196,7 @@ class LitterManager {
             'patellaLuxation',
             'eyes',
             'dandyWalker',
+            'luw',
             'thyroid'
         ];
         
@@ -2186,6 +2228,10 @@ class LitterManager {
         // Reset opmerkingen
         const remarksTextarea = document.getElementById('remarks');
         if (remarksTextarea) remarksTextarea.value = '';
+        
+        // Reset LUW error message
+        const luwError = document.getElementById('luwError');
+        if (luwError) luwError.style.display = 'none';
     }
     
     addToLastBreeds(breed) {
@@ -2347,6 +2393,13 @@ class LitterManager {
         const vaderStamboomnr = fatherNameInput ? fatherNameInput.getAttribute('data-pedigree') || '' : '';
         const moederStamboomnr = motherNameInput ? motherNameInput.getAttribute('data-pedigree') || '' : '';
         
+        // Haal LUW waarde op en valideer (zekerheidshalve nog een keer)
+        let luwValue = document.getElementById('luw')?.value.trim() || '';
+        if (luwValue && !/^[0-9]+$/.test(luwValue)) {
+            this.showError(this.t('luwInvalid'));
+            return;
+        }
+        
         console.log('LitterManager: vader_id:', vaderIdValue);
         console.log('LitterManager: moeder_id:', moederIdValue);
         console.log('LitterManager: vader_naam:', vaderNaam);
@@ -2387,6 +2440,8 @@ class LitterManager {
             ogen: document.getElementById('eyes')?.value || null,
             ogenverklaring: document.getElementById('eyesExplanation')?.value.trim() || null,
             dandyWalker: document.getElementById('dandyWalker')?.value || null,
+            // NIEUW: LUW veld
+            LUW: luwValue || null,
             schildklier: document.getElementById('thyroid')?.value || null,
             schildklierverklaring: document.getElementById('thyroidExplanation')?.value.trim() || null,
             
@@ -2405,6 +2460,7 @@ class LitterManager {
         console.log('[LitterManager] === DOG DATA VOOR OPSLAG ===');
         console.log('Vader:', dogData.vader, 'vader_id:', dogData.vader_id);
         console.log('Moeder:', dogData.moeder, 'moeder_id:', dogData.moeder_id);
+        console.log('LUW:', dogData.LUW);
         
         // Validatie
         if (!dogData.naam) {
@@ -2500,6 +2556,7 @@ class LitterManager {
                 patella: dogData.patella,
                 ogen: dogData.ogen,
                 dandyWalker: dogData.dandyWalker,
+                luw: dogData.LUW,
                 schildklier: dogData.schildklier,
                 vader_id: dogData.vader_id,
                 moeder_id: dogData.moeder_id,
