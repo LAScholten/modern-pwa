@@ -63,8 +63,6 @@ class ZoekReu {
                 schildklier: "Tgaa",
                 elleboogdysplasie: "Elleboogdysplasie (ED)",
                 anyHealth: "Niet belangrijk",
-                searchRadius: "Zoekradius",
-                radiusOptions: ["Nederland", "België", "Duitsland", "Europa", "Wereldwijd"],
                 searchButton: "Zoek Reuen",
                 results: "Zoekresultaten",
                 inDevelopment: "Deze zoekfunctie is momenteel in ontwikkeling",
@@ -208,8 +206,6 @@ class ZoekReu {
                 schildklier: "Tgaa",
                 elleboogdysplasie: "Elbow Dysplasia (ED)",
                 anyHealth: "Not important",
-                searchRadius: "Search radius",
-                radiusOptions: ["Netherlands", "Belgium", "Germany", "Europe", "Worldwide"],
                 searchButton: "Search Males",
                 results: "Search Results",
                 inDevelopment: "This search function is currently in development",
@@ -353,8 +349,6 @@ class ZoekReu {
                 schildklier: "Tgaa",
                 elleboogdysplasie: "Ellbogengelenksdysplasie (ED)",
                 anyHealth: "Nicht wichtig",
-                searchRadius: "Suchradius",
-                radiusOptions: ["Niederlande", "België", "Deutschland", "Europa", "Weltweit"],
                 searchButton: "Rüden suchen",
                 results: "Suchergebnisse",
                 inDevelopment: "Diese Suchfunktion ist derzeit in Entwicklung",
@@ -1068,15 +1062,6 @@ class ZoekReu {
                                     <label class="form-label">${t('ras')}</label>
                                     <select class="form-select" id="rasFilter">
                                         <option value="">${t('anyBreed')}</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="col-md-6">
-                                    <label class="form-label">${t('searchRadius')}</label>
-                                    <select class="form-select" id="radiusFilter">
-                                        ${t('radiusOptions').map((option, index) => `
-                                            <option value="${index}" ${index === 0 ? 'selected' : ''}>${option}</option>
-                                        `).join('')}
                                     </select>
                                 </div>
                                 
@@ -2547,27 +2532,6 @@ class ZoekReu {
                 query = query.eq('ras', criteria.ras);
             }
             
-            // Filter op land/radius
-            if (criteria.radius && criteria.radius !== '0') {
-                const radiusIndex = parseInt(criteria.radius);
-                const radiusMap = {
-                    1: 'België',
-                    2: 'Duitsland',
-                    3: 'Europa',
-                    4: 'Wereldwijd'
-                };
-                const countryFilter = radiusMap[radiusIndex];
-                if (countryFilter && countryFilter !== 'Wereldwijd') {
-                    if (countryFilter === 'Europa') {
-                        // Europa filter: landen in Europa (behalve Nederland)
-                        const europeanCountries = ['België', 'Duitsland', 'Frankrijk', 'Italië', 'Spanje', 'Portugal', 'Oostenrijk', 'Zwitserland', 'Zweden', 'Denemarken', 'Noorwegen', 'Finland', 'Polen', 'Tsjechië', 'Hongarije'];
-                        query = query.in('land', europeanCountries);
-                    } else {
-                        query = query.eq('land', countryFilter);
-                    }
-                }
-            }
-            
             // Filter op geboortedatum
             if (criteria.bornAfter) {
                 const minDate = this.parseDate(criteria.bornAfter);
@@ -2764,7 +2728,6 @@ class ZoekReu {
         
         const criteria = {
             ras: document.getElementById('rasFilter')?.value || '',
-            radius: document.getElementById('radiusFilter')?.value || '0',
             bornAfter: document.getElementById('bornAfterFilter')?.value.trim() || '',
             maxCOI: coiValue,
             excludeHonden: this.excludeHonden,
