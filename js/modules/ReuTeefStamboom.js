@@ -10,6 +10,7 @@
  * **FIXED** - Gebruikt nu dezelfde data-loading strategie als StamboomManager (eigen dataset)
  * **GEN4 HEADER FIX** - 4e generatie cards hebben nu dezelfde header als StamboomManager
  * **STAMBOOM NAVIGATIE** - Vanuit detailpopup kan stamboom van geselecteerde hond worden geopend in nieuwe modal met stack navigatie
+ * **LUW/LTV TOEGEVOEGD** - Nieuw gezondheidsveld LÜW/LTV toegevoegd aan detailpopup (tussen Dandy Walker en Schildklier)
  */
 
 class ReuTeefStamboom {
@@ -424,10 +425,17 @@ class ReuTeefStamboom {
             case 'eyes': badgeClass += 'badge-eyes'; break;
             case 'dandy': badgeClass += 'badge-dandy'; break;
             case 'thyroid': badgeClass += 'badge-thyroid'; break;
+            case 'luw': badgeClass += 'badge-luw'; break;
             default: badgeClass += 'bg-secondary';
         }
         
         return `<span class="${badgeClass}">${value}</span>`;
+    }
+    
+    // **NIEUW: Methode om LUW/LTV badge te genereren**
+    getLUWBadge(value) {
+        if (!value || value === '') return null;
+        return this.getHealthBadge(value, 'luw');
     }
     
     // **EXACT DEZELFDE METHODE ALS STAMBOOMMANAGER: Foto's ophalen voor een hond**
@@ -608,6 +616,7 @@ class ReuTeefStamboom {
             dandyWalker: null,
             schildklier: null,
             schildklierVerklaring: null,
+            LUW: null, // LUW/LTV veld voor virtuele pup (altijd null)
             land: null,
             postcode: null,
             opmerkingen: null
@@ -1382,6 +1391,12 @@ class ReuTeefStamboom {
                     opacity: 1;
                 }
                 
+                /* LUW/LTV BADGE STYLING */
+                .badge-luw {
+                    background-color: #17a2b8 !important;
+                    color: white !important;
+                }
+                
                 /* MOBIELE AANPASSINGEN */
                 @media (max-width: 767px) {
                     #rtc-futurePuppyModal.modal.fade .modal-dialog {
@@ -2134,6 +2149,11 @@ class ReuTeefStamboom {
                 
                 .badge-thyroid {
                     background-color: #e83e8c !important;
+                    color: white !important;
+                }
+                
+                .badge-luw {
+                    background-color: #17a2b8 !important;
                     color: white !important;
                 }
                 
@@ -3205,7 +3225,7 @@ class ReuTeefStamboom {
         return pedigreeTree;
     }
     
-    // **NIEUW: Popup HTML met "Toon stamboom" knop (zoals StamboomManager)**
+    // **AANGEPASTE POPUP HTML MET LUW/LTV VELD - TOEGEVOEGD TUSSEN DANDY WALKER EN SCHILDKLIER**
     async getDogDetailPopupWithPedigreeButtonHTML(dog, relation = '') {
         if (!dog) return '';
         
@@ -3282,6 +3302,10 @@ class ReuTeefStamboom {
                 </div>
             `;
         }
+        
+        // LUW/LTV badge genereren (controleer zowel LUW als luw)
+        const luwValue = dog.LUW || dog.luw;
+        const luwBadge = luwValue ? this.getLUWBadge(luwValue) : null;
         
         return `
             <div class="rtc-dog-detail-popup">
@@ -3447,6 +3471,16 @@ class ReuTeefStamboom {
                             </div>
                             ` : ''}
                             
+                            <!-- LUW/LTV VELD - ALLEEN TONEN ALS ER EEN WAARDE IS INGEVULD -->
+                            ${luwBadge ? `
+                            <div class="rtc-info-row">
+                                <div class="rtc-info-item rtc-info-item-full">
+                                    <span class="rtc-info-label">LÜW/LTV:</span>
+                                    <span class="rtc-info-value">${luwBadge}</span>
+                                </div>
+                            </div>
+                            ` : ''}
+                            
                             ${dog.schildklier ? `
                             <div class="rtc-info-row">
                                 <div class="rtc-info-item rtc-info-item-full">
@@ -3492,24 +3526,7 @@ class ReuTeefStamboom {
         `;
     }
     
-    // **Bestaande methode: Detailpopup voor virtuele pup (zonder stamboom knop)**
-    async showDogDetailPopup(dog, relation) {
-        // Deze methode wordt alleen gebruikt voor de virtuele pup
-        const popupHTML = await this.getDogDetailPopupHTML(dog, relation);
-        
-        this.ensurePopupContainer();
-        
-        const overlay = document.getElementById('rtcPedigreePopupOverlay');
-        const container = document.getElementById('rtcPedigreePopupContainer');
-        
-        if (container) {
-            container.innerHTML = popupHTML;
-            overlay.style.display = 'flex';
-            this.setupIsolatedPopupEventListeners();
-        }
-    }
-    
-    // **Bestaande methode: Popup HTML voor virtuele pup (zonder stamboom knop)**
+    // **AANGEPASTE POPUP HTML VOOR VIRTUELE PUP (zonder LUW/LTV)**
     async getDogDetailPopupHTML(dog, relation = '') {
         if (!dog) return '';
         
@@ -3937,7 +3954,7 @@ class ReuTeefStamboom {
                 <td class="health-category"><strong>${t('totalAncestors')}:</strong></td>
                 <td class="mother-count"><strong>${analysis.motherLine.total}</strong></td>
                 <td class="father-count"><strong>${analysis.fatherLine.total}</strong></td>
-             </tr>
+              </tr>
         `;
         
         return `

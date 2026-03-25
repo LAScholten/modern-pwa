@@ -10,6 +10,7 @@
  * **AANGEPAST** - Wacht met COI berekeningen totdat alle honden geladen zijn
  * **NIEUW** - Vanuit detailpopup kan stamboom van geselecteerde hond worden geopend in nieuwe modal
  * **NIEUW** - Stamboom stack: bij openen nieuwe stamboom vanuit popup, kan je met sluiten terug naar vorige
+ * **NIEUW** - LUW/LTV gezondheidsinformatie toegevoegd (ondersteunt zowel LUW als luw kolomnaam)
  */
 
 class StamboomManager extends BaseModule {
@@ -68,6 +69,7 @@ class StamboomManager extends BaseModule {
                 patellaLuxation: "Patella Luxatie",
                 eyes: "Ogen",
                 dandyWalker: "Dandy Walker Malformation",
+                luw: "LÜW/LTV",
                 thyroid: "Schildklier",
                 eyesExplanation: "Verklaring ogen",
                 thyroidExplanation: "Toelichting schildklier",
@@ -132,6 +134,7 @@ class StamboomManager extends BaseModule {
                 patellaLuxation: "Patella Luxation",
                 eyes: "Eyes",
                 dandyWalker: "Dandy Walker Malformation",
+                luw: "LÜW/LTV",
                 thyroid: "Thyroid",
                 eyesExplanation: "Eye explanation",
                 thyroidExplanation: "Thyroid explanation",
@@ -196,6 +199,7 @@ class StamboomManager extends BaseModule {
                 patellaLuxation: "Patella Luxation",
                 eyes: "Augen",
                 dandyWalker: "Dandy Walker Malformation",
+                luw: "LÜW/LTV",
                 thyroid: "Schilddrüse",
                 eyesExplanation: "Augenerklärung",
                 thyroidExplanation: "Schilddrüse Erklärung",
@@ -1024,6 +1028,7 @@ class StamboomManager extends BaseModule {
             case 'patella': badgeClass += 'badge-pl'; break;
             case 'eyes': badgeClass += 'badge-eyes'; break;
             case 'dandy': badgeClass += 'badge-dandy'; break;
+            case 'luw': badgeClass += 'badge-luw'; break;
             case 'thyroid': badgeClass += 'badge-thyroid'; break;
             default: badgeClass += 'bg-secondary';
         }
@@ -1156,6 +1161,12 @@ class StamboomManager extends BaseModule {
         const showKennel = dog.kennelnaam && dog.kennelnaam.trim() !== '';
         const kennelSuffix = showKennel ? ` ${dog.kennelnaam}` : '';
         const headerText = combinedName + kennelSuffix;
+        
+        // Debug log om te zien of LUW waarde wordt geladen
+        const luwValue = dog.LUW || dog.luw;
+        if (luwValue) {
+            console.log(`LUW waarde voor hond ${dog.id} (${dog.naam}):`, luwValue);
+        }
         
         let photosHTML = '';
         if (photos.length > 0) {
@@ -1373,6 +1384,15 @@ class StamboomManager extends BaseModule {
                                 <div class="info-item info-item-full">
                                     <span class="info-label">${this.t('dandyWalker')}:</span>
                                     <span class="info-value">${this.getHealthBadge(dog.dandyWalker, 'dandy')}</span>
+                                </div>
+                            </div>
+                            ` : ''}
+                            
+                            ${(dog.LUW || dog.luw) ? `
+                            <div class="info-row">
+                                <div class="info-item info-item-full">
+                                    <span class="info-label">${this.t('luw')}:</span>
+                                    <span class="info-value">${this.getHealthBadge(dog.LUW || dog.luw, 'luw')}</span>
                                 </div>
                             </div>
                             ` : ''}
@@ -2762,6 +2782,16 @@ class StamboomManager extends BaseModule {
                 
                 .pedigree-card-compact.horizontal.gen4:hover {
                     opacity: 1;
+                }
+                
+                /* CSS voor LUW badge styling */
+                .badge-luw {
+                    background-color: #6f42c1 !important;
+                    color: white !important;
+                    font-weight: 500 !important;
+                    padding: 4px 8px !important;
+                    border-radius: 12px !important;
+                    font-size: 0.85rem !important;
                 }
             </style>
         `;
