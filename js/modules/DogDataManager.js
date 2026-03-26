@@ -5,6 +5,7 @@
  * MET CORRECTE OPSLAG VAN OUDER ID's volgens database structuur
  * EN met autorisatie: admin ziet alle honden, gebruiker+ alleen eigen honden
  * MET LUW/LTV veld (alleen cijfers, optioneel)
+ * MET VERBETERDE ZOEKFUNCTIE: exacte match op stamboomnummer + ilike voor naam/kennelnaam
  */
 class DogDataManager extends BaseModule {
     constructor() {
@@ -956,77 +957,8 @@ class DogDataManager extends BaseModule {
     }
     
     /**
-     * NIEUWE ZOEKFUNCTIE VOOR OUDERS - EXACT ZOALS SEARCHMANAGER MET DATABASE QUERIES
-     */
-    async searchParents(searchTerm, parentType) {
-        try {
-            console.log(`🔍 DogDataManager zoeken naar ouder: "${searchTerm}" (type: ${parentType})`);
-            
-            const supabase = window.supabase;
-            if (!supabase) {
-                console.error('❌ Geen Supabase client');
-                return [];
-            }
-            
-            if (searchTerm.length < this.minSearchLength) {
-                return [];
-            }
-            
-            const words = searchTerm.trim().split(/\s+/).filter(word => word.length > 0);
-            
-            let query = supabase
-                .from('honden')
-                .select('*');
-            
-            // Filter op geslacht voor ouder
-            if (parentType === 'father') {
-                query = query.eq('geslacht', 'reuen');
-            } else if (parentType === 'mother') {
-                query = query.eq('geslacht', 'teven');
-            }
-            
-            // Zoeklogica exact zoals SearchManager
-            if (words.length === 1) {
-                query = query.or(`naam.ilike.%${searchTerm}%,kennelnaam.ilike.%${searchTerm}%,stamboomnr.ilike.%${searchTerm}%`);
-            } else {
-                const conditions = [];
-                conditions.push(`naam.ilike.%${searchTerm}%`);
-                conditions.push(`kennelnaam.ilike.%${searchTerm}%`);
-                
-                const firstWord = words[0];
-                const restWords = words.slice(1).join(' ');
-                conditions.push(`and(naam.ilike.%${firstWord}%,kennelnaam.ilike.%${restWords}%)`);
-                conditions.push(`and(kennelnaam.ilike.%${firstWord}%,naam.ilike.%${restWords}%)`);
-                
-                const naamConditions = words.map(w => `naam.ilike.%${w}%`).join(',');
-                conditions.push(`and(${naamConditions})`);
-                
-                const kennelConditions = words.map(w => `kennelnaam.ilike.%${w}%`).join(',');
-                conditions.push(`and(${kennelConditions})`);
-                
-                query = query.or(conditions.join(','));
-            }
-            
-            const { data, error } = await query
-                .order('naam')
-                .limit(50);
-            
-            if (error) {
-                console.error('❌ Database error bij ouder zoeken:', error);
-                return [];
-            }
-            
-            console.log(`✅ ${data?.length || 0} ${parentType} opties gevonden`);
-            return data || [];
-            
-        } catch (error) {
-            console.error('❌ Fout bij zoeken ouders:', error);
-            return [];
-        }
-    }
-    
-    /**
-     * NIEUWE ZOEKFUNCTIE VOOR HOOFDZOEK - EXACT ZOALS SEARCHMANAGER
+     * VERBETERDE ZOEKFUNCTIE - EERST EXACTE MATCH OP STAMBOOMNUMMER
+     * DAARNA PAS ILIKE ZOEKOPDRACHT VOOR NAAM EN KENNELNAAM
      */
     async searchDogs(searchTerm) {
         try {
@@ -1045,16 +977,39 @@ class DogDataManager extends BaseModule {
                 return;
             }
             
-            const words = searchTerm.trim().split(/\s+/).filter(word => word.length > 0);
+            let allResults = [];
             
-            let query = supabase.from('honden').select('*');
+            // STAP 1: EERST EXACTE MATCH OP STAMBOOMNUMMER (zonder wildcards)
+            // Dit is cruciaal voor stamboomnummers met speciale tekens zoals /, -, etc.
+            console.log(`🔍 Stap 1: Exacte match zoeken op stamboomnummer: "${searchTerm}"`);
+            const { data: exactMatches, error: exactError } = await supabase
+                .from('honden')
+                .select('*')
+                .eq('stamboomnr', searchTerm);
+            
+            if (exactError) {
+                console.error('❌ Fout bij exacte match:', exactError);
+            } else if (exactMatches && exactMatches.length > 0) {
+                console.log(`✅ Exacte match gevonden: ${exactMatches.length} hond(en) met stamboomnummer "${searchTerm}"`);
+                allResults.push(...exactMatches);
+            }
+            
+            // STAP 2: PARTIAL SEARCH MET ILIKE VOOR NAAM EN KENNELNAAM
+            // Dit blijft behouden voor gedeeltelijke zoekopdrachten
+            console.log(`🔍 Stap 2: Partial search (ilike) voor naam/kennelnaam: "${searchTerm}"`);
+            
+            const words = searchTerm.trim().split(/\s+/).filter(word => word.length > 0);
+            let partialQuery = supabase.from('honden').select('*');
             
             if (words.length === 1) {
-                query = query.or(`naam.ilike.%${searchTerm}%,kennelnaam.ilike.%${searchTerm}%,stamboomnr.ilike.%${searchTerm}%`);
+                // Single word search - zoek in naam, kennelnaam EN ook partial in stamboomnr
+                partialQuery = partialQuery.or(`naam.ilike.%${searchTerm}%,kennelnaam.ilike.%${searchTerm}%,stamboomnr.ilike.%${searchTerm}%`);
             } else {
+                // Multi-word search - complexe zoeklogica voor namen
                 const conditions = [];
                 conditions.push(`naam.ilike.%${searchTerm}%`);
                 conditions.push(`kennelnaam.ilike.%${searchTerm}%`);
+                conditions.push(`stamboomnr.ilike.%${searchTerm}%`);
                 
                 const firstWord = words[0];
                 const restWords = words.slice(1).join(' ');
@@ -1067,25 +1022,32 @@ class DogDataManager extends BaseModule {
                 const kennelConditions = words.map(w => `kennelnaam.ilike.%${w}%`).join(',');
                 conditions.push(`and(${kennelConditions})`);
                 
-                query = query.or(conditions.join(','));
+                partialQuery = partialQuery.or(conditions.join(','));
             }
             
-            const { data, error } = await query.order('naam').limit(100);
+            const { data: partialMatches, error: partialError } = await partialQuery.order('naam').limit(100);
             
-            if (error) {
-                console.error('❌ Database error:', error);
-                this.showError(this.t('searchFailed') + error.message);
-                return;
+            if (partialError) {
+                console.error('❌ Fout bij partial search:', partialError);
+            } else if (partialMatches && partialMatches.length > 0) {
+                console.log(`✅ Partial matches gevonden: ${partialMatches.length} hond(en)`);
+                // Voeg partial matches toe, maar voorkom duplicaten met exacte matches
+                for (const dog of partialMatches) {
+                    const isDuplicate = allResults.some(existing => existing.id === dog.id);
+                    if (!isDuplicate) {
+                        allResults.push(dog);
+                    }
+                }
             }
             
-            let filteredDogs = data || [];
-            
+            // Filter op toegangsrechten
+            let filteredDogs = allResults;
             if (!this.isAdmin) {
                 filteredDogs = filteredDogs.filter(dog => this.hasAccessToDog(dog));
             }
             
             this.filteredSearchResults = filteredDogs;
-            console.log(`✅ ${this.filteredSearchResults.length} honden gevonden`);
+            console.log(`✅ Totaal ${this.filteredSearchResults.length} honden gevonden (${exactMatches?.length || 0} exacte matches, ${partialMatches?.length || 0} partial matches)`);
             this.displaySearchResults(searchTerm);
             
         } catch (error) {
@@ -1650,7 +1612,7 @@ class DogDataManager extends BaseModule {
     }
     
     /**
-     * NIEUWE SETUP VOOR OUDER AUTOCOMPLETE - MET DATABASE QUERIES
+     * SETUP VOOR OUDER AUTOCOMPLETE - MET DATABASE QUERIES
      */
     setupParentAutocomplete() {
         const fatherInput = document.getElementById('father');
@@ -1710,6 +1672,73 @@ class DogDataManager extends BaseModule {
             const errorElement = document.getElementById(`${parentField}Error`);
             if (errorElement) errorElement.style.display = 'none';
         });
+    }
+    
+    async searchParents(searchTerm, parentType) {
+        try {
+            console.log(`🔍 DogDataManager zoeken naar ouder: "${searchTerm}" (type: ${parentType})`);
+            
+            const supabase = window.supabase;
+            if (!supabase) {
+                console.error('❌ Geen Supabase client');
+                return [];
+            }
+            
+            if (searchTerm.length < this.minSearchLength) {
+                return [];
+            }
+            
+            const words = searchTerm.trim().split(/\s+/).filter(word => word.length > 0);
+            
+            let query = supabase
+                .from('honden')
+                .select('*');
+            
+            // Filter op geslacht voor ouder
+            if (parentType === 'father') {
+                query = query.eq('geslacht', 'reuen');
+            } else if (parentType === 'mother') {
+                query = query.eq('geslacht', 'teven');
+            }
+            
+            // Zoeklogica exact zoals SearchManager
+            if (words.length === 1) {
+                query = query.or(`naam.ilike.%${searchTerm}%,kennelnaam.ilike.%${searchTerm}%,stamboomnr.ilike.%${searchTerm}%`);
+            } else {
+                const conditions = [];
+                conditions.push(`naam.ilike.%${searchTerm}%`);
+                conditions.push(`kennelnaam.ilike.%${searchTerm}%`);
+                
+                const firstWord = words[0];
+                const restWords = words.slice(1).join(' ');
+                conditions.push(`and(naam.ilike.%${firstWord}%,kennelnaam.ilike.%${restWords}%)`);
+                conditions.push(`and(kennelnaam.ilike.%${firstWord}%,naam.ilike.%${restWords}%)`);
+                
+                const naamConditions = words.map(w => `naam.ilike.%${w}%`).join(',');
+                conditions.push(`and(${naamConditions})`);
+                
+                const kennelConditions = words.map(w => `kennelnaam.ilike.%${w}%`).join(',');
+                conditions.push(`and(${kennelConditions})`);
+                
+                query = query.or(conditions.join(','));
+            }
+            
+            const { data, error } = await query
+                .order('naam')
+                .limit(50);
+            
+            if (error) {
+                console.error('❌ Database error bij ouder zoeken:', error);
+                return [];
+            }
+            
+            console.log(`✅ ${data?.length || 0} ${parentType} opties gevonden`);
+            return data || [];
+            
+        } catch (error) {
+            console.error('❌ Fout bij zoeken ouders:', error);
+            return [];
+        }
     }
     
     showParentAutocomplete(results, parentField, searchTerm) {
