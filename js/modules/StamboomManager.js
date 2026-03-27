@@ -11,6 +11,7 @@
  * **NIEUW** - Vanuit detailpopup kan stamboom van geselecteerde hond worden geopend in nieuwe modal
  * **NIEUW** - Stamboom stack: bij openen nieuwe stamboom vanuit popup, kan je met sluiten terug naar vorige
  * **NIEUW** - LUW/LTV gezondheidsinformatie toegevoegd (ondersteunt zowel LUW als luw kolomnaam)
+ * **NIEUW** - Rood uitroepteken in cards voor honden met opmerkingen of privé-informatie
  */
 
 class StamboomManager extends BaseModule {
@@ -29,6 +30,7 @@ class StamboomManager extends BaseModule {
         
         this.dogPhotosCache = new Map();
         this.dogDetailsCache = new Map();
+        this.importantInfoCache = new Map(); // Cache voor belangrijke info (opmerkingen/privé)
         
         // Stack voor stamboom navigatie
         this.pedigreeStack = [];
@@ -97,7 +99,8 @@ class StamboomManager extends BaseModule {
                 privateInfoOwnerOnly: "Geen informatie",
                 loadingPhotoViewer: "Fotoviewer laden...",
                 showPedigree: "Toon stamboom",
-                back: "Terug"
+                back: "Terug",
+                hasImportantInfo: "Belangrijke informatie beschikbaar (opmerkingen of privé-notities)"
             },
             en: {
                 pedigreeTitle: "Pedigree of {name}",
@@ -162,7 +165,8 @@ class StamboomManager extends BaseModule {
                 privateInfoOwnerOnly: "No information",
                 loadingPhotoViewer: "Loading photo viewer...",
                 showPedigree: "Show pedigree",
-                back: "Back"
+                back: "Back",
+                hasImportantInfo: "Important information available (remarks or private notes)"
             },
             de: {
                 pedigreeTitle: "Ahnentafel von {name}",
@@ -227,7 +231,8 @@ class StamboomManager extends BaseModule {
                 privateInfoOwnerOnly: "Kein information",
                 loadingPhotoViewer: "Fotobetrachter laden...",
                 showPedigree: "Stammbaum anzeigen",
-                back: "Zurück"
+                back: "Zurück",
+                hasImportantInfo: "Wichtige Informationen verfügbar (Bemerkungen oder private Notizen)"
             }
         };
         
@@ -493,6 +498,117 @@ class StamboomManager extends BaseModule {
         }
     }
     
+    /**
+     * Controleert of een hond belangrijke informatie heeft (opmerkingen of privé-notities)
+     */
+    async dogHasImportantInfo(dog) {
+        if (!dog || !dog.id) return false;
+        
+        // Check of we al gecachede info hebben
+        if (this.importantInfoCache.has(dog.id)) {
+            return this.importantInfoCache.get(dog.id);
+        }
+        
+        // Check opmerkingen
+        let hasInfo = false;
+        if (dog.opmerkingen && dog.opmerkingen.trim() !== '') {
+            hasInfo = true;
+        }
+        
+        // Check privé-info (alleen als we nog geen info hebben)
+        if (!hasInfo && dog.stamboomnr) {
+            const privateInfo = await this.getPrivateInfoForDog(dog.stamboomnr);
+            if (privateInfo && privateInfo.trim() !== '') {
+                hasInfo = true;
+            }
+        }
+        
+        // Cache de resultaat
+        this.importantInfoCache.set(dog.id, hasInfo);
+        return hasInfo;
+    }
+    
+    /**
+     * Batch check voor belangrijke info voor alle honden in de stamboom
+     * Dit is efficiënter dan individuele checks
+     */
+    async batchCheckImportantInfo(pedigreeTree) {
+        const dogsToCheck = [];
+        const addDog = (dog) => {
+            if (dog && dog.id && dog.stamboomnr) {
+                dogsToCheck.push(dog);
+            }
+        };
+        
+        // Verzamel alle honden in de stamboom
+        addDog(pedigreeTree.mainDog);
+        addDog(pedigreeTree.father);
+        addDog(pedigreeTree.mother);
+        addDog(pedigreeTree.paternalGrandfather);
+        addDog(pedigreeTree.paternalGrandmother);
+        addDog(pedigreeTree.maternalGrandfather);
+        addDog(pedigreeTree.maternalGrandmother);
+        addDog(pedigreeTree.paternalGreatGrandfather1);
+        addDog(pedigreeTree.paternalGreatGrandmother1);
+        addDog(pedigreeTree.paternalGreatGrandfather2);
+        addDog(pedigreeTree.paternalGreatGrandmother2);
+        addDog(pedigreeTree.maternalGreatGrandfather1);
+        addDog(pedigreeTree.maternalGreatGrandmother1);
+        addDog(pedigreeTree.maternalGreatGrandfather2);
+        addDog(pedigreeTree.maternalGreatGrandmother2);
+        addDog(pedigreeTree.paternalGreatGreatGrandfather1);
+        addDog(pedigreeTree.paternalGreatGreatGrandmother1);
+        addDog(pedigreeTree.paternalGreatGreatGrandfather2);
+        addDog(pedigreeTree.paternalGreatGreatGrandmother2);
+        addDog(pedigreeTree.paternalGreatGreatGrandfather3);
+        addDog(pedigreeTree.paternalGreatGreatGrandmother3);
+        addDog(pedigreeTree.paternalGreatGreatGrandfather4);
+        addDog(pedigreeTree.paternalGreatGreatGrandmother4);
+        addDog(pedigreeTree.maternalGreatGreatGrandfather1);
+        addDog(pedigreeTree.maternalGreatGreatGrandmother1);
+        addDog(pedigreeTree.maternalGreatGreatGrandfather2);
+        addDog(pedigreeTree.maternalGreatGreatGrandmother2);
+        addDog(pedigreeTree.maternalGreatGreatGrandfather3);
+        addDog(pedigreeTree.maternalGreatGreatGrandmother3);
+        addDog(pedigreeTree.maternalGreatGreatGrandfather4);
+        addDog(pedigreeTree.maternalGreatGreatGrandmother4);
+        
+        if (dogsToCheck.length === 0) return;
+        
+        // Haal alle privé-info in één keer op
+        const privateInfoMap = new Map();
+        
+        if (window.priveInfoService && this.currentUserId) {
+            try {
+                const result = await window.priveInfoService.getPriveInfoMetPaginatie(1, 1000);
+                if (result && result.priveInfo) {
+                    const userPrivateInfo = result.priveInfo.filter(info => 
+                        info.toegevoegd_door === this.currentUserId
+                    );
+                    userPrivateInfo.forEach(info => {
+                        if (info.privatenotes && info.privatenotes.trim() !== '') {
+                            privateInfoMap.set(info.stamboomnr, info.privatenotes);
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Fout bij ophalen privé-info batch:', error);
+            }
+        }
+        
+        // Sla per hond op of er belangrijke info is
+        const importantInfoMap = new Map();
+        dogsToCheck.forEach(dog => {
+            const hasOpmerkingen = dog.opmerkingen && dog.opmerkingen.trim() !== '';
+            const hasPrivateInfo = privateInfoMap.has(dog.stamboomnr);
+            const hasInfo = hasOpmerkingen || hasPrivateInfo;
+            importantInfoMap.set(dog.id, hasInfo);
+            this.importantInfoCache.set(dog.id, hasInfo);
+        });
+        
+        return importantInfoMap;
+    }
+    
     forceHideProgress() {
         console.log('forceHideProgress aangeroepen');
         
@@ -669,6 +785,9 @@ class StamboomManager extends BaseModule {
                     this.dogPhotosCache.set(cacheKey, photos);
                 }
             });
+            
+            // Batch check voor belangrijke info
+            await this.batchCheckImportantInfo(pedigreeTree);
             
         } catch (error) {
             console.error('Fout bij batch laden foto\'s:', error);
@@ -1058,6 +1177,14 @@ class StamboomManager extends BaseModule {
         
         const hasPhotos = await this.checkDogHasPhotos(dog.id);
         const cameraIcon = hasPhotos ? '<i class="bi bi-camera text-danger ms-1"></i>' : '';
+        
+        // Check of de hond belangrijke informatie heeft (opmerkingen of privé-notities)
+        const hasImportantInfo = await this.dogHasImportantInfo(dog);
+        const warningIcon = hasImportantInfo ? 
+            `<i class="bi bi-exclamation-triangle-fill text-danger ms-1" style="font-size: 0.7rem;" title="${this.t('hasImportantInfo')}"></i>` : '';
+        
+        // Combineer camera en waarschuwing iconen
+        const infoIcons = cameraIcon + warningIcon;
 
         if (generation === 4) {
             const combinedName = dog.naam || this.t('unknown');
@@ -1070,7 +1197,8 @@ class StamboomManager extends BaseModule {
                      data-dog-name="${dog.naam || ''}"
                      data-relation="${relation}"
                      data-generation="${generation}"
-                     data-has-photos="${hasPhotos}">
+                     data-has-photos="${hasPhotos}"
+                     data-has-important-info="${hasImportantInfo}">
                     <div class="pedigree-card-header-compact horizontal ${headerColor}">
                         <div class="relation-compact">
                             <span class="relation-text">${relation}</span>
@@ -1084,7 +1212,7 @@ class StamboomManager extends BaseModule {
                         <div class="card-row card-row-1-only">
                             <div class="dog-name-kennel-only" title="${fullDisplayText}">
                                 ${fullDisplayText}
-                                ${cameraIcon}
+                                ${infoIcons}
                             </div>
                         </div>
                     </div>
@@ -1102,7 +1230,8 @@ class StamboomManager extends BaseModule {
                  data-dog-name="${dog.naam || ''}"
                  data-relation="${relation}"
                  data-generation="${generation}"
-                 data-has-photos="${hasPhotos}">
+                 data-has-photos="${hasPhotos}"
+                 data-has-important-info="${hasImportantInfo}">
                 <div class="pedigree-card-header-compact horizontal ${headerColor}">
                     <div class="relation-compact">
                         <span class="relation-text">${relation}</span>
@@ -1135,7 +1264,8 @@ class StamboomManager extends BaseModule {
                     
                     <div class="card-row card-row-3">
                         <div class="click-hint-compact">
-                            <i class="bi bi-info-circle"></i> ${this.t('clickForDetails')}${cameraIcon}
+                            <i class="bi bi-info-circle"></i> ${this.t('clickForDetails')}
+                            ${infoIcons}
                         </div>
                     </div>
                 </div>
@@ -1969,6 +2099,12 @@ class StamboomManager extends BaseModule {
                 .click-hint-compact .bi-camera {
                     color: #1a15f4;
                     font-size: 0.7rem;
+                }
+                
+                /* Styling voor het rode uitroepteken */
+                .click-hint-compact .bi-exclamation-triangle-fill,
+                .dog-name-kennel-only .bi-exclamation-triangle-fill {
+                    filter: drop-shadow(0 0 1px rgba(0,0,0,0.2));
                 }
                 
                 @media (max-width: 767px) {
@@ -3096,6 +3232,7 @@ class StamboomManager extends BaseModule {
         
         this.dogPhotosCache.clear();
         this.dogDetailsCache.clear();
+        this.importantInfoCache.clear();
         this.resetPedigreeStack();
     }
 }
