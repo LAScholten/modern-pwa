@@ -650,7 +650,7 @@ class InfluenceAnalyzer {
             </div>
             
             <style>
-                .ia-popup-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1070;display:none;align-items:center;justify-content:center;animation:ia-fadeIn 0.3s}
+                .ia-popup-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1170;display:none;align-items:center;justify-content:center;animation:ia-fadeIn 0.3s}
                 @keyframes ia-fadeIn{from{opacity:0}to{opacity:1}}
                 .ia-popup-container{background:white;border-radius:12px;max-width:1200px;width:95%;max-height:90vh;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.3);animation:ia-slideUp 0.3s;display:flex;flex-direction:column}
                 @keyframes ia-slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}

@@ -11,6 +11,7 @@
  * **GEN4 HEADER FIX** - 4e generatie cards hebben nu dezelfde header als StamboomManager
  * **STAMBOOM NAVIGATIE** - Vanuit detailpopup kan stamboom van geselecteerde hond worden geopend in nieuwe modal met stack navigatie
  * **LUW/LTV TOEGEVOEGD** - Nieuw gezondheidsveld LÜW/LTV toegevoegd aan detailpopup (tussen Dandy Walker en Schildklier)
+ * **UITROEPTEKEN TOEGEVOEGD** - Rood uitroepteken in cards voor honden met opmerkingen of privé-informatie (zoals StamboomManager)
  */
 
 class ReuTeefStamboom {
@@ -38,6 +39,7 @@ class ReuTeefStamboom {
         // **EXACT DEZELFDE CACHE ALS STAMBOOMMANAGER**
         this.dogPhotosCache = new Map(); // Cache voor hondenfoto's
         this.dogDetailsCache = new Map(); // Cache voor hondendetails
+        this.importantInfoCache = new Map(); // Cache voor belangrijke info (opmerkingen/privé)
         
         // **EXACT DEZELFDE REFERENTIE ALS STAMBOOMMANAGER**
         this.hondenService = window.hondenService;
@@ -162,6 +164,111 @@ class ReuTeefStamboom {
         } catch (error) {
             console.error('Fout bij laden honden voor calculator:', error);
         }
+    }
+    
+    // **NIEUW: Methode om te controleren of een hond belangrijke informatie heeft (zoals StamboomManager)**
+    async dogHasImportantInfo(dog) {
+        if (!dog || !dog.id) return false;
+        
+        // Check of we al gecachede info hebben
+        if (this.importantInfoCache.has(dog.id)) {
+            return this.importantInfoCache.get(dog.id);
+        }
+        
+        // Check opmerkingen
+        let hasInfo = false;
+        if (dog.opmerkingen && dog.opmerkingen.trim() !== '') {
+            hasInfo = true;
+        }
+        
+        // Check privé-info (alleen als we nog geen info hebben)
+        if (!hasInfo && dog.stamboomnr) {
+            const privateInfo = await this.getPrivateInfoForDog(dog.stamboomnr);
+            if (privateInfo && privateInfo.trim() !== '') {
+                hasInfo = true;
+            }
+        }
+        
+        // Cache de resultaat
+        this.importantInfoCache.set(dog.id, hasInfo);
+        return hasInfo;
+    }
+    
+    // **NIEUW: Batch check voor belangrijke info voor alle honden in de stamboom**
+    async batchCheckImportantInfo(pedigreeTree) {
+        const dogsToCheck = [];
+        const addDog = (dog) => {
+            if (dog && dog.id && dog.stamboomnr && dog.id > 0) { // Alleen echte honden, geen virtuele pup
+                dogsToCheck.push(dog);
+            }
+        };
+        
+        // Verzamel alle honden in de stamboom
+        addDog(pedigreeTree.father);
+        addDog(pedigreeTree.mother);
+        addDog(pedigreeTree.paternalGrandfather);
+        addDog(pedigreeTree.paternalGrandmother);
+        addDog(pedigreeTree.maternalGrandfather);
+        addDog(pedigreeTree.maternalGrandmother);
+        addDog(pedigreeTree.paternalGreatGrandfather1);
+        addDog(pedigreeTree.paternalGreatGrandmother1);
+        addDog(pedigreeTree.paternalGreatGrandfather2);
+        addDog(pedigreeTree.paternalGreatGrandmother2);
+        addDog(pedigreeTree.maternalGreatGrandfather1);
+        addDog(pedigreeTree.maternalGreatGrandmother1);
+        addDog(pedigreeTree.maternalGreatGrandfather2);
+        addDog(pedigreeTree.maternalGreatGrandmother2);
+        addDog(pedigreeTree.paternalGreatGreatGrandfather1);
+        addDog(pedigreeTree.paternalGreatGreatGrandmother1);
+        addDog(pedigreeTree.paternalGreatGreatGrandfather2);
+        addDog(pedigreeTree.paternalGreatGreatGrandmother2);
+        addDog(pedigreeTree.paternalGreatGreatGrandfather3);
+        addDog(pedigreeTree.paternalGreatGreatGrandmother3);
+        addDog(pedigreeTree.paternalGreatGreatGrandfather4);
+        addDog(pedigreeTree.paternalGreatGreatGrandmother4);
+        addDog(pedigreeTree.maternalGreatGreatGrandfather1);
+        addDog(pedigreeTree.maternalGreatGreatGrandmother1);
+        addDog(pedigreeTree.maternalGreatGreatGrandfather2);
+        addDog(pedigreeTree.maternalGreatGreatGrandmother2);
+        addDog(pedigreeTree.maternalGreatGreatGrandfather3);
+        addDog(pedigreeTree.maternalGreatGreatGrandmother3);
+        addDog(pedigreeTree.maternalGreatGreatGrandfather4);
+        addDog(pedigreeTree.maternalGreatGreatGrandmother4);
+        
+        if (dogsToCheck.length === 0) return;
+        
+        // Haal alle privé-info in één keer op
+        const privateInfoMap = new Map();
+        
+        if (window.priveInfoService && this.currentUserId) {
+            try {
+                const result = await window.priveInfoService.getPriveInfoMetPaginatie(1, 1000);
+                if (result && result.priveInfo) {
+                    const userPrivateInfo = result.priveInfo.filter(info => 
+                        info.toegevoegd_door === this.currentUserId
+                    );
+                    userPrivateInfo.forEach(info => {
+                        if (info.privatenotes && info.privatenotes.trim() !== '') {
+                            privateInfoMap.set(info.stamboomnr, info.privatenotes);
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Fout bij ophalen privé-info batch:', error);
+            }
+        }
+        
+        // Sla per hond op of er belangrijke info is
+        const importantInfoMap = new Map();
+        dogsToCheck.forEach(dog => {
+            const hasOpmerkingen = dog.opmerkingen && dog.opmerkingen.trim() !== '';
+            const hasPrivateInfo = privateInfoMap.has(dog.stamboomnr);
+            const hasInfo = hasOpmerkingen || hasPrivateInfo;
+            importantInfoMap.set(dog.id, hasInfo);
+            this.importantInfoCache.set(dog.id, hasInfo);
+        });
+        
+        return importantInfoMap;
     }
     
     // **FIX: Methode om hond op te halen uit eigen cache zoals StamboomManager**
@@ -565,6 +672,9 @@ class ReuTeefStamboom {
                     }
                 }
             });
+            
+            // **NIEUW: Batch check voor belangrijke info (opmerkingen/privé-notities)**
+            await this.batchCheckImportantInfo(pedigreeTree);
             
         } catch (error) {
             console.error('Fout bij batch laden foto\'s:', error);
@@ -1355,6 +1465,12 @@ class ReuTeefStamboom {
                 .rtc-click-hint-compact .bi-camera {
                     color: #1a15f4;
                     font-size: 0.7rem;
+                }
+                
+                /* UITROEPTEKEN STYLING - ZELFDE ALS STAMBOOMMANAGER */
+                .rtc-click-hint-compact .bi-exclamation-triangle-fill,
+                .rtc-dog-name-kennel-only .bi-exclamation-triangle-fill {
+                    filter: drop-shadow(0 0 1px rgba(0,0,0,0.2));
                 }
                 
                 /* Lege card styling */
@@ -2582,7 +2698,7 @@ class ReuTeefStamboom {
         }, 100);
     }
     
-    // **GECORRIGEERDE generateDogCard methode - GEN4 HEEFT NU HEADER!**
+    // **AANGEPASTE generateDogCard methode - MET UITROEPTEKEN TOEGEVOEGD!**
     async generateDogCard(dog, relation, isMainDog = false, generation = 0) {
         if (!dog) {
             return `
@@ -2606,11 +2722,19 @@ class ReuTeefStamboom {
         const hasPhotos = dog.id > 0 ? await this.checkDogHasPhotos(dog.id) : false;
         const cameraIcon = hasPhotos ? '<i class="bi bi-camera text-danger ms-1"></i>' : '';
         
+        // **NIEUW: Check of de hond belangrijke informatie heeft (opmerkingen of privé-notities)**
+        const hasImportantInfo = dog.id > 0 ? await this.dogHasImportantInfo(dog) : false;
+        const warningIcon = hasImportantInfo ? 
+            `<i class="bi bi-exclamation-triangle-fill text-danger ms-1" style="font-size: 0.7rem;" title="${this.t('hasImportantInfo') || 'Belangrijke informatie beschikbaar'}"></i>` : '';
+        
         const combinedName = dog.naam || this.t('unknown');
         const showKennel = dog.kennelnaam && dog.kennelnaam.trim() !== '';
         const fullDisplayText = combinedName + (showKennel ? ` ${dog.kennelnaam}` : '');
         
-        // **GEN4 - ZELFDE ALS STAMBOOMMANAGER: MET HEADER!**
+        // **NIEUW: Combineer camera en waarschuwing iconen voor de click-hint en gen4**
+        const infoIcons = cameraIcon + warningIcon;
+        
+        // **GEN4 - MET HEADER EN ICONEN!**
         if (generation === 4) {
             return `
                 <div class="rtc-pedigree-card-compact horizontal ${dog.geslacht === 'reuen' ? 'male' : 'female'} ${mainDogClass} gen${generation}" 
@@ -2618,7 +2742,8 @@ class ReuTeefStamboom {
                      data-dog-name="${dog.naam || ''}"
                      data-relation="${relation}"
                      data-generation="${generation}"
-                     data-has-photos="${hasPhotos}">
+                     data-has-photos="${hasPhotos}"
+                     data-has-important-info="${hasImportantInfo}">
                     <!-- HEADER TOEGEVOEGD - ZELFDE ALS STAMBOOMMANAGER -->
                     <div class="rtc-pedigree-card-header-compact horizontal ${headerColor}">
                         <div class="rtc-relation-compact">
@@ -2633,7 +2758,7 @@ class ReuTeefStamboom {
                         <div class="rtc-card-row rtc-card-row-1-only">
                             <div class="rtc-dog-name-kennel-only" title="${fullDisplayText}">
                                 ${fullDisplayText}
-                                ${cameraIcon}
+                                ${infoIcons}
                             </div>
                         </div>
                     </div>
@@ -2641,7 +2766,7 @@ class ReuTeefStamboom {
             `;
         }
         
-        // Voor andere generaties (0-3): originele layout
+        // Voor andere generaties (0-3): originele layout met iconen in click-hint
         const breedText = dog.ras && dog.id !== -999999 ? 
                          `<div class="rtc-dog-breed-compact" title="${dog.ras}">${dog.ras}</div>` : '';
         
@@ -2651,7 +2776,8 @@ class ReuTeefStamboom {
                  data-dog-name="${dog.naam || ''}"
                  data-relation="${relation}"
                  data-generation="${generation}"
-                 data-has-photos="${hasPhotos}">
+                 data-has-photos="${hasPhotos}"
+                 data-has-important-info="${hasImportantInfo}">
                 <div class="rtc-pedigree-card-header-compact horizontal ${headerColor}">
                     <div class="rtc-relation-compact">
                         <span class="rtc-relation-text">${relation}</span>
@@ -2680,7 +2806,7 @@ class ReuTeefStamboom {
                     
                     <div class="rtc-card-row rtc-card-row-3">
                         <div class="rtc-click-hint-compact">
-                            <i class="bi bi-info-circle"></i> ${this.t('clickForDetails')}${cameraIcon}
+                            <i class="bi bi-info-circle"></i> ${this.t('clickForDetails')}${infoIcons}
                         </div>
                     </div>
                 </div>
@@ -3954,7 +4080,7 @@ class ReuTeefStamboom {
                 <td class="health-category"><strong>${t('totalAncestors')}:</strong></td>
                 <td class="mother-count"><strong>${analysis.motherLine.total}</strong></td>
                 <td class="father-count"><strong>${analysis.fatherLine.total}</strong></td>
-              </tr>
+            </tr>
         `;
         
         return `

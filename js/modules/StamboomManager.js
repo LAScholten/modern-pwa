@@ -12,6 +12,7 @@
  * **NIEUW** - Stamboom stack: bij openen nieuwe stamboom vanuit popup, kan je met sluiten terug naar vorige
  * **NIEUW** - LUW/LTV gezondheidsinformatie toegevoegd (ondersteunt zowel LUW als luw kolomnaam)
  * **NIEUW** - Rood uitroepteken in cards voor honden met opmerkingen of privé-informatie
+ * **NIEUW** - Ouder ANALYSE knop toegevoegd in header voor voorouder analyse
  */
 
 class StamboomManager extends BaseModule {
@@ -100,7 +101,8 @@ class StamboomManager extends BaseModule {
                 loadingPhotoViewer: "Fotoviewer laden...",
                 showPedigree: "Toon stamboom",
                 back: "Terug",
-                hasImportantInfo: "Belangrijke informatie beschikbaar (opmerkingen of privé-notities)"
+                hasImportantInfo: "Belangrijke informatie beschikbaar (opmerkingen of privé-notities)",
+                influenceAnalysis: "Voorouder Analyse"
             },
             en: {
                 pedigreeTitle: "Pedigree of {name}",
@@ -166,7 +168,8 @@ class StamboomManager extends BaseModule {
                 loadingPhotoViewer: "Loading photo viewer...",
                 showPedigree: "Show pedigree",
                 back: "Back",
-                hasImportantInfo: "Important information available (remarks or private notes)"
+                hasImportantInfo: "Important information available (remarks or private notes)",
+                influenceAnalysis: "Ancestor Analysis"
             },
             de: {
                 pedigreeTitle: "Ahnentafel von {name}",
@@ -232,7 +235,8 @@ class StamboomManager extends BaseModule {
                 loadingPhotoViewer: "Fotobetrachter laden...",
                 showPedigree: "Stammbaum anzeigen",
                 back: "Zurück",
-                hasImportantInfo: "Wichtige Informationen verfügbar (Bemerkungen oder private Notizen)"
+                hasImportantInfo: "Wichtige Informationen verfügbar (Bemerkungen oder private Notizen)",
+                influenceAnalysis: "Ahnen Analyse"
             }
         };
         
@@ -1687,6 +1691,9 @@ class StamboomManager extends BaseModule {
                                 <button class="btn btn-sm btn-light btn-back" id="pedigreeBackButton" style="display: none;">
                                     <i class="bi bi-arrow-left me-1"></i> ${this.t('back')}
                                 </button>
+                                <button class="btn btn-sm btn-light btn-influence" id="pedigreeInfluenceButton">
+                                    <i class="bi bi-dna me-1"></i> ${this.t('influenceAnalysis')}
+                                </button>
                                 <button class="btn btn-sm btn-light btn-print">
                                     <i class="bi bi-printer me-1"></i> ${this.t('print')}
                                 </button>
@@ -2951,6 +2958,27 @@ class StamboomManager extends BaseModule {
         if (backBtn) {
             backBtn.addEventListener('click', () => {
                 this.goBackInPedigree();
+            });
+        }
+        
+        // **NIEUW: DNA Analyse knop event listener**
+        const influenceBtn = modal.querySelector('.btn-influence');
+        if (influenceBtn) {
+            influenceBtn.addEventListener('click', () => {
+                if (window.influenceAnalyzer) {
+                    // Haal de huidige stamboom van de stack
+                    const currentPedigree = this.pedigreeStack[this.pedigreeStack.length - 1];
+                    if (currentPedigree && currentPedigree.pedigreeTree) {
+                        window.influenceAnalyzer.setMainModule(this);
+                        window.influenceAnalyzer.showInfluenceAnalysis(currentPedigree.pedigreeTree);
+                    } else {
+                        console.error('Geen stamboom gevonden voor DNA analyse');
+                        this.showError('Geen stamboom beschikbaar voor DNA analyse');
+                    }
+                } else {
+                    console.error('InfluenceAnalyzer niet beschikbaar');
+                    this.showError('DNA analyse module niet beschikbaar');
+                }
             });
         }
         
