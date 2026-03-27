@@ -1,6 +1,6 @@
 /**
  * InfluenceAnalyzer.js - MET GENERATIE KOLOM (ALLE GENERATIES)
- * Analyseert hoe vaak voorouders voorkomen in een stamboom over 6 generaties
+ * Analyseert hoe vaak voorouders voorkomen in een stamboom over 8 generaties
  */
 
 class InfluenceAnalyzer {
@@ -93,9 +93,9 @@ class InfluenceAnalyzer {
     setDefaultTranslations() {
         this.translations = {
             nl: {
-                title: 'Voorouder Analyse (6 generaties)',
-                buttonTitle: 'Voorouder Analyse',
-                disclaimer: 'Dit toont alle unieke voorouders over 6 generaties en hoe vaak ze voorkomen. De tabel is gesorteerd op meest voorkomende honden, met prioriteit voor honden die in beide lijnen voorkomen.',
+                title: 'Voorouder Analyse (8 generaties)',
+                buttonTitle: 'Voorouder Analyse (8 gen)',
+                disclaimer: 'Dit toont alle unieke voorouders over 8 generaties en hoe vaak ze voorkomen. De tabel is gesorteerd op meest voorkomende honden, met prioriteit voor honden die in beide lijnen voorkomen.',
                 totalMales: 'Totaal reuen',
                 totalFemales: 'Totaal teven',
                 totalAll: 'Totaal alle posities',
@@ -118,12 +118,12 @@ class InfluenceAnalyzer {
                 multipleFather: 'Meerdere in vaderlijn',
                 multipleMother: 'Meerdere in moederlijn',
                 sortingInfo: 'Sortering: Meeste voorkomens | Beide lijnen | Meerdere in vaderlijn | Meerdere in moederlijn | Laagste generatie',
-                generationTooltip: 'Toont alle generaties waar deze hond voorkomt (1-6)'
+                generationTooltip: 'Toont alle generaties waar deze hond voorkomt (1-8)'
             },
             en: {
-                title: 'Ancestor Analysis (6 generations)',
-                buttonTitle: 'Ancestor Analysis',
-                disclaimer: 'This shows all unique ancestors over 6 generations and how often they appear. The table is sorted by most common ancestors, with priority for ancestors appearing in both lines.',
+                title: 'Ancestor Analysis (8 generations)',
+                buttonTitle: 'Ancestor Analysis (8 gen)',
+                disclaimer: 'This shows all unique ancestors over 8 generations and how often they appear. The table is sorted by most common ancestors, with priority for ancestors appearing in both lines.',
                 totalMales: 'Total males',
                 totalFemales: 'Total females',
                 totalAll: 'Total all positions',
@@ -146,12 +146,12 @@ class InfluenceAnalyzer {
                 multipleFather: 'Multiple in father line',
                 multipleMother: 'Multiple in mother line',
                 sortingInfo: 'Sorting: Most occurrences | Both lines | Multiple in father line | Multiple in mother line | Lowest generation',
-                generationTooltip: 'Shows all generations where this ancestor appears (1-6)'
+                generationTooltip: 'Shows all generations where this ancestor appears (1-8)'
             },
             de: {
-                title: 'Ahnen-Analyse (6 Generationen)',
-                buttonTitle: 'Ahnen-Analyse',
-                disclaimer: 'Dies zeigt alle einzigartigen Ahnen über 6 Generationen und wie oft sie vorkommen. Die Tabelle ist sortiert nach häufigsten Ahnen, mit Priorität für Ahnen die in beiden Linien vorkommen.',
+                title: 'Ahnen-Analyse (8 Generationen)',
+                buttonTitle: 'Ahnen-Analyse (8 Gen)',
+                disclaimer: 'Dies zeigt alle einzigartigen Ahnen über 8 Generationen und wie oft sie vorkommen. Die Tabelle ist sortiert nach häufigsten Ahnen, mit Priorität für Ahnen die in beiden Linien vorkommen.',
                 totalMales: 'Gesamt Rüden',
                 totalFemales: 'Gesamt Hündinnen',
                 totalAll: 'Gesamt alle Positionen',
@@ -174,7 +174,7 @@ class InfluenceAnalyzer {
                 multipleFather: 'Mehrfach in väterlicher Linie',
                 multipleMother: 'Mehrfach in mütterlicher Linie',
                 sortingInfo: 'Sortierung: Meiste Vorkommen | Beide Linien | Mehrfach in väterlicher Linie | Mehrfach in mütterlicher Linie | Niedrigste Generation',
-                generationTooltip: 'Zeigt alle Generationen wo dieser Ahne vorkommt (1-6)'
+                generationTooltip: 'Zeigt alle Generationen wo dieser Ahne vorkommt (1-8)'
             }
         };
     }
@@ -313,6 +313,9 @@ class InfluenceAnalyzer {
         let totalAll = 0;
         let positionsFound = 0;
         
+        // Totaal aantal mogelijke posities voor 8 generaties (2 + 4 + 8 + ... + 256) = 510
+        const totalPossiblePositions = 510; // 2^1 + 2^2 + ... + 2^8 = 510
+        
         if (startDog) {
             const vaderId = startDog.vader_id || startDog.vaderId;
             const moederId = startDog.moeder_id || startDog.moederId;
@@ -356,7 +359,7 @@ class InfluenceAnalyzer {
             const { dog, generation, parentPath, mainLine } = queue.shift();
             
             if (!dog || !dog.id || dog.id === -999999) continue;
-            if (generation > 6) continue;
+            if (generation > 8) continue; // Gewijzigd van 6 naar 8
             
             if (!ancestorMap.has(dog.id)) {
                 ancestorMap.set(dog.id, {
@@ -371,7 +374,7 @@ class InfluenceAnalyzer {
                     fatherOccurrences: 0,
                     motherOccurrences: 0,
                     generations: new Set(), // Set om unieke generaties bij te houden
-                    lowestGeneration: 7, // Start hoog (boven 6)
+                    lowestGeneration: 9, // Start hoog (boven 8)
                     paths: []
                 });
             }
@@ -401,7 +404,7 @@ class InfluenceAnalyzer {
             else if (record.geslacht === 'teven') totalFemale++;
             totalAll++;
             
-            if (generation < 6) {
+            if (generation < 8) { // Gewijzigd van 6 naar 8
                 const vaderId = dog.vader_id || dog.vaderId;
                 const moederId = dog.moeder_id || dog.moederId;
                 
@@ -559,7 +562,9 @@ class InfluenceAnalyzer {
             `;
         });
         
-        const positionsColor = positionsFound === 126 ? '#28a745' : '#fd7e14';
+        // Totaal aantal posities voor 8 generaties is 510 (2+4+8+16+32+64+128+256)
+        const totalPositions = 510;
+        const positionsColor = positionsFound === totalPositions ? '#28a745' : '#fd7e14';
         
         return `
             <div class="ia-popup-overlay" id="ia-popup-overlay">
@@ -589,11 +594,11 @@ class InfluenceAnalyzer {
                             </div>
                             <div class="ia-summary-item ia-summary-total">
                                 <span class="ia-summary-label">${t('totalAll')}</span>
-                                <span class="ia-summary-value">${totalAll}/126</span>
+                                <span class="ia-summary-value">${totalAll}/${totalPositions}</span>
                             </div>
                             <div class="ia-summary-item">
                                 <span class="ia-summary-label">${t('filledPositions')}</span>
-                                <span class="ia-summary-value" style="color: ${positionsColor};">${positionsFound}/126</span>
+                                <span class="ia-summary-value" style="color: ${positionsColor};">${positionsFound}/${totalPositions}</span>
                             </div>
                             <div class="ia-summary-item">
                                 <span class="ia-summary-label">${t('totalUnique')}</span>
@@ -610,7 +615,7 @@ class InfluenceAnalyzer {
                                 <span class="ia-legend-item">🔀 = ${t('bothLines')}</span>
                                 <span class="ia-legend-item">♂ = ${t('fatherLine')}</span>
                                 <span class="ia-legend-item">♀ = ${t('motherLine')}</span>
-                                <span class="ia-legend-item">📊 = Generaties (1-6)</span>
+                                <span class="ia-legend-item">📊 = Generaties (1-8)</span>
                             </small>
                         </div>
                         
@@ -637,8 +642,8 @@ class InfluenceAnalyzer {
                         </div>
                         
                         <div class="ia-total-count">
-                            <strong>${t('totalUnique')}: ${totalUnique} | ${t('filledPositions')}: ${positionsFound}/126</strong>
-                            ${positionsFound < 126 ? '<br><small class="text-muted">Niet alle posities zijn gevuld.</small>' : ''}
+                            <strong>${t('totalUnique')}: ${totalUnique} | ${t('filledPositions')}: ${positionsFound}/${totalPositions}</strong>
+                            ${positionsFound < totalPositions ? '<br><small class="text-muted">Niet alle posities zijn gevuld.</small>' : ''}
                         </div>
                     </div>
                     <div class="ia-popup-footer">
