@@ -426,7 +426,7 @@ class LitterManager {
         // Definieer de standaard vachtkleuren per taal
         this.standardCoatColors = {
             nl: ["Blond", "Blondgrijs", "Grijsblond", "Blondrood", "Roodblond", "Rood", "Roodgrijs", "Wolfsgrau", "Wildkleur", "Zwart", "Zwart met aftekeningen", "Wit", "Piebold"],
-            en: ["Blond", "Blondgray", "Grayblond", "Blondred", "Redblond", "Red", "Redgray", "Wolfgray", "Wildcolor", "Black", "Black with markings", "White", "Piebold"],
+            en: ["Light Cream", "Creamgray", "Graycream", "Creamred", "Redcream", "Red", "Redgray", "Wolfgray", "Wildcolor", "Black", "Black with markings", "White", "Piebold"],
             de: ["Falben", "Falbengrau", "Graufalben", "Falbenrot", "Rotfalben", "Rot", "Rotgrau", "Wolfsgrau", "Wildfarbe", "Schwarz", "Schwarz mit Abzeichen", "Weiß", "Piebold"]
         };
     }
