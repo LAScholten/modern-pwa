@@ -16,6 +16,7 @@ class OffspringManager {
         this.dogOffspringCache = new Map();
         this.dogSiblingsCache = new Map();
         this.dogDetailsCache = new Map();
+        this.dogPrivateInfoCache = new Map(); // Cache voor privé informatie
         
         // Huidige modal staten
         this.currentOffspringModalDogId = null;
@@ -88,6 +89,8 @@ class OffspringManager {
                 zipCode: "Postcode",
                 noHealthInfo: "Geen gezondheidsinformatie beschikbaar",
                 noAdditionalInfo: "Geen extra informatie beschikbaar",
+                hasPrivateInfo: "Privé informatie aanwezig",
+                hasRemarks: "Opmerkingen aanwezig",
                 
                 hipGrades: {
                     A: "A - Geen tekenen van HD",
@@ -194,6 +197,8 @@ class OffspringManager {
                 zipCode: "Zip code",
                 noHealthInfo: "No health information available",
                 noAdditionalInfo: "No additional information available",
+                hasPrivateInfo: "Private information available",
+                hasRemarks: "Remarks available",
                 
                 hipGrades: {
                     A: "A - No signs of HD",
@@ -300,6 +305,8 @@ class OffspringManager {
                 zipCode: "Postleitzahl",
                 noHealthInfo: "Keine Gesundheitsinformationen verfügbar",
                 noAdditionalInfo: "Keine zusätzliche Informationen verfügbar",
+                hasPrivateInfo: "Private Informationen verfügbar",
+                hasRemarks: "Bemerkungen verfügbar",
                 
                 hipGrades: {
                     A: "A - Keine Anzeichen von HD",
@@ -351,6 +358,8 @@ class OffspringManager {
         this.onGetPrivateInfo = null;
         // Callback voor het ophalen van dog details
         this.onGetDogDetails = null;
+        // Callback voor huidige gebruiker
+        this.onGetCurrentUser = null;
         
         this.setupGlobalEventListeners();
     }
@@ -366,10 +375,11 @@ class OffspringManager {
         return Promise.resolve();
     }
     
-    setCallbacks(onShowDogDetails, onGetPrivateInfo, onGetDogDetails) {
+    setCallbacks(onShowDogDetails, onGetPrivateInfo, onGetDogDetails, onGetCurrentUser = null) {
         this.onShowDogDetails = onShowDogDetails;
         this.onGetPrivateInfo = onGetPrivateInfo;
         this.onGetDogDetails = onGetDogDetails;
+        this.onGetCurrentUser = onGetCurrentUser;
     }
     
     t(key, subKey = null) {
@@ -387,6 +397,7 @@ class OffspringManager {
         this.dogOffspringCache.clear();
         this.dogSiblingsCache.clear();
         this.dogDetailsCache.clear();
+        this.dogPrivateInfoCache.clear();
         console.log('OffspringManager: Caches geleegd');
     }
     
@@ -572,6 +583,80 @@ class OffspringManager {
         }
     }
     
+    async getPrivateInfoForDog(dogId) {
+        if (this.dogPrivateInfoCache.has(dogId)) {
+            return this.dogPrivateInfoCache.get(dogId);
+        }
+        
+        try {
+            // Eerst de hond ophalen om het stamboomnummer te krijgen
+            const dog = await this.getDogDetails(dogId);
+            if (!dog || !dog.stamboomnr) {
+                this.dogPrivateInfoCache.set(dogId, null);
+                return null;
+            }
+            
+            // Haal privé informatie op basis van stamboomnummer
+            const { data, error } = await window.supabase
+                .from('priveinfo')
+                .select('*')
+                .eq('stamboomnr', dog.stamboomnr);
+            
+            if (error) {
+                console.error('Fout bij ophalen privé info:', error);
+                this.dogPrivateInfoCache.set(dogId, null);
+                return null;
+            }
+            
+            if (!data || data.length === 0) {
+                this.dogPrivateInfoCache.set(dogId, null);
+                return null;
+            }
+            
+            // Haal de huidige gebruiker op
+            let currentUser = null;
+            if (this.onGetCurrentUser) {
+                currentUser = await this.onGetCurrentUser();
+            } else if (window.auth && window.auth.getCurrentUser) {
+                currentUser = await window.auth.getCurrentUser();
+            }
+            
+            // Controleer of de huidige gebruiker de eigenaar is
+            const hasPrivateInfoForCurrentUser = currentUser && data.some(info => info.toegevoegd_door === currentUser.id);
+            
+            this.dogPrivateInfoCache.set(dogId, hasPrivateInfoForCurrentUser ? data : null);
+            return hasPrivateInfoForCurrentUser ? data : null;
+            
+        } catch (error) {
+            console.error('Fout bij ophalen privé info:', error);
+            this.dogPrivateInfoCache.set(dogId, null);
+            return null;
+        }
+    }
+    
+    async hasRemarksOrPrivateInfo(dog) {
+        let hasInfo = false;
+        let tooltipText = [];
+        
+        // Controleer op opmerkingen
+        if (dog.opmerkingen && dog.opmerkingen.trim() !== '') {
+            hasInfo = true;
+            tooltipText.push(this.t('hasRemarks'));
+        }
+        
+        // Controleer op privé informatie
+        const privateInfo = await this.getPrivateInfoForDog(dog.id);
+        if (privateInfo && privateInfo.length > 0) {
+            hasInfo = true;
+            tooltipText.push(this.t('hasPrivateInfo'));
+        }
+        
+        return {
+            hasInfo: hasInfo,
+            tooltip: tooltipText.join(', ')
+        };
+    }
+    
     async getDogOffspring(dogId) {
         if (!dogId || dogId === 0) return [];
         
@@ -623,10 +708,15 @@ class OffspringManager {
                     }
                 }
                 
+                // Check voor opmerkingen en privé info
+                const infoStatus = await this.hasRemarksOrPrivateInfo(puppy);
+                
                 return {
                     ...puppy,
                     fatherInfo,
-                    motherInfo
+                    motherInfo,
+                    hasInfoIcon: infoStatus.hasInfo,
+                    infoTooltip: infoStatus.tooltip
                 };
             }));
             
@@ -735,13 +825,18 @@ class OffspringManager {
                     }
                 }
                 
+                // Check voor opmerkingen en privé info
+                const infoStatus = await this.hasRemarksOrPrivateInfo(sibling);
+                
                 return {
                     ...sibling,
                     siblingType: type,
                     commonParent: commonParent,
                     fatherInfo,
                     motherInfo,
-                    sortOrder: type === 'full' ? 0 : 1
+                    sortOrder: type === 'full' ? 0 : 1,
+                    hasInfoIcon: infoStatus.hasInfo,
+                    infoTooltip: infoStatus.tooltip
                 };
             }));
             
@@ -1014,12 +1109,12 @@ class OffspringManager {
                                     <th scope="col">LÜW</th>
                                     <th scope="col">Thyroid</th>
                                     <th scope="col">${this.t('birthYear')}</th>
-                                   </tr>
+                                </tr>
                             </thead>
                             <tbody>
             `;
             
-            offspring.forEach((puppy, index) => {
+            for (const puppy of offspring) {
                 const birthYear = puppy.geboortedatum ? 
                     new Date(puppy.geboortedatum).getFullYear() : '?';
                 
@@ -1031,17 +1126,18 @@ class OffspringManager {
                     `${puppy.motherInfo.naam} (${puppy.motherInfo.kennelnaam})` : 
                     puppy.motherInfo.naam;
                 
-                const hasRemark = puppy.opmerkingen && puppy.opmerkingen.trim() !== '';
-                const kennelDisplay = puppy.kennelnaam ? 
-                    `${puppy.kennelnaam}${hasRemark ? ' <span class="text-danger ms-1" style="cursor: help;" title="Opmerkingen aanwezig"><i class="bi bi-exclamation-triangle-fill"></i></span>' : ''}` : 
-                    (hasRemark ? '<span class="text-danger" style="cursor: help;" title="Opmerkingen aanwezig"><i class="bi bi-exclamation-triangle-fill"></i></span>' : '');
+                const kennelDisplay = puppy.kennelnaam ? puppy.kennelnaam : '';
+                
+                // Info icon met tooltip als er opmerkingen OF privé info is
+                const infoIcon = puppy.hasInfoIcon ? 
+                    `<span class="text-danger ms-1" style="cursor: help;" title="${puppy.infoTooltip}"><i class="bi bi-exclamation-triangle-fill"></i></span>` : '';
                 
                 html += `
                     <tr class="offspring-row" data-dog-id="${puppy.id}" data-dog-name="${puppy.naam || ''}">
-                        <td class="text-muted">${index + 1}</td>
+                        <td class="text-muted">${offspring.indexOf(puppy) + 1}</td>
                         <td>
                             <strong class="text-primary">${puppy.naam || this.t('unknown')}</strong>
-                            ${kennelDisplay ? `<br><small class="text-muted">${kennelDisplay}</small>` : ''}
+                            ${kennelDisplay ? `<br><small class="text-muted">${kennelDisplay}${infoIcon}</small>` : (infoIcon ? `<br><small class="text-muted">${infoIcon}</small>` : '')}
                         </td>
                         <td>${fatherDisplay}</td>
                         <td>${motherDisplay}</td>
@@ -1056,7 +1152,7 @@ class OffspringManager {
                         <td>${birthYear}</td>
                     </tr>
                 `;
-            });
+            }
             
             html += `
                             </tbody>
@@ -1158,7 +1254,7 @@ class OffspringManager {
                             <tbody>
             `;
             
-            siblings.forEach((sibling, index) => {
+            for (const sibling of siblings) {
                 const birthYear = sibling.geboortedatum ? 
                     new Date(sibling.geboortedatum).getFullYear() : '?';
                 
@@ -1175,17 +1271,18 @@ class OffspringManager {
                 
                 const rowClass = sibling.siblingType === 'full' ? 'full-sibling-row' : 'half-sibling-row';
                 
-                const hasRemark = sibling.opmerkingen && sibling.opmerkingen.trim() !== '';
-                const kennelDisplay = sibling.kennelnaam ? 
-                    `${sibling.kennelnaam}${hasRemark ? ' <span class="text-danger ms-1" style="cursor: help;" title="Opmerkingen aanwezig"><i class="bi bi-exclamation-triangle-fill"></i></span>' : ''}` : 
-                    (hasRemark ? '<span class="text-danger" style="cursor: help;" title="Opmerkingen aanwezig"><i class="bi bi-exclamation-triangle-fill"></i></span>' : '');
+                const kennelDisplay = sibling.kennelnaam ? sibling.kennelnaam : '';
+                
+                // Info icon met tooltip als er opmerkingen OF privé info is
+                const infoIcon = sibling.hasInfoIcon ? 
+                    `<span class="text-danger ms-1" style="cursor: help;" title="${sibling.infoTooltip}"><i class="bi bi-exclamation-triangle-fill"></i></span>` : '';
                 
                 html += `
                     <tr class="sibling-row ${rowClass}" data-dog-id="${sibling.id}" data-dog-name="${sibling.naam || ''}">
-                        <td class="text-muted">${index + 1}</td>
+                        <td class="text-muted">${siblings.indexOf(sibling) + 1}</td>
                         <td>
                             <strong class="${sibling.siblingType === 'full' ? 'text-success' : 'text-primary'}">${sibling.naam || this.t('unknown')}</strong>
-                            ${kennelDisplay ? `<br><small class="text-muted">${kennelDisplay}</small>` : ''}
+                            ${kennelDisplay ? `<br><small class="text-muted">${kennelDisplay}${infoIcon}</small>` : (infoIcon ? `<br><small class="text-muted">${infoIcon}</small>` : '')}
                         </td>
                         <td>${fatherDisplay}</td>
                         <td>${motherDisplay}</td>
@@ -1203,7 +1300,7 @@ class OffspringManager {
                         <td>${birthYear}</td>
                     </tr>
                 `;
-            });
+            }
             
             html += `
                             </tbody>
