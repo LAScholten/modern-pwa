@@ -10,6 +10,7 @@ class LitterManager {
         this.lastBreeds = JSON.parse(localStorage.getItem('lastBreeds') || '[]');
         this.allDogs = []; // Voor autocomplete van ouders
         this.currentLitterDogs = []; // Houdt de ingevoerde honden van het huidige nest bij
+        this.allKennelNames = []; // Voor autocomplete van kennelnamen
         
         // TomSelect instances
         this.fatherTomSelect = null;
@@ -46,7 +47,7 @@ class LitterManager {
                 mother: "Moeder *",
                 motherTooltip: "Alleen teven die op jouw naam staan in de database worden getoond. Neem contact op met een beheerder als je teef nog niet op jouw naam staat.",
                 coatColor: "Vachtkleur (selecteer)",
-                standardCoatColors: " ",
+                standardCoatColors: "Standaard vachtkleuren:",
                 birthDate: "Geboortedatum",
                 deathDate: "Overlijdensdatum",
                 gender: "Geslacht",
@@ -178,7 +179,7 @@ class LitterManager {
                 mother: "Mother *",
                 motherTooltip: "Only female dogs registered in your name are shown. Contact an administrator if your female dog is not yet registered in your name.",
                 coatColor: "Coat Color (select)",
-                standardCoatColors: " ",
+                standardCoatColors: "Standard coat colors:",
                 birthDate: "Birth date",
                 deathDate: "Death date",
                 gender: "Gender",
@@ -310,7 +311,7 @@ class LitterManager {
                 mother: "Mutter *",
                 motherTooltip: "Es werden nur Hündinnen angezeigt, die auf Ihren Namen registriert sind. Kontaktieren Sie einen Administrator, wenn Ihre Hündin noch nicht auf Ihren Namen registriert ist.",
                 coatColor: "Fellfarbe (auswählen)",
-                standardCoatColors: " ",
+                standardCoatColors: "Standard Fellfarben:",
                 birthDate: "Geburtsdatum",
                 deathDate: "Sterbedatum",
                 gender: "Geschlecht",
@@ -978,6 +979,33 @@ class LitterManager {
                 .ts-dropdown .option.active {
                     background-color: #f0e6ff;
                 }
+
+                /* Kennelnaam autocomplete styling */
+                .kennel-autocomplete-dropdown {
+                    position: absolute;
+                    background: white;
+                    border: 1px solid #ddd;
+                    border-radius: 4px;
+                    max-height: 300px;
+                    overflow-y: auto;
+                    z-index: 10000;
+                    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+                    width: 100%;
+                }
+                
+                .kennel-autocomplete-item {
+                    padding: 10px;
+                    cursor: pointer;
+                    border-bottom: 1px solid #f0f0f0;
+                }
+                
+                .kennel-autocomplete-item:hover {
+                    background-color: #f8f9fa;
+                }
+                
+                .kennel-input-wrapper {
+                    position: relative;
+                }
             </style>
         `;
     }
@@ -1110,9 +1138,9 @@ class LitterManager {
                     <!-- RIJ 2: Kennelnaam en Ras -->
                     <div class="row">
                         <div class="col-md-6">
-                            <div class="mb-3">
+                            <div class="mb-3 kennel-input-wrapper">
                                 <label for="kennelName" class="form-label">${t('kennelName')}</label>
-                                <input type="text" class="form-control" id="kennelName" value="${data.kennelnaam || ''}">
+                                <input type="text" class="form-control" id="kennelName" value="${data.kennelnaam || ''}" autocomplete="off">
                             </div>
                         </div>
                         <div class="col-12 col-md-6">
@@ -1426,6 +1454,11 @@ class LitterManager {
                 .parent-validation-error {
                     border-color: #dc3545 !important;
                 }
+
+                /* Kennelnaam wrapper */
+                .kennel-input-wrapper {
+                    position: relative;
+                }
             </style>
         `;
     }
@@ -1444,6 +1477,9 @@ class LitterManager {
         // Laad honden voor autocomplete
         this.loadAllDogs(false);
         
+        // Laad kennelnamen voor autocomplete
+        this.loadAllKennelNames();
+        
         // Initialiseer Bootstrap tooltips
         if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
             const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -1451,6 +1487,9 @@ class LitterManager {
                 return new bootstrap.Tooltip(tooltipTriggerEl);
             });
         }
+        
+        // Setup kennelnaam autocomplete
+        this.setupKennelNameAutocomplete();
         
         // Event listeners voor alle drie opslaan knoppen
         const saveBtn = document.getElementById('saveDogBtn');
@@ -1562,6 +1601,214 @@ class LitterManager {
         this.setupFileUploadFeedback();
         
         console.log('LitterManager: Alle events ingesteld');
+    }
+    
+    /**
+     * Laad alle bestaande kennelnamen uit de database voor autocomplete
+     * VERBETERD: Geen limiet, haalt alle kennelnamen op met paginatie
+     */
+    async loadAllKennelNames() {
+        console.log('LitterManager: loadAllKennelNames aangeroepen');
+        
+        if (!this.db) {
+            console.error('LitterManager: Database niet beschikbaar voor loadAllKennelNames!');
+            return;
+        }
+        
+        try {
+            const supabase = this.getSupabase();
+            if (!supabase) {
+                console.error('LitterManager: Geen Supabase client voor loadAllKennelNames');
+                return;
+            }
+            
+            // Haal ALLE kennelnamen op met paginatie
+            let allKennelNamesRaw = [];
+            let page = 0;
+            const pageSize = 1000;
+            let hasMore = true;
+            
+            while (hasMore) {
+                const from = page * pageSize;
+                const to = from + pageSize - 1;
+                
+                const { data, error, count } = await supabase
+                    .from('honden')
+                    .select('kennelnaam', { count: 'exact' })
+                    .not('kennelnaam', 'is', null)
+                    .not('kennelnaam', 'eq', '')
+                    .range(from, to);
+                
+                if (error) {
+                    console.error('LitterManager: Fout bij laden kennelnamen pagina', page, error);
+                    break;
+                }
+                
+                if (data && data.length > 0) {
+                    allKennelNamesRaw = allKennelNamesRaw.concat(data);
+                    console.log(`LitterManager: Pagina ${page + 1} geladen: ${data.length} kennelnamen`);
+                }
+                
+                // Controleer of er meer pagina's zijn
+                hasMore = data && data.length === pageSize;
+                page++;
+                
+                // Veiligheidslimiet
+                if (page > 100) {
+                    console.warn('LitterManager: Veiligheidslimiet bereikt voor kennelnamen');
+                    break;
+                }
+            }
+            
+            // Verzamel unieke kennelnamen (case-insensitive, maar behoud originele spelling)
+            const kennelMap = new Map();
+            allKennelNamesRaw.forEach(item => {
+                if (item.kennelnaam && item.kennelnaam.trim()) {
+                    const trimmed = item.kennelnaam.trim();
+                    const lowerKey = trimmed.toLowerCase();
+                    // Bewaar de eerste gevonden spelling
+                    if (!kennelMap.has(lowerKey)) {
+                        kennelMap.set(lowerKey, trimmed);
+                    }
+                }
+            });
+            
+            // Converteer naar array en sorteer alphabetisch
+            this.allKennelNames = Array.from(kennelMap.values()).sort((a, b) => 
+                a.toLowerCase().localeCompare(b.toLowerCase())
+            );
+            
+            console.log(`LitterManager: ${this.allKennelNames.length} unieke kennelnamen geladen voor autocomplete`);
+            if (this.allKennelNames.length > 0) {
+                console.log(`LitterManager: Eerste 5 kennelnamen: ${this.allKennelNames.slice(0, 5).join(', ')}`);
+            }
+            
+        } catch (error) {
+            console.error('LitterManager: Fout bij laden kennelnamen:', error);
+            this.allKennelNames = [];
+        }
+    }
+    
+    /**
+     * Setup autocomplete voor kennelnaam veld
+     * VERBETERD: Betere matching, meer suggesties, highlighting
+     */
+    setupKennelNameAutocomplete() {
+        const kennelNameInput = document.getElementById('kennelName');
+        if (!kennelNameInput) {
+            console.log('LitterManager: KennelName input niet gevonden');
+            return;
+        }
+        
+        // Verwijder bestaande event listeners om duplicates te voorkomen
+        kennelNameInput.removeEventListener('input', this.kennelInputHandler);
+        kennelNameInput.removeEventListener('blur', this.kennelBlurHandler);
+        
+        // Maak een container voor de dropdown
+        let dropdownContainer = document.getElementById('kennelAutocompleteDropdown');
+        if (!dropdownContainer) {
+            dropdownContainer = document.createElement('div');
+            dropdownContainer.id = 'kennelAutocompleteDropdown';
+            dropdownContainer.className = 'kennel-autocomplete-dropdown';
+            dropdownContainer.style.display = 'none';
+            dropdownContainer.style.maxHeight = '300px';
+            dropdownContainer.style.overflowY = 'auto';
+            kennelNameInput.parentNode.appendChild(dropdownContainer);
+        }
+        
+        // Input handler voor suggesties
+        this.kennelInputHandler = (e) => {
+            const query = e.target.value.trim();
+            
+            if (query.length < 2) {
+                dropdownContainer.style.display = 'none';
+                dropdownContainer.innerHTML = '';
+                return;
+            }
+            
+            const lowerQuery = query.toLowerCase();
+            
+            // Eerst kennelnamen die beginnen met de query, dan die het bevatten
+            const startsWith = [];
+            const contains = [];
+            
+            for (const name of this.allKennelNames) {
+                const lowerName = name.toLowerCase();
+                if (lowerName.startsWith(lowerQuery)) {
+                    startsWith.push(name);
+                } else if (lowerName.includes(lowerQuery)) {
+                    contains.push(name);
+                }
+            }
+            
+            // Combineer: eerst beginselen, dan bevatten (max 50 om performance te houden)
+            const matches = [...startsWith, ...contains].slice(0, 50);
+            
+            if (matches.length === 0) {
+                dropdownContainer.style.display = 'none';
+                dropdownContainer.innerHTML = '';
+                return;
+            }
+            
+            // Bouw dropdown HTML met highlighting
+            let dropdownHTML = '';
+            matches.forEach(name => {
+                const lowerName = name.toLowerCase();
+                const index = lowerName.indexOf(lowerQuery);
+                
+                let highlightedName;
+                if (index !== -1) {
+                    const before = name.substring(0, index);
+                    const match = name.substring(index, index + query.length);
+                    const after = name.substring(index + query.length);
+                    highlightedName = `${this.escapeHtml(before)}<strong>${this.escapeHtml(match)}</strong>${this.escapeHtml(after)}`;
+                } else {
+                    highlightedName = this.escapeHtml(name);
+                }
+                
+                dropdownHTML += `
+                    <div class="kennel-autocomplete-item" data-kennel-name="${this.escapeHtml(name)}">
+                        <i class="bi bi-building me-2"></i>${highlightedName}
+                    </div>
+                `;
+            });
+            
+            dropdownContainer.innerHTML = dropdownHTML;
+            dropdownContainer.style.display = 'block';
+            
+            // Voeg click handlers toe aan de items
+            const items = dropdownContainer.querySelectorAll('.kennel-autocomplete-item');
+            items.forEach(item => {
+                item.removeEventListener('click', this.kennelItemClickHandler);
+                this.kennelItemClickHandler = () => {
+                    const selectedName = item.dataset.kennelName;
+                    kennelNameInput.value = selectedName;
+                    dropdownContainer.style.display = 'none';
+                    // Trigger change event voor eventuele validatie
+                    kennelNameInput.dispatchEvent(new Event('change'));
+                };
+                item.addEventListener('click', this.kennelItemClickHandler);
+            });
+        };
+        
+        // Blur handler om dropdown te verbergen (met kleine vertraging zodat klik nog geregistreerd wordt)
+        this.kennelBlurHandler = () => {
+            setTimeout(() => {
+                dropdownContainer.style.display = 'none';
+            }, 200);
+        };
+        
+        kennelNameInput.addEventListener('input', this.kennelInputHandler);
+        kennelNameInput.addEventListener('blur', this.kennelBlurHandler);
+        
+        // Voeg event toe om dropdown te verbergen wanneer er buiten geklikt wordt
+        document.addEventListener('click', (e) => {
+            if (!kennelNameInput.contains(e.target) && !dropdownContainer.contains(e.target)) {
+                dropdownContainer.style.display = 'none';
+            }
+        });
+        
+        console.log('LitterManager: Kennelnaam autocomplete setup voltooid');
     }
     
     // ========== TOM SELECT VOOR OUDERS - EXACT ZOALS IN DogManager ==========
@@ -2232,6 +2479,8 @@ class LitterManager {
         // Reset LUW error message
         const luwError = document.getElementById('luwError');
         if (luwError) luwError.style.display = 'none';
+        
+        // Kennelnaam wordt niet gereset omdat deze in de ouderdetails zit en blijft staan
     }
     
     addToLastBreeds(breed) {
@@ -2741,6 +2990,13 @@ class LitterManager {
         // Reset de lijst met ingevoerde honden
         this.currentLitterDogs = [];
         this.updateAddedDogsList();
+        
+        // Reset kennelnaam autocomplete dropdown
+        const kennelDropdown = document.getElementById('kennelAutocompleteDropdown');
+        if (kennelDropdown) {
+            kennelDropdown.style.display = 'none';
+            kennelDropdown.innerHTML = '';
+        }
     }
     
     showProgress(message) {
