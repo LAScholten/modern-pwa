@@ -89,6 +89,40 @@
             padding: 6px 12px;
         }
         
+        /* Last updates styling */
+        .last-update-item {
+            border-left: 4px solid #0dcaf0;
+            margin-bottom: 15px;
+            padding: 12px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+        
+        .last-update-item:hover {
+            background-color: #e9ecef;
+            transform: translateX(5px);
+        }
+        
+        .update-field {
+            font-size: 0.85rem;
+            padding: 2px 6px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            display: inline-block;
+            margin: 2px;
+        }
+        
+        .update-old-value {
+            text-decoration: line-through;
+            color: #dc3545;
+        }
+        
+        .update-new-value {
+            color: #198754;
+            font-weight: bold;
+        }
+        
         /* Mobile-specifieke aanpassingen */
         @media (max-width: 768px) {
             .mobile-actions {
@@ -375,6 +409,12 @@
                                     <i class="bi bi-info-circle"></i> 
                                     <span class="app-text" data-key="workflowBtn">De werkwijze</span>
                                 </button>
+                                
+                                <!-- NIEUWE KNOP - ALLEEN VOOR ADMIN (wordt zichtbaar via JS) -->
+                                <button class="btn btn-secondary d-none" id="lastUpdatesBtn">
+                                    <i class="bi bi-clock-history"></i> 
+                                    <span class="app-text" data-key="lastUpdates">Laatste aanpassingen</span>
+                                </button>
                             </div>
                         </div>
                         
@@ -535,6 +575,36 @@
         </div>
     </div>
     
+    <!-- Last Updates Modal -->
+    <div class="modal fade" id="lastUpdatesModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-clock-history"></i> 
+                        <span class="app-text" data-key="lastUpdates">Laatste aanpassingen</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="lastUpdatesContent">
+                        <div class="text-center p-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Laden...</span>
+                            </div>
+                            <p class="mt-2">Gegevens worden geladen...</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <span class="app-text" data-key="closeBtn">Sluiten</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- Scripts -->
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -587,6 +657,9 @@
     <script src="js/modules/kleuren.js"></script>
     <script src="js/modules/informatie.js"></script>
     
+    <!-- LAST UPDATES MODULE -->
+    <script src="js/modules/LastUpdates.js"></script>
+    
     <!-- Main UI Handler -->
     <script src="js/ui-handler.js"></script>
     
@@ -609,6 +682,259 @@
     
     <!-- App Initialization -->
     <script>
+        // Vertalingen - NU MET LAST UPDATES
+        const appTranslations = {
+            nl: {
+                appTitle: "Eurasier Friends International - Database",
+                logout: "Uitloggen",
+                menu: "Menu",
+                dataManagement: "Data Beheer",
+                newDog: "Nieuwe Hond",
+                newLitter: "Nieuwe Hond/Nest",
+                editDogData: "Data Hond Bewerken",
+                searchDog: "Hond Zoeken",
+                photoGallery: "Foto Galerij",
+                nestAnnouncements: "Nest aankondigingen",
+                breedingPlan: "Fok Planning",
+                dekReuen: "Dek Reuen",
+                topHonden: "Top 100 Meest Voorkomende Honden",
+                privateInfo: "Privé Informatie",
+                quickOverview: "Snel Overzicht",
+                dogs: "Honden",
+                photos: "Foto's",
+                refresh: "Vernieuwen",
+                dashboard: "Dashboard",
+                welcomeTitle: "Welkom bij de Eurasier Friends International PWA - Database",
+                welcomeText: "Lees eerst de 3 onderstaande informatie items.",
+                aboutApp: "Over deze PWA",
+                appDescription: "Deze Progressive Web App heeft verschillende mogelijkheden:",
+                feature1: "💾 Opslag:",
+                feature1Desc: "Slaat de data op in de online database",
+                feature2: "🔄 Easy backup:",
+                feature2Desc: "Backups worden weekelijks uitgevoerd",
+                feature3: "⚡ Snelle werking:",
+                feature3Desc: "Directe toegang tot je gegevens",
+                feature4: "🔒 Veilige opslag:",
+                feature4Desc: "Privé informatie is alleen te zien door de persoon die deze heeft ingevoerd.",
+                feature5: "Honden toevoegen en beheren",
+                feature6: "Data importeren/exporteren",
+                security: "Beveiliging",
+                roleBasedAccess: "De app gebruikt rol-gebaseerde toegang:",
+                adminRole: "Administrator",
+                adminRights: "Volledige rechten.",
+                userPlusRole: "Gebruiker+",
+                userPlusRights: "Kan honden bekijken, fokplanning maken en eigen honden/nesten toevoegen of bewerken, mits de ouders al in de database staan.",
+                userRole: "Gebruiker",
+                userRights: "Kan honden bekijken, nest aankondigingen en dek reuen bekijken, maar niet de eigen fokplanning maken en eigen honden/nesten toevoegen of bewerken.",
+                disclaimerBtn: "Disclaimer/Informatie over COI berekening",
+                colorsBtn: "De standaard kleuren",
+                workflowBtn: "De werkwijze",
+                lastUpdates: "Laatste aanpassingen",
+                installPWA: "Maak Snelkoppeling",
+                installStepsTitle: "Hoe maak je een snelkoppeling op je apparaat:",
+                iosDevice: "iPhone/iPad",
+                androidDevice: "Android",
+                windowsDevice: "Windows (Chrome/Edge)",
+                macDevice: "Mac (Safari/Chrome)",
+                safariBrowser: "Safari:",
+                chromeBrowser: "Chrome:",
+                iosStep1: "Open Safari en ga naar deze pagina",
+                iosStep2: "Tik op het deel icoon onderaan (vierkant met pijl omhoog)",
+                iosStep3: "Scroll naar beneden en selecteer \"Zet op beginscherm\"",
+                iosStep4: "Geef de snelkoppeling een naam (bijv. \"Hondendatabase\")",
+                iosStep5: "Tik op \"Toevoegen\" in de rechterbovenhoek",
+                iosStep6: "De app verschijnt nu op je beginsscherm!",
+                androidStep1: "Open Chrome of Firefox en ga naar deze pagina",
+                androidStep2: "Tik op het menu icoon (drie puntjes) rechtsboven",
+                androidStep3: "Selecteer \"Toevoegen aan beginscherm\" of \"Installeer app\"",
+                androidStep4: "Geef de snelkoppeling een naam",
+                androidStep5: "Tik op \"Toevoegen\" of \"Installeren\"",
+                androidStep6: "De app verschijnt nu op je beginscherm!",
+                windowsStep1: "Open Chrome of Microsoft Edge",
+                windowsStep2: "Ga naar deze pagina",
+                windowsStep3: "Klik op het installatie icoon rechts in de adresbalk (vierkant met pijl)",
+                windowsStep4: "Klik op \"Installeren\"",
+                windowsStep5: "De app wordt geïnstalleerd en verschijnt in je startmenu",
+                windowsStep6: "Je kunt ook een snelkoppeling op je bureaublad maken",
+                safariStep1: "Ga naar deze pagina in Safari",
+                safariStep2: "Klik op \"Bestand\" in de menubalk",
+                safariStep3: "Selecteer \"Toevoegen aan Dock\"",
+                chromeStep1: "Ga naar deze pagina in Chrome",
+                chromeStep2: "Klik op het installatie icoon rechts in de adresbalk",
+                chromeStep3: "Klik op \"Installeren\"",
+                advantageTitle: "Voordeel van een snelkoppeling:",
+                advantageText: "De app werkt als een normale app!",
+                closeBtn: "Sluiten",
+                transferModule: "Hond Overdracht"
+            },
+            en: {
+                appTitle: "Eurasier Friends International - Database",
+                logout: "Logout",
+                menu: "Menu",
+                dataManagement: "Data Management",
+                newDog: "New Dog",
+                newLitter: "New Dog/Litter",
+                editDogData: "Edit Dog Data",
+                searchDog: "Search Dog",
+                photoGallery: "Photo Gallery",
+                nestAnnouncements: "Litter announcements",
+                breedingPlan: "Breeding Plan",
+                dekReuen: "Stud Dogs",
+                topHonden: "Top 100 Most Common Dogs",
+                privateInfo: "Private Information",
+                quickOverview: "Quick Overview",
+                dogs: "Dogs",
+                photos: "Photos",
+                refresh: "Refresh",
+                dashboard: "Dashboard",
+                welcomeTitle: "Welcome to the Eurasier Friends International PWA - Database",
+                welcomeText: "First read the 3 information items below.",
+                aboutApp: "About this PWA",
+                appDescription: "This Progressive Web App has several features:",
+                feature1: "💾 Storage:",
+                feature1Desc: "Stores data in the online database",
+                feature2: "🔄 Easy backup:",
+                feature2Desc: "Backups are performed weekly",
+                feature3: "⚡ Fast operation:",
+                feature3Desc: "Direct access to your data",
+                feature4: "🔒 Secure storage:",
+                feature4Desc: "Private information is only visible to the person who entered it.",
+                feature5: "Add and manage dogs",
+                feature6: "Import/Export data",
+                security: "Security",
+                roleBasedAccess: "The app uses role-based access:",
+                adminRole: "Administrator",
+                adminRights: "Full rights.",
+                userPlusRole: "User+",
+                userPlusRights: "Can view dogs, create breeding plans, and add/edit own dogs/litters, if provided parents are already in the database.",
+                userRole: "User",
+                userRights: "Can view dogs, view litter announcements and stud dogs, but cannot create own breeding plans and add/edit own dogs/litters.",
+                disclaimerBtn: "Disclaimer/Information about COI calculation",
+                colorsBtn: "Standard Colors",
+                workflowBtn: "The Workflow",
+                lastUpdates: "Recent changes",
+                installPWA: "Create Shortcut",
+                installStepsTitle: "How to create a shortcut on your device:",
+                iosDevice: "iPhone/iPad",
+                androidDevice: "Android",
+                windowsDevice: "Windows (Chrome/Edge)",
+                macDevice: "Mac (Safari/Chrome)",
+                safariBrowser: "Safari:",
+                chromeBrowser: "Chrome:",
+                iosStep1: "Open Safari and go to this page",
+                iosStep2: "Tap the share icon at the bottom (square with arrow up)",
+                iosStep3: "Scroll down and select \"Add to Home Screen\"",
+                iosStep4: "Give the shortcut a name (e.g., \"Dog Database\")",
+                iosStep5: "Tap \"Add\" in the top right corner",
+                iosStep6: "The app now appears on your home screen!",
+                androidStep1: "Open Chrome or Firefox and go to this page",
+                androidStep2: "Tap the menu icon (three dots) in the top right",
+                androidStep3: "Select \"Add to Home Screen\" or \"Install app\"",
+                androidStep4: "Give the shortcut a name",
+                androidStep5: "Tap \"Add\" or \"Install\"",
+                androidStep6: "The app now appears on your home screen!",
+                windowsStep1: "Open Chrome or Microsoft Edge",
+                windowsStep2: "Go to this page",
+                windowsStep3: "Click the install icon in the address bar (square with arrow)",
+                windowsStep4: "Click \"Install\"",
+                windowsStep5: "The app is installed and appears in your start menu",
+                windowsStep6: "You can also create a shortcut on your desktop",
+                safariStep1: "Go to this page in Safari",
+                safariStep2: "Click \"File\" in the menu bar",
+                safariStep3: "Select \"Add to Dock\"",
+                chromeStep1: "Go to this page in Chrome",
+                chromeStep2: "Click the install icon in the address bar",
+                chromeStep3: "Click \"Install\"",
+                advantageTitle: "Advantage of a shortcut:",
+                advantageText: "The app works like a normal app!",
+                closeBtn: "Close",
+                transferModule: "Dog Transfer"
+            },
+            de: {
+                appTitle: "Eurasier Friends International - Datenbank",
+                logout: "Abmelden",
+                menu: "Menü",
+                dataManagement: "Datenverwaltung",
+                newDog: "Neuer Hund",
+                newLitter: "Neuer Hund/Wurf",
+                editDogData: "Hundedaten bearbeiten",
+                searchDog: "Hund suchen",
+                photoGallery: "Foto Galerie",
+                nestAnnouncements: "Wurfankündigungen",
+                breedingPlan: "Zuchtplanung",
+                dekReuen: "Deckrüden",
+                topHonden: "Top 100 Häufigste Hunde",
+                privateInfo: "Private Informationen",
+                quickOverview: "Schnellübersicht",
+                dogs: "Hunde",
+                photos: "Fotos",
+                refresh: "Aktualisieren",
+                dashboard: "Dashboard",
+                welcomeTitle: "Willkommen bei der Eurasier Friends International PWA - Datenbank",
+                welcomeText: "Lesen Sie zuerst die 3 untenstehenden Informationspunkte.",
+                aboutApp: "Über diese PWA",
+                appDescription: "Diese Progressive Web App hat verschiedene möglichkeiten:",
+                feature1: "💾 Speicher:",
+                feature1Desc: "Speichert Daten in der Online-Datenbank",
+                feature2: "🔄 Einfache Sicherung:",
+                feature2Desc: "Sicherungen worden wöchentlich",
+                feature3: "⚡ Schnelle Arbeit:",
+                feature3Desc: "Direkter Zugriff auf Ihre Daten",
+                feature4: "🔒 Sichere Speicherung:",
+                feature4Desc: "Private information sind nur für die Person sichtbar, die sie hat ingevoerd.",
+                feature5: "Hunde hinzufügen und verwalten",
+                feature6: "Daten importieren/exportieren",
+                security: "Sicherheit",
+                roleBasedAccess: "Die App verwendet rollenbasierte Zugriffe:",
+                adminRole: "Administrator",
+                adminRights: "Volle Rechte.",
+                userPlusRole: "Benutzer+",
+                userPlusRights: "Kann Hunde ansehen, Zuchtpläne erstellen en eigene Hunde/Würfe hinzufügen of bearbeiten, vorausgesetzt die Eltern sind bereits in der Datenbank.",
+                userRole: "Benutzer",
+                userRights: "Kann Hunde ansehen, Wurfankündigungen und Deckrüden ansehen, aber keine eigenen Zuchtpläne erstellen en geen eigen Hunde/Würfe toevoegen of bewerken.",
+                disclaimerBtn: "Disclaimer/Information zur COI Berechnung",
+                colorsBtn: "Die Standardfarben",
+                workflowBtn: "Die Arbeitsweise",
+                lastUpdates: "Letzte Änderungen",
+                installPWA: "Verknüpfung erstellen",
+                installStepsTitle: "Wie Sie eine Verknüpfung auf Ihrem Gerät erstellen:",
+                iosDevice: "iPhone/iPad",
+                androidDevice: "Android",
+                windowsDevice: "Windows (Chrome/Edge)",
+                macDevice: "Mac (Safari/Chrome)",
+                safariBrowser: "Safari:",
+                chromeBrowser: "Chrome:",
+                iosStep1: "Öffnen Sie Safari und gehen Sie zu dieser Seite",
+                iosStep2: "Tippen Sie auf das Teilen-Symbol unten (Quadrat mit Pfeil nach oben)",
+                iosStep3: "Scrollen Sie nach unten und wählen Sie \"Zum Home-Bildschirm hinzufügen\"",
+                iosStep4: "Geben Sie der Verknüpfung einen Namen (z.B. \"Hundedatenbank\")",
+                iosStep5: "Tippen Sie auf \"Hinzufügen\" in der oberen rechten Ecke",
+                iosStep6: "Die App erscheint nun auf Ihrem Home-Bildschirm!",
+                androidStep1: "Öffnen Sie Chrome oder Firefox und gehen Sie zu dieser Seite",
+                androidStep2: "Tippen Sie auf das Menü-Symbol (drei Punkte) oben rechts",
+                androidStep3: "Wählen Sie \"Zum Startbildschirm hinzufügen\" oder \"App installieren\"",
+                androidStep4: "Geben Sie der Verknüpfung einen Namen",
+                androidStep5: "Tippen Sie auf \"Hinzufügen\" oder \"Installieren\"",
+                androidStep6: "Die App erscheint nun auf Ihrem Startbildschirm!",
+                windowsStep1: "Öffnen Sie Chrome oder Microsoft Edge",
+                windowsStep2: "Gehen Sie zu dieser Seite",
+                windowsStep3: "Klicken Sie auf das Installationssymbol in der Adressleiste (Quadrat mit Pfeil)",
+                windowsStep4: "Klicken Sie auf \"Installieren\"",
+                windowsStep5: "Die App wird installiert und erscheint in Ihrem Startmenü",
+                windowsStep6: "Sie können auch eine Verknüpfung auf Ihrem Desktop erstellen",
+                safariStep1: "Gehen Sie zu dieser Seite in Safari",
+                safariStep2: "Klicken Sie auf \"Datei\" in der Menüleiste",
+                safariStep3: "Wählen Sie \"Zum Dock hinzufügen\"",
+                chromeStep1: "Gehen Sie zu dieser Seite in Chrome",
+                chromeStep2: "Klicken Sie auf das Installationssymbol in der Adressleiste",
+                chromeStep3: "Klicken Sie auf \"Installieren\"",
+                advantageTitle: "Vorteil einer Verknüpfung:",
+                advantageText: "Die App funktioniert wie eine normale App!",
+                closeBtn: "Schließen",
+                transferModule: "Hundeübertragung"
+            }
+        };
+
         // Functie om profile aan te maken als die niet bestaat
         async function createProfileIfNotExists(userId, userEmail) {
             try {
@@ -730,6 +1056,18 @@
                 roleDisplay.textContent = `${userEmail} (${userRole})`;
             }
             
+            // Toon de Last Updates knop ALLEEN voor admin
+            const lastUpdatesBtn = document.getElementById('lastUpdatesBtn');
+            if (lastUpdatesBtn) {
+                if (userRole === 'admin') {
+                    lastUpdatesBtn.classList.remove('d-none');
+                    console.log('✅ Last Updates knop getoond voor admin');
+                } else {
+                    lastUpdatesBtn.classList.add('d-none');
+                    console.log('❌ Last Updates knop verborgen voor niet-admin');
+                }
+            }
+            
             // Initialiseer de rest van de app
             initApp(userRole);
         }
@@ -737,256 +1075,6 @@
         // Laad taal uit localStorage
         const appLanguage = localStorage.getItem('appLanguage') || 'nl';
         
-        // Vertalingen - NU COMPLEET MET ALLE BESCHRIJVINGEN EN NIEUWE KNOOPPEN
-        const appTranslations = {
-            nl: {
-                appTitle: "Eurasier Friends International - Database",
-                logout: "Uitloggen",
-                menu: "Menu",
-                dataManagement: "Data Beheer",
-                newDog: "Nieuwe Hond",
-                newLitter: "Nieuwe Hond/Nest",
-                editDogData: "Data Hond Bewerken",
-                searchDog: "Hond Zoeken",
-                photoGallery: "Foto Galerij",
-                nestAnnouncements: "Nest aankondigingen",
-                breedingPlan: "Fok Planning",
-                dekReuen: "Dek Reuen",
-                topHonden: "Top 100 Meest Voorkomende Honden",
-                privateInfo: "Privé Informatie",
-                quickOverview: "Snel Overzicht",
-                dogs: "Honden",
-                photos: "Foto's",
-                refresh: "Vernieuwen",
-                dashboard: "Dashboard",
-                welcomeTitle: "Welkom bij de Eurasier Friends International PWA - Database",
-                welcomeText: "Lees eerst de 3 onderstaande informatie items.",
-                aboutApp: "Over deze PWA",
-                appDescription: "Deze Progressive Web App heeft verschillende mogelijkheden:",
-                feature1: "💾 Opslag:",
-                feature1Desc: "Slaat de data op in de online database",
-                feature2: "🔄 Easy backup:",
-                feature2Desc: "Backups worden weekelijks uitgevoerd",
-                feature3: "⚡ Snelle werking:",
-                feature3Desc: "Directe toegang tot je gegevens",
-                feature4: "🔒 Veilige opslag:",
-                feature4Desc: "Privé informatie is alleen te zien door de persoon die deze heeft ingevoerd.",
-                feature5: "Honden toevoegen en beheren",
-                feature6: "Data importeren/exporteren",
-                security: "Beveiliging",
-                roleBasedAccess: "De app gebruikt rol-gebaseerde toegang:",
-                adminRole: "Administrator",
-                adminRights: "Volledige rechten.",
-                userPlusRole: "Gebruiker+",
-                userPlusRights: "Kan honden bekijken, fokplanning maken en eigen honden/nesten toevoegen of bewerken, mits de ouders al in de database staan.",
-                userRole: "Gebruiker",
-                userRights: "Kan honden bekijken, nest aankondigingen en dek reuen bekijken, maar niet de eigen fokplanning maken en eigen honden/nesten toevoegen of bewerken.",
-                disclaimerBtn: "Disclaimer/Informatie over COI berekening",
-                colorsBtn: "De standaard kleuren",
-                workflowBtn: "De werkwijze",
-                installPWA: "Maak Snelkoppeling",
-                installStepsTitle: "Hoe maak je een snelkoppeling op je apparaat:",
-                iosDevice: "iPhone/iPad",
-                androidDevice: "Android",
-                windowsDevice: "Windows (Chrome/Edge)",
-                macDevice: "Mac (Safari/Chrome)",
-                safariBrowser: "Safari:",
-                chromeBrowser: "Chrome:",
-                iosStep1: "Open Safari en ga naar deze pagina",
-                iosStep2: "Tik op het deel icoon onderaan (vierkant met pijl omhoog)",
-                iosStep3: "Scroll naar beneden en selecteer \"Zet op beginscherm\"",
-                iosStep4: "Geef de snelkoppeling een naam (bijv. \"Hondendatabase\")",
-                iosStep5: "Tik op \"Toevoegen\" in de rechterbovenhoek",
-                iosStep6: "De app verschijnt nu op je beginsscherm!",
-                androidStep1: "Open Chrome of Firefox en ga naar deze pagina",
-                androidStep2: "Tik op het menu icoon (drie puntjes) rechtsboven",
-                androidStep3: "Selecteer \"Toevoegen aan beginscherm\" of \"Installeer app\"",
-                androidStep4: "Geef de snelkoppeling een naam",
-                androidStep5: "Tik op \"Toevoegen\" of \"Installeren\"",
-                androidStep6: "De app verschijnt nu op je beginscherm!",
-                windowsStep1: "Open Chrome of Microsoft Edge",
-                windowsStep2: "Ga naar deze pagina",
-                windowsStep3: "Klik op het installatie icoon rechts in de adresbalk (vierkant met pijl)",
-                windowsStep4: "Klik op \"Installeren\"",
-                windowsStep5: "De app wordt geïnstalleerd en verschijnt in je startmenu",
-                windowsStep6: "Je kunt ook een snelkoppeling op je bureaublad maken",
-                safariStep1: "Ga naar deze pagina in Safari",
-                safariStep2: "Klik op \"Bestand\" in de menubalk",
-                safariStep3: "Selecteer \"Toevoegen aan Dock\"",
-                chromeStep1: "Ga naar deze pagina in Chrome",
-                chromeStep2: "Klik op het installatie icoon rechts in de adresbalk",
-                chromeStep3: "Klik op \"Installeren\"",
-                advantageTitle: "Voordeel van een snelkoppeling:",
-                advantageText: "De app werkt als een normale app!",
-                closeBtn: "Sluiten",
-                transferModule: "Hond Overdracht"
-            },
-            en: {
-                appTitle: "Eurasier Friends International - Database",
-                logout: "Logout",
-                menu: "Menu",
-                dataManagement: "Data Management",
-                newDog: "New Dog",
-                newLitter: "New Dog/Litter",
-                editDogData: "Edit Dog Data",
-                searchDog: "Search Dog",
-                photoGallery: "Photo Gallery",
-                nestAnnouncements: "Litter announcements",
-                breedingPlan: "Breeding Plan",
-                dekReuen: "Stud Dogs",
-                topHonden: "Top 100 Most Common Dogs",
-                privateInfo: "Private Information",
-                quickOverview: "Quick Overview",
-                dogs: "Dogs",
-                photos: "Photos",
-                refresh: "Refresh",
-                dashboard: "Dashboard",
-                welcomeTitle: "Welcome to the Eurasier Friends International PWA - Database",
-                welcomeText: "First read the 3 information items below.",
-                aboutApp: "About this PWA",
-                appDescription: "This Progressive Web App has several features:",
-                feature1: "💾 Storage:",
-                feature1Desc: "Stores data in the online database",
-                feature2: "🔄 Easy backup:",
-                feature2Desc: "Backups are performed weekly",
-                feature3: "⚡ Fast operation:",
-                feature3Desc: "Direct access to your data",
-                feature4: "🔒 Secure storage:",
-                feature4Desc: "Private information is only visible to the person who entered it.",
-                feature5: "Add and manage dogs",
-                feature6: "Import/Export data",
-                security: "Security",
-                roleBasedAccess: "The app uses role-based access:",
-                adminRole: "Administrator",
-                adminRights: "Full rights.",
-                userPlusRole: "User+",
-                userPlusRights: "Can view dogs, create breeding plans, and add/edit own dogs/litters, if provided parents are already in the database.",
-                userRole: "User",
-                userRights: "Can view dogs, view litter announcements and stud dogs, but cannot create own breeding plans and add/edit own dogs/litters.",
-                disclaimerBtn: "Disclaimer/Information about COI calculation",
-                colorsBtn: "Standard Colors",
-                workflowBtn: "The Workflow",
-                installPWA: "Create Shortcut",
-                installStepsTitle: "How to create a shortcut on your device:",
-                iosDevice: "iPhone/iPad",
-                androidDevice: "Android",
-                windowsDevice: "Windows (Chrome/Edge)",
-                macDevice: "Mac (Safari/Chrome)",
-                safariBrowser: "Safari:",
-                chromeBrowser: "Chrome:",
-                iosStep1: "Open Safari and go to this page",
-                iosStep2: "Tap the share icon at the bottom (square with arrow up)",
-                iosStep3: "Scroll down and select \"Add to Home Screen\"",
-                iosStep4: "Give the shortcut a name (e.g., \"Dog Database\")",
-                iosStep5: "Tap \"Add\" in the top right corner",
-                iosStep6: "The app now appears on your home screen!",
-                androidStep1: "Open Chrome or Firefox and go to this page",
-                androidStep2: "Tap the menu icon (three dots) in the top right",
-                androidStep3: "Select \"Add to Home Screen\" or \"Install app\"",
-                androidStep4: "Give the shortcut a name",
-                androidStep5: "Tap \"Add\" or \"Install\"",
-                androidStep6: "The app now appears on your home screen!",
-                windowsStep1: "Open Chrome or Microsoft Edge",
-                windowsStep2: "Go to this page",
-                windowsStep3: "Click the install icon in the address bar (square with arrow)",
-                windowsStep4: "Click \"Install\"",
-                windowsStep5: "The app is installed and appears in your start menu",
-                windowsStep6: "You can also create a shortcut on your desktop",
-                safariStep1: "Go to this page in Safari",
-                safariStep2: "Click \"File\" in the menu bar",
-                safariStep3: "Select \"Add to Dock\"",
-                chromeStep1: "Go to this page in Chrome",
-                chromeStep2: "Click the install icon in the address bar",
-                chromeStep3: "Click \"Install\"",
-                advantageTitle: "Advantage of a shortcut:",
-                advantageText: "The app works like a normal app!",
-                closeBtn: "Close",
-                transferModule: "Dog Transfer"
-            },
-            de: {
-                appTitle: "Eurasier Friends International - Datenbank",
-                logout: "Abmelden",
-                menu: "Menü",
-                dataManagement: "Datenverwaltung",
-                newDog: "Neuer Hund",
-                newLitter: "Neuer Hund/Wurf",
-                editDogData: "Hundedaten bearbeiten",
-                searchDog: "Hund suchen",
-                photoGallery: "Foto Galerie",
-                nestAnnouncements: "Wurfankündigungen",
-                breedingPlan: "Zuchtplanung",
-                dekReuen: "Deckrüden",
-                topHonden: "Top 100 Häufigste Hunde",
-                privateInfo: "Private Informationen",
-                quickOverview: "Schnellübersicht",
-                dogs: "Hunde",
-                photos: "Fotos",
-                refresh: "Aktualisieren",
-                dashboard: "Dashboard",
-                welcomeTitle: "Willkommen bei der Eurasier Friends International PWA - Datenbank",
-                welcomeText: "Lesen Sie zuerst die 3 untenstehenden Informationspunkte.",
-                aboutApp: "Über diese PWA",
-                appDescription: "Diese Progressive Web App hat verschiedene möglichkeiten:",
-                feature1: "💾 Speicher:",
-                feature1Desc: "Speichert Daten in der Online-Datenbank",
-                feature2: "🔄 Einfache Sicherung:",
-                feature2Desc: "Sicherungen worden wöchentlich",
-                feature3: "⚡ Schnelle Arbeit:",
-                feature3Desc: "Direkter Zugriff auf Ihre Daten",
-                feature4: "🔒 Sichere Speicherung:",
-                feature4Desc: "Private information sind nur für die Person sichtbar, die sie hat ingevoerd.",
-                feature5: "Hunde hinzufügen und verwalten",
-                feature6: "Daten importieren/exportieren",
-                security: "Sicherheit",
-                roleBasedAccess: "Die App verwendet rollenbasierte Zugriffe:",
-                adminRole: "Administrator",
-                adminRights: "Volle Rechte.",
-                userPlusRole: "Benutzer+",
-                userPlusRights: "Kann Hunde ansehen, Zuchtpläne erstellen en eigene Hunde/Würfe hinzufügen of bearbeiten, vorausgesetzt die Eltern sind bereits in der Datenbank.",
-                userRole: "Benutzer",
-                userRights: "Kann Hunde ansehen, Wurfankündigungen und Deckrüden ansehen, aber keine eigenen Zuchtpläne erstellen en geen eigen Hunde/Würfe toevoegen of bewerken.",
-                disclaimerBtn: "Disclaimer/Information zur COI Berechnung",
-                colorsBtn: "Die Standardfarben",
-                workflowBtn: "Die Arbeitsweise",
-                installPWA: "Verknüpfung erstellen",
-                installStepsTitle: "Wie Sie eine Verknüpfung auf Ihrem Gerät erstellen:",
-                iosDevice: "iPhone/iPad",
-                androidDevice: "Android",
-                windowsDevice: "Windows (Chrome/Edge)",
-                macDevice: "Mac (Safari/Chrome)",
-                safariBrowser: "Safari:",
-                chromeBrowser: "Chrome:",
-                iosStep1: "Öffnen Sie Safari und gehen Sie zu dieser Seite",
-                iosStep2: "Tippen Sie auf das Teilen-Symbol unten (Quadrat mit Pfeil nach oben)",
-                iosStep3: "Scrollen Sie nach unten und wählen Sie \"Zum Home-Bildschirm hinzufügen\"",
-                iosStep4: "Geben Sie der Verknüpfung einen Namen (z.B. \"Hundedatenbank\")",
-                iosStep5: "Tippen Sie auf \"Hinzufügen\" in der oberen rechten Ecke",
-                iosStep6: "Die App erscheint nun auf Ihrem Home-Bildschirm!",
-                androidStep1: "Öffnen Sie Chrome oder Firefox und gehen Sie zu dieser Seite",
-                androidStep2: "Tippen Sie auf das Menü-Symbol (drei Punkte) oben rechts",
-                androidStep3: "Wählen Sie \"Zum Startbildschirm hinzufügen\" oder \"App installieren\"",
-                androidStep4: "Geben Sie der Verknüpfung einen Namen",
-                androidStep5: "Tippen Sie auf \"Hinzufügen\" oder \"Installieren\"",
-                androidStep6: "Die App erscheint nun auf Ihrem Startbildschirm!",
-                windowsStep1: "Öffnen Sie Chrome oder Microsoft Edge",
-                windowsStep2: "Gehen Sie zu dieser Seite",
-                windowsStep3: "Klicken Sie auf das Installationssymbol in der Adressleiste (Quadrat mit Pfeil)",
-                windowsStep4: "Klicken Sie auf \"Installieren\"",
-                windowsStep5: "Die App wird installiert und erscheint in Ihrem Startmenü",
-                windowsStep6: "Sie können auch eine Verknüpfung auf Ihrem Desktop erstellen",
-                safariStep1: "Gehen Sie zu dieser Seite in Safari",
-                safariStep2: "Klicken Sie auf \"Datei\" in der Menüleiste",
-                safariStep3: "Wählen Sie \"Zum Dock hinzufügen\"",
-                chromeStep1: "Gehen Sie zu dieser Seite in Chrome",
-                chromeStep2: "Klicken Sie auf das Installationssymbol in der Adressleiste",
-                chromeStep3: "Klicken Sie auf \"Installieren\"",
-                advantageTitle: "Vorteil einer Verknüpfung:",
-                advantageText: "Die App funktioniert wie eine normale App!",
-                closeBtn: "Schließen",
-                transferModule: "Hundeübertragung"
-            }
-        };
-
         // Pagina tekst vertalen
         function translateAppPage(lang) {
             // Update app teksten
@@ -1131,6 +1219,12 @@
                 
                 console.log('UIHandler succesvol geïnitialiseerd:', ui);
                 
+                // Initialiseer Last Updates module
+                if (window.LastUpdatesModule && window.LastUpdatesModule.init) {
+                    window.LastUpdatesModule.init();
+                    console.log('LastUpdatesModule geïnitialiseerd');
+                }
+                
                 // Controleer of COICalculator beschikbaar is
                 if (typeof COICalculator === 'undefined') {
                     console.error('COICalculator is niet beschikbaar! Controleer de laadvolgorde.');
@@ -1249,6 +1343,20 @@
                     } else {
                         console.error('Informatie module niet beschikbaar');
                         alert('De werkwijze module is nog niet beschikbaar.');
+                    }
+                });
+            }
+            
+            // Last Updates knop
+            const lastUpdatesBtn = document.getElementById('lastUpdatesBtn');
+            if (lastUpdatesBtn) {
+                lastUpdatesBtn.addEventListener('click', function() {
+                    console.log('Last Updates button clicked');
+                    if (window.LastUpdatesModule && window.LastUpdatesModule.showModal) {
+                        window.LastUpdatesModule.showModal();
+                    } else {
+                        console.error('LastUpdatesModule niet beschikbaar');
+                        alert('De Last Updates module is nog niet beschikbaar.');
                     }
                 });
             }
