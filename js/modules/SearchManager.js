@@ -158,7 +158,8 @@ class SearchManager extends BaseModule {
                 noDogsInKennel: "Geen honden gevonden in deze kennel",
                 viewKennelDogs: "Bekijk honden van deze kennel",
                 kennelDogs: "Honden van kennel {kennel}",
-                kennelDogCount: "Totaal aantal honden"
+                kennelDogCount: "Totaal aantal honden",
+                hasExtraInfo: "Extra info beschikbaar"
             },
             en: {
                 searchDog: "Search Dog",
@@ -283,7 +284,8 @@ class SearchManager extends BaseModule {
                 noDogsInKennel: "No dogs found in this kennel",
                 viewKennelDogs: "View dogs from this kennel",
                 kennelDogs: "Dogs from kennel {kennel}",
-                kennelDogCount: "Total number of dogs"
+                kennelDogCount: "Total number of dogs",
+                hasExtraInfo: "Extra info available"
             },
             de: {
                 searchDog: "Hund suchen",
@@ -366,7 +368,8 @@ class SearchManager extends BaseModule {
                 noDogsInKennel: "Keine Hunde in diesem Kennel gefunden",
                 viewKennelDogs: "Hunde aus diesem Kennel anzeigen",
                 kennelDogs: "Hunde aus Kennel {kennel}",
-                kennelDogCount: "Gesamtzahl der Hunde"
+                kennelDogCount: "Gesamtzahl der Hunde",
+                hasExtraInfo: "Zusätzliche Info verfügbar"
             }
         };
         
@@ -974,6 +977,11 @@ class SearchManager extends BaseModule {
             const supabase = window.supabase;
             if (!supabase) return;
             
+            // Zorg dat currentUserId bekend is voordat we priveinfo ophalen
+            if (!this.currentUserId) {
+                this.currentUserId = await this.getCurrentUserId();
+            }
+            
             const { data, error } = await supabase
                 .from('honden')
                 .select('*')
@@ -1003,6 +1011,24 @@ class SearchManager extends BaseModule {
                 return dateB - dateA;
             });
             
+            // Haal voor elke hond de priveinfo op (alleen voor de check of er info is)
+            const dogsWithInfo = [];
+            for (const dog of sortedDogs) {
+                // Check of er extra informatie (opmerkingen) is ingevuld
+                const hasRemarks = dog.opmerkingen && dog.opmerkingen.trim() !== '';
+                
+                // Check of er priveinformatie is voor deze hond (alleen als we een userId hebben)
+                let hasPrivateInfo = false;
+                if (this.currentUserId && dog.stamboomnr) {
+                    const privateNotes = await this.getPrivateInfoForDog(dog.stamboomnr);
+                    hasPrivateInfo = privateNotes !== null && privateNotes.trim() !== '';
+                    console.log(`Hond ${dog.naam}: hasRemarks=${hasRemarks}, hasPrivateInfo=${hasPrivateInfo}`);
+                }
+                
+                const hasInfo = hasRemarks || hasPrivateInfo;
+                dogsWithInfo.push({ ...dog, hasInfo });
+            }
+            
             let html = `
                 <div class="kennel-stats mb-4">
                     <div class="alert alert-info">
@@ -1018,42 +1044,49 @@ class SearchManager extends BaseModule {
                     <div class="table-responsive">
                         <table class="table table-hover table-sm">
                             <thead class="table-light">
-                                 <tr>
+                                <tr>
                                     <th scope="col">#</th>
                                     <th scope="col">${this.t('dogName')}</th>
                                     <th scope="col">${this.t('pedigreeNumber')}</th>
                                     <th scope="col">${this.t('breed')}</th>
                                     <th scope="col">${this.t('gender')}</th>
                                     <th scope="col">${this.t('birthYear')}</th>
-                                  </tr>
+                                    <th scope="col"></th>
+                                </tr>
                             </thead>
                             <tbody>
             `;
             
-            sortedDogs.forEach((dog, index) => {
+            dogsWithInfo.forEach((dog, index) => {
                 const birthYear = dog.geboortedatum ? 
                     new Date(dog.geboortedatum).getFullYear() : '?';
                 
                 const genderText = dog.geslacht === 'reuen' ? this.t('male') : 
                                   dog.geslacht === 'teven' ? this.t('female') : this.t('unknown');
                 
+                // Rood driehoekje met uitroepteken als er informatie is
+                const infoIcon = dog.hasInfo ? 
+                    `<span class="info-warning-icon" title="${this.t('hasExtraInfo')}">⚠️</span>` : '';
+                
                 html += `
                     <tr class="kennel-dog-row" data-dog-id="${dog.id}" data-dog-name="${dog.naam || ''}">
                         <td class="text-muted">${index + 1}</td>
                         <td>
                             <strong class="text-primary">${dog.naam || this.t('unknown')}</strong>
+                            ${infoIcon}
                         </td>
                         <td><code>${dog.stamboomnr || ''}</code></td>
                         <td>${dog.ras || ''}</td>
                         <td>${genderText}</td>
                         <td>${birthYear}</td>
+                        <td><i class="bi bi-chevron-right text-muted"></i></td>
                     </tr>
                 `;
             });
             
             html += `
                             </tbody>
-                          </table>
+                        </table>
                     </div>
                 </div>
                 
@@ -1061,6 +1094,7 @@ class SearchManager extends BaseModule {
                     <small class="text-muted">
                         <i class="bi bi-info-circle me-1"></i>
                         ${this.t('viewDogDetails')}
+                        <span class="ms-2">⚠️ = ${this.t('hasExtraInfo')}</span>
                     </small>
                 </div>
             `;
@@ -2503,6 +2537,32 @@ class SearchManager extends BaseModule {
                         overflow-x: auto;
                         -webkit-overflow-scrolling: touch;
                     }
+                }
+                
+                /* Stijl voor het informatie waarschuwingsicoon */
+                .info-warning-icon {
+                    display: inline-block;
+                    color: #dc3545;
+                    font-size: 1rem;
+                    margin-left: 6px;
+                    cursor: help;
+                    animation: pulseWarning 1.5s ease-in-out infinite;
+                }
+                
+                @keyframes pulseWarning {
+                    0%, 100% {
+                        opacity: 0.7;
+                        transform: scale(1);
+                    }
+                    50% {
+                        opacity: 1;
+                        transform: scale(1.1);
+                    }
+                }
+                
+                .info-warning-icon:hover {
+                    animation: none;
+                    transform: scale(1.15);
                 }
             </style>
         `;
