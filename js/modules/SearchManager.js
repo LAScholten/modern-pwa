@@ -1066,7 +1066,7 @@ class SearchManager extends BaseModule {
                 
                 // Rood driehoekje met uitroepteken als er informatie is
                 const infoIcon = dog.hasInfo ? 
-                    `<span class="info-warning-icon" title="${this.t('hasExtraInfo')}">⚠️</span>` : '';
+                    `<i class="bi bi-exclamation-triangle-fill text-danger" title="${this.t('hasExtraInfo')}" style="font-size: 0.9rem; margin-left: 6px;"></i>` : '';
                 
                 html += `
                     <tr class="kennel-dog-row" data-dog-id="${dog.id}" data-dog-name="${dog.naam || ''}">
@@ -1094,7 +1094,7 @@ class SearchManager extends BaseModule {
                     <small class="text-muted">
                         <i class="bi bi-info-circle me-1"></i>
                         ${this.t('viewDogDetails')}
-                        <span class="ms-2">⚠️ = ${this.t('hasExtraInfo')}</span>
+                        <span class="ms-2"><i class="bi bi-exclamation-triangle-fill text-danger"></i> = ${this.t('hasExtraInfo')}</span>
                     </small>
                 </div>
             `;
