@@ -81,7 +81,8 @@ class PhotoManager extends BaseModule {
                 to: "tot",
                 ofTotal: "van de",
                 photos: "foto's",
-                typeToSearch: "Typ om te zoeken..."
+                typeToSearch: "Typ om te zoeken...",
+                compressing: "Foto wordt gecomprimeerd..."
             },
             en: {
                 photoGallery: "Photo Gallery",
@@ -130,7 +131,8 @@ class PhotoManager extends BaseModule {
                 to: "to",
                 ofTotal: "of",
                 photos: "photos",
-                typeToSearch: "Type to search..."
+                typeToSearch: "Type to search...",
+                compressing: "Compressing photo..."
             },
             de: {
                 photoGallery: "Foto Galerie",
@@ -179,7 +181,8 @@ class PhotoManager extends BaseModule {
                 to: "bis",
                 ofTotal: "von",
                 photos: "Fotos",
-                typeToSearch: "Tippen Sie zum Suchen..."
+                typeToSearch: "Tippen Sie zum Suchen...",
+                compressing: "Foto wird komprimiert..."
             }
         };
     }
@@ -188,31 +191,22 @@ class PhotoManager extends BaseModule {
         return this.translations[this.currentLang][key] || key;
     }
     
-    /**
-     * Normaliseer een string voor zoeken (verwijder diakritische tekens)
-     */
     normalizeSearchString(str) {
         if (!str) return '';
         
-        // Map voor speciale Duitse karakters
         const specialMap = {
             'ß': 'ss',
             'ẞ': 'SS'
         };
         
-        // Vervang speciale karakters eerst
         let normalized = str;
         for (const [special, replacement] of Object.entries(specialMap)) {
             normalized = normalized.replace(new RegExp(special, 'g'), replacement);
         }
         
-        // Verwijder diakritische tekens (ä, ö, ü, etc.) en maak lowercase
         return normalized.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     }
     
-    /**
-     * Controleer of een string begint met de zoekterm (rekening houdend met normalisatie)
-     */
     startsWithNormalized(text, searchTerm) {
         if (!text) return false;
         const normalizedText = this.normalizeSearchString(text);
@@ -220,11 +214,7 @@ class PhotoManager extends BaseModule {
         return normalizedText.startsWith(normalizedSearch);
     }
     
-    /**
-     * Zorg dat PhotoViewer geladen is, laad hem anders dynamisch via script tag
-     */
     async ensurePhotoViewer() {
-        // Als PhotoViewer al bestaat, niets doen
         if (window.photoViewer && typeof window.photoViewer.showPhoto === 'function') {
             this.photoViewer = window.photoViewer;
             return;
@@ -236,7 +226,6 @@ class PhotoManager extends BaseModule {
             const script = document.createElement('script');
             script.src = 'js/modules/PhotoViewer.js';
             script.onload = () => {
-                // Wacht kort tot de PhotoViewer beschikbaar is
                 let checkCount = 0;
                 const checkInterval = setInterval(() => {
                     if (window.photoViewer) {
@@ -245,7 +234,7 @@ class PhotoManager extends BaseModule {
                         this.photoViewer.updateLanguage(this.currentLang);
                         console.log('✅ PhotoViewer geladen en klaar voor gebruik door PhotoManager');
                         resolve();
-                    } else if (checkCount > 20) { // 2 seconden timeout
+                    } else if (checkCount > 20) {
                         clearInterval(checkInterval);
                         console.error('❌ PhotoViewer niet gevonden na laden');
                         reject(new Error('PhotoViewer niet beschikbaar'));
@@ -586,7 +575,6 @@ class PhotoManager extends BaseModule {
         
         if (!searchInput || !dropdownMenu) return;
         
-        // Toon dropdown bij focus
         searchInput.addEventListener('focus', async () => {
             if (this.allDogs.length === 0 && !this.isLoadingAllDogs) {
                 await this.loadAllDogs();
@@ -746,8 +734,6 @@ class PhotoManager extends BaseModule {
                 const volledigeNaam = naam + (kennelnaam ? ' ' + kennelnaam : '');
                 const kennelEnNaam = kennelnaam + (naam ? ' ' + naam : '');
                 
-                // Controleren of de zoekterm begint met een van de velden
-                // Gebruik de genormaliseerde versie voor diakritische tekens
                 return this.startsWithNormalized(naam, searchTerm) ||
                        this.startsWithNormalized(kennelnaam, searchTerm) ||
                        this.startsWithNormalized(stamboomnr, searchTerm) ||
@@ -980,11 +966,101 @@ class PhotoManager extends BaseModule {
         });
     }
     
+    // ============ COMPRESSIE METHODEN ============
+    
+    fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+    
+    async compressImage(file, maxSizeMB = 1) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    const maxWidth = 1920;
+                    if (width > maxWidth) {
+                        height = (height * maxWidth) / width;
+                        width = maxWidth;
+                    }
+                    
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    let quality = 0.85;
+                    let result = canvas.toDataURL('image/jpeg', quality);
+                    let currentSize = Math.round((result.length * 3) / 4);
+                    const targetSize = maxSizeMB * 1024 * 1024;
+                    
+                    let attempts = 0;
+                    while (currentSize > targetSize && quality > 0.3 && attempts < 10) {
+                        quality -= 0.05;
+                        result = canvas.toDataURL('image/jpeg', quality);
+                        currentSize = Math.round((result.length * 3) / 4);
+                        attempts++;
+                    }
+                    
+                    resolve(result);
+                };
+                img.onerror = reject;
+                img.src = e.target.result;
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+    
+    async generateThumbnail(base64Data) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                const maxSize = 200;
+                let width = img.width;
+                let height = img.height;
+                
+                if (width > height) {
+                    if (width > maxSize) {
+                        height = (height * maxSize) / width;
+                        width = maxSize;
+                    }
+                } else {
+                    if (height > maxSize) {
+                        width = (width * maxSize) / height;
+                        height = maxSize;
+                    }
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                resolve(canvas.toDataURL('image/jpeg', 0.7));
+            };
+            img.src = base64Data;
+        });
+    }
+    
+    // ============ UPLOAD MET COMPRESSIE ============
+    
     async uploadPhoto() {
         const t = this.t.bind(this);
         const dogId = document.getElementById('selectedDogId').value;
         const stamboomnr = document.getElementById('selectedDogStamboomnr').value;
-        const dogName = document.getElementById('selectedDogName').value;
         const fileInput = document.getElementById('photoFile');
         const description = document.getElementById('photoDescription').value.trim();
         
@@ -998,7 +1074,7 @@ class PhotoManager extends BaseModule {
             return;
         }
         
-        const file = fileInput.files[0];
+        let file = fileInput.files[0];
         
         if (file.size > 5 * 1024 * 1024) {
             this.showError(t('fileTooLarge'), 'recentUploadsContainer');
@@ -1013,104 +1089,62 @@ class PhotoManager extends BaseModule {
         
         this.showProgress(t('uploading'), 'recentUploadsContainer');
         
-        const reader = new FileReader();
-        
-        reader.onload = async (e) => {
-            try {
-                const user = window.auth ? window.auth.getCurrentUser() : null;
-                if (!user || !user.id) {
-                    throw new Error('Niet ingelogd of geen gebruikers-ID beschikbaar');
-                }
-                
-                const base64Data = e.target.result;
-                
-                let thumbnail = null;
-                try {
-                    const img = new Image();
-                    img.src = base64Data;
-                    
-                    await new Promise((resolve) => {
-                        img.onload = () => {
-                            const canvas = document.createElement('canvas');
-                            const ctx = canvas.getContext('2d');
-                            
-                            const maxSize = 100;
-                            let width = img.width;
-                            let height = img.height;
-                            
-                            if (width > height) {
-                                if (width > maxSize) {
-                                    height = (height * maxSize) / width;
-                                    width = maxSize;
-                                }
-                            } else {
-                                if (height > maxSize) {
-                                    width = (width * maxSize) / height;
-                                    height = maxSize;
-                                }
-                            }
-                            
-                            canvas.width = width;
-                            canvas.height = height;
-                            ctx.drawImage(img, 0, 0, width, height);
-                            
-                            thumbnail = canvas.toDataURL('image/jpeg', 0.6);
-                            resolve();
-                        };
-                    });
-                } catch (thumbError) {
-                    console.warn('Thumbnail maken mislukt:', thumbError);
-                    thumbnail = base64Data;
-                }
-                
-                const fotoData = {
-                    stamboomnr: stamboomnr,
-                    data: base64Data,
-                    thumbnail: thumbnail,
-                    filename: file.name,
-                    size: file.size,
-                    type: file.type,
-                    uploaded_at: new Date().toISOString(),
-                    geupload_door: user.id,
-                    hond_id: dogId ? parseInt(dogId) : null
-                };
-                
-                const { data: dbData, error: dbError } = await window.supabase
-                    .from('fotos')
-                    .insert(fotoData)
-                    .select()
-                    .single();
-                
-                if (dbError) {
-                    console.error('Database insert error:', dbError);
-                    throw dbError;
-                }
-                
-                this.hideProgress();
-                this.showSuccess(t('uploadSuccess'), 'recentUploadsContainer');
-                
-                document.getElementById('photoHondSearch').value = '';
-                document.getElementById('selectedDogId').value = '';
-                document.getElementById('selectedDogStamboomnr').value = '';
-                document.getElementById('selectedDogName').value = '';
-                document.getElementById('photoDescription').value = '';
-                fileInput.value = '';
-                
-                await this.loadRecentUploads();
-                
-            } catch (error) {
-                console.error('Upload error:', error);
-                this.hideProgress();
-                this.showError(`${t('uploadFailed')}${error.message}`, 'recentUploadsContainer');
+        try {
+            const user = window.auth ? window.auth.getCurrentUser() : null;
+            if (!user || !user.id) {
+                throw new Error('Niet ingelogd of geen gebruikers-ID beschikbaar');
             }
-        };
-        
-        reader.onerror = () => {
+            
+            let finalBase64;
+            let finalSize;
+            
+            if (file.size > 1 * 1024 * 1024) {
+                finalBase64 = await this.compressImage(file, 1);
+                finalSize = Math.round((finalBase64.length * 3) / 4);
+            } else {
+                finalBase64 = await this.fileToBase64(file);
+                finalSize = file.size;
+            }
+            
+            const thumbnail = await this.generateThumbnail(finalBase64);
+            
+            const fotoData = {
+                stamboomnr: stamboomnr,
+                data: finalBase64,
+                thumbnail: thumbnail,
+                filename: file.name,
+                size: finalSize,
+                type: file.type,
+                uploaded_at: new Date().toISOString(),
+                geupload_door: user.id,
+                hond_id: dogId ? parseInt(dogId) : null
+            };
+            
+            const { error: dbError } = await window.supabase
+                .from('fotos')
+                .insert(fotoData);
+            
+            if (dbError) {
+                throw dbError;
+            }
+            
             this.hideProgress();
-            this.showError(t('fileReadError'), 'recentUploadsContainer');
-        };
-        
-        reader.readAsDataURL(file);
+            this.showSuccess(t('uploadSuccess'), 'recentUploadsContainer');
+            
+            document.getElementById('photoHondSearch').value = '';
+            document.getElementById('selectedDogId').value = '';
+            document.getElementById('selectedDogStamboomnr').value = '';
+            document.getElementById('selectedDogName').value = '';
+            document.getElementById('photoDescription').value = '';
+            fileInput.value = '';
+            
+            await this.loadRecentUploads();
+            
+        } catch (error) {
+            console.error('Upload error:', error);
+            this.hideProgress();
+            this.showError(`${t('uploadFailed')}${error.message}`, 'recentUploadsContainer');
+        }
     }
     
     async loadRecentUploads() {
@@ -1214,7 +1248,6 @@ class PhotoManager extends BaseModule {
         
         container.innerHTML = html;
         
-        // Gebruik PhotoViewer voor vergroting met dynamisch laden
         for (const element of document.querySelectorAll('.photo-thumbnail')) {
             element.addEventListener('click', async (e) => {
                 e.stopPropagation();
@@ -1222,7 +1255,6 @@ class PhotoManager extends BaseModule {
                 const dogName = element.dataset.dogName || t('unknownDog');
                 
                 try {
-                    // Laad PhotoViewer dynamisch als die nog niet geladen is
                     await this.ensurePhotoViewer();
                     
                     if (window.photoViewer && imageUrl) {
@@ -1232,7 +1264,6 @@ class PhotoManager extends BaseModule {
                     }
                 } catch (error) {
                     console.error('Fout bij tonen foto:', error);
-                    // Fallback: open direct in nieuw tabblad
                     window.open(imageUrl, '_blank');
                 }
             });
@@ -1251,7 +1282,6 @@ class PhotoManager extends BaseModule {
                     <p class="mt-3 text-muted">${t('noPhotos')}</p>
                 </div>
             `;
-            
             return;
         }
         
@@ -1328,7 +1358,6 @@ class PhotoManager extends BaseModule {
         
         container.innerHTML = html;
         
-        // Gebruik PhotoViewer voor vergroting met dynamisch laden
         for (const element of document.querySelectorAll('.photo-thumbnail')) {
             element.addEventListener('click', async (e) => {
                 e.stopPropagation();
@@ -1336,7 +1365,6 @@ class PhotoManager extends BaseModule {
                 const dogName = element.dataset.dogName || t('unknownDog');
                 
                 try {
-                    // Laad PhotoViewer dynamisch als die nog niet geladen is
                     await this.ensurePhotoViewer();
                     
                     if (window.photoViewer && imageUrl) {
@@ -1346,7 +1374,6 @@ class PhotoManager extends BaseModule {
                     }
                 } catch (error) {
                     console.error('Fout bij tonen foto:', error);
-                    // Fallback: open direct in nieuw tabblad
                     window.open(imageUrl, '_blank');
                 }
             });
