@@ -19,6 +19,12 @@ class PhotoManager extends BaseModule {
         this.isUserPlus = this.userRole === 'gebruiker+';
         this.currentView = 'gallery';
         
+        // Compressie instellingen
+        this.maxFileSizeMB = 1; // Maximale bestandsgrootte na compressie (1MB)
+        this.maxWidth = 1920;   // Maximale breedte in pixels
+        this.maxHeight = 1920;  // Maximale hoogte in pixels
+        this.quality = 0.8;     // JPEG kwaliteit (0.8 = 80%)
+        
         // Paginatie variabelen
         this.currentPhotoPage = 1;
         this.photosPerPage = 12;
@@ -28,7 +34,7 @@ class PhotoManager extends BaseModule {
         
         // Zoek variabelen
         this.searchTimeout = null;
-        this.minSearchLength = 2; // Aangepast naar 2 tekens (zoals DekReuen.js)
+        this.minSearchLength = 2;
         
         // PhotoViewer referentie
         this.photoViewer = null;
@@ -61,6 +67,7 @@ class PhotoManager extends BaseModule {
                 fileTooLarge: "Bestand is te groot (maximaal 5MB)",
                 invalidType: "Ongeldig bestandstype. Alleen JPG, PNG, GIF en WebP zijn toegestaan",
                 uploading: "Foto uploaden...",
+                compressing: "Foto wordt gecomprimeerd...",
                 uploadSuccess: "Foto succesvol geüpload!",
                 uploadFailed: "Upload mislukt: ",
                 fileReadError: "Fout bij lezen bestand",
@@ -69,7 +76,7 @@ class PhotoManager extends BaseModule {
                 deleting: "Foto verwijderen...",
                 deleteSuccess: "Foto succesvol verwijderd!",
                 deleteFailed: "Verwijderen mislukt: ",
-                searchToFindDogs: "Typ minimaal 2 tekens om te zoeken...", // Aangepast
+                searchToFindDogs: "Typ minimaal 2 tekens om te zoeken...",
                 loadingProgress: "Honden zoeken: ",
                 viewGallery: "Foto's Bekijken",
                 uploadNewPhoto: "Foto Uploaden",
@@ -84,7 +91,11 @@ class PhotoManager extends BaseModule {
                 to: "tot",
                 ofTotal: "van de",
                 photos: "foto's",
-                typeToSearch: "Typ om te zoeken..."
+                typeToSearch: "Typ om te zoeken...",
+                compressionInfo: "Foto's worden automatisch gecomprimeerd naar maximaal 1MB voor optimale opslag",
+                originalSize: "Originele grootte",
+                compressedSize: "Gecomprimeerde grootte",
+                compressionSaved: "Bespaard"
             },
             en: {
                 photoGallery: "Photo Gallery",
@@ -110,6 +121,7 @@ class PhotoManager extends BaseModule {
                 fileTooLarge: "File is too large (maximum 5MB)",
                 invalidType: "Invalid file type. Only JPG, PNG, GIF and WebP are allowed",
                 uploading: "Uploading photo...",
+                compressing: "Compressing photo...",
                 uploadSuccess: "Photo uploaded successfully!",
                 uploadFailed: "Upload failed: ",
                 fileReadError: "Error reading file",
@@ -118,7 +130,7 @@ class PhotoManager extends BaseModule {
                 deleting: "Deleting photo...",
                 deleteSuccess: "Photo successfully deleted!",
                 deleteFailed: "Delete failed: ",
-                searchToFindDogs: "Type at least 2 characters to search...", // Aangepast
+                searchToFindDogs: "Type at least 2 characters to search...",
                 loadingProgress: "Searching dogs: ",
                 viewGallery: "View Photos",
                 uploadNewPhoto: "Upload Photo",
@@ -133,7 +145,11 @@ class PhotoManager extends BaseModule {
                 to: "to",
                 ofTotal: "of",
                 photos: "photos",
-                typeToSearch: "Type to search..."
+                typeToSearch: "Type to search...",
+                compressionInfo: "Photos are automatically compressed to a maximum of 1MB for optimal storage",
+                originalSize: "Original size",
+                compressedSize: "Compressed size",
+                compressionSaved: "Saved"
             },
             de: {
                 photoGallery: "Foto Galerie",
@@ -159,6 +175,7 @@ class PhotoManager extends BaseModule {
                 fileTooLarge: "Datei ist zu groß (maximal 5MB)",
                 invalidType: "Ungültiger Dateityp. Nur JPG, PNG, GIF und WebP sind erlaubt",
                 uploading: "Foto wird hochgeladen...",
+                compressing: "Foto wird komprimiert...",
                 uploadSuccess: "Foto erfolgreich hochgeladen!",
                 uploadFailed: "Upload fehlgeschlagen: ",
                 fileReadError: "Fehler beim Lesen der Datei",
@@ -167,7 +184,7 @@ class PhotoManager extends BaseModule {
                 deleting: "Foto wird gelöscht...",
                 deleteSuccess: "Foto erfolgreich gelöscht!",
                 deleteFailed: "Löschen fehlgeschlagen: ",
-                searchToFindDogs: "Geben Sie mindestens 2 Zeichen ein...", // Aangepast
+                searchToFindDogs: "Geben Sie mindestens 2 Zeichen ein...",
                 loadingProgress: "Hunde suchen: ",
                 viewGallery: "Fotos Ansehen",
                 uploadNewPhoto: "Foto Hochladen",
@@ -182,7 +199,11 @@ class PhotoManager extends BaseModule {
                 to: "bis",
                 ofTotal: "von",
                 photos: "Fotos",
-                typeToSearch: "Tippen Sie zum Suchen..."
+                typeToSearch: "Tippen Sie zum Suchen...",
+                compressionInfo: "Fotos werden automatisch auf maximal 1MB komprimiert für optimale Speicherung",
+                originalSize: "Originalgröße",
+                compressedSize: "Komprimierte Größe",
+                compressionSaved: "Gespart"
             }
         };
     }
@@ -192,8 +213,156 @@ class PhotoManager extends BaseModule {
     }
     
     /**
+     * Comprimeer een afbeelding naar maximaal 1MB
+     * @param {string} base64Data - De originele base64 afbeelding
+     * @param {string} originalType - Het originele MIME type
+     * @returns {Promise<{data: string, type: string, size: number}>}
+     */
+    async compressImage(base64Data, originalType) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+                try {
+                    // Bereken nieuwe dimensies (behoud aspect ratio)
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    if (width > this.maxWidth || height > this.maxHeight) {
+                        if (width > height) {
+                            height = (height * this.maxWidth) / width;
+                            width = this.maxWidth;
+                        } else {
+                            width = (width * this.maxHeight) / height;
+                            height = this.maxHeight;
+                        }
+                    }
+                    
+                    // Maak canvas voor compressie
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // Probeer verschillende kwaliteiten totdat bestand onder 1MB is
+                    const compressRecursively = (quality) => {
+                        // Bepaal output formaat (JPEG voor betere compressie, behoud PNG voor transparantie)
+                        let outputType = 'image/jpeg';
+                        let outputData;
+                        
+                        if (originalType === 'image/png' && this.hasTransparency(base64Data)) {
+                            outputType = 'image/png';
+                            outputData = canvas.toDataURL(outputType);
+                        } else {
+                            outputData = canvas.toDataURL(outputType, quality);
+                        }
+                        
+                        const outputSize = this.getBase64Size(outputData);
+                        
+                        // Als bestand nog te groot is en kwaliteit nog niet te laag is, probeer lagere kwaliteit
+                        if (outputSize > this.maxFileSizeMB * 1024 * 1024 && quality > 0.3) {
+                            compressRecursively(quality - 0.1);
+                        } else {
+                            // Log compressie resultaat voor debugging
+                            const originalSize = this.getBase64Size(base64Data);
+                            console.log(`📸 Compressie: ${(originalSize / 1024 / 1024).toFixed(2)}MB → ${(outputSize / 1024 / 1024).toFixed(2)}MB (${Math.round((1 - outputSize/originalSize) * 100)}% bespaard)`);
+                            
+                            resolve({
+                                data: outputData,
+                                type: outputType,
+                                size: outputSize
+                            });
+                        }
+                    };
+                    
+                    compressRecursively(this.quality);
+                    
+                } catch (error) {
+                    reject(error);
+                }
+            };
+            
+            img.onerror = () => {
+                reject(new Error('Kon afbeelding niet laden voor compressie'));
+            };
+            
+            img.src = base64Data;
+        });
+    }
+    
+    /**
+     * Controleer of een PNG transparantie heeft
+     */
+    hasTransparency(base64Data) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                
+                const imageData = ctx.getImageData(0, 0, img.width, img.height);
+                const data = imageData.data;
+                
+                for (let i = 3; i < data.length; i += 4) {
+                    if (data[i] < 255) {
+                        resolve(true);
+                        return;
+                    }
+                }
+                resolve(false);
+            };
+            img.src = base64Data;
+        });
+    }
+    
+    /**
+     * Bereken de grootte van een base64 string in bytes
+     */
+    getBase64Size(base64String) {
+        // Verwijder de data URL prefix (bv "data:image/jpeg;base64,")
+        const base64 = base64String.split(',')[1] || base64String;
+        // Bereken grootte: base64 karakters * 3/4 - padding
+        let size = Math.ceil(base64.length * 0.75);
+        return size;
+    }
+    
+    /**
+     * Toon compressie info in de UI
+     */
+    showCompressionInfo(originalSize, compressedSize, containerId) {
+        const t = this.t.bind(this);
+        const savedMB = ((originalSize - compressedSize) / 1024 / 1024).toFixed(2);
+        const savedPercent = Math.round((1 - compressedSize/originalSize) * 100);
+        
+        const infoHtml = `
+            <div class="alert alert-info alert-dismissible fade show mb-3" role="alert">
+                <i class="bi bi-info-circle"></i>
+                <strong>${t('compressionSaved')}:</strong> ${savedMB}MB (${savedPercent}%)
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        
+        const container = document.getElementById(containerId);
+        if (container) {
+            // Verwijder bestaande compressie info
+            const existingInfo = container.querySelector('.alert-info');
+            if (existingInfo) existingInfo.remove();
+            container.insertAdjacentHTML('afterbegin', infoHtml);
+            
+            // Auto verwijderen na 5 seconden
+            setTimeout(() => {
+                const info = container.querySelector('.alert-info');
+                if (info) info.remove();
+            }, 5000);
+        }
+    }
+    
+    /**
      * Haal alle mannelijke honden op uit de database (voor Tom Select)
-     * GEBRUIKT DEZELFDE METHODE ALS DekReuen.js
      */
     async getAllMaleDogs(searchTerm = '', page = 1, pageSize = 100) {
         try {
@@ -261,7 +430,7 @@ class PhotoManager extends BaseModule {
     }
 
     /**
-     * Maak een searchable dropdown met Tom Select (IDENTIEK AAN DekReuen.js)
+     * Maak een searchable dropdown met Tom Select
      */
     async initTomSelect(initialValue = null) {
         if (typeof window.TomSelect === 'undefined') {
@@ -354,10 +523,9 @@ class PhotoManager extends BaseModule {
     }
     
     /**
-     * Zorg dat PhotoViewer geladen is, laad hem anders dynamisch via script tag
+     * Zorg dat PhotoViewer geladen is
      */
     async ensurePhotoViewer() {
-        // Als PhotoViewer al bestaat, niets doen
         if (window.photoViewer && typeof window.photoViewer.showPhoto === 'function') {
             this.photoViewer = window.photoViewer;
             return;
@@ -369,7 +537,6 @@ class PhotoManager extends BaseModule {
             const script = document.createElement('script');
             script.src = 'js/modules/PhotoViewer.js';
             script.onload = () => {
-                // Wacht kort tot de PhotoViewer beschikbaar is
                 let checkCount = 0;
                 const checkInterval = setInterval(() => {
                     if (window.photoViewer) {
@@ -378,7 +545,7 @@ class PhotoManager extends BaseModule {
                         this.photoViewer.updateLanguage(this.currentLang);
                         console.log('✅ PhotoViewer geladen en klaar voor gebruik door PhotoManager');
                         resolve();
-                    } else if (checkCount > 20) { // 2 seconden timeout
+                    } else if (checkCount > 20) {
                         clearInterval(checkInterval);
                         console.error('❌ PhotoViewer niet gevonden na laden');
                         reject(new Error('PhotoViewer niet beschikbaar'));
@@ -444,6 +611,7 @@ class PhotoManager extends BaseModule {
                                         <div class="card-body d-flex flex-column align-items-center justify-content-center p-5">
                                             <i class="bi bi-cloud-upload display-1 text-success mb-3"></i>
                                             <h5 class="card-title">${t('uploadNewPhoto')}</h5>
+                                            <small class="text-muted mt-2">${t('compressionInfo')}</small>
                                         </div>
                                     </div>
                                 </div>
@@ -510,6 +678,10 @@ class PhotoManager extends BaseModule {
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Sluiten"></button>
                         </div>
                         <div class="modal-body">
+                            <div class="alert alert-info mb-3">
+                                <i class="bi bi-info-circle"></i> ${t('compressionInfo')}
+                            </div>
+                            
                             <div class="row mb-4">
                                 <div class="col-md-12">
                                     <div class="card">
@@ -619,7 +791,7 @@ class PhotoManager extends BaseModule {
             });
         }
         
-        this.initTomSelect(); // Gebruik TomSelect i.p.v. eigen dropdown
+        this.initTomSelect();
         this.fixPhotoModalClose();
         this.loadRecentUploads();
     }
@@ -877,8 +1049,9 @@ class PhotoManager extends BaseModule {
         
         const file = fileInput.files[0];
         
-        if (file.size > 5 * 1024 * 1024) {
-            this.showError(t('fileTooLarge'), 'recentUploadsContainer');
+        // Check originele bestandsgrootte (max 50MB om te voorkomen dat de browser vastloopt)
+        if (file.size > 50 * 1024 * 1024) {
+            this.showError('Bestand is te groot (maximaal 50MB voor verwerking)', 'recentUploadsContainer');
             return;
         }
         
@@ -899,12 +1072,31 @@ class PhotoManager extends BaseModule {
                     throw new Error('Niet ingelogd of geen gebruikers-ID beschikbaar');
                 }
                 
-                const base64Data = e.target.result;
+                let base64Data = e.target.result;
+                const originalSize = this.getBase64Size(base64Data);
                 
+                // Compressie stap (alleen als bestand groter is dan maxFileSizeMB)
+                let finalData = base64Data;
+                let finalType = file.type;
+                let finalSize = originalSize;
+                
+                if (originalSize > this.maxFileSizeMB * 1024 * 1024) {
+                    this.showProgress(t('compressing'), 'recentUploadsContainer');
+                    
+                    const compressed = await this.compressImage(base64Data, file.type);
+                    finalData = compressed.data;
+                    finalType = compressed.type;
+                    finalSize = compressed.size;
+                    
+                    // Toon compressie info
+                    this.showCompressionInfo(originalSize, finalSize, 'recentUploadsContainer');
+                }
+                
+                // Genereer thumbnail
                 let thumbnail = null;
                 try {
                     const img = new Image();
-                    img.src = base64Data;
+                    img.src = finalData;
                     
                     await new Promise((resolve) => {
                         img.onload = () => {
@@ -937,16 +1129,16 @@ class PhotoManager extends BaseModule {
                     });
                 } catch (thumbError) {
                     console.warn('Thumbnail maken mislukt:', thumbError);
-                    thumbnail = base64Data;
+                    thumbnail = finalData;
                 }
                 
                 const fotoData = {
                     stamboomnr: stamboomnr,
-                    data: base64Data,
+                    data: finalData,
                     thumbnail: thumbnail,
                     filename: file.name,
-                    size: file.size,
-                    type: file.type,
+                    size: finalSize,
+                    type: finalType,
                     uploaded_at: new Date().toISOString(),
                     geupload_door: user.id,
                     hond_id: dogId ? parseInt(dogId) : null
@@ -1084,6 +1276,7 @@ class PhotoManager extends BaseModule {
                             <h6 class="card-title mb-1 text-truncate small" title="${dogName}">${dogName}</h6>
                             <div class="mt-auto">
                                 <small class="text-muted">${uploadDatum}</small>
+                                ${foto.size ? `<small class="text-muted d-block">${(foto.size / 1024 / 1024).toFixed(2)}MB</small>` : ''}
                             </div>
                         </div>
                     </div>
@@ -1093,7 +1286,6 @@ class PhotoManager extends BaseModule {
         
         container.innerHTML = html;
         
-        // Gebruik PhotoViewer voor vergroting met dynamisch laden
         for (const element of document.querySelectorAll('.photo-thumbnail')) {
             element.addEventListener('click', async (e) => {
                 e.stopPropagation();
@@ -1101,7 +1293,6 @@ class PhotoManager extends BaseModule {
                 const dogName = element.dataset.dogName || t('unknownDog');
                 
                 try {
-                    // Laad PhotoViewer dynamisch als die nog niet geladen is
                     await this.ensurePhotoViewer();
                     
                     if (window.photoViewer && imageUrl) {
@@ -1111,7 +1302,6 @@ class PhotoManager extends BaseModule {
                     }
                 } catch (error) {
                     console.error('Fout bij tonen foto:', error);
-                    // Fallback: open direct in nieuw tabblad
                     window.open(imageUrl, '_blank');
                 }
             });
@@ -1195,7 +1385,10 @@ class PhotoManager extends BaseModule {
                             <h6 class="card-title mb-2 text-truncate" title="${dogName}">${dogName}</h6>
                             <div class="mt-auto">
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <small class="text-muted">${uploadDatum}</small>
+                                    <div>
+                                        <small class="text-muted">${uploadDatum}</small>
+                                        ${foto.size ? `<br><small class="text-muted">${(foto.size / 1024 / 1024).toFixed(2)}MB</small>` : ''}
+                                    </div>
                                     ${deleteButton}
                                 </div>
                             </div>
@@ -1207,7 +1400,6 @@ class PhotoManager extends BaseModule {
         
         container.innerHTML = html;
         
-        // Gebruik PhotoViewer voor vergroting met dynamisch laden
         for (const element of document.querySelectorAll('.photo-thumbnail')) {
             element.addEventListener('click', async (e) => {
                 e.stopPropagation();
@@ -1215,7 +1407,6 @@ class PhotoManager extends BaseModule {
                 const dogName = element.dataset.dogName || t('unknownDog');
                 
                 try {
-                    // Laad PhotoViewer dynamisch als die nog niet geladen is
                     await this.ensurePhotoViewer();
                     
                     if (window.photoViewer && imageUrl) {
@@ -1225,7 +1416,6 @@ class PhotoManager extends BaseModule {
                     }
                 } catch (error) {
                     console.error('Fout bij tonen foto:', error);
-                    // Fallback: open direct in nieuw tabblad
                     window.open(imageUrl, '_blank');
                 }
             });
@@ -1302,6 +1492,10 @@ class PhotoManager extends BaseModule {
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 `;
                 container.prepend(alertDiv);
+                
+                setTimeout(() => {
+                    alertDiv.remove();
+                }, 5000);
             }
         }
     }
@@ -1333,4 +1527,4 @@ const PhotoManagerInstance = new PhotoManager();
 window.PhotoManager = PhotoManagerInstance;
 window.photoManager = PhotoManagerInstance;
 
-console.log('📸 PhotoManager geladen met verbeterd zoeken (Tom Select)');
+console.log('📸 PhotoManager geladen met automatische compressie naar 1MB');
