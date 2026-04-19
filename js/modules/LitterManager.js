@@ -1,6 +1,7 @@
 /**
  * Nest Management Module
  * Beheert toevoegen en bewerken van nesten
+ * MET AUTOMATISCHE FOTOCOMPRESSIE naar onder 1MB
  */
 
 class LitterManager {
@@ -24,6 +25,19 @@ class LitterManager {
         // NIEUW: Gebruikersgegevens ophalen
         this.currentUserId = localStorage.getItem('userId');
         this.currentUserRole = localStorage.getItem('userRole');
+        
+        // Configuratie voor beeldcompressie
+        this.imageCompressionConfig = {
+            maxSizeMB: 0.95,      // Onder 1MB (iets onder de grens voor veiligheid)
+            maxWidthOrHeight: 1920, // Maximale afmeting (behoudt kwaliteit maar verkleint grote afbeeldingen)
+            initialQuality: 0.85,   // Startkwaliteit (85% is meestal prima)
+            minQuality: 0.6         // Minimale kwaliteit als de afbeelding nog te groot is
+        };
+        
+        // Opgeslagen gecomprimeerde fotogegevens
+        this.compressedPhotoFile = null;
+        this.compressedPhotoDataUrl = null;
+        this.thumbnailDataUrl = null;
         
         this.translations = {
             nl: {
@@ -97,6 +111,10 @@ class LitterManager {
                 chooseFile: "Kies bestand",
                 noFileChosen: "Geen bestand gekozen",
                 chosenFile: "Gekozen bestand:",
+                compressing: "Bezig met comprimeren...",
+                compressionComplete: "Compressie voltooid",
+                compressingImage: "Afbeelding wordt gecomprimeerd...",
+                photoCompressed: "Foto gecomprimeerd",
                 remarks: "Opmerkingen",
                 requiredFields: "Velden met * zijn verplicht",
                 saveDog: "Hond Opslaan",
@@ -137,6 +155,9 @@ class LitterManager {
                 confirmDelete: "Weet u zeker dat u deze hond wilt verwijderen?",
                 photoAdded: "Foto toegevoegd",
                 photoError: "Fout bij uploaden foto: ",
+                fileTooLarge: "Bestand is te groot na compressie",
+                invalidType: "Ongeldig bestandstype. Gebruik JPG, PNG, GIF of WEBP",
+                fileReadError: "Fout bij lezen bestand",
                 addedDogs: "Toegevoegde honden:",
                 noDogsAdded: "Nog geen honden toevoegd",
                 parentNotSelected: "Selecteer een geldige hond uit de lijst voor zowel vader als moeder",
@@ -229,6 +250,10 @@ class LitterManager {
                 chooseFile: "Choose file",
                 noFileChosen: "No file chosen",
                 chosenFile: "Chosen file:",
+                compressing: "Compressing...",
+                compressionComplete: "Compression complete",
+                compressingImage: "Compressing image...",
+                photoCompressed: "Photo compressed",
                 remarks: "Remarks",
                 requiredFields: "Fields with * are required",
                 saveDog: "Save Dog",
@@ -269,6 +294,9 @@ class LitterManager {
                 confirmDelete: "Are you sure you want to delete this dog?",
                 photoAdded: "Photo added",
                 photoError: "Error uploading photo: ",
+                fileTooLarge: "File is still too large after compression",
+                invalidType: "Invalid file type. Use JPG, PNG, GIF or WEBP",
+                fileReadError: "Error reading file",
                 addedDogs: "Added dogs:",
                 noDogsAdded: "No dogs added yet",
                 parentNotSelected: "Select a valid dog from the list for both father and mother",
@@ -361,6 +389,10 @@ class LitterManager {
                 chooseFile: "Datei wählen",
                 noFileChosen: "Keine Datei gewählt",
                 chosenFile: "Gewählte Datei:",
+                compressing: "Komprimieren...",
+                compressionComplete: "Komprimierung abgeschlossen",
+                compressingImage: "Bild wird komprimiert...",
+                photoCompressed: "Foto komprimiert",
                 remarks: "Bemerkungen",
                 requiredFields: "Felder met * sind Pflichtfelder",
                 saveDog: "Hund speichern",
@@ -391,7 +423,7 @@ class LitterManager {
                 // Meldungen
                 adminOnly: "Nur Administratoren können Würfe hinzufügen/bearbeiten",
                 fieldsRequired: "Name, Stammbaum-Nummer, Rasse, Vater en Mutter sind Pflichtfelder",
-                savingDog: "Hund wordt gespeichert...",
+                savingDog: "Hund wird gespeichert...",
                 dogAdded: "Hund erfolgreich hinzugefügt!",
                 dogUpdated: "Hund erfolgreich aktualisiert!",
                 dogDeleted: "Hund erfolgreich gelöscht!",
@@ -401,6 +433,9 @@ class LitterManager {
                 confirmDelete: "Sind Sie sicher, dass Sie diesen Hund löschen möchten?",
                 photoAdded: "Foto hinzugefügt",
                 photoError: "Fehler beim Hochladen des Fotos: ",
+                fileTooLarge: "Datei ist nach der Komprimierung immer noch zu groß",
+                invalidType: "Ungültiger Dateityp. Verwenden Sie JPG, PNG, GIF oder WEBP",
+                fileReadError: "Fehler beim Lesen der Datei",
                 addedDogs: "Hinzugefügte Hunden:",
                 noDogsAdded: "Noch keine Hunde hinzugefügt",
                 parentNotSelected: "Wählen Sie einen gültigen Hund aus der Liste für sowohl Vater als auch Mutter",
@@ -438,6 +473,213 @@ class LitterManager {
     
     updateLanguage(lang) {
         this.currentLang = lang;
+    }
+    
+    /**
+     * COMPRESSIE FUNCTIE - Comprimeert een afbeelding naar een formaat onder de opgegeven limiet
+     * @param {File} file - Het originele bestand
+     * @returns {Promise<Object>} - Geeft { blob, dataUrl, originalSize, compressedSize } terug
+     */
+    async compressImage(file) {
+        return new Promise((resolve, reject) => {
+            // Controleer of het bestand een afbeelding is
+            if (!file.type.startsWith('image/')) {
+                reject(new Error('Bestand is geen afbeelding'));
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    // Start compressie proces
+                    this.compressImageWithQuality(img, file.type, file.size)
+                        .then(compressedData => resolve(compressedData))
+                        .catch(reject);
+                };
+                img.onerror = () => reject(new Error('Kon afbeelding niet laden'));
+                img.src = e.target.result;
+            };
+            reader.onerror = () => reject(new Error('Kon bestand niet lezen'));
+            reader.readAsDataURL(file);
+        });
+    }
+    
+    async compressImageWithQuality(img, originalType, originalSize) {
+        const maxSizeBytes = this.imageCompressionConfig.maxSizeMB * 1024 * 1024;
+        let quality = this.imageCompressionConfig.initialQuality;
+        let result = null;
+        
+        // Bepaal de juiste output afmetingen
+        let width = img.width;
+        let height = img.height;
+        const maxDimension = this.imageCompressionConfig.maxWidthOrHeight;
+        
+        if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+                height = (height * maxDimension) / width;
+                width = maxDimension;
+            } else {
+                width = (width * maxDimension) / height;
+                height = maxDimension;
+            }
+        }
+        
+        // Probeer te comprimeren met verschillende kwaliteitsinstellingen
+        for (let attempt = 0; attempt < 4; attempt++) {
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            // Gebruik de huidige kwaliteit voor deze poging
+            const currentQuality = Math.max(quality, this.imageCompressionConfig.minQuality);
+            
+            // Converteer naar blob met de huidige kwaliteit
+            const blob = await new Promise((resolve) => {
+                canvas.toBlob(resolve, 'image/jpeg', currentQuality);
+            });
+            
+            const compressedSize = blob.size;
+            
+            console.log(`Compressie poging ${attempt + 1}: kwaliteit=${currentQuality}, grootte=${(compressedSize / 1024).toFixed(2)}KB`);
+            
+            if (compressedSize <= maxSizeBytes || currentQuality <= this.imageCompressionConfig.minQuality + 0.05) {
+                // We hebben een acceptabel formaat bereikt of kunnen niet verder comprimeren
+                const dataUrl = await this.blobToDataUrl(blob);
+                result = {
+                    blob: blob,
+                    dataUrl: dataUrl,
+                    originalSize: originalSize,
+                    compressedSize: compressedSize,
+                    quality: currentQuality,
+                    width: width,
+                    height: height
+                };
+                break;
+            }
+            
+            // Verlaag kwaliteit voor volgende poging
+            quality = Math.max(quality - 0.1, this.imageCompressionConfig.minQuality);
+        }
+        
+        // Als we nog steeds geen resultaat hebben, probeer dan met maximale compressie
+        if (!result) {
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            const blob = await new Promise((resolve) => {
+                canvas.toBlob(resolve, 'image/jpeg', this.imageCompressionConfig.minQuality);
+            });
+            
+            const dataUrl = await this.blobToDataUrl(blob);
+            result = {
+                blob: blob,
+                dataUrl: dataUrl,
+                originalSize: originalSize,
+                compressedSize: blob.size,
+                quality: this.imageCompressionConfig.minQuality,
+                width: width,
+                height: height
+            };
+        }
+        
+        return result;
+    }
+    
+    blobToDataUrl(blob) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(new Error('Kon blob niet converteren naar data URL'));
+            reader.readAsDataURL(blob);
+        });
+    }
+    
+    async resizeAndCompressImage(file) {
+        try {
+            console.log(`Start compressie van: ${file.name}, grootte: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+            
+            // Toon compressie status
+            const fileInfo = document.getElementById('fileInfo');
+            if (fileInfo) {
+                fileInfo.innerHTML = `<i class="bi bi-arrow-repeat me-1"></i> ${this.t('compressingImage')}`;
+                fileInfo.classList.add('text-info');
+            }
+            
+            // Comprimeer de afbeelding
+            const compressedResult = await this.compressImage(file);
+            
+            const compressionRatio = ((1 - compressedResult.compressedSize / compressedResult.originalSize) * 100).toFixed(1);
+            console.log(`Compressie voltooid: ${(compressedResult.originalSize / 1024 / 1024).toFixed(2)}MB -> ${(compressedResult.compressedSize / 1024 / 1024).toFixed(2)}MB (${compressionRatio}% kleiner)`);
+            
+            // Update status
+            if (fileInfo) {
+                fileInfo.innerHTML = `<span class="file-chosen-info"><i class="bi bi-check-circle-fill text-success me-1"></i> ${this.t('chosenFile')} <strong>${file.name}</strong> (${(compressedResult.compressedSize / 1024).toFixed(2)} KB) - ${this.t('photoCompressed')}</span>`;
+                fileInfo.classList.remove('text-info');
+            }
+            
+            // Maak een nieuw bestand van de gecomprimeerde blob
+            const compressedFile = new File([compressedResult.blob], file.name.replace(/\.[^/.]+$/, '') + '.jpg', {
+                type: 'image/jpeg',
+                lastModified: Date.now()
+            });
+            
+            // Sla de gecomprimeerde bestandsinfo op voor later gebruik
+            this.compressedPhotoFile = compressedFile;
+            this.compressedPhotoDataUrl = compressedResult.dataUrl;
+            this.thumbnailDataUrl = null;
+            
+            // Genereer een thumbnail voor preview (kleiner formaat)
+            await this.generateThumbnail(compressedResult.dataUrl);
+            
+            return compressedFile;
+        } catch (error) {
+            console.error('Compressie fout:', error);
+            const fileInfo = document.getElementById('fileInfo');
+            if (fileInfo) {
+                fileInfo.innerHTML = `<i class="bi bi-exclamation-triangle me-1 text-danger"></i> ${this.t('photoError')} ${error.message}`;
+                fileInfo.classList.remove('text-info');
+            }
+            throw error;
+        }
+    }
+    
+    async generateThumbnail(dataUrl) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const maxThumbSize = 200;
+                let width = img.width, height = img.height;
+                
+                if (width > height) {
+                    if (width > maxThumbSize) {
+                        height = (height * maxThumbSize) / width;
+                        width = maxThumbSize;
+                    }
+                } else {
+                    if (height > maxThumbSize) {
+                        width = (width * maxThumbSize) / height;
+                        height = maxThumbSize;
+                    }
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                ctx.drawImage(img, 0, 0, width, height);
+                this.thumbnailDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                resolve(this.thumbnailDataUrl);
+            };
+            img.onerror = reject;
+            img.src = dataUrl;
+        });
     }
     
     /**
@@ -1491,6 +1733,9 @@ class LitterManager {
         // Setup kennelnaam autocomplete
         this.setupKennelNameAutocomplete();
         
+        // Setup file upload met compressie
+        this.setupFileUploadWithCompression();
+        
         // Event listeners voor alle drie opslaan knoppen
         const saveBtn = document.getElementById('saveDogBtn');
         const saveBtn2 = document.getElementById('saveDogBtn2');
@@ -1597,10 +1842,65 @@ class LitterManager {
         // Setup datum validatie
         this.setupDateValidation();
         
-        // Setup file upload feedback
-        this.setupFileUploadFeedback();
-        
         console.log('LitterManager: Alle events ingesteld');
+    }
+    
+    /**
+     * Setup file upload met compressie
+     * Deze methode vervangt de oude setupFileUploadFeedback
+     */
+    setupFileUploadWithCompression() {
+        const photoInput = document.getElementById('photo');
+        if (photoInput) {
+            photoInput.addEventListener('change', async (e) => {
+                if (e.target.files && e.target.files.length > 0) {
+                    const file = e.target.files[0];
+                    
+                    // Reset de gecomprimeerde bestanden
+                    this.compressedPhotoFile = null;
+                    this.compressedPhotoDataUrl = null;
+                    
+                    // Als het bestand al klein genoeg is (onder 0.95MB), sla compressie over
+                    if (file.size <= this.imageCompressionConfig.maxSizeMB * 1024 * 1024) {
+                        const fileInfo = document.getElementById('fileInfo');
+                        if (fileInfo) {
+                            fileInfo.innerHTML = `<span class="file-chosen-info"><i class="bi bi-check-circle text-success me-1"></i> ${this.t('chosenFile')} <strong>${file.name}</strong> (${(file.size / 1024).toFixed(2)} KB)</span>`;
+                        }
+                        this.compressedPhotoFile = file;
+                        return;
+                    }
+                    
+                    // Bestand is te groot, comprimeer het
+                    try {
+                        const compressedFile = await this.resizeAndCompressImage(file);
+                        this.compressedPhotoFile = compressedFile;
+                        
+                        // Vervang het bestand in de file input met het gecomprimeerde bestand
+                        // Dit kan niet direct, maar we slaan de gecomprimeerde versie op voor upload
+                        const dataTransfer = new DataTransfer();
+                        dataTransfer.items.add(compressedFile);
+                        photoInput.files = dataTransfer.files;
+                        
+                    } catch (error) {
+                        console.error('Compressie mislukt:', error);
+                        const fileInfo = document.getElementById('fileInfo');
+                        if (fileInfo) {
+                            fileInfo.innerHTML = `<i class="bi bi-exclamation-triangle me-1 text-danger"></i> ${this.t('photoError')} ${error.message}`;
+                        }
+                        // Reset file input
+                        photoInput.value = '';
+                        this.compressedPhotoFile = null;
+                    }
+                } else {
+                    const fileInfo = document.getElementById('fileInfo');
+                    if (fileInfo) {
+                        fileInfo.textContent = this.t('noFileChosen');
+                    }
+                    this.compressedPhotoFile = null;
+                    this.compressedPhotoDataUrl = null;
+                }
+            });
+        }
     }
     
     /**
@@ -2156,21 +2456,20 @@ class LitterManager {
     
     /**
      * Setup bestandsfeedback - toont gekozen bestandsnaam
+     * Let op: Deze methode wordt vervangen door setupFileUploadWithCompression
+     * maar blijft voor backward compatibility
      */
     setupFileUploadFeedback() {
+        // Deze methode wordt vervangen door setupFileUploadWithCompression
+        // Maar voor backward compatibility:
+        if (!document.getElementById('photo')) return;
+        
         const photoInput = document.getElementById('photo');
         const fileInfo = document.getElementById('fileInfo');
         
-        if (photoInput && fileInfo) {
-            photoInput.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    fileInfo.innerHTML = `<span class="file-chosen-info"><i class="bi bi-check-circle"></i> ${this.t('chosenFile')} <strong>${file.name}</strong></span>`;
-                    console.log('LitterManager: Bestand gekozen:', file.name);
-                } else {
-                    fileInfo.textContent = this.t('noFileChosen');
-                }
-            });
+        if (photoInput && fileInfo && !photoInput.hasAttribute('data-compression-setup')) {
+            photoInput.setAttribute('data-compression-setup', 'true');
+            // De echte setup gebeurt in setupFileUploadWithCompression
         }
     }
     
@@ -2469,7 +2768,11 @@ class LitterManager {
         // Reset foto en file info
         const photoInput = document.getElementById('photo');
         const fileInfo = document.getElementById('fileInfo');
-        if (photoInput) photoInput.value = '';
+        if (photoInput) {
+            photoInput.value = '';
+            this.compressedPhotoFile = null;
+            this.compressedPhotoDataUrl = null;
+        }
         if (fileInfo) fileInfo.textContent = this.t('noFileChosen');
         
         // Reset opmerkingen
@@ -2774,24 +3077,35 @@ class LitterManager {
             
             console.log('LitterManager: Hond opgeslagen met resultaat:', result);
             
-            // Foto uploaden
-            const photoInput = document.getElementById('photo');
-            if (photoInput && photoInput.files.length > 0) {
+            // Gebruik de gecomprimeerde foto als die bestaat, anders de originele
+            let fileToUpload = null;
+            
+            if (this.compressedPhotoFile) {
+                fileToUpload = this.compressedPhotoFile;
+                console.log('LitterManager: Uploaden van gecomprimeerde foto');
+            } else {
+                const photoInput = document.getElementById('photo');
+                if (photoInput && photoInput.files && photoInput.files.length > 0) {
+                    fileToUpload = photoInput.files[0];
+                    console.log('LitterManager: Uploaden van originele foto (was al klein genoeg)');
+                }
+            }
+            
+            if (fileToUpload) {
                 console.log('LitterManager: Foto uploaden...');
-                const file = photoInput.files[0];
                 
-                if (file.size > 5 * 1024 * 1024) {
+                if (fileToUpload.size > 5 * 1024 * 1024) {
                     this.showError(this.t('fileTooLarge'));
                     return;
                 }
                 
                 const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-                if (!validTypes.includes(file.type)) {
+                if (!validTypes.includes(fileToUpload.type)) {
                     this.showError(this.t('invalidType'));
                     return;
                 }
                 
-                await this.uploadPhoto(dogData.stamboomnr, file);
+                await this.uploadPhoto(dogData.stamboomnr, fileToUpload);
             }
             
             // Voeg toe aan de lijst met huidige nest honden
@@ -2831,96 +3145,65 @@ class LitterManager {
     
     async uploadPhoto(pedigreeNumber, file) {
         try {
-            const reader = new FileReader();
+            // Gebruik de gecomprimeerde data URL als die bestaat, anders genereer er een van de blob
+            let base64Data;
+            let thumbnail;
             
-            return new Promise((resolve, reject) => {
-                reader.onload = async (e) => {
-                    try {
-                        const user = window.auth ? window.auth.getCurrentUser() : null;
-                        if (!user || !user.id) {
-                            throw new Error('Niet ingelogd of geen gebruikers-ID beschikbaar');
-                        }
-                        
-                        const base64Data = e.target.result;
-                        
-                        let thumbnail = null;
-                        try {
-                            const img = new Image();
-                            img.src = base64Data;
-                            
-                            await new Promise((resolve) => {
-                                img.onload = () => {
-                                    const canvas = document.createElement('canvas');
-                                    const ctx = canvas.getContext('2d');
-                                    
-                                    const maxSize = 200;
-                                    let width = img.width;
-                                    let height = img.height;
-                                    
-                                    if (width > height) {
-                                        if (width > maxSize) {
-                                            height = (height * maxSize) / width;
-                                            width = maxSize;
-                                        }
-                                    } else {
-                                        if (height > maxSize) {
-                                            width = (width * maxSize) / height;
-                                            height = maxSize;
-                                        }
-                                    }
-                                    
-                                    canvas.width = width;
-                                    canvas.height = height;
-                                    ctx.drawImage(img, 0, 0, width, height);
-                                    
-                                    thumbnail = canvas.toDataURL('image/jpeg', 0.7);
-                                    resolve();
-                                };
-                            });
-                        } catch (thumbError) {
-                            console.warn('Thumbnail maken mislukt:', thumbError);
-                            thumbnail = base64Data;
-                        }
-                        
-                        const fotoData = {
-                            stamboomnr: pedigreeNumber,
-                            data: base64Data,
-                            thumbnail: thumbnail,
-                            filename: file.name,
-                            size: file.size,
-                            type: file.type,
-                            uploaded_at: new Date().toISOString(),
-                            geupload_door: user.id
-                        };
-                        
-                        const { data: dbData, error: dbError } = await window.supabase
-                            .from('fotos')
-                            .insert(fotoData)
-                            .select()
-                            .single();
-                        
-                        if (dbError) {
-                            console.error('Database insert error:', dbError);
-                            throw dbError;
-                        }
-                        
-                        console.log('Database insert successful:', dbData);
-                        this.showSuccess(this.t('photoAdded'));
-                        resolve();
-                        
-                    } catch (error) {
-                        reject(error);
-                    }
-                };
+            if (this.compressedPhotoDataUrl) {
+                // We hebben al een gecomprimeerde data URL
+                base64Data = this.compressedPhotoDataUrl;
+                thumbnail = this.thumbnailDataUrl || base64Data;
+                console.log('LitterManager: Gebruik opgeslagen gecomprimeerde data URL');
+            } else {
+                // Converteer de blob naar data URL
+                base64Data = await this.blobToDataUrl(file);
                 
-                reader.onerror = () => {
-                    reject(new Error(this.t('fileReadError')));
-                };
-                
-                reader.readAsDataURL(file);
-            });
+                // Genereer een thumbnail als die nog niet bestaat
+                if (!this.thumbnailDataUrl) {
+                    await this.generateThumbnail(base64Data);
+                }
+                thumbnail = this.thumbnailDataUrl || base64Data;
+            }
+            
+            const user = window.auth ? window.auth.getCurrentUser() : null;
+            if (!user || !user.id) {
+                throw new Error('Niet ingelogd of geen gebruikers-ID beschikbaar');
+            }
+            
+            const fotoData = {
+                stamboomnr: pedigreeNumber,
+                data: base64Data,
+                thumbnail: thumbnail,
+                filename: file.name,
+                size: file.size,
+                type: file.type,
+                uploaded_at: new Date().toISOString(),
+                geupload_door: user.id
+            };
+            
+            const { data: dbData, error: dbError } = await window.supabase
+                .from('fotos')
+                .insert(fotoData)
+                .select()
+                .single();
+            
+            if (dbError) {
+                console.error('Database insert error:', dbError);
+                throw dbError;
+            }
+            
+            console.log('Database insert successful:', dbData);
+            this.showSuccess(this.t('photoAdded'));
+            
+            // Reset de gecomprimeerde bestanden na succesvolle upload
+            this.compressedPhotoFile = null;
+            this.compressedPhotoDataUrl = null;
+            this.thumbnailDataUrl = null;
+            
         } catch (error) {
+            console.error('Upload fout:', error);
             this.showError(`${this.t('photoError')}${error.message}`);
+            throw error;
         }
     }
     
@@ -2997,6 +3280,11 @@ class LitterManager {
             kennelDropdown.style.display = 'none';
             kennelDropdown.innerHTML = '';
         }
+        
+        // Reset gecomprimeerde fotogegevens
+        this.compressedPhotoFile = null;
+        this.compressedPhotoDataUrl = null;
+        this.thumbnailDataUrl = null;
     }
     
     showProgress(message) {
