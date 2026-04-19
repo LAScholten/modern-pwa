@@ -1,6 +1,7 @@
 /**
  * OverdrachtModule - Voor het aanvragen en uitvoeren van hond overdrachten
- * @version 2.0.0
+ * @version 2.0.2
+ * FIX: Hond selecteren werkt nu in BEIDE tabs (aanvraag EN directe overdracht)
  * UPDATE: Exact dezelfde zoeklogica als SearchManager
  * UPDATE: Hond moet uit dropdown worden geselecteerd
  */
@@ -11,6 +12,7 @@ class OverdrachtModule {
         this.currentUser = null;
         this.currentUserRole = null;
         this.currentUserId = null;
+        this.currentUserEmail = null;
         this.selectedHond = null;
         this.aanvragen = [];
         this.searchTimeout = null;
@@ -73,7 +75,8 @@ class OverdrachtModule {
                 unknown: "Onbekend",
                 owner: "Eigenaar",
                 clickToSelect: "Klik om te selecteren",
-                selectDogFromList: "Selecteer een hond uit de lijst"
+                selectDogFromList: "Selecteer een hond uit de lijst",
+                found: "gevonden"
             },
             en: {
                 moduleTitle: "Dog Transfer Module",
@@ -129,7 +132,8 @@ class OverdrachtModule {
                 unknown: "Unknown",
                 owner: "Owner",
                 clickToSelect: "Click to select",
-                selectDogFromList: "Select a dog from the list"
+                selectDogFromList: "Select a dog from the list",
+                found: "found"
             },
             de: {
                 moduleTitle: "Hundeübertragungsmodul",
@@ -185,7 +189,8 @@ class OverdrachtModule {
                 unknown: "Unbekannt",
                 owner: "Besitzer",
                 clickToSelect: "Klicken zum Auswählen",
-                selectDogFromList: "Wählen Sie einen Hund aus der Liste"
+                selectDogFromList: "Wählen Sie einen Hund aus der Liste",
+                found: "gefunden"
             }
         };
         
@@ -518,7 +523,7 @@ class OverdrachtModule {
         this.currentUserEmail = localStorage.getItem('userEmail');
         this.currentUserRole = localStorage.getItem('userRole');
         
-        console.log('📦 OverdrachtModule v2.0 geïnitialiseerd');
+        console.log('📦 OverdrachtModule v2.0.2 geïnitialiseerd');
         console.log('👤 Huidige gebruiker:', this.currentUserEmail);
         console.log('👑 Rol:', this.currentUserRole);
         console.log('🌐 Taal:', this.currentLang);
@@ -898,7 +903,8 @@ class OverdrachtModule {
                 if (context === 'aanvraag') {
                     document.getElementById('overdracht-geselecteerdeHondInfo')?.classList.add('overdracht-d-none');
                     this.selectedHond = null;
-                    document.getElementById('overdracht-verstuurAanvraagBtn').disabled = true;
+                    const verstuurBtn = document.getElementById('overdracht-verstuurAanvraagBtn');
+                    if (verstuurBtn) verstuurBtn.disabled = true;
                 } else if (context === 'direct') {
                     document.getElementById('overdracht-geselecteerdeHondDirectInfo')?.classList.add('overdracht-d-none');
                     this.selectedHond = null;
@@ -1020,7 +1026,8 @@ class OverdrachtModule {
     }
     
     /**
-     * TOON ZOEKRESULTATEN - MET SELECTIE UIT DROPDOWN (zoals SearchManager)
+     * TOON ZOEKRESULTATEN - MET SELECTIE UIT DROPDOWN
+     * Gebruikt event delegation voor betrouwbare click handlers
      */
     displaySearchResults(dogs, context, searchTerm) {
         const resultsId = context === 'aanvraag' ? 'overdracht-zoekResultatenAanvraag' : 'overdracht-zoekResultatenDirect';
@@ -1052,7 +1059,7 @@ class OverdrachtModule {
         let html = `
             <div class="overdracht-search-stats">
                 <i class="bi bi-info-circle me-1"></i>
-                ${dogs.length} honden gevonden ${searchTerm ? `voor "${searchTerm}"` : ''}
+                ${dogs.length} honden gevonden ${searchTerm ? `voor "${this.escapeHtml(searchTerm)}"` : ''}
                 <br>
                 <small><i class="bi bi-hand-index"></i> ${this.t('clickToSelect')}</small>
             </div>
@@ -1063,18 +1070,21 @@ class OverdrachtModule {
             const genderText = dog.geslacht === 'reuen' ? 'Reu' : 
                               dog.geslacht === 'teven' ? 'Teef' : this.t('unknown');
             
+            // Gebruik een unieke ID voor elk item om problemen met apostrofs te voorkomen
+            const dogId = dog.id;
+            
             html += `
-                <div class="overdracht-dog-result-item" data-hond='${JSON.stringify(dog)}'>
+                <div class="overdracht-dog-result-item" data-dog-id="${dogId}" data-context="${context}">
                     <div class="overdracht-dog-name-line">
-                        <span class="overdracht-dog-name">${dog.naam || this.t('unknown')}</span>
-                        ${dog.kennelnaam ? `<span class="text-muted ms-2">${dog.kennelnaam}</span>` : ''}
+                        <span class="overdracht-dog-name">${this.escapeHtml(dog.naam || this.t('unknown'))}</span>
+                        ${dog.kennelnaam ? `<span class="text-muted ms-2">${this.escapeHtml(dog.kennelnaam)}</span>` : ''}
                     </div>
                     
                     <div class="overdracht-dog-details-line">
-                        ${dog.stamboomnr ? `<span class="stamboom">${dog.stamboomnr}</span>` : ''}
-                        ${dog.ras ? `<span class="ras">${dog.ras}</span>` : ''}
+                        ${dog.stamboomnr ? `<span class="stamboom">${this.escapeHtml(dog.stamboomnr)}</span>` : ''}
+                        ${dog.ras ? `<span class="ras">${this.escapeHtml(dog.ras)}</span>` : ''}
                         <span class="geslacht">${genderText}</span>
-                        <span class="owner">${this.t('owner')}: ${dog.profiles?.email || this.t('unknown')}</span>
+                        <span class="owner">${this.t('owner')}: ${this.escapeHtml(dog.profiles?.email || this.t('unknown'))}</span>
                     </div>
                 </div>
             `;
@@ -1083,28 +1093,54 @@ class OverdrachtModule {
         html += `</div>`;
         resultsContainer.innerHTML = html;
         
-        // Voeg click event listeners toe aan resultaten
-        resultsContainer.querySelectorAll('.overdracht-dog-result-item').forEach(item => {
-            item.addEventListener('click', (e) => {
-                e.preventDefault();
-                const hondData = JSON.parse(item.getAttribute('data-hond'));
-                
-                // Verwijder selected class van alle items
-                resultsContainer.querySelectorAll('.overdracht-dog-result-item').forEach(i => {
-                    i.classList.remove('selected');
-                });
-                item.classList.add('selected');
-                
-                if (context === 'aanvraag') {
-                    this.selectHondVoorAanvraag(hondData);
-                } else if (context === 'direct') {
-                    this.selectHondDirect(hondData);
-                }
-            });
+        // Sla de honden data op in een Map voor snelle toegang
+        if (!this.dogsCache) {
+            this.dogsCache = new Map();
+        }
+        dogs.forEach(dog => {
+            this.dogsCache.set(dog.id, dog);
         });
+        
+        // Gebruik event delegation op de container voor betrouwbare click handling
+        resultsContainer.removeEventListener('click', this.handleDogClick);
+        this.handleDogClick = (e) => {
+            // Zoek het dichtstbijzijnde .overdracht-dog-result-item element
+            const resultItem = e.target.closest('.overdracht-dog-result-item');
+            if (!resultItem) return;
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const dogId = resultItem.getAttribute('data-dog-id');
+            const itemContext = resultItem.getAttribute('data-context');
+            
+            if (!dogId) return;
+            
+            const hondData = this.dogsCache.get(parseInt(dogId));
+            if (!hondData) {
+                console.error('Hond data niet gevonden voor ID:', dogId);
+                return;
+            }
+            
+            // Verwijder selected class van alle items in deze container
+            resultsContainer.querySelectorAll('.overdracht-dog-result-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            resultItem.classList.add('selected');
+            
+            console.log(`🐕 Hond geselecteerd voor context: ${itemContext}`, hondData.naam);
+            
+            if (itemContext === 'aanvraag') {
+                this.selectHondVoorAanvraag(hondData);
+            } else if (itemContext === 'direct') {
+                this.selectHondDirect(hondData);
+            }
+        };
+        resultsContainer.addEventListener('click', this.handleDogClick);
     }
     
     selectHondVoorAanvraag(hond) {
+        console.log('🐕 Hond geselecteerd voor aanvraag:', hond.naam);
         this.selectedHond = hond;
         
         const eigenaarEmail = hond.profiles?.email || this.t('unknown');
@@ -1112,58 +1148,85 @@ class OverdrachtModule {
         // Controleer of de huidige gebruiker niet al de eigenaar is
         if (hond.toegevoegd_door === this.currentUserId) {
             this.showStatus('overdracht-aanvraagStatus', this.t('alreadyOwner'), 'danger');
-            document.getElementById('overdracht-verstuurAanvraagBtn').disabled = true;
+            const verstuurBtn = document.getElementById('overdracht-verstuurAanvraagBtn');
+            if (verstuurBtn) verstuurBtn.disabled = true;
             return;
         }
         
-        document.getElementById('overdracht-geselecteerdeHondInfo').classList.remove('overdracht-d-none');
+        const infoDiv = document.getElementById('overdracht-geselecteerdeHondInfo');
+        if (infoDiv) infoDiv.classList.remove('overdracht-d-none');
         
         const kennelNaam = hond.kennelnaam ? ` van ${hond.kennelnaam}` : '';
         
-        document.getElementById('overdracht-geselecteerdeHondDetails').innerHTML = `
-            <div class="overdracht-row">
-                <div class="overdracht-col-md-6">
-                    <p class="overdracht-mb-1"><strong><i class="bi bi-tag"></i> ${this.t('name')}:</strong> ${hond.naam}${kennelNaam}</p>
-                    <p class="overdracht-mb-1"><strong><i class="bi bi-upc-scan"></i> ${this.t('stamboomnr')}:</strong> ${hond.stamboomnr || '-'}</p>
-                    <p class="overdracht-mb-1"><strong><i class="bi bi-puzzle"></i> ${this.t('breed')}:</strong> ${hond.ras || '-'}</p>
+        const detailsDiv = document.getElementById('overdracht-geselecteerdeHondDetails');
+        if (detailsDiv) {
+            detailsDiv.innerHTML = `
+                <div class="overdracht-row">
+                    <div class="overdracht-col-md-6">
+                        <p class="overdracht-mb-1"><strong><i class="bi bi-tag"></i> ${this.t('name')}:</strong> ${this.escapeHtml(hond.naam)}${this.escapeHtml(kennelNaam)}</p>
+                        <p class="overdracht-mb-1"><strong><i class="bi bi-upc-scan"></i> ${this.t('stamboomnr')}:</strong> ${this.escapeHtml(hond.stamboomnr || '-')}</p>
+                        <p class="overdracht-mb-1"><strong><i class="bi bi-puzzle"></i> ${this.t('breed')}:</strong> ${this.escapeHtml(hond.ras || '-')}</p>
+                    </div>
+                    <div class="overdracht-col-md-6">
+                        <p class="overdracht-mb-1"><strong><i class="bi bi-calendar"></i> ${this.t('birthdate')}:</strong> ${this.escapeHtml(hond.geboortedatum || '-')}</p>
+                        <p class="overdracht-mb-1"><strong><i class="bi bi-person"></i> ${this.t('currentOwner')}:</strong> ${this.escapeHtml(eigenaarEmail)}</p>
+                    </div>
                 </div>
-                <div class="overdracht-col-md-6">
-                    <p class="overdracht-mb-1"><strong><i class="bi bi-calendar"></i> ${this.t('birthdate')}:</strong> ${hond.geboortedatum || '-'}</p>
-                    <p class="overdracht-mb-1"><strong><i class="bi bi-person"></i> ${this.t('currentOwner')}:</strong> ${eigenaarEmail}</p>
-                </div>
-            </div>
-        `;
+            `;
+        }
         
-        document.getElementById('overdracht-huidigeEigenaar').value = eigenaarEmail;
-        document.getElementById('overdracht-verstuurAanvraagBtn').disabled = false;
+        const huidigeEigenaarInput = document.getElementById('overdracht-huidigeEigenaar');
+        if (huidigeEigenaarInput) huidigeEigenaarInput.value = eigenaarEmail;
+        
+        const verstuurBtn = document.getElementById('overdracht-verstuurAanvraagBtn');
+        if (verstuurBtn) verstuurBtn.disabled = false;
+        
         this.showStatus('overdracht-aanvraagStatus', '', 'info');
     }
     
     selectHondDirect(hond) {
+        console.log('🐕 Hond geselecteerd voor directe overdracht:', hond.naam);
         this.selectedHond = hond;
         
-        document.getElementById('overdracht-geselecteerdeHondDirectInfo').classList.remove('overdracht-d-none');
+        const infoDiv = document.getElementById('overdracht-geselecteerdeHondDirectInfo');
+        if (infoDiv) infoDiv.classList.remove('overdracht-d-none');
         
         const kennelNaam = hond.kennelnaam ? ` van ${hond.kennelnaam}` : '';
         
-        document.getElementById('overdracht-geselecteerdeHondDirectDetails').innerHTML = `
-            <div class="overdracht-row">
-                <div class="overdracht-col-md-6">
-                    <p class="overdracht-mb-1"><strong><i class="bi bi-tag"></i> ${this.t('name')}:</strong> ${hond.naam}${kennelNaam}</p>
-                    <p class="overdracht-mb-1"><strong><i class="bi bi-upc-scan"></i> ${this.t('stamboomnr')}:</strong> ${hond.stamboomnr || '-'}</p>
-                    <p class="overdracht-mb-1"><strong><i class="bi bi-puzzle"></i> ${this.t('breed')}:</strong> ${hond.ras || '-'}</p>
+        const detailsDiv = document.getElementById('overdracht-geselecteerdeHondDirectDetails');
+        if (detailsDiv) {
+            detailsDiv.innerHTML = `
+                <div class="overdracht-row">
+                    <div class="overdracht-col-md-6">
+                        <p class="overdracht-mb-1"><strong><i class="bi bi-tag"></i> ${this.t('name')}:</strong> ${this.escapeHtml(hond.naam)}${this.escapeHtml(kennelNaam)}</p>
+                        <p class="overdracht-mb-1"><strong><i class="bi bi-upc-scan"></i> ${this.t('stamboomnr')}:</strong> ${this.escapeHtml(hond.stamboomnr || '-')}</p>
+                        <p class="overdracht-mb-1"><strong><i class="bi bi-puzzle"></i> ${this.t('breed')}:</strong> ${this.escapeHtml(hond.ras || '-')}</p>
+                    </div>
+                    <div class="overdracht-col-md-6">
+                        <p class="overdracht-mb-1"><strong><i class="bi bi-calendar"></i> ${this.t('birthdate')}:</strong> ${this.escapeHtml(hond.geboortedatum || '-')}</p>
+                        <p class="overdracht-mb-1"><strong><i class="bi bi-person"></i> ${this.t('owner')}:</strong> ${this.escapeHtml(hond.profiles?.email || this.t('unknown'))}</p>
+                    </div>
                 </div>
-                <div class="overdracht-col-md-6">
-                    <p class="overdracht-mb-1"><strong><i class="bi bi-calendar"></i> ${this.t('birthdate')}:</strong> ${hond.geboortedatum || '-'}</p>
-                    <p class="overdracht-mb-1"><strong><i class="bi bi-person"></i> ${this.t('owner')}:</strong> ${hond.profiles?.email || this.t('unknown')}</p>
-                </div>
-            </div>
-        `;
+            `;
+        }
         
-        document.getElementById('overdracht-directHuidigeEigenaar').value = hond.profiles?.email || this.t('unknown');
-        document.getElementById('overdracht-directHuidigeEigenaarId').value = hond.toegevoegd_door || '';
+        const huidigeEigenaarInput = document.getElementById('overdracht-directHuidigeEigenaar');
+        if (huidigeEigenaarInput) huidigeEigenaarInput.value = hond.profiles?.email || this.t('unknown');
+        
+        const huidigeEigenaarIdInput = document.getElementById('overdracht-directHuidigeEigenaarId');
+        if (huidigeEigenaarIdInput) huidigeEigenaarIdInput.value = hond.toegevoegd_door || '';
         
         this.checkDirectOverdrachtReady();
+    }
+    
+    escapeHtml(str) {
+        if (!str) return '';
+        return str
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
     }
     
     async verstuurAanvraag() {
@@ -1173,7 +1236,8 @@ class OverdrachtModule {
         }
         
         try {
-            document.getElementById('overdracht-verstuurAanvraagBtn').disabled = true;
+            const verstuurBtn = document.getElementById('overdracht-verstuurAanvraagBtn');
+            if (verstuurBtn) verstuurBtn.disabled = true;
             this.showStatus('overdracht-aanvraagStatus', this.t('sendingRequest'), 'info');
             
             const { data, error } = await this.supabase
@@ -1201,9 +1265,15 @@ class OverdrachtModule {
             this.showStatus('overdracht-aanvraagStatus', this.t('requestSuccess'), 'success');
             
             // Reset form
-            document.getElementById('overdracht-geselecteerdeHondInfo').classList.add('overdracht-d-none');
-            document.getElementById('overdracht-zoekHondAanvraag').value = '';
-            document.getElementById('overdracht-zoekResultatenAanvraag').innerHTML = '';
+            const infoDiv = document.getElementById('overdracht-geselecteerdeHondInfo');
+            if (infoDiv) infoDiv.classList.add('overdracht-d-none');
+            
+            const searchInput = document.getElementById('overdracht-zoekHondAanvraag');
+            if (searchInput) searchInput.value = '';
+            
+            const resultsContainer = document.getElementById('overdracht-zoekResultatenAanvraag');
+            if (resultsContainer) resultsContainer.innerHTML = '';
+            
             this.selectedHond = null;
             
             const hintElement = document.getElementById('overdracht-searchHint');
@@ -1212,16 +1282,25 @@ class OverdrachtModule {
                 hintElement.style.color = '#6c757d';
             }
             
+            // Her-enable button na 2 seconden
+            setTimeout(() => {
+                if (verstuurBtn) verstuurBtn.disabled = false;
+            }, 2000);
+            
         } catch (error) {
             console.error('Fout bij versturen aanvraag:', error);
             this.showStatus('overdracht-aanvraagStatus', `${this.t('requestError')}: ${error.message}`, 'danger');
-            document.getElementById('overdracht-verstuurAanvraagBtn').disabled = false;
+            const verstuurBtn = document.getElementById('overdracht-verstuurAanvraagBtn');
+            if (verstuurBtn) verstuurBtn.disabled = false;
         }
     }
     
     async loadAanvragen() {
         try {
-            document.getElementById('overdracht-aanvragenLijst').innerHTML = `
+            const lijstContainer = document.getElementById('overdracht-aanvragenLijst');
+            if (!lijstContainer) return;
+            
+            lijstContainer.innerHTML = `
                 <div class="overdracht-text-center overdracht-py-5">
                     <div class="spinner-border text-primary"></div>
                     <p class="overdracht-mt-2">${this.t('loadingRequests')}</p>
@@ -1236,7 +1315,7 @@ class OverdrachtModule {
             
             if (error) {
                 if (error.code === '42P01') {
-                    document.getElementById('overdracht-aanvragenLijst').innerHTML = `
+                    lijstContainer.innerHTML = `
                         <div class="overdracht-alert overdracht-alert-info">
                             <i class="bi bi-info-circle"></i>
                             ${this.t('tableNotExist')}
@@ -1248,7 +1327,7 @@ class OverdrachtModule {
             }
             
             if (!aanvragen || aanvragen.length === 0) {
-                document.getElementById('overdracht-aanvragenLijst').innerHTML = `
+                lijstContainer.innerHTML = `
                     <div class="overdracht-text-center overdracht-text-muted overdracht-py-5">
                         <i class="bi bi-inbox" style="font-size: 3rem;"></i>
                         <p class="overdracht-mt-2">${this.t('noPendingRequests')}</p>
@@ -1261,11 +1340,14 @@ class OverdrachtModule {
             
         } catch (error) {
             console.error('Fout bij laden aanvragen:', error);
-            document.getElementById('overdracht-aanvragenLijst').innerHTML = `
-                <div class="overdracht-alert overdracht-alert-danger">
-                    ${this.t('errorSearching')}: ${error.message}
-                </div>
-            `;
+            const lijstContainer = document.getElementById('overdracht-aanvragenLijst');
+            if (lijstContainer) {
+                lijstContainer.innerHTML = `
+                    <div class="overdracht-alert overdracht-alert-danger">
+                        ${this.t('errorSearching')}: ${error.message}
+                    </div>
+                `;
+            }
         }
     }
     
@@ -1281,15 +1363,15 @@ class OverdrachtModule {
             html += `
                 <div class="list-group-item list-group-item-action flex-column align-items-start">
                     <div class="overdracht-d-flex overdracht-w-100 overdracht-justify-content-between">
-                        <h6 class="overdracht-mb-1">${aanvraag.hond_naam} (${aanvraag.hond_stamboomnr || this.t('stamboomnr')})</h6>
+                        <h6 class="overdracht-mb-1">${this.escapeHtml(aanvraag.hond_naam)} (${this.escapeHtml(aanvraag.hond_stamboomnr || this.t('stamboomnr'))})</h6>
                         <small class="text-muted">${datum}</small>
                     </div>
                     
                     <div class="overdracht-row overdracht-mt-2">
                         <div class="overdracht-col-md-12">
                             <p class="overdracht-mb-1"><small>
-                                <i class="bi bi-person"></i> ${this.t('requestFrom')}: ${aanvraag.huidige_eigenaar_email}<br>
-                                <i class="bi bi-person-check"></i> ${this.t('requestTo')}: ${aanvraag.nieuwe_eigenaar_email}
+                                <i class="bi bi-person"></i> ${this.t('requestFrom')}: ${this.escapeHtml(aanvraag.huidige_eigenaar_email)}<br>
+                                <i class="bi bi-person-check"></i> ${this.t('requestTo')}: ${this.escapeHtml(aanvraag.nieuwe_eigenaar_email)}
                             </small></p>
                         </div>
                         <div class="overdracht-col-md-12 overdracht-text-end">
@@ -1310,7 +1392,10 @@ class OverdrachtModule {
         
         html += '</div>';
         
-        document.getElementById('overdracht-aanvragenLijst').innerHTML = html;
+        const lijstContainer = document.getElementById('overdracht-aanvragenLijst');
+        if (lijstContainer) {
+            lijstContainer.innerHTML = html;
+        }
         
         document.querySelectorAll('.overdracht-goedkeuren-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -1410,9 +1495,13 @@ class OverdrachtModule {
     
     checkDirectOverdrachtReady() {
         const hondGeselecteerd = this.selectedHond !== null;
-        const nieuweEigenaar = document.getElementById('overdracht-geselecteerdeNieuweEigenaar').value;
+        const nieuweEigenaarSelect = document.getElementById('overdracht-geselecteerdeNieuweEigenaar');
+        const nieuweEigenaar = nieuweEigenaarSelect ? nieuweEigenaarSelect.value : null;
         
-        document.getElementById('overdracht-voerDirecteUit').disabled = !(hondGeselecteerd && nieuweEigenaar);
+        const voerUitBtn = document.getElementById('overdracht-voerDirecteUit');
+        if (voerUitBtn) {
+            voerUitBtn.disabled = !(hondGeselecteerd && nieuweEigenaar);
+        }
     }
     
     async voerDirecteOverdrachtUit() {
@@ -1421,9 +1510,11 @@ class OverdrachtModule {
             return;
         }
         
-        const nieuweEigenaarId = document.getElementById('overdracht-geselecteerdeNieuweEigenaar').value;
-        const nieuweEigenaarText = document.getElementById('overdracht-geselecteerdeNieuweEigenaar')
-            .selectedOptions[0]?.text.split(' ')[0];
+        const nieuweEigenaarSelect = document.getElementById('overdracht-geselecteerdeNieuweEigenaar');
+        const nieuweEigenaarId = nieuweEigenaarSelect ? nieuweEigenaarSelect.value : null;
+        const nieuweEigenaarText = nieuweEigenaarSelect && nieuweEigenaarSelect.selectedOptions[0] 
+            ? nieuweEigenaarSelect.selectedOptions[0].text.split(' ')[0] 
+            : '';
         
         if (!nieuweEigenaarId) {
             this.showStatus('overdracht-directStatus', this.t('selectOwnerFirst'), 'warning');
@@ -1441,7 +1532,8 @@ class OverdrachtModule {
         }
         
         try {
-            document.getElementById('overdracht-voerDirecteUit').disabled = true;
+            const voerUitBtn = document.getElementById('overdracht-voerDirecteUit');
+            if (voerUitBtn) voerUitBtn.disabled = true;
             this.showStatus('overdracht-directStatus', this.t('transferBusy'), 'info');
             
             const { error: updateError } = await this.supabase
@@ -1477,15 +1569,32 @@ class OverdrachtModule {
             
             // Reset form
             this.selectedHond = null;
-            document.getElementById('overdracht-geselecteerdeHondDirectInfo').classList.add('overdracht-d-none');
-            document.getElementById('overdracht-zoekHondDirect').value = '';
-            document.getElementById('overdracht-zoekResultatenDirect').innerHTML = '';
-            document.getElementById('overdracht-directHuidigeEigenaar').value = '';
-            document.getElementById('overdracht-directHuidigeEigenaarId').value = '';
-            document.getElementById('overdracht-geselecteerdeNieuweEigenaar').innerHTML = '';
-            document.getElementById('overdracht-geselecteerdeNieuweEigenaar').style.display = 'none';
-            document.getElementById('overdracht-zoekNieuweEigenaar').value = '';
-            document.getElementById('overdracht-directOpmerkingen').value = '';
+            const infoDiv = document.getElementById('overdracht-geselecteerdeHondDirectInfo');
+            if (infoDiv) infoDiv.classList.add('overdracht-d-none');
+            
+            const searchInput = document.getElementById('overdracht-zoekHondDirect');
+            if (searchInput) searchInput.value = '';
+            
+            const resultsContainer = document.getElementById('overdracht-zoekResultatenDirect');
+            if (resultsContainer) resultsContainer.innerHTML = '';
+            
+            const huidigeEigenaarInput = document.getElementById('overdracht-directHuidigeEigenaar');
+            if (huidigeEigenaarInput) huidigeEigenaarInput.value = '';
+            
+            const huidigeEigenaarIdInput = document.getElementById('overdracht-directHuidigeEigenaarId');
+            if (huidigeEigenaarIdInput) huidigeEigenaarIdInput.value = '';
+            
+            const eigenaarSelect = document.getElementById('overdracht-geselecteerdeNieuweEigenaar');
+            if (eigenaarSelect) {
+                eigenaarSelect.innerHTML = '';
+                eigenaarSelect.style.display = 'none';
+            }
+            
+            const zoekEigenaarInput = document.getElementById('overdracht-zoekNieuweEigenaar');
+            if (zoekEigenaarInput) zoekEigenaarInput.value = '';
+            
+            const opmerkingenInput = document.getElementById('overdracht-directOpmerkingen');
+            if (opmerkingenInput) opmerkingenInput.value = '';
             
             const hintElement = document.getElementById('overdracht-direct-searchHint');
             if (hintElement) {
@@ -1495,10 +1604,16 @@ class OverdrachtModule {
             
             this.checkDirectOverdrachtReady();
             
+            // Her-enable button na 2 seconden
+            setTimeout(() => {
+                if (voerUitBtn) voerUitBtn.disabled = false;
+            }, 2000);
+            
         } catch (error) {
             console.error('Fout bij overdracht:', error);
             this.showStatus('overdracht-directStatus', `${this.t('transferError')}: ${error.message}`, 'danger');
-            document.getElementById('overdracht-voerDirecteUit').disabled = false;
+            const voerUitBtn = document.getElementById('overdracht-voerDirecteUit');
+            if (voerUitBtn) voerUitBtn.disabled = false;
         }
     }
     
